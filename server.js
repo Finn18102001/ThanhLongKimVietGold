@@ -35,6 +35,7 @@ function listenFrom(port, triesLeft) {
     console.log("  /        → public (trang chủ)");
     console.log("  /admin   → admin UI");
     console.log("  /api     → stub 503 (mock JSON đã tắt; client dùng Supabase)");
+    console.log("  /api/health/supabase-products → debug RLS (anon, cùng key .env)");
   });
 }
 

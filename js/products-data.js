@@ -51,8 +51,17 @@
   async function fetchProductsFromSupabase(sb) {
     const { data: rows, error } = await sb.from("products").select("*");
     if (error) throw error;
-    const sorted = sortProductRowsClient(rows);
+    const list = rows || [];
+    if (list.length === 0) {
+      console.warn(
+        "[TLKVProducts] Bảng products trả về 0 dòng. Nếu Table Editor vẫn có dữ liệu: RLS thường chặn SELECT — chạy policy \"Public read products\" trong supabase/rls-admin-email.sql (Supabase → SQL Editor)."
+      );
+    }
+    const sorted = sortProductRowsClient(list);
     const items = sorted.map(productDbToApp);
+    if (items.length > 0) {
+      console.info("[TLKVProducts] Đã tải " + items.length + " sản phẩm từ Supabase.");
+    }
     return normalizePayload({ items: items });
   }
 
@@ -227,8 +236,15 @@
         "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
       );
     }
-    await sb.auth.getSession();
-    return fetchProductsFromSupabase(sb);
+    try { await sb.auth.getUser(); } catch (_) {}
+
+    var result = await fetchProductsFromSupabase(sb);
+    if (result && result.items && result.items.length === 0) {
+      await new Promise(function (r) { setTimeout(r, 600); });
+      try { await sb.auth.getUser(); } catch (_) {}
+      result = await fetchProductsFromSupabase(sb);
+    }
+    return result;
   }
 
   function renderList(ul, items) {

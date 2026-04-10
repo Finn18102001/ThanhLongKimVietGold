@@ -521,6 +521,7 @@
         "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
       );
     }
+    try { await sb.auth.getUser(); } catch (_) {}
     return fetchGoldFromSupabase(sb);
   }
 
