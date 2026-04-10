@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "headerTime": "10h00",
+    "footerNote": "Cập nhật lúc 10:00 09/04/2026",
+    "unitLine": "ĐVT = Đồng/chỉ",
+    "brandItalic": "THĂNG LONG KIM VIỆT"
+  },
+  "rows": [
+    {
+      "id": "r1",
+      "brand": "THĂNG LONG KIM VIỆT",
+      "product": "Nhẫn Tròn Kim Việt",
+      "purity": "999,9",
+      "buy": "15.600.000",
+      "sell": "15.800.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r2",
+      "brand": "THĂNG LONG KIM VIỆT",
+      "product": "Bông Lúa Vàng",
+      "purity": "999,9",
+      "buy": "15.750.000",
+      "sell": "15.950.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r3",
+      "brand": "THĂNG LONG KIM VIỆT",
+      "product": "Trang Sức Vàng Ta",
+      "purity": "999,9",
+      "buy": "15.450.000",
+      "sell": "15.800.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r4",
+      "brand": "THĂNG LONG KIM VIỆT",
+      "product": "",
+      "purity": "99,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r5",
+      "brand": "BẢO TÍN MINH CHÂU",
+      "product": "Vàng Rồng Thăng Long 0.5, 1, 2, 3, 5 chỉ",
+      "purity": "999,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r6",
+      "brand": "BẢO TÍN MINH CHÂU",
+      "product": "Vàng Rồng Thăng Long 10 chỉ",
+      "purity": "999,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r7",
+      "brand": "VÀNG THƯƠNG HIỆU",
+      "product": "Kim Gia Bảo",
+      "purity": "999,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r8",
+      "brand": "VÀNG THƯƠNG HIỆU",
+      "product": "Hưng Thịnh Vượng",
+      "purity": "999,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r9",
+      "brand": "VÀNG THỊ TRƯỜNG",
+      "product": "Nhẫn, trang sức, vàng thương hiệu khác.",
+      "purity": "999,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r10",
+      "brand": "VÀNG THỊ TRƯỜNG",
+      "product": "",
+      "purity": "99,9",
+      "buy": "15.400.000",
+      "sell": "15.750.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r11",
+      "brand": "Bạc",
+      "product": "Thăng Long Phú Quý",
+      "purity": "99.9",
+      "buy": "288.200",
+      "sell": "297.100",
+      "metal": "silver"
+    },
+    {
+      "id": "r12",
+      "brand": "Bạc",
+      "product": "Bạc thị trường",
+      "purity": "99.9",
+      "buy": "206.000",
+      "sell": "",
+      "metal": "silver"
+    }
+  ]
+}

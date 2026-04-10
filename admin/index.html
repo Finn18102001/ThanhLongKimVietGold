@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin - Thăng Long Kim Việt</title>
+    <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
+    <link href="/admin/admin.css" rel="stylesheet" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-wrap">
+      <div id="login-panel" class="admin-card login-form">
+        <h1>Đăng nhập quản trị</h1>
+        <form id="login-form">
+          <label for="login-user">Email (Supabase Auth)</label>
+          <input id="login-user" name="email" type="email" autocomplete="username" required placeholder="you@example.com" />
+          <label for="login-pass">Mật khẩu</label>
+          <input id="login-pass" name="pass" type="password" autocomplete="current-password" required />
+          <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer">Đăng nhập</button>
+        </form>
+        <p class="hint">
+          Dùng tài khoản đã tạo trong <strong>Supabase → Authentication → Users</strong>. Sau khi đăng nhập, trình duyệt gửi kèm JWT — RLS kiểm tra
+          <code>auth.jwt() -&gt;&gt; 'email'</code> (giống policy &quot;Admin full meta&quot;). Cần policy tương tự cho <code>gold_price_rows</code> và
+          <code>products</code> nếu chưa có — xem <code>supabase/rls-admin-email.sql</code>.
+        </p>
+        <p class="hint"><a href="/">← Về trang chủ</a></p>
+      </div>
+
+      <div id="admin-panel" class="admin-card" hidden>
+        <div class="admin-actions" style="margin-bottom: 20px">
+          <h1 style="margin: 0; flex: 1">Quản lý bảng giá vàng</h1>
+          <button type="button" id="btn-logout" class="btn-secondary">Đăng xuất</button>
+          <button type="button" id="btn-reset-json" class="btn-secondary">Xóa cache local bảng giá (nếu có)</button>
+          <a href="/" class="btn-secondary">Về website</a>
+        </div>
+
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2>Thời gian &amp; đơn vị (dòng trên / chân bảng)</h2>
+          <form id="meta-form">
+            <div class="admin-form-grid">
+              <label> Giờ hiển thị (sau “Cập nhật lúc:”) <input type="text" id="meta-header-time" placeholder="10h00" /> </label>
+              <label> Ghi chú ngày (dòng chân bảng) <input type="text" id="meta-footer-note" placeholder="Cập nhật lúc 10:00 09/04/2026" /> </label>
+              <label> Đơn vị (đ/chỉ) <input type="text" id="meta-unit-line" placeholder="ĐVT =  Đồng/chỉ" /> </label>
+              <label> Tên thương hiệu (in nghiêng, dòng trên) <input type="text" id="meta-brand-italic" /> </label>
+            </div>
+            <div class="admin-actions">
+              <button type="submit" class="btn-primary">Lưu meta</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2 id="form-title">Thêm dòng (bảng giá)</h2>
+          <form id="row-form">
+            <input type="hidden" id="f-id" />
+            <div class="admin-form-grid">
+              <label> Thương hiệu <input type="text" id="f-brand" required /> </label>
+              <label> Sản phẩm <input type="text" id="f-product" /> </label>
+              <label> Hàm lượng <input type="text" id="f-purity" required /> </label>
+              <label> Mua vào <input type="text" id="f-buy" required /> </label>
+              <label> Bán ra <input type="text" id="f-sell" /> </label>
+              <label>
+                Loại
+                <select id="f-metal">
+                  <option value="gold">Vàng</option>
+                  <option value="silver">Bạc</option>
+                </select>
+              </label>
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="f-highlight" />
+                Nền xanh (vàng — tùy chọn; bạc luôn xanh)
+              </label>
+            </div>
+            <div class="admin-actions">
+              <button type="submit" class="btn-primary">Lưu</button>
+              <button type="button" id="btn-new" class="btn-secondary">Dòng mới</button>
+            </div>
+          </form>
+        </div>
+
+        <h2>Danh sách dòng (bảng giá)</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Thương hiệu</th>
+                <th>Sản phẩm</th>
+                <th>Hàm lượng</th>
+                <th>Mua</th>
+                <th>Bán</th>
+                <th>Loại</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-rows"></tbody>
+          </table>
+        </div>
+        <p class="hint">
+          <br /><br />
+          <strong>Thương hiệu</strong> / <strong>Sản phẩm</strong> trên bảng dưới gộp ô giống trang chủ (rowspan). <strong>Nhiều hàm lượng cho một tên SP:</strong> dòng đầu ghi tên; dòng sau để trống “Sản phẩm” — hoặc thêm dòng mới cùng TH + cùng tên SP (khác hàm lượng): hệ thống tự lưu tên SP rỗng cho dòng phụ.
+          <br />
+          <strong>Thương hiệu</strong> trùng (không phân biệt hoa thường) với dòng đã có → dòng mới gộp vào đúng khối thương hiệu đó. Thương hiệu hoàn toàn mới → chèn ngay phía trên khối Bạc.
+        </p>
+
+        <hr class="admin-sep" />
+
+        <div class="admin-actions" style="margin-bottom: 16px">
+          <h2 style="margin: 0; flex: 1">Quản lý sản phẩm</h2>
+          <button type="button" id="btn-reset-products-json" class="btn-secondary">Xóa cache local sản phẩm (nếu có)</button>
+        </div>
+
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2 id="product-form-title">Thêm sản phẩm</h2>
+          <form id="product-form">
+            <input type="hidden" id="pf-id" />
+            <div class="admin-form-grid">
+              <label> Tên <input type="text" id="pf-name" required /> </label>
+              <label> Danh mục <input type="text" id="pf-category" /> </label>
+              <label> Giá / ghi chú <input type="text" id="pf-priceText" placeholder="5.120.000đ hoặc Liên hệ" /> </label>
+              <label class="admin-label-full">
+                Ảnh (đường dẫn hoặc URL)
+                <input type="text" id="pf-image" placeholder="/assets/ten-file.png hoặc https://..." />
+              </label>
+            </div>
+            <p class="hint" style="margin-top: 0">
+              Đặt file trong thư mục <code>assets</code> (ví dụ <code>/assets/nhan-cau-hon-tron-1.png</code>) hoặc dán link ảnh ngoài. Để trống nếu chưa có ảnh.
+            </p>
+            <div class="admin-actions">
+              <button type="submit" class="btn-primary">Lưu sản phẩm</button>
+              <button type="button" id="btn-product-new" class="btn-secondary">Mục mới</button>
+            </div>
+          </form>
+        </div>
+
+        <h2>Danh sách sản phẩm</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Ảnh</th>
+                <th>Tên</th>
+                <th>Danh mục</th>
+                <th>Giá / ghi chú</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-product-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-toast-host" class="admin-toast-host" aria-live="polite"></div>
+
+    <script>
+      window.TLKV_BASE = "/";
+    </script>
+    <script src="/js/boot-supabase-env.js"></script>
+    <script src="/js/gold-data.js"></script>
+    <script src="/js/products-data.js"></script>
+    <script src="/js/admin-app.js"></script>
+  </body>
+</html>

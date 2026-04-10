@@ -1,0 +1,337 @@
+/* Keep changes minimal; rely on upstream baotinmanhhai.vn CSS for fidelity. */
+
+/* Placeholder blocks replacing external images */
+.img-ph {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  margin-right: 8px;
+  flex: 0 0 auto;
+}
+.img-ph--sm {
+  width: 14px;
+  height: 14px;
+  margin-right: 0;
+  vertical-align: -2px;
+}
+.logo-ph {
+  display: block;
+  width: 150px;
+  height: 48px;
+  border-radius: 10px;
+  background: rgba(153, 0, 0, 0.25);
+  border: 1px solid rgba(153, 0, 0, 0.35);
+}
+.logo-ph--sm {
+  width: 120px;
+  height: 38px;
+}
+
+.banner-frame {
+  height: 420px;
+  background: linear-gradient(135deg, rgba(153, 0, 0, 0.18), rgba(0, 0, 0, 0.05));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Footer text tweaks */
+.footer .footer-info ul li span {
+  font-weight: 600;
+}
+
+.site-logo-img {
+  max-height: 56px;
+  width: auto;
+  display: block;
+}
+.site-logo-img--sm {
+  max-height: 44px;
+}
+.site-logo-img--footer {
+  max-height: 64px;
+  margin-bottom: 8px;
+}
+
+.header-gr--spacer {
+  min-width: 120px;
+}
+
+/* Khung section bảng giá: mở rộng, không cắt cột giá (template hay để .container-l ~50%) */
+.home-chart.gold-rate-component {
+  overflow: visible;
+}
+
+.home-chart.gold-rate-component > .container {
+  max-width: min(100vw - 24px, 1680px);
+  width: 100%;
+}
+
+/* Trang chỉ có bảng (không cột biểu đồ): full width */
+.home-chart.gold-rate-component .chart-container-row:not(:has(.container-r)) {
+  display: block;
+  width: 100%;
+}
+
+.home-chart.gold-rate-component .chart-container-row:not(:has(.container-r)) .chart-container.container-l {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: none !important;
+}
+
+/* Trang bảng + biểu đồ: cột bảng vẫn dùng hết chiều ngang ô flex */
+.home-chart.gold-rate-component .chart-container-row:has(.container-r) .chart-container.container-l {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.home-chart.gold-rate-component .chart-body {
+  overflow-x: visible;
+  overflow-y: visible;
+  max-width: 100%;
+}
+
+.gold-table-meta {
+  text-align: center;
+  margin-bottom: 8px;
+}
+.gold-table-brand-italic {
+  font-style: italic;
+  color: #8b1d1d;
+  font-weight: 600;
+}
+
+.gold-table-extended th,
+.gold-table-extended td {
+  vertical-align: middle;
+}
+
+/* Cột SẢN PHẨM: không đậm, cho phép giãn ngang cùng bảng */
+.gold-table-content.gold-table-extended tbody td.col-product {
+  font-weight: 400 !important;
+  font-synthesis: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Hàm lượng / Mua / Bán: không in đậm (mọi dòng, kể cả bạc) */
+.gold-table-content.gold-table-extended tbody td.col-purity,
+.gold-table-content.gold-table-extended tbody td.price {
+  font-weight: 400 !important;
+  font-synthesis: none;
+}
+
+.gold-brand-cell {
+  font-weight: 600;
+  text-align: center;
+  white-space: normal;
+  min-width: 7.5rem;
+}
+
+/* Vàng: cột thương hiệu nền sáng (mặc định bảng) */
+.gold-table-content.gold-table-extended tbody td.gold-brand-cell:not(.gold-brand-cell--silver) {
+  background: #fff !important;
+  color: #18181b !important;
+}
+
+/* Bạc: ô “Bạc” (rowspan) nền xanh, chữ trắng */
+.gold-table-content.gold-table-extended tbody td.gold-brand-cell--silver {
+  background: #1a56a8 !important;
+  color: #fff !important;
+}
+
+/* Bo góc dưới bảng (ô được gán bằng JS vì có rowspan) */
+.gold-table-content.gold-table-extended tbody td.gold-table-corner-bl {
+  border-bottom-left-radius: 10px;
+  overflow: hidden;
+}
+.gold-table-content.gold-table-extended tbody td.gold-table-corner-br {
+  border-bottom-right-radius: 10px;
+  overflow: hidden;
+}
+
+/* Bạc (metal=silver): toàn bộ dòng SP / hàm lượng / giá nền xanh; vàng có thể bật highlight */
+.gold-table-content tr.row-silver > td.col-product,
+.gold-table-content tr.row-silver > td.col-purity,
+.gold-table-content tr.row-silver > td.price,
+.gold-table-content tr.row-highlight > td.col-product,
+.gold-table-content tr.row-highlight > td.col-purity,
+.gold-table-content tr.row-highlight > td.price {
+  background: #1a56a8 !important;
+  color: #fff !important;
+  font-weight: 400 !important;
+  font-synthesis: none;
+}
+
+/* Bảng giãn theo nội dung; cuộn ngang nếu vẫn quá rộng (không clip) */
+.gold-rate-component .table-responsive.gold-table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.gold-table-content.gold-table-extended {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+}
+
+.gold-table-content.gold-table-extended td.price,
+.gold-table-content.gold-table-extended thead th:nth-child(4),
+.gold-table-content.gold-table-extended thead th:nth-child(5) {
+  white-space: nowrap;
+}
+
+.gold-chart-wrap {
+  width: 100%;
+  height: 300px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+/* Tạm ẩn biểu đồ giá vàng (trang chi tiết) — bỏ class để bật lại */
+.tlkv-gold-chart--hidden {
+  display: none !important;
+}
+
+.menu-mb {
+  display: none;
+}
+.menu-mb.open {
+  display: block;
+}
+.menu-subs.menu-mega {
+  display: none;
+}
+.menu-subs.menu-mega.open {
+  display: block;
+}
+
+@media (max-width: 576px) {
+  .banner-frame {
+    height: 240px;
+  }
+  .gold-table-extended {
+    font-size: 12px;
+  }
+}
+
+/* --- Sản phẩm bán chạy (/sanpham): lưới tối đa 4 cột, thẻ gần baotinmanhhai.vn/san-pham --- */
+.tlkv-bestseller-root {
+  margin-top: 8px;
+}
+.tlkv-bestseller-title {
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #b91c1c;
+  margin: 0 0 24px;
+  text-transform: uppercase;
+}
+.tlkv-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media (max-width: 991.98px) {
+  .tlkv-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 575.98px) {
+  .tlkv-product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.tlkv-product-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.tlkv-product-card__media {
+  position: relative;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+.tlkv-product-card__watermark {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+}
+.tlkv-product-card__watermark-img {
+  opacity: 1;
+  max-height: 0px;
+  width: auto;
+  max-width: min(200px, 85%);
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+.tlkv-product-card__img-wrap {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px 20px;
+  background: #fff;
+}
+.tlkv-product-card__img {
+  max-width: 100%;
+  max-height: 190px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.tlkv-product-card__noimg {
+  font-size: 13px;
+  color: #a1a1aa;
+}
+.tlkv-product-card__body {
+  padding: 14px 12px 18px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tlkv-product-card__name {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #18181b;
+  margin: 0 0 10px;
+}
+.tlkv-product-card__price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #b91c1c;
+  margin: 0;
+}
+.tlkv-product-empty {
+  color: #71717a;
+  text-align: center;
+  padding: 24px;
+}

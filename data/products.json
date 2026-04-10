@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": "p1",
+      "name": "Nhẫn tròn Thăng Long",
+      "category": "Vàng",
+      "priceText": "Liên hệ",
+      "image": "/assets/nhan-cau-hon-tron-1.jpg"
+    },
+    {
+      "id": "p2",
+      "name": "Dây chuyền",
+      "category": "Trang sức",
+      "priceText": "Liên hệ",
+      "image": "/assets/day-chuyen-vang.png"
+    }
+  ]
+}

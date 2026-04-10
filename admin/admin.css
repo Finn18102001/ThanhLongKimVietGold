@@ -1,0 +1,209 @@
+.admin-body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f4f4f5;
+  margin: 0;
+  min-height: 100vh;
+}
+.admin-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+.admin-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+}
+.admin-card h1,
+.admin-card h2 {
+  margin-top: 0;
+  color: #330e0a;
+}
+.admin-table-wrap {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.admin-table th,
+.admin-table td {
+  border: 1px solid #e4e4e7;
+  padding: 8px 10px;
+  text-align: left;
+}
+.admin-table th {
+  background: #8b1d1d;
+  color: #fff;
+}
+.admin-table td.admin-brand-cell {
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+}
+.admin-table td.admin-product-cell {
+  font-weight: 400;
+  vertical-align: middle;
+}
+.admin-table tbody tr.row-silver td,
+.admin-table tbody tr.row-highlight td {
+  background: #1a56a8;
+  color: #fff;
+}
+.admin-table tbody tr.row-silver td .btn-edit,
+.admin-table tbody tr.row-silver td .btn-del,
+.admin-table tbody tr.row-highlight td .btn-edit,
+.admin-table tbody tr.row-highlight td .btn-del {
+  filter: brightness(1.15);
+}
+.admin-table button {
+  margin-right: 6px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+.admin-table button.btn-del {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.admin-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3f3f46;
+}
+.admin-form-grid input,
+.admin-form-grid select {
+  padding: 8px 10px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.admin-checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+}
+.admin-checkbox-label input {
+  width: auto;
+  margin: 0;
+}
+.admin-label-full {
+  grid-column: 1 / -1;
+}
+.admin-product-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  vertical-align: middle;
+  border-radius: 6px;
+  border: 1px solid #e4e4e7;
+  background: #fafafa;
+}
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.admin-actions button,
+.admin-actions a {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary {
+  background: #8b1d1d;
+  color: #fff;
+}
+.btn-secondary {
+  background: #e4e4e7;
+  color: #18181b;
+}
+.btn-link {
+  background: transparent;
+  color: #2563eb;
+}
+.login-form {
+  max-width: 360px;
+}
+.login-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.login-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #d4d4d8;
+}
+.hint {
+  font-size: 13px;
+  color: #71717a;
+  margin-top: 12px;
+}
+.admin-sep {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 28px 0;
+}
+.admin-empty-hint {
+  color: #71717a;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 12px 10px !important;
+}
+.admin-toast-host {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.admin-toast {
+  pointer-events: auto;
+  max-width: min(360px, calc(100vw - 48px));
+  background: #14532d;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 14px;
+  line-height: 1.4;
+  animation: admin-toast-in 0.22s ease-out;
+}
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
