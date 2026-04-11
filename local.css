@@ -115,6 +115,7 @@
   font-synthesis: none;
   white-space: nowrap;
   vertical-align: middle;
+  text-align: left;
 }
 
 /* Hàm lượng / Mua / Bán: không in đậm (mọi dòng, kể cả bạc) */
