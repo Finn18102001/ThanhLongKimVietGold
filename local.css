@@ -695,3 +695,30 @@
   .tv-company-name p { font-size: 0.4rem; }
   .tv-date-line { font-size: 0.55rem; }
 }
+
+@media (max-width: 991px) {
+  .tv-button-wrap,
+  .tv-button-wrap *,
+  .btn-tv-mode,
+  #btn-open-tv,
+  a.btn-tv-mode,
+  button.btn-tv-mode,
+  div.tv-button-wrap,
+  .tv-button-wrap .btn-tv-mode {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    max-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .tv-button-wrap {
+    display: none !important;
+  }
+}

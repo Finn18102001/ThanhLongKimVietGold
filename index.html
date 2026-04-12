@@ -255,6 +255,41 @@
   </script>
 </body>
 <script>
+  function hideTVButton() {
+    if (window.innerWidth < 992) {
+      const tvBtn = document.querySelector('.tv-button-wrap');
+      if (tvBtn) {
+        tvBtn.style.display = 'none';
+        tvBtn.style.visibility = 'hidden';
+        tvBtn.style.opacity = '0';
+        tvBtn.style.pointerEvents = 'none';
+      }
+    }
+  }
+  
+  hideTVButton();
+  
+  document.addEventListener('DOMContentLoaded', hideTVButton);
+  
+  window.addEventListener('load', hideTVButton);
+  
+  setTimeout(hideTVButton, 500);
+  setTimeout(hideTVButton, 1000);
+  setTimeout(hideTVButton, 2000);
+  
+  window.addEventListener('resize', hideTVButton);
+  
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        hideTVButton();
+      }
+    });
+  });
+  
+  observer.observe(document.body, { childList: true, subtree: true });
+</script>
+<script>
   // TV Mode
   const tvModal = document.getElementById('tv-modal');
   const btnOpenTV = document.getElementById('btn-open-tv');
@@ -342,5 +377,4 @@
 
   setInterval(updateTVDateTime, 1000);
 </script>
-
 </html>
