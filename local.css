@@ -109,7 +109,6 @@
   vertical-align: middle;
 }
 
-/* Cột SẢN PHẨM: không đậm, cho phép giãn ngang cùng bảng */
 .gold-table-content.gold-table-extended tbody td.col-product {
   font-weight: 400 !important;
   font-synthesis: none;
@@ -118,7 +117,6 @@
   text-align: left;
 }
 
-/* Hàm lượng / Mua / Bán: không in đậm (mọi dòng, kể cả bạc) */
 .gold-table-content.gold-table-extended tbody td.col-purity,
 .gold-table-content.gold-table-extended tbody td.price {
   font-weight: 400 !important;
@@ -132,19 +130,16 @@
   min-width: 7.5rem;
 }
 
-/* Vàng: cột thương hiệu nền sáng (mặc định bảng) */
 .gold-table-content.gold-table-extended tbody td.gold-brand-cell:not(.gold-brand-cell--silver) {
   background: #fff !important;
   color: #18181b !important;
 }
 
-/* Bạc: ô “Bạc” (rowspan) nền xanh, chữ trắng */
 .gold-table-content.gold-table-extended tbody td.gold-brand-cell--silver {
   background: #1a56a8 !important;
   color: #fff !important;
 }
 
-/* Bo góc dưới bảng (ô được gán bằng JS vì có rowspan) */
 .gold-table-content.gold-table-extended tbody td.gold-table-corner-bl {
   border-bottom-left-radius: 10px;
   overflow: hidden;
@@ -167,7 +162,6 @@
   font-synthesis: none;
 }
 
-/* Bảng giãn theo nội dung; cuộn ngang nếu vẫn quá rộng (không clip) */
 .gold-rate-component .table-responsive.gold-table {
   display: block;
   width: 100%;
@@ -192,6 +186,7 @@
 .gold-table-content.gold-table-extended thead th:nth-child(5) {
   white-space: nowrap;
 }
+
 
 .gold-chart-wrap {
   width: 100%;
@@ -335,4 +330,80 @@
   color: #71717a;
   text-align: center;
   padding: 24px;
+}
+
+@media (max-width: 768px) {
+
+  /* 1. Bật scroll ngang */
+  .gold-rate-component .table-responsive.gold-table {
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+  }
+
+  /* 2. Table fit full width */
+  .gold-table-content.gold-table-extended {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse;
+  }
+
+  /* 3. Giảm mạnh padding ngang (trái + phải) */
+  .gold-table-content td {
+    font-size: 11.6px !important;
+    line-height: 1.45 !important;
+    padding: 9px 3px !important;           /* ← Giảm từ 5px → 3px */
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    vertical-align: middle !important;
+  }
+
+  .gold-table-content th {
+    font-size: 10.2px !important;
+    line-height: 1.35 !important;
+    padding: 10px 3px !important;          /* ← Giảm từ 4px → 3px */
+    font-weight: 700 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: center !important;
+  }
+
+  /* 4. Điều chỉnh width cột - nhường thêm cho Hàm lượng */
+  .gold-table-content th:nth-child(1),
+  .gold-table-content td:nth-child(1) {   /* THƯƠNG HIỆU */
+    width: 21% !important;
+  }
+  .gold-table-content th:nth-child(2),
+  .gold-table-content td:nth-child(2) {   /* SẢN PHẨM */
+    width: 21% !important;
+  }
+  .gold-table-content th:nth-child(3),
+  .gold-table-content td:nth-child(3) {   /* HÀM LƯỢNG - tăng width */
+    width: 15% !important;
+  }
+  .gold-table-content th:nth-child(4),
+  .gold-table-content td:nth-child(4),
+  .gold-table-content th:nth-child(5),
+  .gold-table-content td:nth-child(5) {   /* MUA VÀO + BÁN RA */
+    width: 21.5% !important;
+  }
+
+  /* 5. Giá Mua/Bán - chỉ xuống dòng khi thực sự dài */
+  .gold-table-content td.price,
+  .gold-table-content thead th:nth-child(4),
+  .gold-table-content thead th:nth-child(5) {
+    white-space: normal !important;
+    font-size: 11.6px !important;
+    font-weight: 600;
+    word-break: keep-all !important;
+  }
+
+  /* 6. Brand cell */
+  .gold-brand-cell {
+    white-space: normal !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    padding: 9px 3px !important;           /* ← Giảm ngang theo */
+  }
 }
