@@ -1,194 +1,346 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Thăng Long Kim Việt</title>
-    <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
 
-    <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/vendor/style.css" rel="stylesheet">
-    <link href="/local.css" rel="stylesheet">
-  </head>
-  <body>
-    <div id="app">
-      <header class="header ">
-        <div class="header-pc">
-          <div class="container">
-            <div class="header--inner d-flex align-items-center justify-content-between">
-              <div class="header-gr left-gr">
-                <div class="header-gr-bot d-flex">
-                  <div class="header-gr-item">
-                    <a href="/" class="nav-link link-no-ic active">Trang chủ</a>
-                  </div>
-                  <div class="header-gr-item">
-                    <a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a>
-                  </div>
-                  <div class="header-gr-item has-submenu">
-                    <a href="/sanpham" class="nav-link link-no-ic">Sản phẩm</a>
-                    <div class="sanpham-subheader">
-                      <div class="container">
-                        <div class="sanpham-category">
-                          <div class="sanpham-category-item">
-                            <h4 class="category-name">Danh mục</h4>
-                            <ul class="list-unstyle p-0 m-0">
-                              <li><a href="/sanpham/gia-vang" class="category-link">Giá vàng hôm nay</a></li>
-                            </ul>
-                          </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thăng Long Kim Việt</title>
+  <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
+
+  <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/vendor/style.css" rel="stylesheet">
+  <link href="/local.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <header class="header ">
+      <div class="header-pc">
+        <div class="container">
+          <div class="header--inner d-flex align-items-center justify-content-between">
+            <div class="header-gr left-gr">
+              <div class="header-gr-bot d-flex">
+                <div class="header-gr-item">
+                  <a href="/" class="nav-link link-no-ic active">Trang chủ</a>
+                </div>
+                <div class="header-gr-item">
+                  <a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a>
+                </div>
+                <div class="header-gr-item has-submenu">
+                  <a href="/sanpham" class="nav-link link-no-ic">Sản phẩm</a>
+                  <div class="sanpham-subheader">
+                    <div class="container">
+                      <div class="sanpham-category">
+                        <div class="sanpham-category-item">
+                          <h4 class="category-name">Danh mục</h4>
+                          <ul class="list-unstyle p-0 m-0">
+                            <li><a href="/sanpham/gia-vang" class="category-link">Giá vàng hôm nay</a></li>
+                          </ul>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="header-logo">
-                <a href="/" class="logo">
-                  <img class="img-fluid site-logo-img" src="/assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
-                </a>
-              </div>
-              <div class="header-gr right-gr header-gr--spacer" aria-hidden="true"></div>
             </div>
-          </div>
-        </div>
-
-        <div class="header-mb">
-          <div class="container">
-            <div class="header-mb-wrap">
-              <a href="javascript:void(0)" class="mb-ham"><span></span><span></span><span></span></a>
-              <a href="./" class="mb-logo">
-                <img class="img-fluid site-logo-img site-logo-img--sm" src="./assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
+            <div class="header-logo">
+              <a href="/" class="logo">
+                <img class="img-fluid site-logo-img" src="/assets/logo-thang-long-kim-viet.png"
+                  alt="Thăng Long Kim Việt" />
               </a>
             </div>
+            <div class="header-gr right-gr header-gr--spacer" aria-hidden="true"></div>
           </div>
-          <div class="menu-mb" id="mb-menu">
-            <div class="menu-mb-overlay"></div>
-            <div class="menu-mb-wrap">
-              <div class="menu-mb-header">
-                <a href="javascript:void(0)" class="close-menu"><span class="img-ph" aria-hidden="true"></span></a>
-              </div>
-              <div class="menu-mb-body">
-                <ul class="menu-mb-section">
-                  <li><a href="/">Trang chủ</a></li>
-                  <li><a href="/gioithieu">Giới thiệu</a></li>
-                  <li class="has-sub">
-                    <a href="javascript:void(0)">Sản phẩm <i class="icon-right"><span class="img-ph img-ph--sm" aria-hidden="true"></span></i></a>
-                    <div class="menu-subs menu-mega">
-                      <div class="list-title">
-                        <a href="javascript:void(0);" class="mega-subs-title"><i class="icon-left"><span class="img-ph img-ph--sm" aria-hidden="true"></span></i> Sản phẩm</a>
-                      </div>
-                      <div class="list-item">
-                        <a href="/sanpham" class="title">Trang sản phẩm</a>
-                        <ul>
-                          <li><a href="/sanpham">Tổng quan</a></li>
-                          <li><a href="/sanpham/gia-vang">Giá vàng hôm nay</a></li>
-                        </ul>
-                      </div>
+        </div>
+      </div>
+
+      <div class="header-mb">
+        <div class="container">
+          <div class="header-mb-wrap">
+            <a href="javascript:void(0)" class="mb-ham"><span></span><span></span><span></span></a>
+            <a href="./" class="mb-logo">
+              <img class="img-fluid site-logo-img site-logo-img--sm" src="./assets/logo-thang-long-kim-viet.png"
+                alt="Thăng Long Kim Việt" />
+            </a>
+          </div>
+        </div>
+        <div class="menu-mb" id="mb-menu">
+          <div class="menu-mb-overlay"></div>
+          <div class="menu-mb-wrap">
+            <div class="menu-mb-header">
+              <a href="javascript:void(0)" class="close-menu"><span class="img-ph" aria-hidden="true"></span></a>
+            </div>
+            <div class="menu-mb-body">
+              <ul class="menu-mb-section">
+                <li><a href="/">Trang chủ</a></li>
+                <li><a href="/gioithieu">Giới thiệu</a></li>
+                <li class="has-sub">
+                  <a href="javascript:void(0)">Sản phẩm <i class="icon-right"><span class="img-ph img-ph--sm"
+                        aria-hidden="true"></span></i></a>
+                  <div class="menu-subs menu-mega">
+                    <div class="list-title">
+                      <a href="javascript:void(0);" class="mega-subs-title"><i class="icon-left"><span
+                            class="img-ph img-ph--sm" aria-hidden="true"></span></i> Sản phẩm</a>
                     </div>
-                  </li>
-                </ul>
-              </div>
+                    <div class="list-item">
+                      <a href="/sanpham" class="title">Trang sản phẩm</a>
+                      <ul>
+                        <li><a href="/sanpham">Tổng quan</a></li>
+                        <li><a href="/sanpham/gia-vang">Giá vàng hôm nay</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main class="">
-        <div class="master-wrapper">
-          <main>
-            <!-- Content: banner -->
-            <div class="home-banner">
-              <div class="banner-frame" aria-label="Banner placeholder"></div>
-            </div>
+    <main class="">
+      <div class="master-wrapper">
+        <main>
+          <!-- Content: banner -->
+          <div class="home-banner">
+            <div class="banner-frame" aria-label="Banner placeholder"></div>
+          </div>
 
-            <!-- Content: promo row -->
-            <div class="flashsale-row-container">
-              <div class="container">
-                <div class="flashsale-row d-flex align-items-center">
-                  <div class="flashsale-item flashsale-text"><p>MUA ONLINE - <span>GIAO HÀNG NGAY</span></p></div>
-                  <div class="flashsale-item flashsale-text"><p>CHUYÊN TRANG SỨC VÀNG TA - <span>MỚI NHẤT</span></p></div>
+          <!-- Content: promo row -->
+          <div class="flashsale-row-container">
+            <div class="container">
+              <div class="flashsale-row d-flex align-items-center">
+                <div class="flashsale-item flashsale-text">
+                  <p>MUA ONLINE - <span>GIAO HÀNG NGAY</span></p>
+                </div>
+                <div class="flashsale-item flashsale-text">
+                  <p>CHUYÊN TRANG SỨC VÀNG TA - <span>MỚI NHẤT</span></p>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Content: gold price table -->
-            <div class="home-chart gold-rate-component">
-              <div class="container">
-                <div class="chart-container-row d-flex">
-                  <div class="chart-container container-l">
-                    <div class="chart-title title-w-deco">
-                      <h4>THỊ TRƯỜNG VÀNG</h4>
-                      <div class="title-deco"></div>
+          <!-- Content: gold price table -->
+          <div class="home-chart gold-rate-component">
+            <div class="container">
+              <div class="chart-container-row d-flex">
+                <div class="chart-container container-l">
+                  <div class="chart-title title-w-deco">
+                    <h4>THỊ TRƯỜNG VÀNG</h4>
+                    <div class="title-deco"></div>
+                  </div>
+                  <div class="chart-body">
+                    <h5 class="gold-title">GIÁ VÀNG HÔM NAY</h5>
+                    <h2 class="gold-title bold">TẠI THĂNG LONG KIM VIỆT</h2>
+                    <div class="table-responsive gold-table">
+                      <p class="unit gold-table-meta" data-gold-meta-line>Cập nhật lúc: 10h00 · <span
+                          class="gold-table-brand-italic">THĂNG LONG KIM VIỆT</span> · ĐVT = Đồng/chỉ</p>
+                      <table class="gold-table-content gold-table-extended">
+                        <thead>
+                          <tr>
+                            <th>THƯƠNG HIỆU</th>
+                            <th>SẢN PHẨM</th>
+                            <th>HÀM LƯỢNG</th>
+                            <th>MUA VÀO</th>
+                            <th>BÁN RA</th>
+                          </tr>
+                        </thead>
+                        <tbody id="gold-table-body"></tbody>
+                      </table>
                     </div>
-                    <div class="chart-body">
-                      <h5 class="gold-title">GIÁ VÀNG HÔM NAY</h5>
-                      <h2 class="gold-title bold">TẠI THĂNG LONG KIM VIỆT</h2>
-                      <div class="table-responsive gold-table">
-                        <p class="unit gold-table-meta" data-gold-meta-line>Cập nhật lúc: 10h00 · <span class="gold-table-brand-italic">THĂNG LONG KIM VIỆT</span> · ĐVT = Đồng/chỉ</p>
-                        <table class="gold-table-content gold-table-extended">
-                          <thead>
-                            <tr>
-                              <th>THƯƠNG HIỆU</th>
-                              <th>SẢN PHẨM</th>
-                              <th>HÀM LƯỢNG</th>
-                              <th>MUA VÀO</th>
-                              <th>BÁN RA</th>
-                            </tr>
-                          </thead>
-                          <tbody id="gold-table-body"></tbody>
-                        </table>
+                  </div>
+                  <!-- TV Modal -->
+                  <div id="tv-modal" class="tv-modal">
+                    <div class="tv-modal-content">
+                      <!-- Header -->
+                      <div class="tv-header">
+                        <div class="tv-logo-company">
+                          <img src="/assets/logo-thang-long-kim-viet.png" alt="Logo">
+                          <div class="tv-company-name">
+                            <h2>THĂNG LONG KIM VIỆT</h2>
+                            <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
+                          </div>
+                        </div>
+
+                        <h1 class="tv-main-title">BẢNG GIÁ VÀNG MỚI NHẤT</h1>
+                        <div class="tv-time-close">
+                          <button id="btn-close-tv" class="tv-close-btn">✕</button>
+                        </div>
+                      </div>
+
+                      <div class="tv-table-wrapper">
+                        <div class="tv-table-container">
+                          <div class="tv-date-line" id="tv-date-line"></div>
+                          <table id="tv-gold-table" class="tv-gold-table">
+                            <thead>
+                              <tr>
+                                <th>THƯƠNG HIỆU</th>
+                                <th>SẢN PHẨM</th>
+                                <th>HÀM LƯỢNG</th>
+                                <th>MUA VÀO</th>
+                                <th>BÁN RA</th>
+                              </tr>
+                            </thead>
+                            <tbody id="tv-table-body"></tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div class="tv-footer">
+                        THĂNG LONG KIM VIỆT KÍNH CHÀO QUÝ KHÁCH
                       </div>
                     </div>
-                    <div class="chart-footer gold-table-footer">
-                      <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
-                      <div class="gold-page-detail-link">
-                        <a href="/sanpham/gia-vang">Xem chi tiết giá vàng <span class="img-ph img-ph--sm" aria-hidden="true"></span></a>
-                      </div>
+                  </div>
+                  <div class="chart-footer gold-table-footer">
+                    <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
+                    <!-- Nút mở bảng TV -->
+                    <div class="tv-button-wrap my-4">
+                      <button id="btn-open-tv" class="btn-tv-mode">
+                        <span class="tv-icon">📺</span>
+                        HIỂN THỊ BẢNG GIÁ CHO TV
+                        <span class="tv-icon">✨</span>
+                      </button>
+                    </div>
+                    <div class="gold-page-detail-link">
+                      <a href="/sanpham/gia-vang">Xem chi tiết giá vàng <span class="img-ph img-ph--sm"
+                          aria-hidden="true"></span></a>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </main>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
+    </main>
 
-      <!-- Footer -->
-      <footer class="footer">
-        <div class="container">
-          <div class="footer-content d-flex">
-            <div class="footer-gr gr-left">
-              <div class="footer-info">
-                <a href="/" class="footer-logo">
-                  <img class="img-fluid site-logo-img site-logo-img--footer" src="/assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
-                </a>
-                <h4 class="info-name">CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</h4>
-                <ul>
-                  <li>SĐT: <span>099 568 2568</span></li>
-                  <li>Địa chỉ: <span>322 Nguyễn Trãi, Phường Đại Mỗ, TP Hà Nội</span></li>
-                </ul>
-              </div>
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content d-flex">
+          <div class="footer-gr gr-left">
+            <div class="footer-info">
+              <a href="/" class="footer-logo">
+                <img class="img-fluid site-logo-img site-logo-img--footer" src="/assets/logo-thang-long-kim-viet.png"
+                  alt="Thăng Long Kim Việt" />
+              </a>
+              <h4 class="info-name">CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</h4>
+              <ul>
+                <li>SĐT: <span>099 568 2568</span></li>
+                <li>Địa chỉ: <span>322 Nguyễn Trãi, Phường Đại Mỗ, TP Hà Nội</span></li>
+              </ul>
             </div>
           </div>
-          <div class="footer-credit">
-            <h5>Copyright <span id="year"></span> © CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</h5>
-          </div>
         </div>
-      </footer>
-    </div>
+        <div class="footer-credit">
+          <h5>Copyright <span id="year"></span> © CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</h5>
+        </div>
+      </div>
+    </footer>
+  </div>
 
-    <script>
-      window.TLKV_BASE = "/";
-    </script>
-    <script src="/js/boot-supabase-env.js"></script>
-    <script src="/js/gold-data.js"></script>
-    <script src="/js/site-nav.js"></script>
-    <script>
-      document.getElementById("year").textContent = new Date().getFullYear();
+  <script>
+    window.TLKV_BASE = "/";
+  </script>
+  <script src="/js/boot-supabase-env.js"></script>
+  <script src="/js/gold-data.js"></script>
+  <script src="/js/site-nav.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    TLKVGold.mountGoldTable("#gold-table-body");
+    window.addEventListener("tlkv:gold-table-changed", function () {
       TLKVGold.mountGoldTable("#gold-table-body");
-      window.addEventListener("tlkv:gold-table-changed", function () {
-        TLKVGold.mountGoldTable("#gold-table-body");
-      });
-    </script>
-  </body>
+    });
+  </script>
+</body>
+<script>
+  // TV Mode
+  const tvModal = document.getElementById('tv-modal');
+  const btnOpenTV = document.getElementById('btn-open-tv');
+  const btnCloseTV = document.getElementById('btn-close-tv');
+  const tvTableBody = document.getElementById('tv-table-body');
+
+  function openTVMode() {
+    tvModal.style.display = 'flex';
+    renderTVTable();
+    updateTVDateTime();
+  }
+
+  function closeTVMode() {
+    tvModal.style.display = 'none';
+  }
+
+  function renderTVTable() {
+    const mainTableBody = document.getElementById('gold-table-body');
+    if (!mainTableBody) return;
+
+    // Copy nội dung table gốc
+    tvTableBody.innerHTML = mainTableBody.innerHTML;
+
+    // Force màu sắc bằng JavaScript (xử lý rowspan)
+    setTimeout(() => {
+      const rows = tvTableBody.querySelectorAll('tr');
+      let currentRowIndex = 0; // Đếm dòng thực tế (bỏ qua rowspan ảo)
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.querySelectorAll('td');
+
+        // Tìm cột MUA VÀO và BÁN RA (thường là cột cuối cùng)
+        if (cells.length >= 2) {
+          const buyCell = cells[cells.length - 2]; // MUA VÀO
+          const sellCell = cells[cells.length - 1]; // BÁN RA
+
+          // Dùng currentRowIndex để tính chẵn/lẻ thay vì i
+          if (currentRowIndex % 2 === 0) { // dòng chẵn (0,2,4...) -> màu vàng
+            buyCell.style.color = '#FFD700';
+            buyCell.style.textShadow = '0 0 5px #ffaa00, 0 0 8px #ff6600';
+            sellCell.style.color = '#FFD700';
+            sellCell.style.textShadow = '0 0 5px #ffaa00, 0 0 8px #ff6600';
+          } else { // dòng lẻ -> màu trắng
+            buyCell.style.color = '#ffffff';
+            buyCell.style.textShadow = 'none';
+            sellCell.style.color = '#ffffff';
+            sellCell.style.textShadow = 'none';
+          }
+          buyCell.style.fontWeight = 'bold';
+          sellCell.style.fontWeight = 'bold';
+
+          // Thêm gạch chân
+          buyCell.style.position = 'relative';
+          sellCell.style.position = 'relative';
+        }
+
+        currentRowIndex++;
+      }
+    }, 50);
+  }
+
+  // Event listeners
+  if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);
+  if (btnCloseTV) btnCloseTV.addEventListener('click', closeTVMode);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === "Escape" && tvModal && tvModal.style.display === 'flex') closeTVMode();
+  });
+
+  function updateTVDateTime() {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const formatted = `${day}/${month}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+    const el = document.getElementById('tv-date-line');
+    if (el) el.textContent = `Ngày/Date: ${formatted}`;
+  }
+
+  setInterval(updateTVDateTime, 1000);
+</script>
+
 </html>
