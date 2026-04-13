@@ -479,17 +479,20 @@
   opacity: 0.85;
 }
 
+/*
+ * Tránh vendor rule "img { max-width:100%; height:auto }" làm ảnh co width=0
+ * trong flex container khi intrinsic size chưa được xác định (ảnh tải trễ, TV WebView).
+ * Không dùng !important để tránh xung đột với breakpoint responsive bên dưới.
+ */
 .tv-logo-company img {
-  display: block !important;
+  display: block;
   flex-shrink: 0;
-  width: 54px !important;
-  height: 54px !important;
+  width: auto;
+  height: 54px;
   min-width: 54px;
   min-height: 54px;
-  max-width: none !important;
+  max-width: none;
   object-fit: contain;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
 .tv-main-title {
