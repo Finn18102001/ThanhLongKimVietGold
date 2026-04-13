@@ -87,9 +87,14 @@
           root.classList.add("tlkv-world-xau--error");
           if (errBox) {
             errBox.hidden = false;
-            errBox.textContent =
+            var errMsg =
               (j && j.error) ||
               "Không tải được dữ liệu XAU/USD. Kiểm tra GOLDAPI_KEY trên server (.env.local).";
+            if (j && j.code === "GOLDAPI_QUOTA" && !j.error) {
+              errMsg =
+                "GoldAPI đã hết hạn mức tháng. Vào goldapi.io/dashboard để nâng gói hoặc thêm thanh toán. Biểu đồ TradingView vẫn hoạt động.";
+            }
+            errBox.textContent = errMsg;
           }
           if (spotEl) spotEl.textContent = "—";
           if (chEl) {

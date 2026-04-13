@@ -298,21 +298,26 @@
   const tvTableBody = document.getElementById('tv-table-body');
   const tvHeaderLogo = document.getElementById('tv-header-logo');
 
-  /** URL tuyệt đối — một số trình duyệt TV không hiển thị đúng ảnh src chỉ dạng /assets/... */
+  /**
+   * URL tuyệt đối cho TV / WebKit cũ — đồng bộ quy tắc đường dẫn với gold-data assetUrl,
+   * resolve theo document (location.href) để đúng subpath và tránh file:///assets/... khi mở file://.
+   */
+  function tlkvTvLogoAssetPath() {
+    var b = typeof TLKV_BASE === 'string' ? TLKV_BASE : '';
+    var trimmed = 'assets/logo-thang-long-kim-viet.png';
+    if (b === '' || b === '/') return '/' + trimmed;
+    return String(b).replace(/\/?$/, '/') + trimmed;
+  }
+
   function tlkvTvLogoAbsoluteUrl() {
-    var base = typeof TLKV_BASE === 'string' ? TLKV_BASE : '/';
-    if (!base || base === '/') {
-      try {
-        return new URL('/assets/logo-thang-long-kim-viet.png', window.location.origin).href;
-      } catch (e) {
-        return window.location.origin + '/assets/logo-thang-long-kim-viet.png';
-      }
-    }
-    var dir = base.endsWith('/') ? base : base + '/';
+    var rel = tlkvTvLogoAssetPath();
     try {
-      return new URL('assets/logo-thang-long-kim-viet.png', window.location.origin + dir).href;
-    } catch (e2) {
-      return window.location.origin + dir + 'assets/logo-thang-long-kim-viet.png';
+      if (window.location.protocol === 'file:' && rel.charAt(0) === '/') {
+        return new URL(rel.replace(/^\//, ''), window.location.href).href;
+      }
+      return new URL(rel, window.location.href).href;
+    } catch (e) {
+      return rel;
     }
   }
 

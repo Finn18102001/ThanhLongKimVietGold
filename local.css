@@ -455,6 +455,8 @@
   align-items: center;
   gap: 1vw;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .tv-company-name {
@@ -499,6 +501,8 @@
   white-space: nowrap;
   letter-spacing: 2px;
   margin: 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .tv-date-line {
@@ -513,6 +517,8 @@
   display: flex;
   align-items: center;
   gap: 1vw;
+  position: relative;
+  z-index: 2;
 }
 
 .tv-close-btn {

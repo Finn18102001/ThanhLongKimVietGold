@@ -26,6 +26,33 @@ function goldApiDateMonthsAgo(months) {
   return goldApiYmdFromDate(d);
 }
 
+function goldApiFriendlyError(status, bodyText) {
+  let msg = String(bodyText || "").trim();
+  let parsed = null;
+  try {
+    parsed = JSON.parse(msg);
+  } catch (_) {}
+  const errStr = parsed && parsed.error ? String(parsed.error) : msg;
+  const lower = errStr.toLowerCase();
+  if (status === 403 && (lower.includes("quota") || lower.includes("billing") || lower.includes("upgrade"))) {
+    return {
+      code: "GOLDAPI_QUOTA",
+      message:
+        "GoldAPI đã hết hạn mức tháng (403). Vào goldapi.io/dashboard để thêm thanh toán / nâng gói, hoặc đợi sang tháng mới. Biểu đồ TradingView vẫn hiển thị bình thường.",
+    };
+  }
+  if (status === 401 || status === 403) {
+    return {
+      code: "GOLDAPI_AUTH",
+      message: "GoldAPI từ chối truy cập (" + status + "). Kiểm tra GOLDAPI_KEY trong .env.",
+    };
+  }
+  return {
+    code: "GOLDAPI_HTTP_" + status,
+    message: "GoldAPI lỗi " + status + (errStr ? ": " + errStr.slice(0, 180) : ""),
+  };
+}
+
 async function goldApiFetch(key, ymd) {
   const url = ymd
     ? "https://www.goldapi.io/api/XAU/USD/" + ymd
@@ -35,7 +62,11 @@ async function goldApiFetch(key, ymd) {
   });
   if (!r.ok) {
     const t = await r.text();
-    throw new Error("goldapi " + r.status + " " + t.slice(0, 200));
+    const friendly = goldApiFriendlyError(r.status, t);
+    const err = new Error(friendly.message);
+    err.goldApiCode = friendly.code;
+    err.goldApiStatus = r.status;
+    throw err;
   }
   return r.json();
 }
@@ -59,9 +90,13 @@ function fmtPctSigned2(n) {
   return sign + Math.abs(n).toFixed(2) + "%";
 }
 
-/** Cache ngắn để tránh vượt quota GoldAPI khi nhiều người F5. */
+/** Cache để giảm số request GoldAPI (quota tháng). Có thể ghi đè: GOLDAPI_CACHE_MINUTES=15 */
 let __worldXauUsdCache = { t: 0, json: null };
-const WORLD_XAU_TTL_MS = 5 * 60 * 1000;
+const WORLD_XAU_TTL_MS = (function () {
+  const n = Number(process.env.GOLDAPI_CACHE_MINUTES);
+  const min = Number.isFinite(n) && n > 0 ? n : 15;
+  return min * 60 * 1000;
+})();
 
 function supabaseRestEnv() {
   const base = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "")
@@ -251,8 +286,11 @@ module.exports = function apiRouter(_ROOT) {
       __worldXauUsdCache = { t: now, json: out };
       res.type("json").json(out);
     } catch (e) {
-      res.status(502).type("json").json({
+      const code = e && e.goldApiCode ? e.goldApiCode : null;
+      const http = e && e.goldApiStatus === 403 ? 503 : 502;
+      res.status(http).type("json").json({
         ok: false,
+        code: code,
         error: e && e.message ? e.message : String(e),
       });
     }

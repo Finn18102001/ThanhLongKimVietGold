@@ -179,4 +179,7 @@
   padding: 16px;
   color: #991b1b;
   font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
 }
