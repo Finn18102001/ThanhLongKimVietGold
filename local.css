@@ -487,8 +487,8 @@
 .tv-logo-company img {
   display: block;
   flex-shrink: 0;
-  width: auto;
-  height: 54px;
+  width: 54px !important;   
+  height: 54px !important;
   min-width: 54px;
   min-height: 54px;
   max-width: none;
