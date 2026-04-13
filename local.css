@@ -478,14 +478,22 @@
 }
 
 .tv-logo-company img {
-  display: block;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   flex-shrink: 0;
-  width: auto;
-  height: clamp(44px, 5.5vh, 80px);
-  min-width: 44px;
-  min-height: 44px;
-  max-width: none;
-  object-fit: contain;
+  width: auto !important;
+  height: 60px !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  max-width: none !important;
+  max-height: 80px !important;
+  object-fit: contain !important;
+}
+@media (min-width: 1200px) {
+  .tv-logo-company img {
+    height: 5.5vh !important;
+  }
 }
 
 .tv-main-title {
