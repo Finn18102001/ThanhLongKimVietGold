@@ -476,8 +476,15 @@
   opacity: 0.85;
 }
 
+/* Tránh img { max-width:100%; height:auto } (vendor) làm ảnh co width=0 trên một số TV / WebKit cũ khi flex + intrinsic chậm */
 .tv-logo-company img {
+  display: block;
+  flex-shrink: 0;
+  width: auto;
   height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  max-width: none;
   object-fit: contain;
 }
 
@@ -666,7 +673,7 @@
   .tv-main-title { font-size: 1.2rem; }
   .tv-company-name h2 { font-size: 1rem; }
   .tv-company-name p { font-size: 0.65rem; }
-  .tv-logo-company img { height: 44px; }
+  .tv-logo-company img { height: 44px; min-width: 44px; min-height: 44px; max-width: none; }
   .tv-date-line { font-size: 0.7rem; }
   .tv-footer { font-size: 0.85rem; }
   .tv-header { padding: 10px 12px; min-height: 80px; }
@@ -681,7 +688,7 @@
   .tv-header { padding: 8px 10px; min-height: 70px; }
   .tv-company-name h2 { font-size: 0.75rem; }
   .tv-company-name p { font-size: 0.5rem; }
-  .tv-logo-company img { height: 36px; }
+  .tv-logo-company img { height: 36px; min-width: 36px; min-height: 36px; max-width: none; }
   .tv-date-line { font-size: 0.6rem; }
   .tv-footer { font-size: 0.7rem; }
   .tv-gold-table th, .tv-gold-table td {
@@ -695,31 +702,4 @@
   .tv-company-name h2 { font-size: 0.65rem; }
   .tv-company-name p { font-size: 0.4rem; }
   .tv-date-line { font-size: 0.55rem; }
-}
-
-@media (max-width: 991px) {
-  .tv-button-wrap,
-  .tv-button-wrap *,
-  .btn-tv-mode,
-  #btn-open-tv,
-  a.btn-tv-mode,
-  button.btn-tv-mode,
-  div.tv-button-wrap,
-  .tv-button-wrap .btn-tv-mode {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    max-height: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-}
-
-@media (max-width: 991px) {
-  .tv-button-wrap {
-    display: none !important;
-  }
 }

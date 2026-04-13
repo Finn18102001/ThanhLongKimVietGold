@@ -369,6 +369,45 @@
     };
   }
 
+  /** Giữ đơn vị + thương hiệu; cập nhật giờ hiển thị + ghi chú chân bảng theo thời điểm hiện tại (Asia/Ho_Chi_Minh). */
+  function stampMetaWithVietnamNow(meta) {
+    const m = normalizeMeta(meta || {});
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).formatToParts(now);
+    const pick = function (t) {
+      const x = parts.find(function (p) {
+        return p.type === t;
+      });
+      return x ? x.value : "";
+    };
+    const pad2 = function (v) {
+      const n = parseInt(String(v), 10);
+      if (!Number.isFinite(n)) return String(v || "").padStart(2, "0");
+      return n < 10 ? "0" + n : String(n);
+    };
+    const hour = pad2(pick("hour"));
+    const minute = pad2(pick("minute"));
+    const day = pad2(pick("day"));
+    const month = pad2(pick("month"));
+    const year = pick("year");
+    const headerTime = hour + "h" + minute;
+    const footerNote = "Cập nhật lúc " + hour + ":" + minute + " " + day + "/" + month + "/" + year;
+    return normalizeMeta({
+      headerTime: headerTime,
+      footerNote: footerNote,
+      unitLine: m.unitLine,
+      brandItalic: m.brandItalic,
+    });
+  }
+
   function normalizeRow(r) {
     const brand = String(r.brand ?? "").trim();
     let metal = r.metal === "silver" ? "silver" : "gold";
@@ -672,5 +711,6 @@
     coalesceProductForNewGoldRow,
     coalesceProductForNewSilverRow,
     normalizeMeta,
+    stampMetaWithVietnamNow,
   };
 })(typeof window !== "undefined" ? window : globalThis);

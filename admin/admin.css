@@ -55,8 +55,10 @@
 }
 .admin-table tbody tr.row-silver td .btn-edit,
 .admin-table tbody tr.row-silver td .btn-del,
+.admin-table tbody tr.row-silver td .admin-btn-inline-secondary,
 .admin-table tbody tr.row-highlight td .btn-edit,
-.admin-table tbody tr.row-highlight td .btn-del {
+.admin-table tbody tr.row-highlight td .btn-del,
+.admin-table tbody tr.row-highlight td .admin-btn-inline-secondary {
   filter: brightness(1.15);
 }
 .admin-table button {
@@ -70,6 +72,74 @@
 .admin-table button.btn-del {
   border-color: #b91c1c;
   color: #b91c1c;
+}
+.admin-th-actions {
+  min-width: 140px;
+  white-space: nowrap;
+}
+.admin-cell-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.admin-cell-actions button {
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+.admin-table--gold-rows .admin-gold-inline-input {
+  width: 100%;
+  min-width: 64px;
+  max-width: 160px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.admin-table--gold-rows td:nth-child(5) .admin-gold-inline-input,
+.admin-table--gold-rows td:nth-child(6) .admin-gold-inline-input {
+  max-width: 120px;
+}
+.admin-gold-table-host {
+  position: relative;
+  padding-bottom: 56px;
+}
+.admin-btn-thay-doi {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #8b1d1d;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 2;
+}
+.admin-btn-thay-doi:hover {
+  filter: brightness(1.06);
+}
+.admin-btn-thay-doi[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.admin-btn-inline-secondary {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #a1a1aa;
+  background: #fafafa;
+  color: #18181b;
+  cursor: pointer;
+}
+.admin-btn-inline-secondary:hover {
+  background: #f4f4f5;
 }
 .admin-form-grid {
   display: grid;
@@ -206,4 +276,68 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e4e4e7;
+}
+.admin-tab {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #71717a;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.admin-tab:hover {
+  color: #330e0a;
+}
+.admin-tab--active {
+  color: #8b1d1d;
+  border-bottom-color: #8b1d1d;
+}
+.admin-tab-panel--hidden {
+  display: none !important;
+}
+.admin-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+}
+.admin-history-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3f3f46;
+}
+.admin-history-filters input[type="search"],
+.admin-history-filters input[type="date"] {
+  padding: 8px 10px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 200px;
+}
+.admin-table--compact td,
+.admin-table--compact th {
+  font-size: 13px;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.admin-table--compact td {
+  word-break: break-word;
+}
+.admin-history-cell-summary {
+  line-height: 1.45;
+  max-width: 420px;
+  font-size: 12px;
 }

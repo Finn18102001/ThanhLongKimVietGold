@@ -11,6 +11,7 @@
   <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
   <link href="/css/vendor/style.css" rel="stylesheet">
   <link href="/local.css" rel="stylesheet">
+  <link href="/css/world-gold-xau.css" rel="stylesheet">
 </head>
 
 <body>
@@ -149,6 +150,55 @@
                         <tbody id="gold-table-body"></tbody>
                       </table>
                     </div>
+
+                    <div class="chart-footer gold-table-footer">
+                      <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
+                      <!-- Nút mở bảng TV -->
+                      <div class="tv-button-wrap my-4">
+                        <button id="btn-open-tv" class="btn-tv-mode">
+                          <span class="tv-icon">📺</span>
+                          HIỂN THỊ BẢNG GIÁ CHO TV
+                          <span class="tv-icon">✨</span>
+                        </button>
+                      </div>
+                      <div class="gold-page-detail-link">
+                        <a href="/sanpham/gia-vang">Xem chi tiết giá vàng <span class="img-ph img-ph--sm"
+                            aria-hidden="true"></span></a>
+                      </div>
+                    </div>
+
+                    <section class="tlkv-world-xau" data-tlkv-world-xau aria-label="Giá vàng thế giới XAU/USD">
+                      <div class="tlkv-world-xau-inner">
+                        <div class="tlkv-world-xau-main">
+                          <div class="tlkv-world-xau-head">
+                            <div>
+                              <h3 class="tlkv-world-xau-title">Giá vàng thế giới</h3>
+                              <p class="tlkv-world-xau-sub"><span class="tlkv-world-xau-symbol">FOREXCOM:XAUUSD</span> · VÀNG / ĐÔ LA MỸ</p>
+                            </div>
+                            <div class="tlkv-world-xau-spot">
+                              <div class="tlkv-world-xau-price">—</div>
+                              <div class="tlkv-world-xau-change tlkv-world-xau-change--flat">—</div>
+                            </div>
+                          </div>
+                          <div class="tlkv-world-xau-tv-wrap" aria-label="Biểu đồ TradingView XAU/USD"></div>
+                          <div class="tlkv-world-xau-msg" hidden></div>
+                        </div>
+                        <aside class="tlkv-world-xau-side">
+                          <h3>Diễn biến giá vàng thế giới</h3>
+                          <table class="tlkv-world-xau-table">
+                            <thead>
+                              <tr>
+                                <th>Kỳ</th>
+                                <th>Thay đổi (USD)</th>
+                                <th>%</th>
+                              </tr>
+                            </thead>
+                            <tbody class="tlkv-world-xau-tbody"></tbody>
+                          </table>
+                          <p class="tlkv-world-xau-foot"></p>
+                        </aside>
+                      </div>
+                    </section>
                   </div>
                   <!-- TV Modal -->
                   <div id="tv-modal" class="tv-modal">
@@ -156,7 +206,7 @@
                       <!-- Header -->
                       <div class="tv-header">
                         <div class="tv-logo-company">
-                          <img src="http://thanglongkimviet.vn/assets/logo-thang-long-kim-viet.png" alt="Logo">
+                          <img id="tv-header-logo" src="/assets/logo-thang-long-kim-viet.png" alt="Logo Thăng Long Kim Việt" width="60" height="60" decoding="async">
                           <div class="tv-company-name">
                             <h2>THĂNG LONG KIM VIỆT</h2>
                             <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
@@ -190,21 +240,6 @@
                       <div class="tv-footer">
                         THĂNG LONG KIM VIỆT KÍNH CHÀO QUÝ KHÁCH
                       </div>
-                    </div>
-                  </div>
-                  <div class="chart-footer gold-table-footer">
-                    <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
-                    <!-- Nút mở bảng TV -->
-                    <div class="tv-button-wrap my-4">
-                      <button id="btn-open-tv" class="btn-tv-mode">
-                        <span class="tv-icon">📺</span>
-                        HIỂN THỊ BẢNG GIÁ CHO TV
-                        <span class="tv-icon">✨</span>
-                      </button>
-                    </div>
-                    <div class="gold-page-detail-link">
-                      <a href="/sanpham/gia-vang">Xem chi tiết giá vàng <span class="img-ph img-ph--sm"
-                          aria-hidden="true"></span></a>
                     </div>
                   </div>
                 </div>
@@ -245,6 +280,7 @@
   </script>
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/gold-data.js"></script>
+  <script src="/js/world-gold-xau.js"></script>
   <script src="/js/site-nav.js"></script>
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
@@ -255,48 +291,38 @@
   </script>
 </body>
 <script>
-  function hideTVButton() {
-    if (window.innerWidth < 992) {
-      const tvBtn = document.querySelector('.tv-button-wrap');
-      if (tvBtn) {
-        tvBtn.style.display = 'none';
-        tvBtn.style.visibility = 'hidden';
-        tvBtn.style.opacity = '0';
-        tvBtn.style.pointerEvents = 'none';
-      }
-    }
-  }
-  
-  hideTVButton();
-  
-  document.addEventListener('DOMContentLoaded', hideTVButton);
-  
-  window.addEventListener('load', hideTVButton);
-  
-  setTimeout(hideTVButton, 500);
-  setTimeout(hideTVButton, 1000);
-  setTimeout(hideTVButton, 2000);
-  
-  window.addEventListener('resize', hideTVButton);
-  
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.type === 'childList') {
-        hideTVButton();
-      }
-    });
-  });
-  
-  observer.observe(document.body, { childList: true, subtree: true });
-</script>
-<script>
   // TV Mode
   const tvModal = document.getElementById('tv-modal');
   const btnOpenTV = document.getElementById('btn-open-tv');
   const btnCloseTV = document.getElementById('btn-close-tv');
   const tvTableBody = document.getElementById('tv-table-body');
+  const tvHeaderLogo = document.getElementById('tv-header-logo');
+
+  /** URL tuyệt đối — một số trình duyệt TV không hiển thị đúng ảnh src chỉ dạng /assets/... */
+  function tlkvTvLogoAbsoluteUrl() {
+    var base = typeof TLKV_BASE === 'string' ? TLKV_BASE : '/';
+    if (!base || base === '/') {
+      try {
+        return new URL('/assets/logo-thang-long-kim-viet.png', window.location.origin).href;
+      } catch (e) {
+        return window.location.origin + '/assets/logo-thang-long-kim-viet.png';
+      }
+    }
+    var dir = base.endsWith('/') ? base : base + '/';
+    try {
+      return new URL('assets/logo-thang-long-kim-viet.png', window.location.origin + dir).href;
+    } catch (e2) {
+      return window.location.origin + dir + 'assets/logo-thang-long-kim-viet.png';
+    }
+  }
+
+  function refreshTVHeaderLogoSrc() {
+    if (!tvHeaderLogo) return;
+    tvHeaderLogo.src = tlkvTvLogoAbsoluteUrl();
+  }
 
   function openTVMode() {
+    refreshTVHeaderLogoSrc();
     tvModal.style.display = 'flex';
     renderTVTable();
     updateTVDateTime();
@@ -351,6 +377,8 @@
       }
     }, 50);
   }
+
+  refreshTVHeaderLogoSrc();
 
   // Event listeners
   if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);

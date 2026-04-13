@@ -9,6 +9,7 @@
     <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
     <link href="/css/vendor/style.css" rel="stylesheet">
     <link href="/local.css" rel="stylesheet">
+    <link href="/css/world-gold-xau.css" rel="stylesheet">
   </head>
   <body>
     <div id="app">
@@ -119,9 +120,43 @@
                           <tbody id="gold-table-body"></tbody>
                         </table>
                       </div>
-                    </div>
-                    <div class="chart-footer gold-table-footer">
-                      <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
+
+                      <div class="chart-footer gold-table-footer">
+                        <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
+                      </div>
+
+                      <section class="tlkv-world-xau" data-tlkv-world-xau aria-label="Giá vàng thế giới XAU/USD">
+                        <div class="tlkv-world-xau-inner">
+                          <div class="tlkv-world-xau-main">
+                            <div class="tlkv-world-xau-head">
+                              <div>
+                                <h3 class="tlkv-world-xau-title">Giá vàng thế giới</h3>
+                                <p class="tlkv-world-xau-sub"><span class="tlkv-world-xau-symbol">FOREXCOM:XAUUSD</span> · VÀNG / ĐÔ LA MỸ</p>
+                              </div>
+                              <div class="tlkv-world-xau-spot">
+                                <div class="tlkv-world-xau-price">—</div>
+                                <div class="tlkv-world-xau-change tlkv-world-xau-change--flat">—</div>
+                              </div>
+                            </div>
+                            <div class="tlkv-world-xau-tv-wrap" aria-label="Biểu đồ TradingView XAU/USD"></div>
+                            <div class="tlkv-world-xau-msg" hidden></div>
+                          </div>
+                          <aside class="tlkv-world-xau-side">
+                            <h3>Diễn biến giá vàng thế giới</h3>
+                            <table class="tlkv-world-xau-table">
+                              <thead>
+                                <tr>
+                                  <th>Kỳ</th>
+                                  <th>Thay đổi (USD)</th>
+                                  <th>%</th>
+                                </tr>
+                              </thead>
+                              <tbody class="tlkv-world-xau-tbody"></tbody>
+                            </table>
+                            <p class="tlkv-world-xau-foot"></p>
+                          </aside>
+                        </div>
+                      </section>
                     </div>
                   </div>
 
@@ -171,6 +206,7 @@
     </script>
     <script src="/js/boot-supabase-env.js"></script>
     <script src="/js/gold-data.js"></script>
+    <script src="/js/world-gold-xau.js"></script>
     <script src="/js/site-nav.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>
