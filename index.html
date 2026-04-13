@@ -206,7 +206,7 @@
                       <!-- Header -->
                       <div class="tv-header">
                         <div class="tv-logo-company">
-                          <img id="tv-header-logo" src="/assets/logo-thang-long-kim-viet.png" alt="Logo Thăng Long Kim Việt" decoding="async" style="display:block;width:auto;height:60px;min-width:50px;min-height:50px;max-width:none;object-fit:contain;flex-shrink:0;">
+                          <img id="tv-header-logo" src="/assets/logo-thang-long-kim-viet.png" alt="Logo Thăng Long Kim Việt" width="60" height="60" decoding="async">
                           <div class="tv-company-name">
                             <h2>THĂNG LONG KIM VIỆT</h2>
                             <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
@@ -318,33 +318,7 @@
 
   function refreshTVHeaderLogoSrc() {
     if (!tvHeaderLogo) return;
-    var absUrl = tlkvTvLogoAbsoluteUrl();
-    if (tvHeaderLogo.src !== absUrl) tvHeaderLogo.src = absUrl;
-    tvHeaderLogo.style.display = 'block';
-    tvHeaderLogo.style.visibility = 'visible';
-    tvHeaderLogo.style.opacity = '1';
-    tvHeaderLogo.style.height = '60px';
-    tvHeaderLogo.style.minWidth = '50px';
-    tvHeaderLogo.style.minHeight = '50px';
-  }
-
-  if (tvHeaderLogo) {
-    tvHeaderLogo.onerror = function() {
-      var fallbacks = [
-        window.location.origin + '/assets/logo-thang-long-kim-viet.png',
-        '/assets/logo-thang-long-kim-viet.png',
-        './assets/logo-thang-long-kim-viet.png',
-        'assets/logo-thang-long-kim-viet.png'
-      ];
-      var current = tvHeaderLogo.getAttribute('src') || '';
-      for (var i = 0; i < fallbacks.length; i++) {
-        if (fallbacks[i] !== current) {
-          tvHeaderLogo.onerror = null;
-          tvHeaderLogo.src = fallbacks[i];
-          return;
-        }
-      }
-    };
+    tvHeaderLogo.src = tlkvTvLogoAbsoluteUrl();
   }
 
   function openTVMode() {
