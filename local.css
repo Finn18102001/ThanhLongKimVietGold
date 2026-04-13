@@ -479,16 +479,17 @@
   opacity: 0.85;
 }
 
-/* Tránh img { max-width:100%; height:auto } (vendor) làm ảnh co width=0 trên một số TV / WebKit cũ khi flex + intrinsic chậm */
 .tv-logo-company img {
-  display: block;
+  display: block !important;
   flex-shrink: 0;
-  width: auto;
-  height: 54px;
+  width: 54px !important;
+  height: 54px !important;
   min-width: 54px;
   min-height: 54px;
-  max-width: none;
+  max-width: none !important;
   object-fit: contain;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .tv-main-title {

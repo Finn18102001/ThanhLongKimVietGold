@@ -296,38 +296,7 @@
   const btnOpenTV = document.getElementById('btn-open-tv');
   const btnCloseTV = document.getElementById('btn-close-tv');
   const tvTableBody = document.getElementById('tv-table-body');
-  const tvHeaderLogo = document.getElementById('tv-header-logo');
-
-  /**
-   * URL tuyệt đối cho TV / WebKit cũ — đồng bộ quy tắc đường dẫn với gold-data assetUrl,
-   * resolve theo document (location.href) để đúng subpath và tránh file:///assets/... khi mở file://.
-   */
-  function tlkvTvLogoAssetPath() {
-    var b = typeof TLKV_BASE === 'string' ? TLKV_BASE : '';
-    var trimmed = 'assets/logo-thang-long-kim-viet.png';
-    if (b === '' || b === '/') return '/' + trimmed;
-    return String(b).replace(/\/?$/, '/') + trimmed;
-  }
-
-  function tlkvTvLogoAbsoluteUrl() {
-    var rel = tlkvTvLogoAssetPath();
-    try {
-      if (window.location.protocol === 'file:' && rel.charAt(0) === '/') {
-        return new URL(rel.replace(/^\//, ''), window.location.href).href;
-      }
-      return new URL(rel, window.location.href).href;
-    } catch (e) {
-      return rel;
-    }
-  }
-
-  function refreshTVHeaderLogoSrc() {
-    if (!tvHeaderLogo) return;
-    tvHeaderLogo.src = tlkvTvLogoAbsoluteUrl();
-  }
-
   function openTVMode() {
-    refreshTVHeaderLogoSrc();
     tvModal.style.display = 'flex';
     renderTVTable();
     updateTVDateTime();
@@ -382,8 +351,6 @@
       }
     }, 50);
   }
-
-  refreshTVHeaderLogoSrc();
 
   // Event listeners
   if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);
