@@ -440,13 +440,13 @@
 /* Header */
 .tv-header {
   background: #b91c1c;
-  padding: 10px 18px;
+  padding: 9px 17px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   position: relative;
-  min-height: 75px;
+  min-height: 66px;
 }
 
 .tv-logo-company {
@@ -464,14 +464,14 @@
 }
 
 .tv-company-name h2 {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 .tv-company-name p {
-  font-size: 0.6rem;
+  font-size: 0.57rem;
   margin: 0;
   opacity: 0.85;
 }
@@ -481,9 +481,9 @@
   display: block;
   flex-shrink: 0;
   width: auto;
-  height: 60px;
-  min-width: 60px;
-  min-height: 60px;
+  height: 54px;
+  min-width: 54px;
+  min-height: 54px;
   max-width: none;
   object-fit: contain;
 }
@@ -493,7 +493,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1.4rem;
+  font-size: 1.28rem;
   font-weight: 900;
   white-space: nowrap;
   letter-spacing: 1px;
@@ -502,10 +502,10 @@
 
 .tv-date-line {
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-family: monospace;
-  padding: 4px 12px;
-  margin: 0 auto 8px;
+  padding: 3px 12px;
+  margin: 0 auto 5px;
 }
 
 .tv-time-close {
@@ -534,11 +534,12 @@
 .tv-table-wrapper {
   flex: 1;
   overflow: auto;
-  padding: 5px 18px 0 18px;
+  padding: 4px 16px 0 16px;
   background: #5c0f0f;
   display: flex;
   flex-direction: column;
   padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .tv-table-container {
@@ -558,10 +559,12 @@
 
 .tv-gold-table th,
 .tv-gold-table td {
-  padding: 10px 8px;
+  padding: 8px 7px;
   border: 1px solid rgba(255, 255, 255, 0.4);
   text-align: center;
   position: relative;
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 /* Hàm Lượng */
@@ -597,17 +600,17 @@
 .tv-footer {
   background: rgba(0, 0, 0, 0.7);
   text-align: center;
-  padding: 8px 12px;
-  font-size: 1.1rem;
+  padding: 7px 12px;
+  font-size: 1.0rem;
   font-weight: bold;
   letter-spacing: 1.5px;
   color: #FFD700;
   text-shadow: 0 0 5px #ffaa00, 0 0 8px #ff6600;
   text-transform: uppercase;
   border-top: 1px solid rgba(255, 215, 0, 0.3);
-  margin-top: -1px !important;
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
+  margin-top: 0 !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 .tv-button-wrap {
   margin: 20px 0 15px 0;
