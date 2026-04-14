@@ -22,7 +22,10 @@
       payload: row.payload != null ? row.payload : null,
     };
     return sb.from(GOLD_LOG).insert(insert).then(function (res) {
-      if (res.error) console.warn("[TLKVAudit] gold_price_change_log:", res.error);
+      if (res.error) {
+        console.error("[TLKVAudit] gold_price_change_log INSERT failed:", res.error);
+        throw new Error("Ghi lịch sử giá vàng thất bại: " + (res.error.message || JSON.stringify(res.error)));
+      }
       return res;
     });
   }
@@ -41,7 +44,10 @@
       payload: row.payload != null ? row.payload : null,
     };
     return sb.from(PRODUCT_LOG).insert(insert).then(function (res) {
-      if (res.error) console.warn("[TLKVAudit] product_change_log:", res.error);
+      if (res.error) {
+        console.error("[TLKVAudit] product_change_log INSERT failed:", res.error);
+        throw new Error("Ghi lịch sử sản phẩm thất bại: " + (res.error.message || JSON.stringify(res.error)));
+      }
       return res;
     });
   }
