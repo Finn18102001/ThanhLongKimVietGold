@@ -5,6 +5,11 @@
   var currentTab = "gold";
   var goldHistSearchTimer = null;
   var productHistSearchTimer = null;
+  var HISTORY_PAGE_SIZE = 10;
+  var goldHistAllRows = [];
+  var goldHistPage = 1;
+  var productHistAllRows = [];
+  var productHistPage = 1;
   /** Các id dòng đang sửa inline (có thể nhiều dòng cùng lúc). */
   var goldInlineEditRowIds = Object.create(null);
 
@@ -160,6 +165,15 @@
     }
   }
 
+  function actionBadgeClass(action) {
+    if (!action) return "";
+    if (action.indexOf("insert") >= 0) return "admin-history-action-badge--insert";
+    if (action.indexOf("update") >= 0) return "admin-history-action-badge--update";
+    if (action.indexOf("delete") >= 0) return "admin-history-action-badge--delete";
+    if (action.indexOf("meta") >= 0) return "admin-history-action-badge--meta";
+    return "";
+  }
+
   function renderHistoryTable(tbody, rows, labelMap) {
     if (!tbody) return;
     tbody.innerHTML = "";
@@ -173,11 +187,15 @@
       var tr = document.createElement("tr");
       var act = r.action || "";
       var actLabel = labelMap[act] || act;
+      var badgeCls = actionBadgeClass(act);
+      var actHtml = badgeCls
+        ? '<span class="admin-history-action-badge ' + badgeCls + '">' + escapeHtml(actLabel) + "</span>"
+        : escapeHtml(actLabel);
       tr.innerHTML =
         "<td>" +
         escapeHtml(formatHistoryTime(r.created_at)) +
         "</td><td>" +
-        escapeHtml(actLabel) +
+        actHtml +
         "</td><td>" +
         escapeHtml(r.entity_name || "") +
         "</td><td>" +
@@ -187,6 +205,98 @@
         "</td>";
       tbody.appendChild(tr);
     });
+  }
+
+  function renderPagination(hostId, allRows, currentPage, onPageChange) {
+    var host = $(hostId);
+    if (!host) return;
+    host.innerHTML = "";
+    var total = allRows ? allRows.length : 0;
+    var pages = Math.ceil(total / HISTORY_PAGE_SIZE);
+    if (pages <= 1) {
+      if (total > 0) {
+        var info = document.createElement("span");
+        info.className = "admin-pagination-info";
+        info.textContent = total + " bản ghi";
+        host.appendChild(info);
+      }
+      return;
+    }
+
+    var btnPrev = document.createElement("button");
+    btnPrev.textContent = "‹";
+    btnPrev.disabled = currentPage <= 1;
+    btnPrev.addEventListener("click", function () {
+      if (currentPage > 1) onPageChange(currentPage - 1);
+    });
+    host.appendChild(btnPrev);
+
+    var maxShow = 7;
+    var start = 1;
+    var end = pages;
+    if (pages > maxShow) {
+      start = Math.max(1, currentPage - 3);
+      end = Math.min(pages, start + maxShow - 1);
+      if (end - start < maxShow - 1) start = Math.max(1, end - maxShow + 1);
+    }
+
+    if (start > 1) {
+      var b1 = document.createElement("button");
+      b1.textContent = "1";
+      b1.addEventListener("click", function () { onPageChange(1); });
+      host.appendChild(b1);
+      if (start > 2) {
+        var dots = document.createElement("span");
+        dots.textContent = "…";
+        dots.style.padding = "0 4px";
+        dots.style.color = "#71717a";
+        host.appendChild(dots);
+      }
+    }
+
+    for (var p = start; p <= end; p++) {
+      (function (pg) {
+        var btn = document.createElement("button");
+        btn.textContent = String(pg);
+        if (pg === currentPage) btn.className = "active";
+        btn.addEventListener("click", function () { onPageChange(pg); });
+        host.appendChild(btn);
+      })(p);
+    }
+
+    if (end < pages) {
+      if (end < pages - 1) {
+        var dots2 = document.createElement("span");
+        dots2.textContent = "…";
+        dots2.style.padding = "0 4px";
+        dots2.style.color = "#71717a";
+        host.appendChild(dots2);
+      }
+      var bLast = document.createElement("button");
+      bLast.textContent = String(pages);
+      bLast.addEventListener("click", function () { onPageChange(pages); });
+      host.appendChild(bLast);
+    }
+
+    var btnNext = document.createElement("button");
+    btnNext.textContent = "›";
+    btnNext.disabled = currentPage >= pages;
+    btnNext.addEventListener("click", function () {
+      if (currentPage < pages) onPageChange(currentPage + 1);
+    });
+    host.appendChild(btnNext);
+
+    var info2 = document.createElement("span");
+    info2.className = "admin-pagination-info";
+    var from = (currentPage - 1) * HISTORY_PAGE_SIZE + 1;
+    var to = Math.min(currentPage * HISTORY_PAGE_SIZE, total);
+    info2.textContent = from + "–" + to + " / " + total + " bản ghi";
+    host.appendChild(info2);
+  }
+
+  function pageSlice(allRows, page) {
+    var start = (page - 1) * HISTORY_PAGE_SIZE;
+    return (allRows || []).slice(start, start + HISTORY_PAGE_SIZE);
   }
 
   function switchTab(tab) {
@@ -221,6 +331,16 @@
     else refreshProductHistory();
   }
 
+  function renderGoldHistPage() {
+    var tb = $("gold-history-rows");
+    if (!tb) return;
+    renderHistoryTable(tb, pageSlice(goldHistAllRows, goldHistPage), GOLD_ACTION_LABELS);
+    renderPagination("gold-hist-pagination", goldHistAllRows, goldHistPage, function (pg) {
+      goldHistPage = pg;
+      renderGoldHistPage();
+    });
+  }
+
   function refreshGoldHistory() {
     var tb = $("gold-history-rows");
     if (!tb) return;
@@ -235,9 +355,11 @@
     var dateStr = dateEl ? dateEl.value : "";
     tb.innerHTML = "<tr><td colspan=\"5\" class=\"admin-empty-hint\">Đang tải…</td></tr>";
     window.TLKVAudit
-      .fetchGoldLog(sb, { searchName: name, dateStr: dateStr, limit: 200 })
+      .fetchGoldLog(sb, { searchName: name, dateStr: dateStr, limit: 500 })
       .then(function (rows) {
-        renderHistoryTable(tb, rows, GOLD_ACTION_LABELS);
+        goldHistAllRows = rows || [];
+        goldHistPage = 1;
+        renderGoldHistPage();
       })
       .catch(function (err) {
         console.error(err);
@@ -246,6 +368,16 @@
           escapeHtml(err && err.message ? err.message : String(err)) +
           "</td></tr>";
       });
+  }
+
+  function renderProductHistPage() {
+    var tb = $("product-history-rows");
+    if (!tb) return;
+    renderHistoryTable(tb, pageSlice(productHistAllRows, productHistPage), PRODUCT_ACTION_LABELS);
+    renderPagination("product-hist-pagination", productHistAllRows, productHistPage, function (pg) {
+      productHistPage = pg;
+      renderProductHistPage();
+    });
   }
 
   function refreshProductHistory() {
@@ -262,9 +394,11 @@
     var dateStr = dateEl ? dateEl.value : "";
     tb.innerHTML = "<tr><td colspan=\"5\" class=\"admin-empty-hint\">Đang tải…</td></tr>";
     window.TLKVAudit
-      .fetchProductLog(sb, { searchName: name, dateStr: dateStr, limit: 200 })
+      .fetchProductLog(sb, { searchName: name, dateStr: dateStr, limit: 500 })
       .then(function (rows) {
-        renderHistoryTable(tb, rows, PRODUCT_ACTION_LABELS);
+        productHistAllRows = rows || [];
+        productHistPage = 1;
+        renderProductHistPage();
       })
       .catch(function (err) {
         console.error(err);
@@ -407,7 +541,12 @@
         return window.TLKVGold.saveToStorage(d);
       })
       .then(function () {
-        if (!sb || !window.TLKVAudit || auditEntries.length === 0) return Promise.resolve();
+        console.log("[commitGoldInlineEdit] saveToStorage OK. auditEntries:", auditEntries.length, "sb:", !!sb, "TLKVAudit:", !!window.TLKVAudit);
+        if (!sb || !window.TLKVAudit || auditEntries.length === 0) {
+          console.warn("[commitGoldInlineEdit] skipping audit:", !sb ? "no sb" : !window.TLKVAudit ? "no TLKVAudit" : "0 entries");
+          return { saved: true, auditOk: true, auditErrors: [] };
+        }
+        var auditErrors = [];
         var chain = Promise.resolve();
         auditEntries.forEach(function (entry) {
           chain = chain.then(function () {
@@ -424,14 +563,34 @@
               entity_id: after.id,
               summary: buildGoldRowChangeSummary(entry.before, entry.after),
               payload: { before: entry.before, after: entry.after },
+            }).catch(function (auditErr) {
+              console.error("[commitGoldInlineEdit] audit log failed for", after.id, auditErr);
+              auditErrors.push({ id: after.id, error: auditErr });
             });
           });
         });
-        return chain;
+        return chain.then(function () {
+          return { saved: true, auditOk: auditErrors.length === 0, auditErrors: auditErrors };
+        });
       })
-      .then(function () {
+      .then(function (result) {
         var n = auditEntries.length;
-        showAdminToast(n === 1 ? "Đã lưu 1 dòng giá." : "Đã lưu " + n + " dòng giá.");
+        if (result && result.auditErrors && result.auditErrors.length > 0) {
+          var failCount = result.auditErrors.length;
+          showAdminToast("Đã lưu " + n + " dòng giá. ⚠ " + failCount + "/" + n + " dòng không ghi được lịch sử.");
+          console.warn("Audit errors:", result.auditErrors);
+          var errMsg = result.auditErrors[0].error;
+          alert(
+            "Giá đã lưu thành công, nhưng ghi lịch sử thay đổi thất bại (" + failCount + " dòng).\n\n" +
+            "Lỗi: " + (errMsg && errMsg.message ? errMsg.message : String(errMsg)) + "\n\n" +
+            "Kiểm tra:\n" +
+            "1. Đã chạy SQL tạo bảng gold_price_change_log chưa?\n" +
+            "2. RLS policy INSERT có đúng email admin không?\n" +
+            "3. Mở Console (F12) để xem chi tiết."
+          );
+        } else {
+          showAdminToast(n === 1 ? "Đã lưu 1 dòng giá." : "Đã lưu " + n + " dòng giá.");
+        }
         clearGoldInlineEdit();
         refreshTable();
         refreshMetaForm();

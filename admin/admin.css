@@ -327,17 +327,120 @@
   font-size: 14px;
   min-width: 200px;
 }
-.admin-table--compact td,
-.admin-table--compact th {
+/* History table — prettier styling */
+.admin-table--history {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e4e4e7;
   font-size: 13px;
-  padding: 6px 8px;
-  vertical-align: top;
 }
-.admin-table--compact td {
+.admin-table--history th {
+  background: #6b1515;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  white-space: nowrap;
+  border-color: rgba(255,255,255,0.15);
+}
+.admin-table--history td {
+  padding: 10px 12px;
+  vertical-align: top;
+  font-size: 13px;
+  line-height: 1.5;
   word-break: break-word;
+  border-color: #f0f0f1;
+}
+.admin-table--history tbody tr {
+  transition: background 0.15s;
+}
+.admin-table--history tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+.admin-table--history tbody tr:hover {
+  background: #fff7ed;
+}
+.admin-table--history td:nth-child(1) {
+  white-space: nowrap;
+  font-size: 12px;
+  color: #71717a;
+  min-width: 130px;
+}
+.admin-table--history td:nth-child(2) {
+  white-space: nowrap;
+}
+.admin-history-action-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.admin-history-action-badge--insert {
+  background: #dcfce7;
+  color: #166534;
+}
+.admin-history-action-badge--update {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.admin-history-action-badge--delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.admin-history-action-badge--meta {
+  background: #fef3c7;
+  color: #92400e;
 }
 .admin-history-cell-summary {
-  line-height: 1.45;
-  max-width: 420px;
+  line-height: 1.5;
+  max-width: 400px;
+  font-size: 12.5px;
+  color: #374151;
+}
+
+/* Pagination */
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0 4px;
+  flex-wrap: wrap;
+}
+.admin-pagination button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  color: #18181b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.admin-pagination button:hover {
+  background: #f4f4f5;
+  border-color: #a1a1aa;
+}
+.admin-pagination button.active {
+  background: #8b1d1d;
+  color: #fff;
+  border-color: #8b1d1d;
+  font-weight: 700;
+}
+.admin-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.admin-pagination-info {
   font-size: 12px;
+  color: #71717a;
+  margin-left: 12px;
 }
