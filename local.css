@@ -355,7 +355,7 @@
 
   /* 3. Giảm mạnh padding ngang (trái + phải) */
   .gold-table-content td {
-    font-size: 11.6px !important;
+    font-size: 12px !important;
     line-height: 1.45 !important;
     padding: 9px 3px !important;           
     white-space: normal !important;
@@ -394,8 +394,15 @@
     width: 21.5% !important;
   }
 
-  /* 5. Giá Mua/Bán - chỉ xuống dòng khi thực sự dài */
-  .gold-table-content td.price,
+  /* 5. Giá Mua/Bán — value +1px (13px), padding dọc -1px bù; tiêu đề th giữ nguyên */
+  .gold-table-content td.price {
+    white-space: normal !important;
+    font-size: 12px !important;
+    font-weight: 600;
+    word-break: keep-all !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
   .gold-table-content thead th:nth-child(4),
   .gold-table-content thead th:nth-child(5) {
     white-space: normal !important;
@@ -407,7 +414,7 @@
   /* 6. Brand cell */
   .gold-brand-cell {
     white-space: normal !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     line-height: 1.4 !important;
     padding: 9px 3px !important;       
   }
@@ -593,16 +600,17 @@
   width: 10% !important;
 }
 
-/* 2 cột cuối (MUA VÀO, BÁN RA) - chỉ giữ font bold, màu sắc do JS xử lý */
+/* Hàm lượng + Mua vào + Bán ra — cùng 1 font-size cố định, không phụ thuộc viewport */
+.tv-gold-table td:nth-child(3),
+.tv-gold-table td:nth-child(4),
+.tv-gold-table td:nth-child(5) {
+  font-size: 23px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
 .tv-gold-table td:nth-child(4),
 .tv-gold-table td:nth-child(5) {
   font-weight: bold !important;
-  font-size: clamp(0.8rem, 1.25vw, 1.4rem);
-}
-
-/* Gạch chân nhẹ cho 2 cột cuối */
-.tv-gold-table td:nth-child(4),
-.tv-gold-table td:nth-child(5) {
   position: relative;
 }
 
@@ -705,6 +713,12 @@
     padding: 6px 4px;
     font-size: 0.85rem;
   }
+  .tv-gold-table td:nth-child(3),
+  .tv-gold-table td:nth-child(4),
+  .tv-gold-table td:nth-child(5) {
+    font-size: 15px;
+    padding: 5px 4px;
+  }
 }
 
 @media (max-width: 680px) {
@@ -718,6 +732,12 @@
   .tv-gold-table th, .tv-gold-table td {
     padding: 4px 3px;
     font-size: 0.7rem;
+  }
+  .tv-gold-table td:nth-child(3),
+  .tv-gold-table td:nth-child(4),
+  .tv-gold-table td:nth-child(5) {
+    font-size: 12px;
+    padding: 3px 3px;
   }
 }
 
