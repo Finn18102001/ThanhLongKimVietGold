@@ -592,17 +592,13 @@
   width: 10% !important;
 }
 
-/* Hàm lượng + Mua vào + Bán ra — cùng 1 font-size cố định, không phụ thuộc viewport */
+/* Chỉ giá MUA VÀO / BÁN RA (td): font lớn hơn ~2%, padding nhẹ hơn để không phình hàng */
 .tv-gold-table td:nth-child(4),
 .tv-gold-table td:nth-child(5) {
   font-weight: bold !important;
-  font-size: clamp(0.8rem, 1.25vw, 1.4rem);
-}
-
-.tv-gold-table td:nth-child(4),
-.tv-gold-table td:nth-child(5) {
-  font-weight: bold !important;
+  font-size: clamp(calc(0.8rem * 1.02), calc(1.25vw * 1.02), calc(1.4rem * 1.02));
   position: relative;
+  padding: clamp(5px, 1.05vh, 15px) clamp(4px, 0.68vw, 14px);
 }
 
 .tv-gold-table td:nth-child(4)::after,
@@ -704,11 +700,14 @@
     padding: 6px 4px;
     font-size: 0.85rem;
   }
-  .tv-gold-table td:nth-child(3),
-  .tv-gold-table td:nth-child(4),
-  .tv-gold-table td:nth-child(5) {
+  .tv-gold-table td:nth-child(3) {
     font-size: 15px;
     padding: 5px 4px;
+  }
+  .tv-gold-table td:nth-child(4),
+  .tv-gold-table td:nth-child(5) {
+    font-size: calc(15px * 1.02);
+    padding: 4px 3px;
   }
 }
 
@@ -724,11 +723,14 @@
     padding: 4px 3px;
     font-size: 0.7rem;
   }
-  .tv-gold-table td:nth-child(3),
-  .tv-gold-table td:nth-child(4),
-  .tv-gold-table td:nth-child(5) {
+  .tv-gold-table td:nth-child(3) {
     font-size: 12px;
     padding: 3px 3px;
+  }
+  .tv-gold-table td:nth-child(4),
+  .tv-gold-table td:nth-child(5) {
+    font-size: calc(12px * 1.02);
+    padding: 2px 2px;
   }
 }
 
