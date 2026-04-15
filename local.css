@@ -596,7 +596,7 @@
 .tv-gold-table td:nth-child(4),
 .tv-gold-table td:nth-child(5) {
   font-weight: bold !important;
-  font-size: clamp(0.816rem, 1.275vw, 1.428rem);
+  font-size: clamp(0.8rem, 1.25vw, 1.4rem);
 }
 
 .tv-gold-table td:nth-child(4),
