@@ -47,8 +47,7 @@
             </div>
             <div class="header-logo">
               <a href="/" class="logo">
-                <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg"
-                  alt="Thăng Long Kim Việt" />
+                <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg" alt="Thăng Long Kim Việt" />
               </a>
             </div>
             <div class="header-gr right-gr header-gr--spacer" aria-hidden="true"></div>
@@ -340,45 +339,33 @@
     const mainTableBody = document.getElementById('gold-table-body');
     if (!mainTableBody) return;
 
-    // Copy nội dung table gốc
+    const tvTableBody = document.getElementById('tv-table-body');
     tvTableBody.innerHTML = mainTableBody.innerHTML;
 
-    // Force màu sắc bằng JavaScript (xử lý rowspan)
     setTimeout(() => {
       const rows = tvTableBody.querySelectorAll('tr');
-      let currentRowIndex = 0; // Đếm dòng thực tế (bỏ qua rowspan ảo)
+      let index = 0;
 
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const cells = row.querySelectorAll('td');
+      rows.forEach(row => {
+        const priceCells = row.querySelectorAll('td.price');
+        if (priceCells.length < 2) return;
 
-        // Tìm cột MUA VÀO và BÁN RA (thường là cột cuối cùng)
-        if (cells.length >= 2) {
-          const buyCell = cells[cells.length - 2]; // MUA VÀO
-          const sellCell = cells[cells.length - 1]; // BÁN RA
+        priceCells.forEach(cell => {
+          cell.style.fontSize = '1.55rem';
+          cell.style.fontWeight = '700';
+          cell.style.lineHeight = '1';
+          cell.style.padding = '4px 8px';
 
-          // Dùng currentRowIndex để tính chẵn/lẻ thay vì i
-          if (currentRowIndex % 2 === 0) { // dòng chẵn (0,2,4...) -> màu vàng
-            buyCell.style.color = '#FFD700';
-            buyCell.style.textShadow = '0 0 5px #ffaa00, 0 0 8px #ff6600';
-            sellCell.style.color = '#FFD700';
-            sellCell.style.textShadow = '0 0 5px #ffaa00, 0 0 8px #ff6600';
-          } else { // dòng lẻ -> màu trắng
-            buyCell.style.color = '#ffffff';
-            buyCell.style.textShadow = 'none';
-            sellCell.style.color = '#ffffff';
-            sellCell.style.textShadow = 'none';
+          if (index % 2 === 0) {
+            cell.style.color = '#FFD700';
+            cell.style.textShadow = '0 0 6px #ffaa00, 0 0 10px #ff6600';
+          } else {
+            cell.style.color = '#ffffff';
+            cell.style.textShadow = '0 0 5px rgba(0,0,0,0.8)';
           }
-          buyCell.style.fontWeight = 'bold';
-          sellCell.style.fontWeight = 'bold';
-
-          // Thêm gạch chân
-          buyCell.style.position = 'relative';
-          sellCell.style.position = 'relative';
-        }
-
-        currentRowIndex++;
-      }
+        });
+        index++;
+      });
     }, 50);
   }
 

@@ -478,11 +478,6 @@
   opacity: 0.85;
 }
 
-/*
- * Tránh vendor rule "img { max-width:100%; height:auto }" làm ảnh co width=0
- * trong flex container khi intrinsic size chưa được xác định (ảnh tải trễ, TV WebView).
- * Không dùng !important để tránh xung đột với breakpoint responsive bên dưới.
- */
 .tv-logo-company img {
   display: block;
   flex-shrink: 0;
@@ -592,13 +587,15 @@
   width: 10% !important;
 }
 
-/* Chỉ giá MUA VÀO / BÁN RA (td): font lớn hơn ~2%, padding nhẹ hơn để không phình hàng */
-.tv-gold-table td:nth-child(4),
-.tv-gold-table td:nth-child(5) {
-  font-weight: bold !important;
-  font-size: clamp(calc(0.8rem * 1.02), calc(1.25vw * 1.02), calc(1.4rem * 1.02));
-  position: relative;
-  padding: clamp(5px, 1.05vh, 15px) clamp(4px, 0.68vw, 14px);
+.tv-gold-table td:nth-child(4), 
+.tv-gold-table td:nth-child(5) { 
+    font-size: 1.55rem !important;   
+    font-weight: 700;
+    line-height: 1 !important;          
+    padding: 4px 6px !important;      
+    height: 100% !important;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .tv-gold-table td:nth-child(4)::after,
@@ -708,6 +705,7 @@
   .tv-gold-table td:nth-child(5) {
     font-size: calc(15px * 1.02);
     padding: 4px 3px;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -731,6 +729,7 @@
   .tv-gold-table td:nth-child(5) {
     font-size: calc(12px * 1.02);
     padding: 2px 2px;
+    font-variant-numeric: tabular-nums;
   }
 }
 
