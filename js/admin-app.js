@@ -1664,7 +1664,7 @@ async function exportGoldHistoryToExcel() {
   }
 
   // Thêm số bản ghi
-  fileName += `_${data.length}banghi`;
+  fileName += `_${data.length}_ban_ghi`;
 
   // Thay thế ký tự đặc biệt
   fileName = fileName
