@@ -19,11 +19,6 @@
           <input id="login-pass" name="pass" type="password" autocomplete="current-password" required />
           <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer">Đăng nhập</button>
         </form>
-        <p class="hint">
-          Dùng tài khoản đã tạo trong <strong>Supabase → Authentication → Users</strong>. Sau khi đăng nhập, trình duyệt gửi kèm JWT — RLS kiểm tra
-          <code>auth.jwt() -&gt;&gt; 'email'</code> (giống policy &quot;Admin full meta&quot;). Cần policy tương tự cho <code>gold_price_rows</code> và
-          <code>products</code> nếu chưa có — xem <code>supabase/rls-admin-email.sql</code>.
-        </p>
         <p class="hint"><a href="/">← Về trang chủ</a></p>
       </div>
 

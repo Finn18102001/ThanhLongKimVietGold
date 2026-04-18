@@ -38,7 +38,7 @@ function goldApiFriendlyError(status, bodyText) {
     return {
       code: "GOLDAPI_QUOTA",
       message:
-        "GoldAPI đã hết hạn mức tháng (403). Vào goldapi.io/dashboard để thêm thanh toán / nâng gói, hoặc đợi sang tháng mới. Biểu đồ TradingView vẫn hiển thị bình thường.",
+        "",
     };
   }
   if (status === 401 || status === 403) {
@@ -193,7 +193,7 @@ module.exports = function apiRouter(_ROOT) {
       res.status(503).type("json").json({
         ok: false,
         error:
-          "Thiếu GOLDAPI_KEY trong .env hoặc .env.local — lấy key tại https://www.goldapi.io/dashboard",
+          "",
       });
       return;
     }
