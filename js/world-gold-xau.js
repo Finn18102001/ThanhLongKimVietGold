@@ -86,15 +86,8 @@
         if (!ok || !j || j.ok === false) {
           root.classList.add("tlkv-world-xau--error");
           if (errBox) {
-            errBox.hidden = false;
-            var errMsg =
-              (j && j.error) ||
-              "";
-            if (j && j.code === "GOLDAPI_QUOTA" && !j.error) {
-              errMsg =
-                "";
-            }
-            errBox.textContent = errMsg;
+            errBox.hidden = true;  // Luôn ẩn
+            errBox.textContent = ""; // Xóa nội dung
           }
           if (spotEl) spotEl.textContent = "—";
           if (chEl) {
@@ -119,7 +112,7 @@
             var arrow = ch > 0 ? "▲ +" : ch < 0 ? "▼ " : "";
             parts.push(
               arrow +
-                ch.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              ch.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             );
           }
           if (typeof chp === "number" && Number.isFinite(chp)) {
@@ -149,11 +142,11 @@
         }
       })
       .catch(function (e) {
-        console.error(e);
+        console.error(e); 
         root.classList.add("tlkv-world-xau--error");
         if (errBox) {
-          errBox.hidden = false;
-          errBox.textContent = e && e.message ? e.message : String(e);
+          errBox.hidden = true;
+          errBox.textContent = "";
         }
       });
   }
