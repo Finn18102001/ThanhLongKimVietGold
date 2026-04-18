@@ -1342,6 +1342,255 @@ function showToast(message, type = 'success') {
     window.addEventListener("tlkv:products-changed", function () {
       if (adminAuthed) refreshProductsTable();
     });
+
+
+    // ========== ĐỔI MẬT KHẨU ==========
+
+    // Mở modal
+    document.getElementById('btn-change-password')?.addEventListener('click', function () {
+      const modal = document.getElementById('change-password-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        document.getElementById('password-strength').innerHTML = '';
+        document.getElementById('password-match').innerHTML = '';
+      }
+    });
+
+    // Đóng modal
+    function closePasswordModal() {
+      const modal = document.getElementById('change-password-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    document.getElementById('close-password-modal')?.addEventListener('click', closePasswordModal);
+    document.getElementById('cancel-password-btn')?.addEventListener('click', closePasswordModal);
+
+    // Click outside modal to close
+    document.querySelector('.admin-modal-overlay')?.addEventListener('click', closePasswordModal);
+
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const targetId = this.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (input) {
+          input.type = input.type === 'password' ? 'text' : 'password';
+          this.textContent = input.type === 'password' ? '👁️' : '🙈';
+        }
+      });
+    });
+
+    // Kiểm tra độ mạnh mật khẩu
+    document.getElementById('new-password')?.addEventListener('input', function () {
+      const password = this.value;
+      const strengthDiv = document.getElementById('password-strength');
+      let strength = '';
+      let strengthClass = '';
+
+      if (password.length === 0) {
+        strength = '';
+      } else if (password.length < 6) {
+        strength = '❌ Quá ngắn (tối thiểu 6 ký tự)';
+        strengthClass = 'weak';
+      } else if (password.length < 8) {
+        strength = '⚠️ Yếu';
+        strengthClass = 'weak';
+      } else if (password.length < 10) {
+        strength = '🟡 Trung bình';
+        strengthClass = 'medium';
+      } else {
+        strength = '✅ Mạnh';
+        strengthClass = 'strong';
+      }
+
+      strengthDiv.innerHTML = strength;
+      strengthDiv.className = 'password-strength ' + strengthClass;
+
+      // Kiểm tra match
+      checkPasswordMatch();
+    });
+
+    // Kiểm tra mật khẩu khớp
+    function checkPasswordMatch() {
+      const newPass = document.getElementById('new-password').value;
+      const confirmPass = document.getElementById('confirm-password').value;
+      const matchDiv = document.getElementById('password-match');
+
+      if (confirmPass.length === 0) {
+        matchDiv.innerHTML = '';
+        return;
+      }
+
+      if (newPass === confirmPass) {
+        matchDiv.innerHTML = '✅ Mật khẩu khớp';
+        matchDiv.className = 'password-match match';
+      } else {
+        matchDiv.innerHTML = '❌ Mật khẩu không khớp';
+        matchDiv.className = 'password-match not-match';
+      }
+    }
+
+    document.getElementById('confirm-password')?.addEventListener('input', checkPasswordMatch);
+
+    // Submit đổi mật khẩu
+    document.getElementById('change-password-form')?.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      const submitBtn = document.getElementById('submit-password-btn');
+      const originalText = submitBtn.textContent;
+
+      // Kiểm tra mật khẩu khớp
+      if (newPassword !== confirmPassword) {
+        showAdminToast('❌ Mật khẩu mới không khớp');
+        return;
+      }
+
+      // Kiểm tra độ dài
+      if (newPassword.length < 6) {
+        showAdminToast('❌ Mật khẩu mới phải có ít nhất 6 ký tự');
+        return;
+      }
+
+      // Kiểm tra mật khẩu mới có giống mật khẩu cũ không
+      if (newPassword === currentPassword) {
+        showAdminToast('❌ Mật khẩu mới phải khác mật khẩu hiện tại');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Đang xử lý...';
+
+      try {
+        const { error } = await sb.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          // Xử lý các lỗi cụ thể
+          if (error.message.includes('New password should be different')) {
+            showAdminToast('❌ Mật khẩu mới phải khác mật khẩu hiện tại');
+          } else if (error.message.includes('Password should be at least 6 characters')) {
+            showAdminToast('❌ Mật khẩu phải có ít nhất 6 ký tự');
+          } else {
+            showAdminToast('❌ ' + error.message);
+          }
+          return;
+        }
+
+        // Thành công
+        showAdminToast('✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
+        closePasswordModal();
+
+        // Reset form
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+
+      } catch (error) {
+        console.error('Change password error:', error);
+        showAdminToast('❌ ' + (error.message || 'Đổi mật khẩu thất bại'));
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+    // ========== ĐỔI MẬT KHẨU ==========
+
+    // Mở modal
+    document.getElementById('btn-change-password')?.addEventListener('click', function () {
+      const modal = document.getElementById('change-password-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        document.getElementById('password-strength').innerHTML = '';
+        document.getElementById('password-match').innerHTML = '';
+      }
+    });
+
+    // Đóng modal
+    function closePasswordModal() {
+      const modal = document.getElementById('change-password-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    document.getElementById('close-password-modal')?.addEventListener('click', closePasswordModal);
+    document.getElementById('cancel-password-btn')?.addEventListener('click', closePasswordModal);
+
+    // Click outside modal to close
+    document.querySelector('.admin-modal-overlay')?.addEventListener('click', closePasswordModal);
+
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const targetId = this.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (input) {
+          input.type = input.type === 'password' ? 'text' : 'password';
+          this.textContent = input.type === 'password' ? '👁️' : '🙈';
+        }
+      });
+    });
+
+    // Kiểm tra độ mạnh mật khẩu
+    document.getElementById('new-password')?.addEventListener('input', function () {
+      const password = this.value;
+      const strengthDiv = document.getElementById('password-strength');
+      let strength = '';
+      let strengthClass = '';
+
+      if (password.length === 0) {
+        strength = '';
+      } else if (password.length < 6) {
+        strength = '❌ Quá ngắn (tối thiểu 6 ký tự)';
+        strengthClass = 'weak';
+      } else if (password.length < 8) {
+        strength = '⚠️ Yếu';
+        strengthClass = 'weak';
+      } else if (password.length < 10) {
+        strength = '🟡 Trung bình';
+        strengthClass = 'medium';
+      } else {
+        strength = '✅ Mạnh';
+        strengthClass = 'strong';
+      }
+
+      strengthDiv.innerHTML = strength;
+      strengthDiv.className = 'password-strength ' + strengthClass;
+
+      // Kiểm tra match
+      checkPasswordMatch();
+    });
+
+    // Kiểm tra mật khẩu khớp
+    function checkPasswordMatch() {
+      const newPass = document.getElementById('new-password').value;
+      const confirmPass = document.getElementById('confirm-password').value;
+      const matchDiv = document.getElementById('password-match');
+
+      if (confirmPass.length === 0) {
+        matchDiv.innerHTML = '';
+        return;
+      }
+
+      if (newPass === confirmPass) {
+        matchDiv.innerHTML = '✅ Mật khẩu khớp';
+        matchDiv.className = 'password-match match';
+      } else {
+        matchDiv.innerHTML = '❌ Mật khẩu không khớp';
+        matchDiv.className = 'password-match not-match';
+      }
+    }
+
+    document.getElementById('confirm-password')?.addEventListener('input', checkPasswordMatch);
   });
 })();
 async function getCurrentGoldHistoryData() {
@@ -1859,6 +2108,7 @@ function clearProductForm() {
   if (fileSizeSpan) fileSizeSpan.textContent = '';
 
   console.log('✅ Product form cleared successfully');
+
 }
 // Khởi tạo
 initSupabaseClient();

@@ -1135,3 +1135,208 @@
   transform: translateY(-1px);
   background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
 }
+/* Modal styles */
+.admin-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.admin-modal-container {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 460px;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.25s ease-out;
+  z-index: 10002;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e4e4e7;
+  background: linear-gradient(135deg, #8b1d1d 0%, #6b1515 100%);
+  border-radius: 20px 20px 0 0;
+}
+
+.admin-modal-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.admin-modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.admin-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.admin-modal-body {
+  padding: 24px;
+}
+
+.password-field {
+  margin-bottom: 20px;
+}
+
+.password-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.password-input-wrapper input:focus {
+  outline: none;
+  border-color: #8b1d1d;
+  box-shadow: 0 0 0 3px rgba(139, 29, 29, 0.1);
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  color: #9ca3af;
+  transition: color 0.2s;
+}
+
+.toggle-password:hover {
+  color: #6b7280;
+}
+
+.password-strength {
+  margin-top: 8px;
+  font-size: 11px;
+  height: 20px;
+}
+
+.password-strength.weak {
+  color: #dc2626;
+}
+
+.password-strength.medium {
+  color: #f59e0b;
+}
+
+.password-strength.strong {
+  color: #10b981;
+}
+
+.password-match {
+  margin-top: 8px;
+  font-size: 11px;
+  height: 20px;
+}
+
+.password-match.match {
+  color: #10b981;
+}
+
+.password-match.not-match {
+  color: #dc2626;
+}
+
+.admin-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e4e4e7;
+}
+
+.admin-modal-actions button {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-modal-actions .btn-primary {
+  background: linear-gradient(135deg, #8b1d1d 0%, #6b1515 100%);
+  color: #fff;
+  border: none;
+}
+
+.admin-modal-actions .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 29, 29, 0.3);
+}
+
+.admin-modal-actions .btn-secondary {
+  background: #f3f4f6;
+  border: 1px solid #e4e4e7;
+  color: #374151;
+}
+
+.admin-modal-actions .btn-secondary:hover {
+  background: #e5e7eb;
+}
