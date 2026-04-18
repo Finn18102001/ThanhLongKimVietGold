@@ -1,231 +1,334 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin - Thăng Long Kim Việt</title>
-    <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
-    <link href="/admin/admin.css" rel="stylesheet" />
-  </head>
-  <body class="admin-body">
-    <div class="admin-wrap">
-      <div id="login-panel" class="admin-card login-form">
-        <h1>Đăng nhập quản trị</h1>
-        <form id="login-form">
-          <label for="login-user">Email (Supabase Auth)</label>
-          <input id="login-user" name="email" type="email" autocomplete="username" required placeholder="you@example.com" />
-          <label for="login-pass">Mật khẩu</label>
-          <input id="login-pass" name="pass" type="password" autocomplete="current-password" required />
-          <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer">Đăng nhập</button>
-        </form>
-        <p class="hint">
-          Dùng tài khoản đã tạo trong <strong>Supabase → Authentication → Users</strong>. Sau khi đăng nhập, trình duyệt gửi kèm JWT — RLS kiểm tra
-          <code>auth.jwt() -&gt;&gt; 'email'</code> (giống policy &quot;Admin full meta&quot;). Cần policy tương tự cho <code>gold_price_rows</code> và
-          <code>products</code> nếu chưa có — xem <code>supabase/rls-admin-email.sql</code>.
-        </p>
-        <p class="hint"><a href="/">← Về trang chủ</a></p>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Thăng Long Kim Việt</title>
+  <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
+  <link href="/admin/admin.css" rel="stylesheet" />
+</head>
+
+<body class="admin-body">
+  <div class="admin-wrap">
+    <div id="login-panel" class="admin-card login-form">
+      <h1>Đăng nhập quản trị</h1>
+      <form id="login-form">
+        <label for="login-user">Email (Supabase Auth)</label>
+        <input id="login-user" name="email" type="email" autocomplete="username" required
+          placeholder="you@example.com" />
+        <label for="login-pass">Mật khẩu</label>
+        <input id="login-pass" name="pass" type="password" autocomplete="current-password" required />
+        <button type="submit" class="btn-primary"
+          style="width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer">Đăng nhập</button>
+      </form>
+      <p class="hint"><a href="/">← Về trang chủ</a></p>
+    </div>
+
+    <div id="admin-panel" class="admin-card" hidden>
+      <div class="admin-actions" style="margin-bottom: 12px">
+        <h1 id="admin-page-title" style="margin: 0; flex: 1">Quản lý giá vàng</h1>
+        <button type="button" id="btn-logout" class="btn-secondary">Đăng xuất</button>
+        <a href="/" class="btn-secondary">Về website</a>
       </div>
 
-      <div id="admin-panel" class="admin-card" hidden>
-        <div class="admin-actions" style="margin-bottom: 12px">
-          <h1 id="admin-page-title" style="margin: 0; flex: 1">Quản lý giá vàng</h1>
-          <button type="button" id="btn-logout" class="btn-secondary">Đăng xuất</button>
-          <a href="/" class="btn-secondary">Về website</a>
+      <div class="admin-tabs" role="tablist" aria-label="Khu vực quản trị">
+        <button type="button" class="admin-tab admin-tab--active" id="tab-btn-gold" role="tab" aria-selected="true"
+          aria-controls="admin-tab-gold" data-tab="gold">Giá vàng</button>
+        <button type="button" class="admin-tab" id="tab-btn-products" role="tab" aria-selected="false"
+          aria-controls="admin-tab-products" data-tab="products">Sản phẩm</button>
+      </div>
+
+      <section id="admin-tab-gold" class="admin-tab-panel" role="tabpanel" aria-labelledby="tab-btn-gold">
+        <div class="admin-actions" style="margin-bottom: 16px">
+          <button type="button" id="btn-reset-json" class="btn-secondary">Xóa cache local bảng giá (nếu có)</button>
         </div>
 
-        <div class="admin-tabs" role="tablist" aria-label="Khu vực quản trị">
-          <button type="button" class="admin-tab admin-tab--active" id="tab-btn-gold" role="tab" aria-selected="true" aria-controls="admin-tab-gold" data-tab="gold">Giá vàng</button>
-          <button type="button" class="admin-tab" id="tab-btn-products" role="tab" aria-selected="false" aria-controls="admin-tab-products" data-tab="products">Sản phẩm</button>
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2>Thời gian &amp; đơn vị (dòng trên / chân bảng)</h2>
+          <form id="meta-form">
+            <div class="admin-form-grid">
+              <label> Giờ hiển thị (sau “Cập nhật lúc:”) <input type="text" id="meta-header-time" placeholder="10h00" />
+              </label>
+              <label> Ghi chú ngày (dòng chân bảng) <input type="text" id="meta-footer-note"
+                  placeholder="Cập nhật lúc 10:00 09/04/2026" /> </label>
+              <label> Đơn vị (đ/chỉ) <input type="text" id="meta-unit-line" placeholder="ĐVT =  Đồng/chỉ" /> </label>
+              <label> Tên thương hiệu (in nghiêng, dòng trên) <input type="text" id="meta-brand-italic" /> </label>
+            </div>
+            <div class="admin-actions">
+              <button type="submit" class="btn-primary">Lưu meta</button>
+            </div>
+          </form>
         </div>
 
-        <section id="admin-tab-gold" class="admin-tab-panel" role="tabpanel" aria-labelledby="tab-btn-gold">
-          <div class="admin-actions" style="margin-bottom: 16px">
-            <button type="button" id="btn-reset-json" class="btn-secondary">Xóa cache local bảng giá (nếu có)</button>
-          </div>
-
-          <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-            <h2>Thời gian &amp; đơn vị (dòng trên / chân bảng)</h2>
-            <form id="meta-form">
-              <div class="admin-form-grid">
-                <label> Giờ hiển thị (sau “Cập nhật lúc:”) <input type="text" id="meta-header-time" placeholder="10h00" /> </label>
-                <label> Ghi chú ngày (dòng chân bảng) <input type="text" id="meta-footer-note" placeholder="Cập nhật lúc 10:00 09/04/2026" /> </label>
-                <label> Đơn vị (đ/chỉ) <input type="text" id="meta-unit-line" placeholder="ĐVT =  Đồng/chỉ" /> </label>
-                <label> Tên thương hiệu (in nghiêng, dòng trên) <input type="text" id="meta-brand-italic" /> </label>
-              </div>
-              <div class="admin-actions">
-                <button type="submit" class="btn-primary">Lưu meta</button>
-              </div>
-            </form>
-          </div>
-
-          <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-            <h2 id="form-title">Thêm dòng (bảng giá)</h2>
-            <form id="row-form">
-              <input type="hidden" id="f-id" />
-              <div class="admin-form-grid">
-                <label> Thương hiệu <input type="text" id="f-brand" required /> </label>
-                <label> Sản phẩm <input type="text" id="f-product" /> </label>
-                <label> Hàm lượng <input type="text" id="f-purity" required /> </label>
-                <label> Mua vào <input type="text" id="f-buy" required /> </label>
-                <label> Bán ra <input type="text" id="f-sell" /> </label>
-                <label>
-                  Loại
-                  <select id="f-metal">
-                    <option value="gold">Vàng</option>
-                    <option value="silver">Bạc</option>
-                  </select>
-                </label>
-                <label class="admin-checkbox-label">
-                  <input type="checkbox" id="f-highlight" />
-                  Nền xanh (vàng — tùy chọn; bạc luôn xanh)
-                </label>
-              </div>
-              <div class="admin-actions">
-                <button type="submit" class="btn-primary">Lưu</button>
-                <button type="button" id="btn-new" class="btn-secondary">Dòng mới</button>
-              </div>
-            </form>
-          </div>
-
-          <h2>Danh sách dòng (bảng giá)</h2>
-          <div id="admin-gold-table-host" class="admin-gold-table-host">
-            <div class="admin-table-wrap">
-              <table class="admin-table admin-table--gold-rows">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Thương hiệu</th>
-                    <th>Sản phẩm</th>
-                    <th>Hàm lượng</th>
-                    <th>Mua</th>
-                    <th>Bán</th>
-                    <th>Loại</th>
-                    <th class="admin-th-actions">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-rows"></tbody>
-              </table>
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2 id="form-title">Thêm dòng (bảng giá)</h2>
+          <form id="row-form">
+            <input type="hidden" id="f-id" />
+            <div class="admin-form-grid">
+              <label> Thương hiệu <input type="text" id="f-brand" required /> </label>
+              <label> Sản phẩm <input type="text" id="f-product" /> </label>
+              <label> Hàm lượng <input type="text" id="f-purity" required /> </label>
+              <label> Mua vào <input type="text" id="f-buy" required /> </label>
+              <label> Bán ra <input type="text" id="f-sell" /> </label>
+              <label>
+                Loại
+                <select id="f-metal">
+                  <option value="gold">Vàng</option>
+                  <option value="silver">Bạc</option>
+                </select>
+              </label>
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="f-highlight" />
+                Nền xanh (vàng — tùy chọn; bạc luôn xanh)
+              </label>
             </div>
-            <button type="button" id="btn-gold-thay-doi" class="admin-btn-thay-doi" hidden>Thay đổi</button>
-          </div>
-          <p class="hint">
-            Mỗi dòng một hàng (dễ sửa nhanh). Bấm <strong>Sửa</strong> trên một hoặc nhiều dòng để chỉnh <strong>Sản phẩm / Hàm lượng / Mua / Bán</strong>, rồi bấm <strong>Thay đổi</strong> (góc phải bảng) để lưu tất cả — giờ hiển thị và ghi chú chân bảng đồng bộ theo thời điểm lưu. Bấm <strong>Sửa</strong> lần nữa trên dòng đang sửa để thoát chế độ sửa dòng đó.
-            <br />
-            <strong>Nhiều hàm lượng cho một tên SP:</strong> dòng phụ để trống “Sản phẩm” trong DB (hiển thị tên từ dòng trên). Thương hiệu trùng → gộp khối; thương hiệu mới (vàng) → chèn trước bạc.
-          </p>
-
-          <hr class="admin-sep" />
-
-          <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-            <h2>Lịch sử thay đổi (giá vàng)</h2>
-            <div class="admin-history-filters">
-              <label> Tìm theo tên <input type="search" id="gold-hist-search" placeholder="Thương hiệu, sản phẩm…" autocomplete="off" /> </label>
-              <label> Theo ngày <input type="date" id="gold-hist-date" /> </label>
-              <button type="button" id="gold-hist-refresh" class="btn-secondary">Làm mới</button>
+            <div class="admin-actions">
+              <button type="submit" class="btn-primary">Lưu</button>
+              <button type="button" id="btn-new" class="btn-secondary">Dòng mới</button>
             </div>
-            <div class="admin-table-wrap admin-history-table-wrap" style="margin-top: 12px">
-              <table class="admin-table admin-table--history">
-                <thead>
-                  <tr>
-                    <th>Thời gian</th>
-                    <th>Thao tác</th>
-                    <th>Tên / nhãn</th>
-                    <th>Mã</th>
-                    <th>Mô tả</th>
-                  </tr>
-                </thead>
-                <tbody id="gold-history-rows"></tbody>
-              </table>
-            </div>
-            <div class="admin-pagination" id="gold-hist-pagination"></div>
-          </div>
-        </section>
+          </form>
+        </div>
 
-        <section id="admin-tab-products" class="admin-tab-panel admin-tab-panel--hidden" role="tabpanel" aria-labelledby="tab-btn-products" hidden>
-          <div class="admin-actions" style="margin-bottom: 16px">
-            <button type="button" id="btn-refresh-products" class="btn-secondary">Làm mới danh sách</button>
-            <button type="button" id="btn-reset-products-json" class="btn-secondary">Xóa cache local sản phẩm (nếu có)</button>
-          </div>
-
-          <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-            <h2 id="product-form-title">Thêm sản phẩm</h2>
-            <form id="product-form">
-              <input type="hidden" id="pf-id" />
-              <div class="admin-form-grid">
-                <label> Tên <input type="text" id="pf-name" required /> </label>
-                <label> Danh mục <input type="text" id="pf-category" /> </label>
-                <label> Giá / ghi chú <input type="text" id="pf-priceText" placeholder="5.120.000đ hoặc Liên hệ" /> </label>
-                <label class="admin-label-full">
-                  Ảnh (đường dẫn hoặc URL)
-                  <input type="text" id="pf-image" placeholder="/assets/ten-file.png hoặc https://..." />
-                </label>
-              </div>
-              <p class="hint" style="margin-top: 0">
-                Đặt file trong thư mục <code>assets</code> (ví dụ <code>/assets/nhan-cau-hon-tron-1.png</code>) hoặc dán link ảnh ngoài. Để trống nếu chưa có ảnh.
-              </p>
-              <div class="admin-actions">
-                <button type="submit" class="btn-primary">Lưu sản phẩm</button>
-                <button type="button" id="btn-product-new" class="btn-secondary">Mục mới</button>
-              </div>
-            </form>
-          </div>
-
-          <h2>Danh sách sản phẩm</h2>
+        <h2>Danh sách dòng (bảng giá)</h2>
+        <div id="admin-gold-table-host" class="admin-gold-table-host">
           <div class="admin-table-wrap">
-            <table class="admin-table">
+            <table class="admin-table admin-table--gold-rows">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Ảnh</th>
-                  <th>Tên</th>
-                  <th>Danh mục</th>
-                  <th>Giá / ghi chú</th>
-                  <th></th>
+                  <th>Thương hiệu</th>
+                  <th>Sản phẩm</th>
+                  <th>Hàm lượng</th>
+                  <th>Mua</th>
+                  <th>Bán</th>
+                  <th>Loại</th>
+                  <th class="admin-th-actions">Thao tác</th>
                 </tr>
               </thead>
-              <tbody id="admin-product-rows"></tbody>
+              <tbody id="admin-rows"></tbody>
+            </table>
+          </div>
+          <button type="button" id="btn-gold-thay-doi" class="admin-btn-thay-doi" hidden>Thay đổi</button>
+        </div>
+        <p class="hint">
+          Mỗi dòng một hàng (dễ sửa nhanh). Bấm <strong>Sửa</strong> trên một hoặc nhiều dòng để chỉnh <strong>Sản phẩm
+            / Hàm lượng / Mua / Bán</strong>, rồi bấm <strong>Thay đổi</strong> (góc phải bảng) để lưu tất cả — giờ hiển
+          thị và ghi chú chân bảng đồng bộ theo thời điểm lưu. Bấm <strong>Sửa</strong> lần nữa trên dòng đang sửa để
+          thoát chế độ sửa dòng đó.
+          <br />
+          <strong>Nhiều hàm lượng cho một tên SP:</strong> dòng phụ để trống “Sản phẩm” trong DB (hiển thị tên từ dòng
+          trên). Thương hiệu trùng → gộp khối; thương hiệu mới (vàng) → chèn trước bạc.
+        </p>
+
+        <hr class="admin-sep" />
+
+        <div class="admin-card history-section"
+          style="box-shadow: none; border: 1px solid #e4e4e7; padding: 0; overflow: hidden;">
+          <div class="history-header">
+            <div class="history-title">
+              <h2>📜 Lịch sử thay đổi</h2>
+            </div>
+            <button type="button" id="btn-export-excel" class="btn-export-excel">
+              📊 Xuất Excel
+            </button>
+          </div>
+
+          <div class="admin-history-filters"
+            style="padding: 0 24px 20px 24px; margin: 0; background: #fff; border-bottom: none;">
+            <div class="filter-group">
+              <label>🔍 Tìm theo tên</label>
+              <input type="search" id="gold-hist-search" placeholder="Thương hiệu, sản phẩm..." autocomplete="off" />
+            </div>
+            <div class="filter-group">
+              <label>📅 Theo ngày</label>
+              <input type="date" id="gold-hist-date" />
+            </div>
+            <button type="button" id="gold-hist-refresh" class="btn-refresh">
+              🔄 Làm mới
+            </button>
+          </div>
+
+          <div class="history-table-wrapper">
+            <table class="admin-table admin-table--history">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Thao tác</th>
+                  <th>Tên / nhãn</th>
+                  <th>Mã</th>
+                  <th>Mô tả</th>
+                </tr>
+              </thead>
+              <tbody id="gold-history-rows"></tbody>
             </table>
           </div>
 
-          <hr class="admin-sep" />
+          <div class="admin-pagination" id="gold-hist-pagination"></div>
+        </div>
+      </section>
 
-          <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-            <h2>Lịch sử thay đổi (sản phẩm)</h2>
-            <div class="admin-history-filters">
-              <label> Tìm theo tên <input type="search" id="product-hist-search" placeholder="Tên sản phẩm…" autocomplete="off" /> </label>
-              <label> Theo ngày <input type="date" id="product-hist-date" /> </label>
-              <button type="button" id="product-hist-refresh" class="btn-secondary">Làm mới</button>
-            </div>
-            <div class="admin-table-wrap admin-history-table-wrap" style="margin-top: 12px">
-              <table class="admin-table admin-table--history">
-                <thead>
-                  <tr>
-                    <th>Thời gian</th>
-                    <th>Thao tác</th>
-                    <th>Tên / nhãn</th>
-                    <th>Mã</th>
-                    <th>Mô tả</th>
-                  </tr>
-                </thead>
-                <tbody id="product-history-rows"></tbody>
-              </table>
-            </div>
-            <div class="admin-pagination" id="product-hist-pagination"></div>
+      <section id="admin-tab-products" class="admin-tab-panel admin-tab-panel--hidden" role="tabpanel"
+        aria-labelledby="tab-btn-products" hidden>
+        <div class="admin-actions" style="margin-bottom: 16px">
+          <button type="button" id="btn-refresh-products" class="btn-secondary">Làm mới danh sách</button>
+          <button type="button" id="btn-reset-products-json" class="btn-secondary">Xóa cache local sản phẩm (nếu
+            có)</button>
+        </div>
+
+        <div class="admin-card product-form-card"
+          style="box-shadow: none; border: 1px solid #e4e4e7; padding: 0; overflow: hidden;">
+          <div style="padding: 20px 24px; background: #fafafa; border-bottom: 1px solid #e4e4e7;">
+            <h2 id="product-form-title"
+              style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+              <span>✨</span> Thêm sản phẩm mới
+            </h2>
           </div>
-        </section>
-      </div>
+
+          <form id="product-form" style="padding: 24px;">
+            <input type="hidden" id="pf-id" />
+
+            <div class="product-form-grid">
+              <div class="form-field">
+                <label>📦 Tên sản phẩm <span class="required">*</span></label>
+                <input type="text" id="pf-name" required placeholder="VD: Nhẫn tròn Thăng Long" />
+              </div>
+
+              <div class="form-field">
+                <label>🏷️ Danh mục</label>
+                <input type="text" id="pf-category" placeholder="VD: Vàng, Trang sức, Nhẫn..." />
+              </div>
+
+              <div class="form-field">
+                <label>💰 Giá / ghi chú</label>
+                <input type="text" id="pf-priceText" placeholder="5.120.000đ hoặc Liên hệ" />
+              </div>
+
+              <div class="form-field full-width">
+                <label class="admin-label-full">
+                  🖼️ Ảnh sản phẩm
+                  <div class="image-upload-wrapper">
+                    <!-- URL input -->
+                    <div class="image-url-row">
+                      <input type="text" id="pf-image" class="image-url-input"
+                        placeholder="https://... hoặc /assets/..." />
+                    </div>
+
+                    <!-- Upload area -->
+                    <div class="image-upload-area">
+                      <div class="upload-buttons-row">
+                        <label class="btn-upload-local" id="btn-choose-file">
+                          📁 Chọn ảnh từ máy tính
+                          <input type="file" id="pf-image-file" accept="image/*" hidden />
+                        </label>
+                        <button type="button" id="btn-upload-supabase" class="btn-upload-supabase" disabled>
+                          ☁️ Upload lên Supabase
+                        </button>
+                        <button type="button" id="btn-clear-image" class="btn-clear-image">🗑 Xóa</button>
+                      </div>
+
+                      <!-- File info - hiển thị khi chọn file -->
+                      <div id="selected-file-info" class="selected-file-info" style="display: none;">
+                        <span class="file-icon">📄</span>
+                        <span id="file-name" class="file-name"></span>
+                        <span id="file-size" class="file-size"></span>
+                        <button type="button" id="btn-cancel-file" class="btn-cancel-file">✕</button>
+                      </div>
+                    </div>
+
+                    <!-- Preview container -->
+                    <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                      <div class="preview-label">Xem trước:</div>
+                      <img id="pf-image-preview" class="image-preview" alt="Xem trước ảnh">
+                      <div class="preview-actions">
+                        <button type="button" id="btn-remove-preview" class="btn-remove-preview"
+                          title="Xóa ảnh">🗑</button>
+                      </div>
+                    </div>
+
+                    <!-- Upload status -->
+                    <div id="upload-status" class="upload-status" style="display: none;"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-hint">
+              <div class="hint-icon">💡</div>
+              <div class="hint-text">
+                <strong>Hướng dẫn:</strong><br>
+                • <strong>Cách 1:</strong> Dán trực tiếp URL ảnh từ web vào ô trên.<br>
+                • <strong>Cách 2:</strong> Chọn file ảnh từ máy tính → bấm <strong>Upload</strong> để lưu lên Supabase
+                Storage (URL tự động điền).
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary btn-save">💾 Lưu sản phẩm</button>
+              <button type="button" id="btn-product-new" class="btn-secondary btn-reset">🔄 Mục mới</button>
+            </div>
+          </form>
+        </div>
+
+        <h2>Danh sách sản phẩm</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Ảnh</th>
+                <th>Tên</th>
+                <th>Danh mục</th>
+                <th>Giá / ghi chú</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="admin-product-rows"></tbody>
+          </table>
+        </div>
+
+        <hr class="admin-sep" />
+
+        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
+          <h2>Lịch sử thay đổi (sản phẩm)</h2>
+          <div class="admin-history-filters">
+            <label> Tìm theo tên <input type="search" id="product-hist-search" placeholder="Tên sản phẩm…"
+                autocomplete="off" /> </label>
+            <label> Theo ngày <input type="date" id="product-hist-date" /> </label>
+            <button type="button" id="product-hist-refresh" class="btn-secondary">Làm mới</button>
+          </div>
+          <div class="admin-table-wrap admin-history-table-wrap" style="margin-top: 12px">
+            <table class="admin-table admin-table--history">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Thao tác</th>
+                  <th>Tên / nhãn</th>
+                  <th>Mã</th>
+                  <th>Mô tả</th>
+                </tr>
+              </thead>
+              <tbody id="product-history-rows"></tbody>
+            </table>
+          </div>
+          <div class="admin-pagination" id="product-hist-pagination"></div>
+        </div>
+      </section>
     </div>
+  </div>
 
-    <div id="admin-toast-host" class="admin-toast-host" aria-live="polite"></div>
+  <div id="admin-toast-host" class="admin-toast-host" aria-live="polite"></div>
+  <script src="/js/boot-supabase-env.js"></script>
+  <script>
+    window.TLKV_BASE = "/";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/gold-data.js"></script>
+  <script src="/js/products-data.js"></script>
+  <script src="/js/admin-audit.js"></script>
+  <script src="/js/admin-app.js"></script>
 
-    <script>
-      window.TLKV_BASE = "/";
-    </script>
-    <script src="/js/boot-supabase-env.js"></script>
-    <script src="/js/gold-data.js"></script>
-    <script src="/js/products-data.js"></script>
-    <script src="/js/admin-audit.js"></script>
-    <script src="/js/admin-app.js"></script>
-  </body>
+</body>
+
 </html>

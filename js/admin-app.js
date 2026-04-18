@@ -1,3 +1,33 @@
+window.TLKV_SUPABASE_URL = 'https://yrdqnmsvwovwhepmhigv.supabase.co';
+window.TLKV_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyZHFubXN2d292d2hlcG1oaWd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTM1ODAsImV4cCI6MjA5MTMyOTU4MH0.PppGELLxSh0pcZklF8j2DuDeHhMq1HQIUZ-EuQkkpSA';
+
+console.log('🔧 Supabase config hardcoded in admin-app.js');
+console.log('URL:', window.TLKV_SUPABASE_URL);
+console.log('KEY length:', window.TLKV_SUPABASE_ANON_KEY ? window.TLKV_SUPABASE_ANON_KEY.length : 0);
+function showToast(message, type = 'success') {
+  console.log('🔔 Toast:', message, type);
+  const host = document.getElementById('admin-toast-host');
+  if (!host) {
+    alert(message);
+    return;
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'admin-toast';
+  toast.textContent = message;
+
+  if (type === 'error') toast.style.background = '#dc2626';
+  else if (type === 'success') toast.style.background = '#16a34a';
+  else if (type === 'info') toast.style.background = '#3b82f6';
+
+  host.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.28s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3400);
+}
 (function () {
   /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
   var sb = null;
@@ -12,7 +42,6 @@
   var productHistPage = 1;
   /** Các id dòng đang sửa inline (có thể nhiều dòng cùng lúc). */
   var goldInlineEditRowIds = Object.create(null);
-
   function goldInlineEditHasAny() {
     return Object.keys(goldInlineEditRowIds).length > 0;
   }
@@ -331,31 +360,49 @@
     else refreshProductHistory();
   }
 
+  // Sửa lại renderGoldHistPage để render đúng trang hiện tại
   function renderGoldHistPage() {
     var tb = $("gold-history-rows");
     if (!tb) return;
-    renderHistoryTable(tb, pageSlice(goldHistAllRows, goldHistPage), GOLD_ACTION_LABELS);
+
+    var pageData = pageSlice(goldHistAllRows, goldHistPage);
+
+    if (!pageData || pageData.length === 0) {
+      tb.innerHTML = '<tr><td colspan="5" class="history-empty">Chưa có dữ liệu</td></tr>';
+    } else {
+      renderHistoryTable(tb, pageData, GOLD_ACTION_LABELS);
+    }
+
     renderPagination("gold-hist-pagination", goldHistAllRows, goldHistPage, function (pg) {
       goldHistPage = pg;
       renderGoldHistPage();
     });
+
+    // Cập nhật badge số lượng
+    var badge = document.getElementById('gold-history-count');
+    if (badge) {
+      badge.textContent = (goldHistAllRows ? goldHistAllRows.length : 0) + ' bản ghi';
+    }
   }
 
   function refreshGoldHistory() {
     var tb = $("gold-history-rows");
     if (!tb) return;
     if (!sb || !window.TLKVAudit) {
-      tb.innerHTML =
-        "<tr><td colspan=\"5\" class=\"admin-empty-hint\">Chưa đăng nhập hoặc thiếu module lịch sử.</td></tr>";
+      tb.innerHTML = '<tr><td colspan="5" class="history-empty">Chưa đăng nhập hoặc thiếu module lịch sử.</td></tr>';
       return;
     }
+
     var nameEl = $("gold-hist-search");
     var dateEl = $("gold-hist-date");
     var name = nameEl ? nameEl.value : "";
     var dateStr = dateEl ? dateEl.value : "";
-    tb.innerHTML = "<tr><td colspan=\"5\" class=\"admin-empty-hint\">Đang tải…</td></tr>";
+
+    tb.innerHTML = '<tr><td colspan="5" class="history-empty">Đang tải...</td></tr>';
+
+    // Lấy tất cả dữ liệu (không giới hạn 500)
     window.TLKVAudit
-      .fetchGoldLog(sb, { searchName: name, dateStr: dateStr, limit: 500 })
+      .fetchGoldLog(sb, { searchName: name, dateStr: dateStr, limit: 10000 })
       .then(function (rows) {
         goldHistAllRows = rows || [];
         goldHistPage = 1;
@@ -363,10 +410,7 @@
       })
       .catch(function (err) {
         console.error(err);
-        tb.innerHTML =
-          "<tr><td colspan=\"5\">Không tải được lịch sử: " +
-          escapeHtml(err && err.message ? err.message : String(err)) +
-          "</td></tr>";
+        tb.innerHTML = '<tr><td colspan="5" class="history-empty">Không tải được lịch sử: ' + escapeHtml(err.message) + '</td></tr>';
       });
   }
 
@@ -852,8 +896,8 @@
           var tdThumb =
             imgSrc !== ""
               ? '<td><img class="admin-product-thumb" src="' +
-                escapeAttr(imgSrc) +
-                '" alt="" loading="lazy" width="48" height="48" /></td>'
+              escapeAttr(imgSrc) +
+              '" alt="" loading="lazy" width="48" height="48" /></td>'
               : "<td>—</td>";
           tr.innerHTML =
             "<td>" +
@@ -1005,7 +1049,7 @@
     if (session) {
       try {
         await sb.auth.getUser();
-      } catch (_) {}
+      } catch (_) { }
     }
 
     applySession(session);
@@ -1234,13 +1278,23 @@
     $("product-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!window.TLKVProducts) return;
-      var wasEdit = !!$("pf-id").value.trim();
-      var savedItem = null;
+
+      const isEdit = !!$("pf-id").value.trim();
+      let savedItem = null;
+
+      // Disable submit button
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn?.textContent;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Đang lưu...';
+      }
+
       window.TLKVProducts
         .getProducts()
         .then(function (d) {
-          var id = $("pf-id").value.trim();
-          var item = {
+          const id = $("pf-id").value.trim();
+          const item = {
             id: id || "p-" + Date.now(),
             name: $("pf-name").value.trim(),
             category: $("pf-category").value.trim(),
@@ -1248,9 +1302,7 @@
             image: $("pf-image") ? $("pf-image").value.trim() : "",
           };
           savedItem = item;
-          var idx = d.items.findIndex(function (x) {
-            return x.id === item.id;
-          });
+          const idx = d.items.findIndex(function (x) { return x.id === item.id; });
           if (idx >= 0) d.items[idx] = item;
           else d.items.push(item);
           return window.TLKVProducts.saveToStorage(d);
@@ -1258,23 +1310,32 @@
         .then(function () {
           if (sb && window.TLKVAudit && savedItem) {
             return window.TLKVAudit.logProduct(sb, {
-              action: wasEdit ? "product_update" : "product_insert",
+              action: isEdit ? "product_update" : "product_insert",
               entity_name: savedItem.name || savedItem.id,
               entity_id: savedItem.id,
-              summary: wasEdit ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới",
+              summary: isEdit ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới",
               payload: savedItem,
             });
           }
         })
         .then(function () {
-          showAdminToast(wasEdit ? "Đã cập nhật sản phẩm." : "Đã thêm sản phẩm mới.");
+          showToast(isEdit ? "✅ Đã cập nhật sản phẩm." : "✅ Đã thêm sản phẩm mới.", "success");
+
+          // ========== QUAN TRỌNG: CLEAR FORM SAU KHI LƯU ==========
+          clearProductForm();
+
           refreshProductsTable();
-          resetProductForm();
           if (currentTab === "products") refreshProductHistory();
         })
         .catch(function (err) {
           console.error(err);
-          alert("Không lưu được sản phẩm lên Supabase: " + (err && err.message ? err.message : String(err)));
+          showToast("❌ Lỗi: " + (err && err.message ? err.message : "Không lưu được sản phẩm"), "error");
+        })
+        .finally(function () {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText || '💾 Lưu sản phẩm';
+          }
         });
     });
 
@@ -1283,3 +1344,521 @@
     });
   });
 })();
+async function getCurrentGoldHistoryData() {
+  // Lấy dữ liệu từ bảng đang hiển thị
+  const rows = document.querySelectorAll('#gold-history-rows tr');
+  const data = [];
+
+  for (const row of rows) {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+      data.push({
+        created_at: cells[0]?.textContent?.trim() || '',
+        action_type: cells[1]?.textContent?.trim() || '',
+        item_name: cells[2]?.textContent?.trim() || '',
+        item_code: cells[3]?.textContent?.trim() || '',
+        description: cells[4]?.textContent?.trim() || ''
+      });
+    }
+  }
+
+  return data;
+}
+
+// Xuất Excel (CSV)
+// ========== XUẤT FILE LỊCH SỬ GIÁ VÀNG ==========
+
+async function exportGoldHistoryToExcel() {
+  // Lấy dữ liệu HIỆN TẠI đang hiển thị trên bảng (đã filter)
+  const rows = document.querySelectorAll('#gold-history-rows tr');
+  const data = [];
+
+  for (const row of rows) {
+    // Bỏ qua hàng empty state
+    if (row.querySelector('.history-empty')) continue;
+
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+      // Lấy text content từ mỗi cell
+      let time = cells[0]?.textContent?.trim() || '';
+      let action = cells[1]?.textContent?.trim() || '';
+      let name = cells[2]?.textContent?.trim() || '';
+      let code = cells[3]?.textContent?.trim() || '';
+      let description = cells[4]?.textContent?.trim() || '';
+
+      // Làm sạch action (bỏ icon)
+      action = action.replace(/[➕✏️🗑️⚙️]/g, '').trim();
+
+      data.push({ time, action, name, code, description });
+    }
+  }
+
+  if (!data.length) {
+    showToast('Không có dữ liệu để xuất', 'error');
+    return;
+  }
+
+  // Lấy giá trị filter hiện tại
+  const searchName = document.getElementById('gold-hist-search')?.value?.trim() || '';
+  const filterDate = document.getElementById('gold-hist-date')?.value || '';
+
+  // Tạo tên file
+  let fileName = 'Thăng-Long-Kim-Việt-Lịch-Sử-Giá-Vàng';
+
+  // Thêm filter vào tên file nếu có
+  if (searchName && filterDate) {
+    fileName += `_${searchName}_${filterDate}`;
+  } else if (searchName) {
+    fileName += `_${searchName}`;
+  } else if (filterDate) {
+    fileName += `_${filterDate}`;
+  }
+
+  // Thêm số bản ghi
+  fileName += `_${data.length}banghi`;
+
+  // Thay thế ký tự đặc biệt
+  fileName = fileName
+    .replace(/[\/\\:*?"<>|]/g, '')
+    .replace(/\s+/g, '_')
+    .substring(0, 200);
+
+  // Tạo nội dung CSV
+  const headers = ['Thời gian', 'Thao tác', 'Tên / nhãn', 'Mã', 'Mô tả'];
+  const csvRows = [headers];
+
+  for (const item of data) {
+    csvRows.push([
+      `"${item.time.replace(/"/g, '""')}"`,
+      `"${item.action.replace(/"/g, '""')}"`,
+      `"${item.name.replace(/"/g, '""')}"`,
+      `"${item.code.replace(/"/g, '""')}"`,
+      `"${item.description.replace(/"/g, '""')}"`
+    ].join(','));
+  }
+
+  const csvContent = csvRows.join('\n');
+  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `${fileName}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast(`Đã xuất ${data.length} bản ghi`, 'success');
+}
+
+// Xuất PDF
+async function exportGoldHistoryToPDF() {
+  const data = await getCurrentGoldHistoryData();
+
+  if (!data.length) {
+    showToast('Không có dữ liệu để xuất', 'error');
+    return;
+  }
+
+  // Tải thư viện html2pdf nếu chưa có
+  if (typeof html2pdf === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = () => exportGoldHistoryToPDF();
+    document.head.appendChild(script);
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleString('vi-VN');
+
+  let htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Lịch sử giá vàng</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #c9a03d; text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+        th { background: #f5f5f5; font-weight: bold; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .footer { margin-top: 20px; text-align: center; font-size: 11px; color: #999; }
+      </style>
+    </head>
+    <body>
+      <h1>THĂNG LONG KIM VIỆT</h1>
+      <div class="subtitle">LỊCH SỬ THAY ĐỔI GIÁ VÀNG</div>
+      <div style="margin-bottom: 10px; font-size: 12px; color: #555;">
+        Ngày xuất: ${dateStr} | Tổng số bản ghi: ${data.length}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Thời gian</th>
+            <th>Thao tác</th>
+            <th>Tên / nhãn</th>
+            <th>Mã</th>
+            <th>Mô tả</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  data.forEach((item, idx) => {
+    htmlContent += `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${item.created_at || ''}</td>
+        <td>${item.action_type || ''}</td>
+        <td>${item.item_name || ''}</td>
+        <td>${item.item_code || ''}</td>
+        <td>${item.description || ''}</td>
+      </tr>
+    `;
+  });
+
+  htmlContent += `
+        </tbody>
+      </table>
+      <div class="footer">Thăng Long Kim Việt - Hệ thống quản lý giá vàng</div>
+    </body>
+    </html>
+  `;
+
+  const element = document.createElement('div');
+  element.innerHTML = htmlContent;
+  element.style.position = 'absolute';
+  element.style.left = '-9999px';
+  document.body.appendChild(element);
+
+  html2pdf().set({
+    margin: [10, 10, 10, 10],
+    filename: `lich-su-gia-vang_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  }).from(element).save().then(() => {
+    document.body.removeChild(element);
+    showToast('Đã xuất file PDF', 'success');
+  }).catch(err => {
+    document.body.removeChild(element);
+    showToast('Lỗi xuất PDF: ' + err.message, 'error');
+  });
+}
+
+// Gắn sự kiện cho nút xuất file
+document.getElementById('btn-export-excel')?.addEventListener('click', exportGoldHistoryToExcel);
+document.getElementById('btn-export-pdf')?.addEventListener('click', exportGoldHistoryToPDF);
+
+
+// ========== UPLOAD ẢNH LÊN SUPABASE STORAGE ==========
+
+let currentUploadFile = null;
+let supabaseClient = null;
+
+
+function initSupabaseClient() {
+  // Nếu đã có client, trả về luôn
+  if (supabaseClient) return supabaseClient;
+
+  // Lấy config (đã được hardcode ở đầu file)
+  const url = window.TLKV_SUPABASE_URL;
+  const key = window.TLKV_SUPABASE_ANON_KEY;
+
+  console.log('🔍 Initializing Supabase client...');
+  console.log('URL exists:', !!url);
+  console.log('KEY exists:', !!key);
+
+  if (!url || !key) {
+    console.error('❌ Supabase config missing!');
+    console.error('URL:', url);
+    console.error('KEY:', key ? 'present' : 'missing');
+    return null;
+  }
+
+  if (!window.supabase) {
+    console.error('❌ Supabase library not loaded!');
+    return null;
+  }
+
+  try {
+    supabaseClient = window.supabase.createClient(url, key);
+    console.log('✅ Supabase client created successfully');
+    return supabaseClient;
+  } catch (err) {
+    console.error('❌ Failed to create Supabase client:', err);
+    return null;
+  }
+}
+
+// Format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Hiển thị thông tin file đã chọn
+function showSelectedFileInfo(file) {
+  const fileInfo = document.getElementById('selected-file-info');
+  const fileName = document.getElementById('file-name');
+  const fileSize = document.getElementById('file-size');
+  const uploadBtn = document.getElementById('btn-upload-supabase');
+
+  if (fileInfo && fileName && fileSize) {
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileInfo.style.display = 'flex';
+    if (uploadBtn) uploadBtn.disabled = false;
+  }
+}
+
+// Ẩn thông tin file đã chọn
+function hideSelectedFileInfo() {
+  const fileInfo = document.getElementById('selected-file-info');
+  const uploadBtn = document.getElementById('btn-upload-supabase');
+  const fileInput = document.getElementById('pf-image-file');
+
+  if (fileInfo) fileInfo.style.display = 'none';
+  if (uploadBtn) uploadBtn.disabled = true;
+  if (fileInput) fileInput.value = '';
+}
+
+// Xem trước ảnh khi chọn file
+document.getElementById('pf-image-file')?.addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showToast('Vui lòng chọn file ảnh (JPG, PNG, GIF)', 'error');
+    this.value = '';
+    return;
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Ảnh quá lớn, vui lòng chọn ảnh dưới 5MB', 'error');
+    this.value = '';
+    return;
+  }
+
+  currentUploadFile = file;
+
+  // Hiển thị thông tin file đã chọn
+  showSelectedFileInfo(file);
+
+  // Xem trước ảnh
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const preview = document.getElementById('pf-image-preview');
+    const container = document.getElementById('image-preview-container');
+    if (preview) {
+      preview.src = e.target.result;
+      if (container) container.style.display = 'flex';
+    }
+  };
+  reader.readAsDataURL(file);
+
+  // Clear status
+  const statusDiv = document.getElementById('upload-status');
+  if (statusDiv) {
+    statusDiv.style.display = 'none';
+    statusDiv.innerHTML = '';
+    statusDiv.className = 'upload-status';
+  }
+
+  console.log('✅ File selected:', file.name, formatFileSize(file.size));
+});
+
+// Hủy chọn file
+document.getElementById('btn-cancel-file')?.addEventListener('click', function () {
+  currentUploadFile = null;
+  hideSelectedFileInfo();
+
+  const preview = document.getElementById('pf-image-preview');
+  const container = document.getElementById('image-preview-container');
+  if (preview) preview.src = '';
+  if (container) container.style.display = 'none';
+
+  const statusDiv = document.getElementById('upload-status');
+  if (statusDiv) {
+    statusDiv.style.display = 'none';
+    statusDiv.innerHTML = '';
+  }
+
+  console.log('❌ File selection cancelled');
+});
+
+// Upload ảnh lên Supabase Storage
+document.getElementById('btn-upload-supabase')?.addEventListener('click', async function () {
+  if (!currentUploadFile) {
+    showToast('Vui lòng chọn ảnh trước', 'error');
+    return;
+  }
+
+  if (!supabaseClient) {
+    initSupabaseClient();
+    if (!supabaseClient) {
+      showToast('Chưa kết nối Supabase', 'error');
+      return;
+    }
+  }
+
+  const statusDiv = document.getElementById('upload-status');
+  statusDiv.style.display = 'block';
+  statusDiv.innerHTML = '⏳ Đang upload lên Supabase...';
+  statusDiv.className = 'upload-status loading';
+
+  const uploadBtn = document.getElementById('btn-upload-supabase');
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '⏳ Đang upload...';
+
+  try {
+    // Tạo tên file duy nhất
+    const fileExt = currentUploadFile.name.split('.').pop();
+    const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+    const filePath = `products/${fileName}`;
+
+    console.log('📤 Uploading to:', filePath);
+
+    // Upload lên Supabase Storage
+    const { data, error } = await supabaseClient.storage
+      .from('product-images')
+      .upload(filePath, currentUploadFile, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: currentUploadFile.type
+      });
+
+    if (error) throw error;
+
+    console.log('✅ Upload success:', data);
+
+    // Lấy public URL
+    const { data: { publicUrl } } = supabaseClient.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    console.log('🔗 Public URL:', publicUrl);
+
+    // Cập nhật đường dẫn ảnh vào input
+    document.getElementById('pf-image').value = publicUrl;
+
+    // Cập nhật preview với URL thật
+    const preview = document.getElementById('pf-image-preview');
+    if (preview) {
+      preview.src = publicUrl;
+    }
+
+    statusDiv.innerHTML = '✅ Upload thành công! URL đã được điền tự động.';
+    statusDiv.className = 'upload-status success';
+    showToast('Upload ảnh thành công', 'success');
+
+    // Clear file selection
+    currentUploadFile = null;
+    hideSelectedFileInfo();
+    document.getElementById('pf-image-file').value = '';
+
+  } catch (error) {
+    console.error('❌ Upload error:', error);
+    statusDiv.innerHTML = '❌ ' + (error.message || 'Upload thất bại');
+    statusDiv.className = 'upload-status error';
+    showToast(error.message || 'Upload thất bại', 'error');
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.innerHTML = '☁️ Upload lên Supabase';
+  }
+});
+
+// Xóa ảnh (clear all)
+document.getElementById('btn-clear-image')?.addEventListener('click', function () {
+  currentUploadFile = null;
+  document.getElementById('pf-image-file').value = '';
+  document.getElementById('pf-image').value = '';
+  document.getElementById('pf-image-preview').src = '';
+  document.getElementById('image-preview-container').style.display = 'none';
+  document.getElementById('upload-status').style.display = 'none';
+  hideSelectedFileInfo();
+  showToast('Đã xóa ảnh', 'info');
+});
+
+// Remove preview
+document.getElementById('btn-remove-preview')?.addEventListener('click', function () {
+  document.getElementById('pf-image').value = '';
+  document.getElementById('pf-image-preview').src = '';
+  document.getElementById('image-preview-container').style.display = 'none';
+});
+
+function clearProductForm() {
+  console.log('🧹 Clearing product form...');
+
+  // Clear hidden ID
+  const idField = document.getElementById('pf-id');
+  if (idField) idField.value = '';
+
+  // Clear text inputs
+  const nameField = document.getElementById('pf-name');
+  if (nameField) nameField.value = '';
+
+  const categoryField = document.getElementById('pf-category');
+  if (categoryField) categoryField.value = '';
+
+  const priceTextField = document.getElementById('pf-priceText');
+  if (priceTextField) priceTextField.value = '';
+
+  const imageField = document.getElementById('pf-image');
+  if (imageField) imageField.value = '';
+
+  // Clear file upload
+  currentUploadFile = null;
+  const fileInput = document.getElementById('pf-image-file');
+  if (fileInput) fileInput.value = '';
+
+  // Hide selected file info
+  const fileInfo = document.getElementById('selected-file-info');
+  if (fileInfo) fileInfo.style.display = 'none';
+
+  // Clear preview
+  const preview = document.getElementById('pf-image-preview');
+  if (preview) preview.src = '';
+
+  const previewContainer = document.getElementById('image-preview-container');
+  if (previewContainer) previewContainer.style.display = 'none';
+
+  // Clear upload status
+  const statusDiv = document.getElementById('upload-status');
+  if (statusDiv) {
+    statusDiv.style.display = 'none';
+    statusDiv.innerHTML = '';
+    statusDiv.className = 'upload-status';
+  }
+
+  // Reset form title
+  const formTitle = document.getElementById('product-form-title');
+  if (formTitle) formTitle.textContent = '✨ Thêm sản phẩm mới';
+
+  // Enable upload button
+  const uploadBtn = document.getElementById('btn-upload-supabase');
+  if (uploadBtn) {
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '☁️ Upload lên Supabase';
+  }
+
+  // Reset file name and size display
+  const fileNameSpan = document.getElementById('file-name');
+  const fileSizeSpan = document.getElementById('file-size');
+  if (fileNameSpan) fileNameSpan.textContent = '';
+  if (fileSizeSpan) fileSizeSpan.textContent = '';
+
+  console.log('✅ Product form cleared successfully');
+}
+// Khởi tạo
+initSupabaseClient();

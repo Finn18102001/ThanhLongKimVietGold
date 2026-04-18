@@ -124,20 +124,29 @@
     return String(b).replace(/\/?$/, "/") + trimmed;
   }
 
-  /** Ảnh: URL tuyệt đối giữ nguyên; còn lại là đường dẫn site (thường /assets/...). */
   function resolveProductImageSrc(image) {
     const s = String(image || "").trim();
-    if (!s) return "";
+    if (!s) return '';
+
+    // URL đầy đủ (http/https)
     if (/^https?:\/\//i.test(s)) return s;
-    if (s.startsWith("/")) return assetUrl(s.replace(/^\//, ""));
-    return assetUrl(s);
+
+    // Supabase Storage URL
+    if (s.includes('supabase.co/storage/v1/object/public/')) return s;
+
+    // Đường dẫn từ thư mục assets
+    if (s.startsWith('/assets/')) return s;
+    if (s.startsWith('assets/')) return '/' + s;
+
+    // Mặc định: coi là tên file trong assets
+    return '/assets/' + s;
   }
 
   function normalizeItem(p) {
     return {
       id: String(
         p.id ||
-          (global.crypto && crypto.randomUUID ? crypto.randomUUID() : "p-" + Math.random().toString(36).slice(2))
+        (global.crypto && crypto.randomUUID ? crypto.randomUUID() : "p-" + Math.random().toString(36).slice(2))
       ),
       name: String(p.name ?? ""),
       category: String(p.category ?? ""),
@@ -221,7 +230,7 @@
   function clearStorage() {
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch (_) {}
+    } catch (_) { }
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
@@ -236,12 +245,12 @@
         "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
       );
     }
-    try { await sb.auth.getUser(); } catch (_) {}
+    try { await sb.auth.getUser(); } catch (_) { }
 
     var result = await fetchProductsFromSupabase(sb);
     if (result && result.items && result.items.length === 0) {
       await new Promise(function (r) { setTimeout(r, 600); });
-      try { await sb.auth.getUser(); } catch (_) {}
+      try { await sb.auth.getUser(); } catch (_) { }
       result = await fetchProductsFromSupabase(sb);
     }
     return result;
@@ -262,12 +271,23 @@
     });
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   /**
    * Lưới thẻ sản phẩm (tối đa 4 cột), phong cách gần với khối "Sản phẩm bán chạy" baotinmanhhai.vn/san-pham.
    */
   function renderProductGrid(container, items) {
     if (!container) return;
     container.innerHTML = "";
+
     if (!items || !items.length) {
       const empty = document.createElement("p");
       empty.className = "tlkv-product-empty";
@@ -286,27 +306,20 @@
     grid.className = "tlkv-product-grid";
     grid.setAttribute("role", "list");
 
-    const logoSrc = assetUrl("assets/logo-thang-long-kim-viet.png");
+    // Placeholder ảnh khi lỗi
+    const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f5f5f5'/%3E%3Ctext x='50' y='55' text-anchor='middle' font-size='14' fill='%23999'%3E📷%3C/text%3E%3C/svg%3E";
 
     items.forEach(function (p) {
       const card = document.createElement("article");
       card.className = "tlkv-product-card";
       card.setAttribute("role", "listitem");
 
-      const media = document.createElement("div");
-      media.className = "tlkv-product-card__media";
-      const wm = document.createElement("div");
-      wm.className = "tlkv-product-card__watermark";
-      const wmImg = document.createElement("img");
-      wmImg.src = logoSrc;
-      wmImg.alt = "";
-      wmImg.className = "tlkv-product-card__watermark-img";
-      wm.appendChild(wmImg);
-      media.appendChild(wm);
-
+      // Image wrapper
       const imgWrap = document.createElement("div");
       imgWrap.className = "tlkv-product-card__img-wrap";
+
       const src = resolveProductImageSrc(p.image);
+
       if (src) {
         const img = document.createElement("img");
         img.src = src;
@@ -314,35 +327,37 @@
         img.className = "tlkv-product-card__img";
         img.loading = "lazy";
         img.decoding = "async";
-        img.addEventListener("error", function () {
-          img.remove();
-          const ph = document.createElement("span");
-          ph.className = "tlkv-product-card__noimg";
-          ph.textContent = "Không tải được ảnh";
-          imgWrap.appendChild(ph);
-        });
+
+        img.onerror = function () {
+          this.onerror = null;
+          this.src = placeholderImage;
+        };
+
         imgWrap.appendChild(img);
       } else {
-        const ph = document.createElement("span");
-        ph.className = "tlkv-product-card__noimg";
-        ph.textContent = "Chưa có ảnh";
-        imgWrap.appendChild(ph);
+        const noImg = document.createElement("div");
+        noImg.className = "tlkv-product-card__noimg";
+        noImg.textContent = "📷";
+        imgWrap.appendChild(noImg);
       }
-      media.appendChild(imgWrap);
-      card.appendChild(media);
 
+      card.appendChild(imgWrap);
+
+      // Body
       const body = document.createElement("div");
       body.className = "tlkv-product-card__body";
+
       const nameEl = document.createElement("h3");
       nameEl.className = "tlkv-product-card__name";
       nameEl.textContent = p.name || "";
       body.appendChild(nameEl);
+
       const priceEl = document.createElement("p");
       priceEl.className = "tlkv-product-card__price";
-      priceEl.textContent = p.priceText || "";
+      priceEl.textContent = p.priceText || "Liên hệ";
       body.appendChild(priceEl);
-      card.appendChild(body);
 
+      card.appendChild(body);
       grid.appendChild(card);
     });
 
