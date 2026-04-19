@@ -324,10 +324,10 @@
   loadTVLogo();
 
   function openTVMode() {
-    // Gọi lại để chắc chắn src là URL đầy đủ khi modal hiện
     loadTVLogo();
     tvModal.style.display = 'flex';
     renderTVTable();
+    window.__tvInterval = setInterval(renderTVTable, 30000);
     updateTVDateTime();
   }
 
@@ -335,13 +335,23 @@
     tvModal.style.display = 'none';
   }
 
-  function renderTVTable() {
+  async function renderTVTable() {
+    console.log("[TV] renderTVTable called at", new Date().toLocaleTimeString());
     const mainTableBody = document.getElementById('gold-table-body');
     if (!mainTableBody) return;
 
     const tvTableBody = document.getElementById('tv-table-body');
     tvTableBody.innerHTML = mainTableBody.innerHTML;
+    try {
+      console.log("[TV] calling API...");
+      const data = await TLKVGold.getGoldTable();
+      console.log("[TV] API DONE", data);
 
+      TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
+
+    } catch (err) {
+      console.error("[TV] ERROR", err);
+    }
     setTimeout(() => {
       const rows = tvTableBody.querySelectorAll('tr');
       let index = 0;
@@ -367,7 +377,9 @@
       });
     }, 50);
   }
-
+  window.addEventListener("tlkv:gold-table-changed", function () {
+    renderTVTable();
+  });
   // Event listeners
   if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);
   if (btnCloseTV) btnCloseTV.addEventListener('click', closeTVMode);

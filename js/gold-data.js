@@ -399,7 +399,7 @@
     const month = pad2(pick("month"));
     const year = pick("year");
     const headerTime = hour + "h" + minute;
-    const footerNote = "Cập nhật lúc " + hour + ":" + minute + " " + day + "/" + month + "/" + year;
+    const footerNote = "";
     return normalizeMeta({
       headerTime: headerTime,
       footerNote: footerNote,

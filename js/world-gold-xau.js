@@ -128,18 +128,6 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     }
 
     renderRows(tbody, j.rows);
-
-    if (foot && j.asOf) {
-      try {
-        var d = new Date(j.asOf);
-        foot.textContent =
-          "Cập nhật: " +
-          d.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) +
-          " · Nguồn: GoldAPI / TradingView";
-      } catch (_) {
-        foot.textContent = "Nguồn: GoldAPI / TradingView";
-      }
-    }
   }
 
   function mountWorldGoldXAU(root) {
