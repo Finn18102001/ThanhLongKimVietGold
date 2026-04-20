@@ -349,7 +349,6 @@
 
       TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
 
-      // 👉 xử lý style NGAY sau khi render xong
       const rows = tvTableBody.querySelectorAll('tr');
       let index = 0;
 
@@ -373,7 +372,6 @@
 
         index++;
       });
-
     } catch (err) {
       console.error("[TV] ERROR", err);
     }
