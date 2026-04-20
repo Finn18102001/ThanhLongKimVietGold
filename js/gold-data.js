@@ -25,11 +25,12 @@
       .subscribe();
   }
 
-  /** Hiển thị: số trong DB → chuỗi kiểu 15.600.000 */
-  function formatPriceDisplay(value, metal) {
+  /** Hiển thị: số trong DB → chuỗi kiểu 15.600.000. kind "sell": 0 → rỗng (vàng & bạc). */
+  function formatPriceDisplay(value, metal, kind) {
     if (value === null || value === undefined || value === "") return "";
     const n = Number(value);
     if (!Number.isFinite(n)) return String(value);
+    if (kind === "sell" && n === 0) return "";
     if (metal === "silver" && n === 0) return "";
     const abs = Math.abs(Math.round(n));
     return abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -43,6 +44,144 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
+  const GOLD_THEAD_ROW_WIDE_INNER =
+    "<th>THƯƠNG HIỆU</th><th>SẢN PHẨM</th><th>HÀM LƯỢNG</th><th>MUA VÀO</th><th>BÁN RA</th>";
+  const GOLD_THEAD_ROW_STACKED_INNER =
+    "<th>THƯƠNG HIỆU</th><th>SẢN PHẨM</th><th>MUA VÀO</th><th>BÁN RA</th>";
+
+  let __goldLayoutMediaListenerBound = false;
+
+  /** Chuỗi giá hiển thị → số làm tròn; rỗng / không hợp lệ → null */
+  function parseDisplayPriceNumber(s) {
+    const t = String(s ?? "").trim();
+    if (!t) return null;
+    const n = parseFloat(t.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+
+  function isGoldTableStackedLayout() {
+    if (typeof global.matchMedia !== "function") return false;
+    return global.matchMedia("(max-width: 639px)").matches;
+  }
+
+  /** previous_* từ DB → số làm tròn; null nếu chưa có. */
+  function dbPriceToTrendNum(v) {
+    if (v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+
+  /**
+   * Mũi tên: (giá hiện tại) − (previous_buy | previous_sell từ DB).
+   * diff > 0 → xanh ▲, diff < 0 → đỏ ▼, diff === 0 hoặc thiếu dữ liệu → không hiện.
+   */
+  function appendPriceCellContent(td, displayText, field, rt) {
+    td.textContent = "";
+    const text = displayText == null ? "" : String(displayText);
+    td.appendChild(document.createTextNode(text));
+    const cur = parseDisplayPriceNumber(text);
+    const prevVal = field === "buy" ? rt.prevBuyNum : rt.prevSellNum;
+    if (cur == null || prevVal == null) return;
+    const diff = cur - prevVal;
+    if (diff === 0) return;
+    const span = document.createElement("span");
+    span.className =
+      diff > 0 ? "gold-price-trend gold-price-trend--up" : "gold-price-trend gold-price-trend--down";
+    span.setAttribute(
+      "aria-label",
+      diff > 0 ? "Giá cao hơn mức trước khi cập nhật" : "Giá thấp hơn mức trước khi cập nhật"
+    );
+    span.textContent = diff > 0 ? "▲" : "▼";
+    td.appendChild(span);
+  }
+
+  function syncGoldTableThead(table, stacked) {
+    if (!table) return;
+    const trh = table.querySelector("thead tr");
+    if (!trh) return;
+    trh.innerHTML = stacked ? GOLD_THEAD_ROW_STACKED_INNER : GOLD_THEAD_ROW_WIDE_INNER;
+    table.classList.toggle("gold-table--stacked", stacked);
+    if (table.classList.contains("tv-gold-table")) {
+      table.classList.toggle("tv-gold-table--stacked", stacked);
+    } else {
+      table.classList.remove("tv-gold-table--stacked");
+    }
+  }
+
+  function formatStackedProductLine(ordered, idx, r) {
+    const own = String(r.product || "").trim();
+    const parent = variantParentProduct(ordered, idx);
+    const base = own || parent || "";
+    const pur = String(r.purity || "").trim();
+    if (pur) return base ? base + " (" + pur + ")" : pur;
+    return base || "—";
+  }
+
+  /**
+   * Mobile nhỏ: 4 cột (ẩn hàm lượng), nhưng vẫn gộp rowspan theo THƯƠNG HIỆU như bảng cũ.
+   * Hàm lượng hiển thị cuối tên sản phẩm: "Tên SP (999,9)" cho từng dòng.
+   */
+  function renderRowsStackedMobile(tbody, rows) {
+    const ordered = orderRowsForTable(rows.slice());
+    if (!ordered.length) return;
+    let i = 0;
+    while (i < ordered.length) {
+      const brand = ordered[i].brand;
+      let j = i;
+      while (j < ordered.length && brandsMatch(ordered[j].brand, brand)) j++;
+      const brandSpan = j - i;
+      for (let idx = i; idx < j; idx++) {
+        const rt = ordered[idx];
+        const tr = document.createElement("tr");
+        if (rt.metal === "silver") tr.classList.add("row-silver");
+        if (rt.highlight === true) tr.classList.add("row-highlight");
+
+        if (idx === i) {
+          const tdB = document.createElement("td");
+          tdB.className = "gold-brand-cell";
+          if (rt.metal === "silver") tdB.classList.add("gold-brand-cell--silver");
+          tdB.rowSpan = brandSpan;
+          tdB.textContent = rt.brand;
+          tr.appendChild(tdB);
+        }
+
+        const tdP = document.createElement("td");
+        tdP.className = "col-product";
+        tdP.textContent = formatStackedProductLine(ordered, idx, rt);
+        tr.appendChild(tdP);
+
+        const tdBuy = document.createElement("td");
+        tdBuy.className = "price";
+        appendPriceCellContent(tdBuy, rt.buy, "buy", rt);
+        tr.appendChild(tdBuy);
+
+        const tdSell = document.createElement("td");
+        tdSell.className = "price";
+        appendPriceCellContent(tdSell, rt.sell, "sell", rt);
+        tr.appendChild(tdSell);
+
+        tbody.appendChild(tr);
+      }
+      i = j;
+    }
+  }
+
+  function initGoldTableLayoutListenerOnce() {
+    if (__goldLayoutMediaListenerBound) return;
+    if (typeof global.matchMedia !== "function" || typeof document === "undefined") return;
+    __goldLayoutMediaListenerBound = true;
+    const mq = global.matchMedia("(max-width: 639px)");
+    const handler = function () {
+      const rows = global.__TLKV_LAST_GOLD_ROWS;
+      if (!rows || !Array.isArray(rows)) return;
+      document.querySelectorAll("#gold-table-body, #tv-table-body").forEach(function (el) {
+        renderRowsIntoTbody(el, rows);
+      });
+    };
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+  }
+
   function metaRowToApp(row) {
     if (!row || typeof row !== "object") return {};
     return {
@@ -54,16 +193,19 @@
   }
 
   function priceRowDbToApp(r) {
-    return normalizeRow({
+    const row = normalizeRow({
       id: r.id,
       brand: r.brand,
       product: r.product ?? "",
       purity: r.purity ?? "",
-      buy: formatPriceDisplay(r.buy, r.metal),
-      sell: formatPriceDisplay(r.sell, r.metal),
+      buy: formatPriceDisplay(r.buy, r.metal, "buy"),
+      sell: formatPriceDisplay(r.sell, r.metal, "sell"),
       metal: r.metal,
       highlight: r.highlight === true,
     });
+    row.prevBuyNum = dbPriceToTrendNum(r.previous_buy);
+    row.prevSellNum = dbPriceToTrendNum(r.previous_sell);
+    return row;
   }
 
   async function fetchGoldFromSupabase(sb) {
@@ -95,32 +237,57 @@
   /** Chỉ đồng bộ gold_price_rows (không đụng gold_meta). */
   async function persistGoldRowsToSupabase(sb, rowsNormalized) {
     const rows = rowsNormalized || [];
-    const { data: existing, error: eEx } = await sb.from("gold_price_rows").select("id");
+    const { data: existingList, error: eEx } = await sb.from("gold_price_rows").select("*");
     if (eEx) throw eEx;
+    const existingById = new Map();
+    (existingList || []).forEach(function (row) {
+      existingById.set(String(row.id), row);
+    });
     const keep = new Set(
       rows.map(function (r) {
-        return r.id;
+        return String(r.id);
       })
     );
-    for (let i = 0; i < (existing || []).length; i++) {
-      const ex = existing[i];
-      if (!keep.has(ex.id)) {
+    for (let i = 0; i < (existingList || []).length; i++) {
+      const ex = existingList[i];
+      if (!keep.has(String(ex.id))) {
         const { error: eDel } = await sb.from("gold_price_rows").delete().eq("id", ex.id);
         if (eDel) throw eDel;
       }
     }
 
     const upserts = rows.map(function (r, idx) {
+      const newBuy = parsePriceToNumber(r.buy) ?? 0;
+      const newSell = parsePriceToNumber(r.sell) ?? 0;
+      const ex = existingById.get(String(r.id));
+      let previous_buy = null;
+      let previous_sell = null;
+      let previous_updated_at = null;
+      if (ex) {
+        previous_buy = ex.previous_buy != null ? ex.previous_buy : null;
+        previous_sell = ex.previous_sell != null ? ex.previous_sell : null;
+        previous_updated_at = ex.previous_updated_at != null ? ex.previous_updated_at : null;
+        const oldBuy = Math.round(Number(ex.buy)) || 0;
+        const oldSell = Math.round(Number(ex.sell)) || 0;
+        if (oldBuy !== newBuy || oldSell !== newSell) {
+          if (oldBuy !== newBuy) previous_buy = oldBuy;
+          if (oldSell !== newSell) previous_sell = oldSell;
+          previous_updated_at = new Date().toISOString();
+        }
+      }
       return {
         id: r.id,
         sort_order: idx + 1,
         brand: r.brand,
         product: r.product || "",
         purity: r.purity || "",
-        buy: parsePriceToNumber(r.buy) ?? 0,
-        sell: parsePriceToNumber(r.sell) ?? 0,
+        buy: newBuy,
+        sell: newSell,
         metal: r.metal,
         highlight: r.highlight === true,
+        previous_buy: previous_buy,
+        previous_sell: previous_sell,
+        previous_updated_at: previous_updated_at,
       };
     });
     if (upserts.length === 0) return;
@@ -623,42 +790,51 @@
    */
   function renderRowsIntoTbody(tbody, rows) {
     if (!tbody || !rows) return;
+    global.__TLKV_LAST_GOLD_ROWS = rows;
+    const table = tbody.closest("table");
+    const stacked = isGoldTableStackedLayout();
+    syncGoldTableThead(table, stacked);
     tbody.innerHTML = "";
-    walkMergedGoldRows(rows, function (ctx) {
-      const rt = ctx.row;
-      const tr = document.createElement("tr");
-      if (rt.metal === "silver") tr.classList.add("row-silver");
-      if (rt.highlight === true) tr.classList.add("row-highlight");
-      if (ctx.showBrand) {
-        const tdB = document.createElement("td");
-        tdB.className = "gold-brand-cell";
-        if (rt.metal === "silver") tdB.classList.add("gold-brand-cell--silver");
-        tdB.rowSpan = ctx.brandRowspan;
-        tdB.textContent = rt.brand;
-        tr.appendChild(tdB);
-      }
-      if (ctx.showProduct) {
-        const tdP = document.createElement("td");
-        tdP.className = "col-product";
-        tdP.rowSpan = ctx.productRowspan;
-        tdP.textContent = ctx.productLabel;
-        tr.appendChild(tdP);
-      }
-      const tdPur = document.createElement("td");
-      tdPur.className = "col-purity";
-      tdPur.textContent = rt.purity;
-      tr.appendChild(tdPur);
-      const tdBuy = document.createElement("td");
-      tdBuy.className = "price";
-      tdBuy.textContent = rt.buy;
-      tr.appendChild(tdBuy);
-      const tdSell = document.createElement("td");
-      tdSell.className = "price";
-      tdSell.textContent = rt.sell;
-      tr.appendChild(tdSell);
-      tbody.appendChild(tr);
-    });
+    if (stacked) {
+      renderRowsStackedMobile(tbody, rows);
+    } else {
+      walkMergedGoldRows(rows, function (ctx) {
+        const rt = ctx.row;
+        const tr = document.createElement("tr");
+        if (rt.metal === "silver") tr.classList.add("row-silver");
+        if (rt.highlight === true) tr.classList.add("row-highlight");
+        if (ctx.showBrand) {
+          const tdB = document.createElement("td");
+          tdB.className = "gold-brand-cell";
+          if (rt.metal === "silver") tdB.classList.add("gold-brand-cell--silver");
+          tdB.rowSpan = ctx.brandRowspan;
+          tdB.textContent = rt.brand;
+          tr.appendChild(tdB);
+        }
+        if (ctx.showProduct) {
+          const tdP = document.createElement("td");
+          tdP.className = "col-product";
+          tdP.rowSpan = ctx.productRowspan;
+          tdP.textContent = ctx.productLabel;
+          tr.appendChild(tdP);
+        }
+        const tdPur = document.createElement("td");
+        tdPur.className = "col-purity";
+        tdPur.textContent = rt.purity;
+        tr.appendChild(tdPur);
+        const tdBuy = document.createElement("td");
+        tdBuy.className = "price";
+        appendPriceCellContent(tdBuy, rt.buy, "buy", rt);
+        tr.appendChild(tdBuy);
+        const tdSell = document.createElement("td");
+        tdSell.className = "price";
+        appendPriceCellContent(tdSell, rt.sell, "sell", rt);
+        tr.appendChild(tdSell);
+        tbody.appendChild(tr);
+      });
+    }
     markGoldTableBottomCorners(tbody);
+    initGoldTableLayoutListenerOnce();
   }
 
   async function mountGoldTable(tbodySelector) {
@@ -676,7 +852,7 @@
       tbody.innerHTML = "";
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.colSpan = 5;
+      td.colSpan = isGoldTableStackedLayout() ? 4 : 5;
       td.style.padding = "16px";
       td.style.color = "#666";
       td.textContent =

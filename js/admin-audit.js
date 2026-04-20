@@ -52,20 +52,37 @@
     });
   }
 
+  function applyCreatedAtRange(q, opts) {
+    var from = opts && opts.dateFrom ? String(opts.dateFrom).trim() : "";
+    var to = opts && opts.dateTo ? String(opts.dateTo).trim() : "";
+    if (from && to && from > to) {
+      var tmp = from;
+      from = to;
+      to = tmp;
+    }
+    if (from && to) {
+      return q.gte("created_at", from + "T00:00:00+07:00").lte("created_at", to + "T23:59:59.999+07:00");
+    }
+    if (from) return q.gte("created_at", from + "T00:00:00+07:00");
+    if (to) return q.lte("created_at", to + "T23:59:59.999+07:00");
+    var legacy = opts && opts.dateStr ? String(opts.dateStr).trim() : "";
+    if (legacy) {
+      return q.gte("created_at", legacy + "T00:00:00+07:00").lte("created_at", legacy + "T23:59:59.999+07:00");
+    }
+    return q;
+  }
+
   /**
    * @param {import("@supabase/supabase-js").SupabaseClient} sb
-   * @param {{ searchName?: string, dateStr?: string, limit?: number }} opts
+   * @param {{ searchName?: string, dateFrom?: string, dateTo?: string, dateStr?: string, limit?: number }} opts
    */
   function fetchGoldLog(sb, opts) {
     if (!sb) return Promise.reject(new Error("Thiếu Supabase client."));
-    var limit = opts && opts.limit > 0 ? Math.min(opts.limit, 500) : 200;
-    var q = sb.from(GOLD_LOG).select("*").order("created_at", { ascending: false }).limit(limit);
+    var cap = opts && opts.limit > 0 ? Math.min(opts.limit, 50000) : 2000;
+    var q = sb.from(GOLD_LOG).select("*").order("created_at", { ascending: false }).limit(cap);
     var frag = safeIlikeFragment(opts && opts.searchName);
     if (frag) q = q.ilike("entity_name", "%" + frag + "%");
-    var d = opts && opts.dateStr ? String(opts.dateStr).trim() : "";
-    if (d) {
-      q = q.gte("created_at", d + "T00:00:00+07:00").lte("created_at", d + "T23:59:59.999+07:00");
-    }
+    q = applyCreatedAtRange(q, opts || {});
     return q.then(function (res) {
       if (res.error) throw res.error;
       return res.data || [];
@@ -74,18 +91,15 @@
 
   /**
    * @param {import("@supabase/supabase-js").SupabaseClient} sb
-   * @param {{ searchName?: string, dateStr?: string, limit?: number }} opts
+   * @param {{ searchName?: string, dateFrom?: string, dateTo?: string, dateStr?: string, limit?: number }} opts
    */
   function fetchProductLog(sb, opts) {
     if (!sb) return Promise.reject(new Error("Thiếu Supabase client."));
-    var limit = opts && opts.limit > 0 ? Math.min(opts.limit, 500) : 200;
-    var q = sb.from(PRODUCT_LOG).select("*").order("created_at", { ascending: false }).limit(limit);
+    var cap = opts && opts.limit > 0 ? Math.min(opts.limit, 50000) : 2000;
+    var q = sb.from(PRODUCT_LOG).select("*").order("created_at", { ascending: false }).limit(cap);
     var frag = safeIlikeFragment(opts && opts.searchName);
     if (frag) q = q.ilike("entity_name", "%" + frag + "%");
-    var d = opts && opts.dateStr ? String(opts.dateStr).trim() : "";
-    if (d) {
-      q = q.gte("created_at", d + "T00:00:00+07:00").lte("created_at", d + "T23:59:59.999+07:00");
-    }
+    q = applyCreatedAtRange(q, opts || {});
     return q.then(function (res) {
       if (res.error) throw res.error;
       return res.data || [];

@@ -327,7 +327,6 @@
     loadTVLogo();
     tvModal.style.display = 'flex';
     renderTVTable();
-    window.__tvInterval = setInterval(renderTVTable, 30000);
     updateTVDateTime();
   }
 
@@ -342,6 +341,7 @@
 
     const tvTableBody = document.getElementById('tv-table-body');
     tvTableBody.innerHTML = mainTableBody.innerHTML;
+
     try {
       console.log("[TV] calling API...");
       const data = await TLKVGold.getGoldTable();
@@ -349,10 +349,7 @@
 
       TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
 
-    } catch (err) {
-      console.error("[TV] ERROR", err);
-    }
-    setTimeout(() => {
+      // 👉 xử lý style NGAY sau khi render xong
       const rows = tvTableBody.querySelectorAll('tr');
       let index = 0;
 
@@ -373,10 +370,15 @@
             cell.style.color = '#ffffff';
           }
         });
+
         index++;
       });
-    }, 50);
+
+    } catch (err) {
+      console.error("[TV] ERROR", err);
+    }
   }
+
   window.addEventListener("tlkv:gold-table-changed", function () {
     renderTVTable();
   });

@@ -144,8 +144,12 @@
               <input type="search" id="gold-hist-search" placeholder="Thương hiệu, sản phẩm..." autocomplete="off" />
             </div>
             <div class="filter-group">
-              <label>📅 Theo ngày</label>
-              <input type="date" id="gold-hist-date" />
+              <label>📅 Từ ngày</label>
+              <input type="date" id="gold-hist-date-from" />
+            </div>
+            <div class="filter-group">
+              <label>📅 Đến ngày</label>
+              <input type="date" id="gold-hist-date-to" />
             </div>
             <button type="button" id="gold-hist-refresh" class="btn-refresh">
               🔄 Làm mới
@@ -159,7 +163,7 @@
                   <th>Thời gian</th>
                   <th>Thao tác</th>
                   <th>Tên / nhãn</th>
-                  <th>Mã</th>
+                  <th>Giá mới</th>
                   <th>Mô tả</th>
                 </tr>
               </thead>
@@ -297,7 +301,8 @@
           <div class="admin-history-filters">
             <label> Tìm theo tên <input type="search" id="product-hist-search" placeholder="Tên sản phẩm…"
                 autocomplete="off" /> </label>
-            <label> Theo ngày <input type="date" id="product-hist-date" /> </label>
+            <label> Từ ngày <input type="date" id="product-hist-date-from" /> </label>
+            <label> Đến ngày <input type="date" id="product-hist-date-to" /> </label>
             <button type="button" id="product-hist-refresh" class="btn-secondary">Làm mới</button>
           </div>
           <div class="admin-table-wrap admin-history-table-wrap" style="margin-top: 12px">

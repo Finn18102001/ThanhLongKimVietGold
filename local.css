@@ -187,6 +187,32 @@
   white-space: nowrap;
 }
 
+/* So với previous_buy / previous_sell trên gold_price_rows */
+.gold-price-trend {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.82em;
+  font-weight: 700;
+  vertical-align: middle;
+  line-height: 1;
+}
+.gold-price-trend--up {
+  color: #16a34a;
+}
+.gold-price-trend--down {
+  color: #dc2626;
+}
+
+.tv-gold-table .gold-price-trend {
+  margin-left: 6px;
+  font-size: 0.72em;
+  vertical-align: baseline;
+}
+
+.gold-table-content.gold-table-extended.gold-table--stacked tbody td.col-product {
+  white-space: normal !important;
+}
+
 
 .gold-chart-wrap {
   width: 100%;
@@ -410,6 +436,34 @@
     line-height: 1.4 !important;
     padding: 9px 3px !important;       
   }
+
+  /* Mobile nhỏ: 4 cột — SP + (hàm lượng), không cột HL riêng */
+  .gold-table-content.gold-table-extended.gold-table--stacked th:nth-child(1),
+  .gold-table-content.gold-table-extended.gold-table--stacked td:nth-child(1) {
+    width: 22% !important;
+  }
+  .gold-table-content.gold-table-extended.gold-table--stacked th:nth-child(2),
+  .gold-table-content.gold-table-extended.gold-table--stacked td:nth-child(2) {
+    width: calc(38% - 20px) !important;
+  }
+  .gold-table-content.gold-table-extended.gold-table--stacked th:nth-child(3),
+  .gold-table-content.gold-table-extended.gold-table--stacked td:nth-child(3),
+  .gold-table-content.gold-table-extended.gold-table--stacked th:nth-child(4),
+  .gold-table-content.gold-table-extended.gold-table--stacked td:nth-child(4) {
+    width: calc(20% + 10px) !important;
+  }
+  .gold-table-content.gold-table-extended.gold-table--stacked td.price,
+  .gold-table-content.gold-table-extended.gold-table--stacked thead th:nth-child(3),
+  .gold-table-content.gold-table-extended.gold-table--stacked thead th:nth-child(4) {
+    white-space: nowrap !important;
+    font-weight: 600 !important;
+  }
+
+  /* Mobile nhỏ: thu hẹp padding cột SẢN PHẨM để đủ chỗ icon ▲/▼ */
+  .gold-table-content.gold-table-extended.gold-table--stacked tbody td.col-product {
+    padding-left: 3px !important;
+    padding-right: 0px !important; /* giảm ~5-8px so với mặc định */
+  }
 }
 /* ========== TV MODAL ========== */
 .tv-modal {
@@ -607,6 +661,22 @@
   bottom: 0;
   height: 1px;
   pointer-events: none;
+}
+
+/* TV 4 cột (màn nhỏ): Mua/Bán là cột 3–4 */
+.tv-gold-table.tv-gold-table--stacked th:nth-child(3),
+.tv-gold-table.tv-gold-table--stacked td:nth-child(3),
+.tv-gold-table.tv-gold-table--stacked th:nth-child(4),
+.tv-gold-table.tv-gold-table--stacked td:nth-child(4) {
+  width: auto !important;
+}
+.tv-gold-table.tv-gold-table--stacked td:nth-child(3),
+.tv-gold-table.tv-gold-table--stacked td:nth-child(4) {
+  font-size: 1.55rem !important;
+  font-weight: 700;
+  line-height: 1 !important;
+  padding: 4px 6px !important;
+  vertical-align: middle;
 }
 
 /* ===== TV FOOTER ===== */

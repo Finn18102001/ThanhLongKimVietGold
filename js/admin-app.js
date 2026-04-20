@@ -167,6 +167,49 @@ function showToast(message, type = 'success') {
     return escapeHtml(s).replace(/\r\n|\r|\n/g, "<br>");
   }
 
+  /** Cột "Giá mới" (lịch sử giá): giá sau thay đổi từ mô tả audit. */
+  function goldHistoryNewPriceDisplay(summary, action) {
+    var s = summary == null ? "" : String(summary);
+    var t = s.trim();
+    if (!t) return "—";
+    if (t === "Không đổi giá trị.") return "—";
+    if (action === "row_delete") return "—";
+    if (action === "meta_update") return "—";
+
+    var lines = s.split(/\r\n|\r|\n/);
+    var out = [];
+    var reArrowSell = /^Giá bán:\s*(.+?)\s*→\s*(.+)$/;
+    var reArrowBuy = /^Giá mua:\s*(.+?)\s*→\s*(.+)$/;
+    var i;
+    var ln;
+    for (i = 0; i < lines.length; i++) {
+      ln = lines[i];
+      var ms = ln.match(reArrowSell);
+      if (ms) {
+        out.push("Bán: " + ms[2].trim());
+        continue;
+      }
+      var mb = ln.match(reArrowBuy);
+      if (mb) {
+        out.push("Mua: " + mb[2].trim());
+        continue;
+      }
+    }
+    if (out.length) return out.join("\n");
+
+    if (action === "row_insert") {
+      out = [];
+      for (i = 0; i < lines.length; i++) {
+        ln = lines[i];
+        if (/^Giá mua:\s+/.test(ln)) out.push("Mua: " + ln.replace(/^Giá mua:\s+/, "").trim());
+        if (/^Giá bán:\s+/.test(ln)) out.push("Bán: " + ln.replace(/^Giá bán:\s+/, "").trim());
+      }
+      if (out.length) return out.join("\n");
+    }
+
+    return "—";
+  }
+
   function showAdminToast(message) {
     var host = $("admin-toast-host");
     if (!host) return;
@@ -203,7 +246,7 @@ function showToast(message, type = 'success') {
     return "";
   }
 
-  function renderHistoryTable(tbody, rows, labelMap) {
+  function renderHistoryTable(tbody, rows, labelMap, historyKind) {
     if (!tbody) return;
     tbody.innerHTML = "";
     if (!rows || !rows.length) {
@@ -220,6 +263,10 @@ function showToast(message, type = 'success') {
       var actHtml = badgeCls
         ? '<span class="admin-history-action-badge ' + badgeCls + '">' + escapeHtml(actLabel) + "</span>"
         : escapeHtml(actLabel);
+      var col4 =
+        historyKind === "gold"
+          ? escapeHtml(goldHistoryNewPriceDisplay(r.summary, act)).replace(/\n/g, "<br>")
+          : escapeHtml(r.entity_id || "—");
       tr.innerHTML =
         "<td>" +
         escapeHtml(formatHistoryTime(r.created_at)) +
@@ -228,7 +275,7 @@ function showToast(message, type = 'success') {
         "</td><td>" +
         escapeHtml(r.entity_name || "") +
         "</td><td>" +
-        escapeHtml(r.entity_id || "—") +
+        col4 +
         '</td><td class="admin-history-cell-summary">' +
         formatSummaryHtml(r.summary) +
         "</td>";
@@ -370,7 +417,7 @@ function showToast(message, type = 'success') {
     if (!pageData || pageData.length === 0) {
       tb.innerHTML = '<tr><td colspan="5" class="history-empty">Chưa có dữ liệu</td></tr>';
     } else {
-      renderHistoryTable(tb, pageData, GOLD_ACTION_LABELS);
+      renderHistoryTable(tb, pageData, GOLD_ACTION_LABELS, "gold");
     }
 
     renderPagination("gold-hist-pagination", goldHistAllRows, goldHistPage, function (pg) {
@@ -394,15 +441,16 @@ function showToast(message, type = 'success') {
     }
 
     var nameEl = $("gold-hist-search");
-    var dateEl = $("gold-hist-date");
+    var fromEl = $("gold-hist-date-from");
+    var toEl = $("gold-hist-date-to");
     var name = nameEl ? nameEl.value : "";
-    var dateStr = dateEl ? dateEl.value : "";
+    var dateFrom = fromEl ? fromEl.value : "";
+    var dateTo = toEl ? toEl.value : "";
 
     tb.innerHTML = '<tr><td colspan="5" class="history-empty">Đang tải...</td></tr>';
 
-    // Lấy tất cả dữ liệu (không giới hạn 500)
     window.TLKVAudit
-      .fetchGoldLog(sb, { searchName: name, dateStr: dateStr, limit: 10000 })
+      .fetchGoldLog(sb, { searchName: name, dateFrom: dateFrom, dateTo: dateTo, limit: 50000 })
       .then(function (rows) {
         goldHistAllRows = rows || [];
         goldHistPage = 1;
@@ -433,12 +481,14 @@ function showToast(message, type = 'success') {
       return;
     }
     var nameEl = $("product-hist-search");
-    var dateEl = $("product-hist-date");
+    var fromEl = $("product-hist-date-from");
+    var toEl = $("product-hist-date-to");
     var name = nameEl ? nameEl.value : "";
-    var dateStr = dateEl ? dateEl.value : "";
+    var dateFrom = fromEl ? fromEl.value : "";
+    var dateTo = toEl ? toEl.value : "";
     tb.innerHTML = "<tr><td colspan=\"5\" class=\"admin-empty-hint\">Đang tải…</td></tr>";
     window.TLKVAudit
-      .fetchProductLog(sb, { searchName: name, dateStr: dateStr, limit: 500 })
+      .fetchProductLog(sb, { searchName: name, dateFrom: dateFrom, dateTo: dateTo, limit: 50000 })
       .then(function (rows) {
         productHistAllRows = rows || [];
         productHistPage = 1;
@@ -1074,9 +1124,11 @@ function showToast(message, type = 'success') {
     $("gold-hist-refresh")?.addEventListener("click", refreshGoldHistory);
     $("product-hist-refresh")?.addEventListener("click", refreshProductHistory);
     $("gold-hist-search")?.addEventListener("input", debounceGoldHistory);
-    $("gold-hist-date")?.addEventListener("change", refreshGoldHistory);
+    $("gold-hist-date-from")?.addEventListener("change", refreshGoldHistory);
+    $("gold-hist-date-to")?.addEventListener("change", refreshGoldHistory);
     $("product-hist-search")?.addEventListener("input", debounceProductHistory);
-    $("product-hist-date")?.addEventListener("change", refreshProductHistory);
+    $("product-hist-date-from")?.addEventListener("change", refreshProductHistory);
+    $("product-hist-date-to")?.addEventListener("change", refreshProductHistory);
 
     $("login-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -1605,7 +1657,7 @@ async function getCurrentGoldHistoryData() {
         created_at: cells[0]?.textContent?.trim() || '',
         action_type: cells[1]?.textContent?.trim() || '',
         item_name: cells[2]?.textContent?.trim() || '',
-        item_code: cells[3]?.textContent?.trim() || '',
+        item_new_price: cells[3]?.textContent?.trim() || '',
         description: cells[4]?.textContent?.trim() || ''
       });
     }
@@ -1632,13 +1684,13 @@ async function exportGoldHistoryToExcel() {
       let time = cells[0]?.textContent?.trim() || '';
       let action = cells[1]?.textContent?.trim() || '';
       let name = cells[2]?.textContent?.trim() || '';
-      let code = cells[3]?.textContent?.trim() || '';
+      let newPrice = cells[3]?.textContent?.trim() || '';
       let description = cells[4]?.textContent?.trim() || '';
 
       // Làm sạch action (bỏ icon)
       action = action.replace(/[➕✏️🗑️⚙️]/g, '').trim();
 
-      data.push({ time, action, name, code, description });
+      data.push({ time, action, name, newPrice, description });
     }
   }
 
@@ -1649,18 +1701,20 @@ async function exportGoldHistoryToExcel() {
 
   // Lấy giá trị filter hiện tại
   const searchName = document.getElementById('gold-hist-search')?.value?.trim() || '';
-  const filterDate = document.getElementById('gold-hist-date')?.value || '';
+  const filterFrom = document.getElementById('gold-hist-date-from')?.value || '';
+  const filterTo = document.getElementById('gold-hist-date-to')?.value || '';
 
   // Tạo tên file
   let fileName = 'Thăng-Long-Kim-Việt-Lịch-Sử-Giá-Vàng';
 
-  // Thêm filter vào tên file nếu có
-  if (searchName && filterDate) {
-    fileName += `_${searchName}_${filterDate}`;
+  const rangeTag =
+    filterFrom && filterTo ? `${filterFrom}_${filterTo}` : filterFrom || filterTo || "";
+  if (searchName && rangeTag) {
+    fileName += `_${searchName}_${rangeTag}`;
   } else if (searchName) {
     fileName += `_${searchName}`;
-  } else if (filterDate) {
-    fileName += `_${filterDate}`;
+  } else if (rangeTag) {
+    fileName += `_${rangeTag}`;
   }
 
   // Thêm số bản ghi
@@ -1673,7 +1727,7 @@ async function exportGoldHistoryToExcel() {
     .substring(0, 200);
 
   // Tạo nội dung CSV
-  const headers = ['Thời gian', 'Thao tác', 'Tên / nhãn', 'Mã', 'Mô tả'];
+  const headers = ['Thời gian', 'Thao tác', 'Tên / nhãn', 'Giá mới', 'Mô tả'];
   const csvRows = [headers];
 
   for (const item of data) {
@@ -1681,7 +1735,7 @@ async function exportGoldHistoryToExcel() {
       `"${item.time.replace(/"/g, '""')}"`,
       `"${item.action.replace(/"/g, '""')}"`,
       `"${item.name.replace(/"/g, '""')}"`,
-      `"${item.code.replace(/"/g, '""')}"`,
+      `"${item.newPrice.replace(/"/g, '""')}"`,
       `"${item.description.replace(/"/g, '""')}"`
     ].join(','));
   }
@@ -1751,7 +1805,7 @@ async function exportGoldHistoryToPDF() {
             <th>Thời gian</th>
             <th>Thao tác</th>
             <th>Tên / nhãn</th>
-            <th>Mã</th>
+            <th>Giá mới</th>
             <th>Mô tả</th>
           </tr>
         </thead>
@@ -1765,7 +1819,7 @@ async function exportGoldHistoryToPDF() {
         <td>${item.created_at || ''}</td>
         <td>${item.action_type || ''}</td>
         <td>${item.item_name || ''}</td>
-        <td>${item.item_code || ''}</td>
+        <td>${item.item_new_price || ''}</td>
         <td>${item.description || ''}</td>
       </tr>
     `;
