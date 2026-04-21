@@ -493,12 +493,29 @@
           cell.style.lineHeight = '1';
           cell.style.padding = '4px 8px';
 
+          // TV browser: tô màu + glow lên cả <td> có thể làm icon ▲/▼ bị "dính" màu.
+          // Giải pháp an toàn: bọc phần text giá vào span riêng và chỉ tô lên span.
+          const textNode = Array.from(cell.childNodes).find(n => n && n.nodeType === Node.TEXT_NODE);
+          const rawText = textNode ? String(textNode.nodeValue || '') : '';
+          if (textNode) cell.removeChild(textNode);
+
+          let priceSpan = cell.querySelector('.tv-price-text');
+          if (!priceSpan) {
+            priceSpan = document.createElement('span');
+            priceSpan.className = 'tv-price-text';
+            cell.insertBefore(priceSpan, cell.firstChild);
+          }
+          priceSpan.textContent = rawText;
+
+          cell.style.color = '';
+          cell.style.textShadow = '';
+
           if (index % 2 === 0) {
-            cell.style.color = '#FFD700';
-            cell.style.textShadow = '0 0 6px #ffaa00, 0 0 10px #ff6600';
+            priceSpan.style.color = '#FFD700';
+            priceSpan.style.textShadow = '0 0 6px #ffaa00, 0 0 10px #ff6600';
           } else {
-            cell.style.color = '#ffffff';
-            cell.style.textShadow = '';
+            priceSpan.style.color = '#ffffff';
+            priceSpan.style.textShadow = '';
           }
 
           /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */

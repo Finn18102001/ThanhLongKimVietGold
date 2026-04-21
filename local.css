@@ -693,6 +693,11 @@
     box-sizing: border-box;
 }
 
+/* TV: span chứa text giá (tô vàng/trắng + glow); icon trend giữ màu riêng */
+.tv-gold-table td.price .tv-price-text {
+  display: inline;
+}
+
 .tv-gold-table td:nth-child(4)::after,
 .tv-gold-table td:nth-child(5)::after {
   content: '';
