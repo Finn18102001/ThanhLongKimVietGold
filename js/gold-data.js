@@ -610,7 +610,11 @@
     };
   }
 
-  /** Giữ đơn vị + thương hiệu; cập nhật giờ hiển thị + ghi chú chân bảng theo thời điểm hiện tại (Asia/Ho_Chi_Minh). */
+  /**
+   * Giữ đơn vị + thương hiệu; đặt **cùng một mốc giờ VN** cho header_time (vd. 10h30) và footer_note
+   * (vd. "Cập nhật lúc 10:30 09/04/2026") — khớp với cách `applyMetaToDom` render hai vị trí.
+   * Gọi khi admin lưu giá / thêm / sửa / xóa dòng (stampMetaOnPayload).
+   */
   function stampMetaWithVietnamNow(meta) {
     const m = normalizeMeta(meta || {});
     const now = new Date();
@@ -640,7 +644,7 @@
     const month = pad2(pick("month"));
     const year = pick("year");
     const headerTime = hour + "h" + minute;
-    const footerNote = "";
+    const footerNote = "Cập nhật lúc " + hour + ":" + minute + " " + day + "/" + month + "/" + year;
     return normalizeMeta({
       headerTime: headerTime,
       footerNote: footerNote,
