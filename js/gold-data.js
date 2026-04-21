@@ -12,17 +12,45 @@
     return __sbPromise;
   }
 
-  let __goldRealtimeStarted = false;
+  /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
+  let __goldRealtimeSb = null;
+  /** @type {ReturnType<import("@supabase/supabase-js").SupabaseClient["channel"]> | null} */
+  let __goldRealtimeChannel = null;
+  let __goldRealtimePagehideBound = false;
+
+  function stopGoldTableRealtime() {
+    if (__goldRealtimeSb && __goldRealtimeChannel) {
+      try {
+        __goldRealtimeSb.removeChannel(__goldRealtimeChannel);
+      } catch (_) {}
+    }
+    __goldRealtimeSb = null;
+    __goldRealtimeChannel = null;
+  }
+
+  function ensureGoldRealtimePagehideCleanup() {
+    if (__goldRealtimePagehideBound || typeof global.addEventListener !== "function") return;
+    __goldRealtimePagehideBound = true;
+    global.addEventListener("pagehide", function () {
+      stopGoldTableRealtime();
+    });
+  }
+
+  /**
+   * Một subscription Realtime cho bảng giá; gọi stopGoldTableRealtime khi không cần (SPA unmount / pagehide đã gắn sẵn).
+   */
   function startGoldTableRealtime(sb) {
-    if (__goldRealtimeStarted || !sb) return;
-    __goldRealtimeStarted = true;
+    if (!sb || __goldRealtimeChannel) return;
     const notify = function () {
       global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
     };
-    sb.channel("tlkv_public_gold")
+    __goldRealtimeSb = sb;
+    __goldRealtimeChannel = sb
+      .channel("tlkv_public_gold")
       .on("postgres_changes", { event: "*", schema: "public", table: "gold_meta" }, notify)
-      .on("postgres_changes", { event: "*", schema: "public", table: "gold_price_rows" }, notify)
-      .subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "gold_price_rows" }, notify);
+    __goldRealtimeChannel.subscribe();
+    ensureGoldRealtimePagehideCleanup();
   }
 
   /** Hiển thị: số trong DB → chuỗi kiểu 15.600.000. kind "sell": 0 → rỗng (vàng & bạc). */
@@ -36,12 +64,53 @@
     return abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
-  /** Lưu DB: chuỗi hiển thị → số; rỗng → null */
+  /**
+   * Chuỗi / number / bigint giá (VN: 15.900.000; DB: 15900000 hoặc 15900000.00) → số nguyên; lỗi → null.
+   * Dùng thống nhất cho icon trend, previous_*, và parse trước khi upsert.
+   */
+  function parseGoldMoneyToInt(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === "bigint") {
+      const bn = Number(value);
+      return Number.isFinite(bn) ? Math.round(bn) : null;
+    }
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? Math.round(value) : null;
+    }
+    let t = String(value)
+      .trim()
+      .replace(/\u00a0|\u202f/g, "")
+      .replace(/\s+/g, "");
+    if (!t) return null;
+    t = t.replace(/đồng|đ|vnd/gi, "").trim();
+    if (!t) return null;
+    if (/^-?\d+$/.test(t)) {
+      const n = parseInt(t, 10);
+      return Number.isFinite(n) ? n : null;
+    }
+    const dotCount = (t.match(/\./g) || []).length;
+    const commaCount = (t.match(/,/g) || []).length;
+    // Một dấu chấm/phẩy kiểu số thập phân (Postgres numeric → "15570000.00")
+    if (dotCount === 1 && commaCount === 0 && /^-?\d+\.\d+$/.test(t)) {
+      const n = parseFloat(t);
+      return Number.isFinite(n) ? Math.round(n) : null;
+    }
+    if (commaCount === 1 && dotCount === 0 && /^-?\d+,\d+$/.test(t)) {
+      const n = parseFloat(t.replace(",", "."));
+      return Number.isFinite(n) ? Math.round(n) : null;
+    }
+    // VN: dấu chấm phân tách nghìn (và có thể có phẩy thập phân cuối)
+    const vn = t.replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(vn);
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+
+  /** Lưu DB: chuỗi hiển thị → số; rỗng → null; không parse được → 0 */
   function parsePriceToNumber(s) {
     const t = String(s ?? "").trim();
     if (!t) return null;
-    const n = parseFloat(t.replace(/\./g, "").replace(",", "."));
-    return Number.isFinite(n) ? Math.round(n) : 0;
+    const parsed = parseGoldMoneyToInt(t);
+    return parsed == null ? 0 : parsed;
   }
 
   const GOLD_THEAD_ROW_WIDE_INNER =
@@ -51,12 +120,9 @@
 
   let __goldLayoutMediaListenerBound = false;
 
-  /** Chuỗi giá hiển thị → số làm tròn; rỗng / không hợp lệ → null */
+  /** Chuỗi giá hiển thị → int; rỗng / không hợp lệ → null */
   function parseDisplayPriceNumber(s) {
-    const t = String(s ?? "").trim();
-    if (!t) return null;
-    const n = parseFloat(t.replace(/\./g, "").replace(",", "."));
-    return Number.isFinite(n) ? Math.round(n) : null;
+    return parseGoldMoneyToInt(s);
   }
 
   function isGoldTableStackedLayout() {
@@ -64,22 +130,28 @@
     return global.matchMedia("(max-width: 639px)").matches;
   }
 
-  /** previous_* từ DB → số làm tròn; null nếu chưa có. */
+  /** previous_* từ DB (number / string / bigint) → int; null nếu chưa có / không hợp lệ. */
   function dbPriceToTrendNum(v) {
     if (v === null || v === undefined || v === "") return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? Math.round(n) : null;
+    return parseGoldMoneyToInt(v);
   }
 
   /**
-   * Mũi tên: (giá hiện tại) − (previous_buy | previous_sell từ DB).
-   * diff > 0 → xanh ▲, diff < 0 → đỏ ▼, diff === 0 hoặc thiếu dữ liệu → không hiện.
+   * Mũi tên theo data: (buy|sell hiện tại từ DB) − (previous_buy | previous_sell), cả hai ép int (bigint OK).
+   * diff > 0 → xanh ▲, diff < 0 → đỏ ▼, diff === 0 hoặc thiếu previous → không hiện.
    */
   function appendPriceCellContent(td, displayText, field, rt) {
     td.textContent = "";
     const text = displayText == null ? "" : String(displayText);
     td.appendChild(document.createTextNode(text));
-    const cur = parseDisplayPriceNumber(text);
+    const cur =
+      field === "buy"
+        ? rt.buyNum != null
+          ? rt.buyNum
+          : parseGoldMoneyToInt(text)
+        : rt.sellNum != null
+          ? rt.sellNum
+          : parseGoldMoneyToInt(text);
     const prevVal = field === "buy" ? rt.prevBuyNum : rt.prevSellNum;
     if (cur == null || prevVal == null) return;
     const diff = cur - prevVal;
@@ -203,6 +275,8 @@
       metal: r.metal,
       highlight: r.highlight === true,
     });
+    row.buyNum = parseGoldMoneyToInt(r.buy);
+    row.sellNum = parseGoldMoneyToInt(r.sell);
     row.prevBuyNum = dbPriceToTrendNum(r.previous_buy);
     row.prevSellNum = dbPriceToTrendNum(r.previous_sell);
     return row;
@@ -267,8 +341,8 @@
         previous_buy = ex.previous_buy != null ? ex.previous_buy : null;
         previous_sell = ex.previous_sell != null ? ex.previous_sell : null;
         previous_updated_at = ex.previous_updated_at != null ? ex.previous_updated_at : null;
-        const oldBuy = Math.round(Number(ex.buy)) || 0;
-        const oldSell = Math.round(Number(ex.sell)) || 0;
+        const oldBuy = parseGoldMoneyToInt(ex.buy) ?? 0;
+        const oldSell = parseGoldMoneyToInt(ex.sell) ?? 0;
         if (oldBuy !== newBuy || oldSell !== newSell) {
           if (oldBuy !== newBuy) previous_buy = oldBuy;
           if (oldSell !== newSell) previous_sell = oldSell;
@@ -575,6 +649,22 @@
     });
   }
 
+  /** Chỉ cho phép ghi Supabase (persist / xóa dòng) khi đang ở trang admin. */
+  function isGoldAdminWritePath() {
+    try {
+      const p = global.location && global.location.pathname ? String(global.location.pathname) : "";
+      return /\/admin(\/|$)/.test(p);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function assertGoldAdminWrite() {
+    if (!isGoldAdminWritePath()) {
+      throw new Error("Chỉ trang /admin mới được lưu hoặc xóa dòng giá trên Supabase.");
+    }
+  }
+
   function normalizeRow(r) {
     const brand = String(r.brand ?? "").trim();
     let metal = r.metal === "silver" ? "silver" : "gold";
@@ -585,7 +675,7 @@
     if (metal === "silver") {
       purity = purity.replace(/,/g, ".");
     }
-    return {
+    const out = {
       id: String(
         r.id || (global.crypto && crypto.randomUUID ? crypto.randomUUID() : "id-" + Math.random().toString(36).slice(2))
       ),
@@ -597,6 +687,21 @@
       metal: metal,
       highlight: r.highlight === true,
     };
+    const bn = Number(r.buyNum);
+    if (Number.isFinite(bn)) out.buyNum = Math.round(bn);
+    const sn = Number(r.sellNum);
+    if (Number.isFinite(sn)) out.sellNum = Math.round(sn);
+    if (Object.prototype.hasOwnProperty.call(r, "prevBuyNum")) {
+      out.prevBuyNum = dbPriceToTrendNum(r.prevBuyNum);
+    } else {
+      out.prevBuyNum = dbPriceToTrendNum(r.previous_buy);
+    }
+    if (Object.prototype.hasOwnProperty.call(r, "prevSellNum")) {
+      out.prevSellNum = dbPriceToTrendNum(r.prevSellNum);
+    } else {
+      out.prevSellNum = dbPriceToTrendNum(r.previous_sell);
+    }
+    return out;
   }
 
   function normalizePayload(raw) {
@@ -633,6 +738,7 @@
 
   /** Ghi bảng giá lên Supabase (admin): meta + toàn bộ dòng. Trả về Promise. */
   function saveToStorage(payload) {
+    assertGoldAdminWrite();
     return getSupabaseClient().then(function (sb) {
       if (!sb) {
         return Promise.reject(
@@ -651,6 +757,7 @@
    * Chỉ lưu khối "Thời gian & đơn vị" (gold_meta) — không gọi upsert gold_price_rows.
    */
   function saveGoldMetaOnly(meta) {
+    assertGoldAdminWrite();
     return getSupabaseClient().then(function (sb) {
       if (!sb) {
         return Promise.reject(
@@ -871,6 +978,7 @@
     loadFromStorage,
     saveToStorage,
     saveGoldMetaOnly,
+    stopGoldTableRealtime,
     clearStorage,
     normalizePayload,
     normalizeRow,

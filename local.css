@@ -209,6 +209,16 @@
   vertical-align: baseline;
 }
 
+/* TV: giá vàng/trắng trên td — icon xu hướng luôn xanh/đỏ, không dính glow của giá */
+.tv-gold-table td.price .gold-price-trend--up {
+  color: #16a34a !important;
+  text-shadow: none !important;
+}
+.tv-gold-table td.price .gold-price-trend--down {
+  color: #dc2626 !important;
+  text-shadow: none !important;
+}
+
 .gold-table-content.gold-table-extended.gold-table--stacked tbody td.col-product {
   white-space: normal !important;
 }
@@ -467,27 +477,33 @@
 }
 /* ========== TV MODAL ========== */
 .tv-modal {
+  --tv-modal-pad: clamp(16px, 2.5vmin, 40px);
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.97);
   z-index: 9999;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: 0;
+  padding: var(--tv-modal-pad);
+  box-sizing: border-box;
+  height: 100vh;
+  max-height: 100dvh;
 }
 
 .tv-modal-content {
   background: linear-gradient(180deg, #9f1a1a 0%, #5c0f0f 100%);
   color: #fff;
-  width: 100%;
-  max-width: 100vw;
-  border-radius: 0;
+  width: min(1920px, 100%);
+  max-width: 1920px;
+  flex: 0 1 auto;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: none;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -498,9 +514,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5vw;
-  position: relative;
+  position: absolute;
   min-height: 7.5vh;
-  flex-shrink: 0;
+  z-index: 3;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
 }
 
 .tv-logo-company {
@@ -591,13 +610,17 @@
 
 /* ===== TABLE WRAPPER ===== */
 .tv-table-wrapper {
-  flex: 1;
-  overflow: auto;
-  padding: 0.5vh 2.2vw 0;
-  background: #5c0f0f;
+  position: absolute;
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
   margin-bottom: 0 !important;
+  min-height: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  align-items: stretch;
 }
 
 .tv-table-container {
@@ -605,7 +628,10 @@
   flex-direction: column;
   width: 100%;
   margin-bottom: 0;
-  flex: 1;
+  flex: 0 0 auto;
+  transform-origin: top left;
+  will-change: transform;
+  box-sizing: border-box;
 }
 
 /* ===== TABLE ===== */
@@ -635,10 +661,25 @@
   line-height: 1.4;
 }
 
-/* Hàm Lượng */
-.tv-gold-table th:nth-child(3),
-.tv-gold-table td:nth-child(3) {
-  width: 10% !important;
+.tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(1),
+.tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(1) {
+  width: 17% !important;
+}
+.tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(2),
+.tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(2) {
+  width: 24% !important;
+}
+.tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(3),
+.tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(3) {
+  width: 11% !important;
+}
+.tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(4),
+.tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4) {
+  width: 24% !important;
+}
+.tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(5),
+.tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5) {
+  width: 24% !important;
 }
 
 .tv-gold-table td:nth-child(4), 
@@ -646,7 +687,7 @@
     font-size: 1.55rem !important;   
     font-weight: 700;
     line-height: 1 !important;          
-    padding: 4px 6px !important;      
+    padding: 4px 7px !important; /* ~+10% ngang so với 6px */
     height: 100% !important;
     vertical-align: middle;
     box-sizing: border-box;
@@ -692,7 +733,11 @@
   text-transform: uppercase;
   border-top: 1px solid rgba(255, 215, 0, 0.3);
   margin-top: 0 !important;
-  flex-shrink: 0;
+  position: absolute;
+  z-index: 2;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
 }
 .tv-button-wrap {
   margin: 20px 0 15px 0;

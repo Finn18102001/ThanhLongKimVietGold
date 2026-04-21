@@ -212,7 +212,18 @@
     return null;
   }
 
+  function assertProductsAdminWrite() {
+    let p = "";
+    try {
+      p = global.location && global.location.pathname ? String(global.location.pathname) : "";
+    } catch (_) {}
+    if (!/\/admin(\/|$)/.test(p)) {
+      throw new Error("Chỉ trang /admin mới được lưu hoặc xóa sản phẩm trên Supabase.");
+    }
+  }
+
   function saveToStorage(payload) {
+    assertProductsAdminWrite();
     return getSupabaseClient().then(function (sb) {
       if (!sb) {
         return Promise.reject(

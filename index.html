@@ -204,7 +204,7 @@
                   <div id="tv-modal" class="tv-modal">
                     <div class="tv-modal-content">
                       <!-- Header -->
-                      <div class="tv-header">
+                      <div id="tv-header" class="tv-header">
                         <div class="tv-logo-company">
                           <img src="/assets/logo-tv-modal.svg" alt="Logo Thăng Long Kim Việt" loading="eager">
                           <div class="tv-company-name">
@@ -219,8 +219,8 @@
                         </div>
                       </div>
 
-                      <div class="tv-table-wrapper">
-                        <div class="tv-table-container">
+                      <div id="tv-table-wrapper" class="tv-table-wrapper">
+                        <div id="tv-table-container" class="tv-table-container">
                           <div class="tv-date-line" id="tv-date-line"></div>
                           <table id="tv-gold-table" class="tv-gold-table">
                             <thead>
@@ -237,7 +237,7 @@
                         </div>
                       </div>
 
-                      <div class="tv-footer">
+                      <div id="tv-footer" class="tv-footer">
                         THĂNG LONG KIM VIỆT KÍNH CHÀO QUÝ KHÁCH
                       </div>
                     </div>
@@ -297,6 +297,12 @@
   const btnCloseTV = document.getElementById('btn-close-tv');
   const tvTableBody = document.getElementById('tv-table-body');
   const tvHeaderLogo = document.getElementById('tv-header-logo');
+  const tvModalContent = document.querySelector('.tv-modal-content');
+  const tvHeader = document.getElementById('tv-header');
+  const tvFooter = document.getElementById('tv-footer');
+  const tvTableWrapper = document.getElementById('tv-table-wrapper');
+  const tvTableContainer = document.getElementById('tv-table-container');
+  let tvTableScaleFrame = 0;
 
   /**
    * Trả URL tuyệt đối của logo (scheme + host + port).
@@ -323,11 +329,136 @@
   // Gọi ngay khi script chạy để browser tải trước logo
   loadTVLogo();
 
+  function clampNumber(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function getTVSafeMetrics() {
+    const fallbackW = window.innerWidth || document.documentElement.clientWidth || 0;
+    const fallbackH = window.innerHeight || document.documentElement.clientHeight || 0;
+    const useBox =
+      tvModalContent &&
+      tvModal &&
+      tvModal.style.display === "flex" &&
+      tvModalContent.clientWidth > 0 &&
+      tvModalContent.clientHeight > 0;
+    const boxW = useBox ? tvModalContent.clientWidth : fallbackW;
+    const boxH = useBox ? tvModalContent.clientHeight : fallbackH;
+
+    return {
+      viewportWidth: boxW,
+      viewportHeight: boxH,
+      safeX: clampNumber(Math.round(boxW * 0.03), 48, 64),
+      safeTop: clampNumber(Math.round(boxH * 0.03), 18, 36),
+      safeBottom: clampNumber(Math.round(boxH * 0.03), 18, 36),
+      tableTopGap: clampNumber(Math.round(boxH * 0.02), 14, 28),
+      footerGap: clampNumber(Math.round(boxH * 0.02), 8, 22)
+    };
+  }
+
+  function layoutTVSafeArea() {
+    if (!tvModal || tvModal.style.display !== 'flex' || !tvModalContent || !tvTableWrapper) return null;
+
+    const metrics = getTVSafeMetrics();
+    const headerHeight = tvHeader ? tvHeader.offsetHeight : 0;
+    const footerHeight = tvFooter ? tvFooter.offsetHeight : 0;
+    const tableTop = metrics.safeTop + headerHeight + metrics.tableTopGap;
+    const tableBottomReserved = metrics.safeBottom + footerHeight + metrics.footerGap;
+    const tableBottom = Math.max(metrics.viewportHeight - tableBottomReserved, tableTop);
+
+    if (tvHeader) {
+      tvHeader.style.left = `${metrics.safeX}px`;
+      tvHeader.style.right = `${metrics.safeX}px`;
+      tvHeader.style.top = `${metrics.safeTop}px`;
+    }
+
+    if (tvFooter) {
+      tvFooter.style.left = `${metrics.safeX}px`;
+      tvFooter.style.right = `${metrics.safeX}px`;
+      tvFooter.style.bottom = `${metrics.safeBottom}px`;
+    }
+
+    /* Cùng mép ngang với header/footer (trước đây tableInsetX làm bảng hẹp hơn rõ rệt) */
+    tvTableWrapper.style.left = `${metrics.safeX}px`;
+    tvTableWrapper.style.right = `${metrics.safeX}px`;
+    tvTableWrapper.style.top = `${tableTop}px`;
+    tvTableWrapper.style.bottom = `${tableBottomReserved}px`;
+
+    const availableWidth = tvTableWrapper.clientWidth || Math.max(metrics.viewportWidth - metrics.safeX * 2, 0);
+    const availableHeight = tvTableWrapper.clientHeight || Math.max(tableBottom - tableTop, 0);
+
+    return {
+      width: availableWidth,
+      height: availableHeight
+    };
+  }
+
+  function fitTVTableToViewport() {
+    if (!tvModal || tvModal.style.display !== 'flex' || !tvTableWrapper || !tvTableContainer) return;
+
+    const layout = layoutTVSafeArea();
+    const wrapperWidth = layout ? layout.width : tvTableWrapper.clientWidth;
+    const wrapperHeight = layout ? layout.height : tvTableWrapper.clientHeight;
+
+    /*
+     * scale đồng đều: s = min(scaleX, scaleY). Khi nhiều dòng, thường scaleY < scaleX → s co theo chiều cao
+     * mà vẫn áp lên chiều ngang → bề ngang hiển thị = contentWidth * s < wrapperWidth (trông bảng "lọt thỏm").
+     * Bù: nếu đang bị ràng bởi chiều cao, tăng width layout lên ~ wrapperWidth / s rồi đo lại để
+     * sau scale, bề ngang hiển thị ≈ wrapperWidth (cùng mép header/footer), mọi số dòng 10–20+.
+     */
+    tvTableContainer.style.width = "100%";
+    tvTableContainer.style.transform = "translate(0px, 0px) scale(1)";
+
+    for (let pass = 0; pass < 5; pass++) {
+      const cw = tvTableContainer.scrollWidth;
+      const ch = tvTableContainer.scrollHeight;
+      if (!wrapperWidth || !wrapperHeight || !cw || !ch) return;
+
+      const scaleX = wrapperWidth / cw;
+      const scaleY = wrapperHeight / ch;
+      const scale = Math.min(scaleX, scaleY);
+      if (!Number.isFinite(scale) || scale <= 0) return;
+
+      if (scale >= scaleX - 0.0001) break;
+
+      const layoutW = Math.min(Math.ceil(wrapperWidth / scale), Math.ceil(wrapperWidth * 4));
+      tvTableContainer.style.width = `${layoutW}px`;
+    }
+
+    const contentWidth = tvTableContainer.scrollWidth;
+    const contentHeight = tvTableContainer.scrollHeight;
+    if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) return;
+
+    const scaleX = wrapperWidth / contentWidth;
+    const scaleY = wrapperHeight / contentHeight;
+    const safeScale = Math.min(scaleX, scaleY);
+    const finalScale = Number.isFinite(safeScale) && safeScale > 0 ? safeScale : 1;
+    const translateX = Math.max((wrapperWidth - contentWidth * finalScale) / 2, 0);
+    const translateY = Math.max((wrapperHeight - contentHeight * finalScale) / 2, 0);
+
+    tvTableContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${finalScale})`;
+  }
+
+  function scheduleTVTableFit() {
+    if (tvTableScaleFrame && typeof window.cancelAnimationFrame === 'function') {
+      window.cancelAnimationFrame(tvTableScaleFrame);
+    }
+    if (typeof window.requestAnimationFrame === 'function') {
+      tvTableScaleFrame = window.requestAnimationFrame(fitTVTableToViewport);
+      return;
+    }
+    setTimeout(fitTVTableToViewport, 0);
+  }
+
   function openTVMode() {
     loadTVLogo();
     tvModal.style.display = 'flex';
+    layoutTVSafeArea();
     renderTVTable();
     updateTVDateTime();
+    scheduleTVTableFit();
+    setTimeout(scheduleTVTableFit, 120);
+    setTimeout(scheduleTVTableFit, 400);
   }
 
   function closeTVMode() {
@@ -367,13 +498,27 @@
             cell.style.textShadow = '0 0 6px #ffaa00, 0 0 10px #ff6600';
           } else {
             cell.style.color = '#ffffff';
+            cell.style.textShadow = '';
           }
+
+          /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */
+          cell.querySelectorAll('.gold-price-trend').forEach(function (trend) {
+            if (trend.classList.contains('gold-price-trend--up')) {
+              trend.style.setProperty('color', '#16a34a', 'important');
+            } else if (trend.classList.contains('gold-price-trend--down')) {
+              trend.style.setProperty('color', '#dc2626', 'important');
+            }
+            trend.style.setProperty('text-shadow', 'none', 'important');
+          });
         });
 
         index++;
       });
     } catch (err) {
       console.error("[TV] ERROR", err);
+    } finally {
+      scheduleTVTableFit();
+      setTimeout(scheduleTVTableFit, 80);
     }
   }
 
@@ -383,6 +528,8 @@
   // Event listeners
   if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);
   if (btnCloseTV) btnCloseTV.addEventListener('click', closeTVMode);
+  window.addEventListener('resize', scheduleTVTableFit);
+  window.addEventListener('orientationchange', scheduleTVTableFit);
 
   document.addEventListener('keydown', e => {
     if (e.key === "Escape" && tvModal && tvModal.style.display === 'flex') closeTVMode();
