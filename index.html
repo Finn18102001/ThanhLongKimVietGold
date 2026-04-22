@@ -303,6 +303,8 @@
   const tvTableWrapper = document.getElementById('tv-table-wrapper');
   const tvTableContainer = document.getElementById('tv-table-container');
   let tvTableScaleFrame = 0;
+  /** Tránh race khi nhiều lần renderTVTable chồng nhau (Realtime / double notify): request cũ không được ghi đè lên kết quả mới. */
+  let __tvGoldRenderGen = 0;
 
   /**
    * Trả URL tuyệt đối của logo (scheme + host + port).
@@ -468,15 +470,18 @@
   async function renderTVTable() {
     console.log("[TV] renderTVTable called at", new Date().toLocaleTimeString());
     const mainTableBody = document.getElementById('gold-table-body');
-    if (!mainTableBody) return;
+    if (!mainTableBody || !tvTableBody) return;
 
-    const tvTableBody = document.getElementById('tv-table-body');
-    tvTableBody.innerHTML = mainTableBody.innerHTML;
+    const gen = ++__tvGoldRenderGen;
 
     try {
       console.log("[TV] calling API...");
       const data = await TLKVGold.getGoldTable();
       console.log("[TV] API DONE", data);
+      if (gen !== __tvGoldRenderGen) {
+        console.log("[TV] skip stale render, gen", gen, "current", __tvGoldRenderGen);
+        return;
+      }
 
       TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
 
@@ -534,13 +539,21 @@
     } catch (err) {
       console.error("[TV] ERROR", err);
     } finally {
-      scheduleTVTableFit();
-      setTimeout(scheduleTVTableFit, 80);
+      if (gen === __tvGoldRenderGen) {
+        scheduleTVTableFit();
+        setTimeout(scheduleTVTableFit, 80);
+      }
     }
   }
 
   window.addEventListener("tlkv:gold-table-changed", function () {
+    if (!tvModal || tvModal.style.display !== "flex") return;
+    layoutTVSafeArea();
     renderTVTable();
+    updateTVDateTime();
+    scheduleTVTableFit();
+    setTimeout(scheduleTVTableFit, 120);
+    setTimeout(scheduleTVTableFit, 400);
   });
   // Event listeners
   if (btnOpenTV) btnOpenTV.addEventListener('click', openTVMode);

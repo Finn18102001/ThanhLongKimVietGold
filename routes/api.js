@@ -1,4 +1,5 @@
 const express = require("express");
+const goldSseHub = require("./gold-sse-hub");
 
 function trimEnv(v) {
   return String(v || "").trim();
@@ -117,6 +118,38 @@ function supabaseRestEnv() {
  */
 module.exports = function apiRouter(_ROOT) {
   const router = express.Router();
+
+  /**
+   * Server-Sent Events: server subscribe Supabase Realtime một lần, đẩy sự kiện tới mọi tab (không debounce phía client).
+   * Trình duyệt vẫn gọi getGoldTable() khi nhận event — payload SSE chỉ báo "có thay đổi".
+   */
+  router.get("/gold-table/stream", function (req, res) {
+    const { url, key } = goldSseHub.supabasePublicEnv();
+    if (!url || !key) {
+      console.warn("[TLKV gold-push] GET /api/gold-table/stream → 503 (thiếu SUPABASE_URL / anon key trên server)");
+      res.status(503).type("text/plain; charset=utf-8").send("Thiếu cấu hình Supabase trên server (.env)");
+      return;
+    }
+
+    console.log("[TLKV gold-push] GET /api/gold-table/stream → 200 SSE", req.ip || req.socket.remoteAddress || "");
+
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    if (typeof res.flushHeaders === "function") res.flushHeaders();
+
+    res.write(": tlkv gold-table sse\n\n");
+    res.write("retry: 8000\n\n");
+    res.write(goldSseHub.sseLine("ready", {}));
+
+    goldSseHub.addSseClient(res);
+
+    req.on("close", function () {
+      goldSseHub.removeSseClient(res);
+    });
+  });
 
   /**
    * Debug: gọi PostgREST giống trình duyệt (anon key). Nếu count = 0 nhưng Table Editor có dòng → RLS hoặc sai project trong .env.
