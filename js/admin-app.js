@@ -632,9 +632,11 @@ function showToast(message, type = 'success') {
         }
 
         stampMetaOnPayload(d);
+        console.log("[TLKV gold-push] admin: commitGoldInlineEdit → saveToStorage (rows=" + d.rows.length + ")");
         return window.TLKVGold.saveToStorage(d);
       })
       .then(function () {
+        console.log("[TLKV gold-push] admin: commitGoldInlineEdit → saveToStorage OK", { entries: auditEntries.length });
         console.log("[commitGoldInlineEdit] saveToStorage OK. auditEntries:", auditEntries.length, "sb:", !!sb, "TLKVAudit:", !!window.TLKVAudit);
         if (!sb || !window.TLKVAudit || auditEntries.length === 0) {
           console.warn("[commitGoldInlineEdit] skipping audit:", !sb ? "no sb" : !window.TLKVAudit ? "no TLKVAudit" : "0 entries");
@@ -865,9 +867,11 @@ function showToast(message, type = 'success') {
               return x.id !== id;
             });
             stampMetaOnPayload(d);
+            console.log("[TLKV gold-push] admin: delete row → saveToStorage", id);
             return window.TLKVGold.saveToStorage(d);
           })
           .then(function () {
+            console.log("[TLKV gold-push] admin: delete row → saveToStorage OK", id);
             if (sb && window.TLKVAudit && removedRow) {
               var en =
                 removedRow.brand +
@@ -1061,6 +1065,10 @@ function showToast(message, type = 'success') {
       refreshTable();
       refreshMetaForm();
       refreshProductsTable();
+      if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
+        console.log("[TLKV gold-push] admin: session authed → bật pipeline SSE để quan sát push");
+        window.TLKVGold.startGoldPush();
+      }
     } else {
       showLogin();
     }
@@ -1168,9 +1176,11 @@ function showToast(message, type = 'success') {
         unitLine: $("meta-unit-line").value.trim(),
         brandItalic: $("meta-brand-italic").value.trim(),
       };
+      console.log("[TLKV gold-push] admin: meta-form submit → saveGoldMetaOnly", meta);
       window.TLKVGold
         .saveGoldMetaOnly(meta)
         .then(function () {
+          console.log("[TLKV gold-push] admin: saveGoldMetaOnly OK");
           if (sb && window.TLKVAudit) {
             return window.TLKVAudit.logGold(sb, {
               action: "meta_update",
@@ -1263,9 +1273,11 @@ function showToast(message, type = 'success') {
             d.rows = window.TLKVGold.insertGoldRow(d.rows, row);
           }
           stampMetaOnPayload(d);
+          console.log("[TLKV gold-push] admin: form save → saveToStorage");
           return window.TLKVGold.saveToStorage(d);
         })
         .then(function () {
+          console.log("[TLKV gold-push] admin: form save → saveToStorage OK");
           if (sb && window.TLKVAudit && savedRow) {
             var afterSnap = snapshotGoldAuditRow(savedRow);
             var en =

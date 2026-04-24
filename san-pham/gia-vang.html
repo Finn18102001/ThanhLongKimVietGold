@@ -281,7 +281,10 @@
       }
 
       refreshPage();
-      window.addEventListener("tlkv:gold-table-changed", refreshPage);
+      window.addEventListener("tlkv:gold-table-changed", function (ev) {
+        console.log("[TLKV gold-push] page(gia-vang): tlkv:gold-table-changed → refreshPage", ev && ev.detail ? ev.detail : {});
+        refreshPage();
+      });
     </script>
   </body>
 </html>

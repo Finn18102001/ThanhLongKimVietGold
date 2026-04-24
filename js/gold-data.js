@@ -98,9 +98,42 @@
     ensureGoldRealtimePagehideCleanup();
   }
 
-  /** URL SSE cùng origin với trang (Express: /api/gold-table/stream). */
+  /**
+   * Luôn dùng path tuyệt đối từ origin (tránh resolve theo pathname hiện tại, ví dụ /admin/).
+   * Không dùng TLKV_BASE vì các route API nằm ở gốc site (`app.use("/api", …)`).
+   */
   function goldTableSseUrl() {
-    return new URL("api/gold-table/stream", global.location.href).href;
+    return global.location.origin + "/api/gold-table/stream";
+  }
+
+  function goldTableNotifyUrl() {
+    return global.location.origin + "/api/gold-table/notify";
+  }
+
+  /**
+   * Gọi sau khi admin lưu giá thành công → đẩy SSE cho mọi tab đang mở (không phụ thuộc postgres_changes).
+   * Không chặn UI: resolve ngay cả khi fetch lỗi.
+   */
+  function notifyGoldTableChanged(reason) {
+    if (typeof fetch !== "function") return Promise.resolve(false);
+    var url = goldTableNotifyUrl();
+    var body = JSON.stringify({ reason: reason || "admin-save" });
+    console.log(GOLD_PUSH_LOG + " client: POST /notify →", url, reason || "admin-save");
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body,
+      keepalive: true,
+      cache: "no-store",
+    })
+      .then(function (r) {
+        console.log(GOLD_PUSH_LOG + " client: POST /notify status", r.status);
+        return r.ok;
+      })
+      .catch(function (e) {
+        console.warn(GOLD_PUSH_LOG + " client: POST /notify failed", e && e.message ? e.message : e);
+        return false;
+      });
   }
 
   /**
@@ -908,7 +941,9 @@
         );
       }
       return persistGoldToSupabase(sb, payload).then(function () {
+        console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local + POST /notify");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
+        notifyGoldTableChanged("admin-save");
       });
     });
   }
@@ -927,7 +962,9 @@
         );
       }
       return persistGoldMetaToSupabase(sb, meta).then(function () {
+        console.log(GOLD_PUSH_LOG + " client: saveGoldMetaOnly() persisted → dispatch local + POST /notify");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: { metaOnly: true } }));
+        notifyGoldTableChanged("admin-save-meta");
       });
     });
   }
@@ -1104,13 +1141,25 @@
     initGoldTableLayoutListenerOnce();
   }
 
+  let __goldMountLoadCount = 0;
+
   async function mountGoldTable(tbodySelector) {
     const tbody = document.querySelector(tbodySelector);
     if (!tbody) return;
+    __goldMountLoadCount += 1;
+    const seq = __goldMountLoadCount;
+    const t0 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
+    console.log(GOLD_PUSH_LOG + " client: mountGoldTable() fetch #" + seq + " →", tbodySelector);
     try {
       const data = await getGoldTable();
       applyMetaToDom(data && data.meta);
       renderRowsIntoTbody(tbody, (data && data.rows) || []);
+      const t1 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
+      const ms = Math.max(0, Math.round(t1 - t0));
+      console.log(
+        GOLD_PUSH_LOG + " client: mountGoldTable() render OK #" + seq,
+        { rows: ((data && data.rows) || []).length, ms: ms }
+      );
       const sb = await getSupabaseClient();
       startGoldTableSseThenRealtime(sb);
       return data;
@@ -1131,6 +1180,15 @@
     }
   }
 
+  /**
+   * Cho phép trang (ví dụ /admin) bật pipeline push (SSE + fallback Realtime) mà không cần render bảng.
+   * Idempotent — gọi bao nhiêu lần cũng chỉ mở một EventSource.
+   */
+  async function startGoldPush() {
+    const sb = await getSupabaseClient();
+    startGoldTableSseThenRealtime(sb);
+  }
+
   global.TLKVGold = {
     STORAGE_KEY,
     getGoldTable,
@@ -1139,6 +1197,8 @@
     saveToStorage,
     saveGoldMetaOnly,
     stopGoldTableRealtime,
+    startGoldPush,
+    notifyGoldTableChanged,
     clearStorage,
     normalizePayload,
     normalizeRow,

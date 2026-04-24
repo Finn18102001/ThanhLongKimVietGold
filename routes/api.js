@@ -119,19 +119,29 @@ function supabaseRestEnv() {
 module.exports = function apiRouter(_ROOT) {
   const router = express.Router();
 
+  /** Khi client POST JSON tới /gold-table/notify, body là JSON nhẹ { reason }. */
+  const notifyJsonParser = express.json({ limit: "4kb" });
+
   /**
-   * Server-Sent Events: server subscribe Supabase Realtime một lần, đẩy sự kiện tới mọi tab (không debounce phía client).
+   * Server-Sent Events: server subscribe Supabase Realtime + nhận POST notify, fan-out tới mọi tab.
    * Trình duyệt vẫn gọi getGoldTable() khi nhận event — payload SSE chỉ báo "có thay đổi".
    */
   router.get("/gold-table/stream", function (req, res) {
     const { url, key } = goldSseHub.supabasePublicEnv();
     if (!url || !key) {
-      console.warn("[TLKV gold-push] GET /api/gold-table/stream → 503 (thiếu SUPABASE_URL / anon key trên server)");
+      console.warn(
+        "[TLKV gold-push] GET /api/gold-table/stream → 503 (thiếu SUPABASE_URL / anon key trên server) — POST /notify vẫn dùng được cho fan-out thủ công"
+      );
       res.status(503).type("text/plain; charset=utf-8").send("Thiếu cấu hình Supabase trên server (.env)");
       return;
     }
 
-    console.log("[TLKV gold-push] GET /api/gold-table/stream → 200 SSE", req.ip || req.socket.remoteAddress || "");
+    var ip = req.ip || (req.socket && req.socket.remoteAddress) || "";
+    var ua = (req.headers && req.headers["user-agent"]) || "";
+    console.log(
+      "[TLKV gold-push] GET /api/gold-table/stream → 200 SSE",
+      { ip: ip, ua: String(ua).slice(0, 80) }
+    );
 
     res.status(200);
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -142,13 +152,35 @@ module.exports = function apiRouter(_ROOT) {
 
     res.write(": tlkv gold-table sse\n\n");
     res.write("retry: 8000\n\n");
-    res.write(goldSseHub.sseLine("ready", {}));
-
-    goldSseHub.addSseClient(res);
+    var id = goldSseHub.addSseClient(res);
+    res.write(goldSseHub.sseLine("ready", { id: id, t: Date.now() }));
 
     req.on("close", function () {
       goldSseHub.removeSseClient(res);
     });
+  });
+
+  /**
+   * Admin sau khi lưu giá xong sẽ POST tới đây để push ngay cho mọi tab đang mở.
+   * Dùng thay thế / bổ sung cho postgres_changes (nếu Supabase chưa bật Realtime cho bảng).
+   */
+  router.post("/gold-table/notify", notifyJsonParser, function (req, res) {
+    var reason =
+      (req.body && typeof req.body.reason === "string" && req.body.reason) ||
+      (req.query && typeof req.query.reason === "string" && req.query.reason) ||
+      "manual";
+    var ua = (req.headers && req.headers["user-agent"]) || "";
+    console.log(
+      "[TLKV gold-push] POST /api/gold-table/notify",
+      { reason: String(reason).slice(0, 40), ua: String(ua).slice(0, 80) }
+    );
+    goldSseHub.manualBroadcast(String(reason).slice(0, 40));
+    res.status(204).end();
+  });
+
+  /** Trả về trạng thái hub: số tab đang mở SSE, số broadcast đã gửi, status Realtime. */
+  router.get("/gold-table/debug", function (req, res) {
+    res.type("json").json(goldSseHub.getDebugStatus());
   });
 
   /**

@@ -285,7 +285,8 @@
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     TLKVGold.mountGoldTable("#gold-table-body");
-    window.addEventListener("tlkv:gold-table-changed", function () {
+    window.addEventListener("tlkv:gold-table-changed", function (ev) {
+      console.log("[TLKV gold-push] page(index): tlkv:gold-table-changed → re-mount bảng giá", ev && ev.detail ? ev.detail : {});
       TLKVGold.mountGoldTable("#gold-table-body");
     });
   </script>
