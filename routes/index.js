@@ -26,6 +26,16 @@ function supabasePublicFromProcessEnv() {
  */
 module.exports = function registerRoutes(app, ROOT) {
   /**
+   * Serve Supabase UMD bundle locally (avoid CDN / ESM import issues on TV browsers).
+   * This keeps the website functional even when external CDNs are blocked/slow.
+   */
+  app.get("/js/vendor/supabase.js", function (req, res) {
+    res.type("application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.sendFile(path.join(ROOT, "node_modules", "@supabase", "supabase-js", "dist", "umd", "supabase.js"));
+  });
+
+  /**
    * Inject Supabase public config từ .env / .env.local (phải load trước /js/supabaseClient.js).
    * Đăng ký trước static để không bị ghi đè bởi file tĩnh.
    */

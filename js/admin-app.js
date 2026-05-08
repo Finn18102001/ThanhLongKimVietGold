@@ -1077,8 +1077,14 @@ function showToast(message, type = 'success') {
   /* ───── bootSupabaseAuth ───── */
   async function bootSupabaseAuth() {
     try {
-      var m = await import("/js/supabaseClient.js");
-      sb = m.supabase;
+      const cfg =
+        typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
+          ? globalThis.__TLKV_SUPABASE__
+          : { url: "", anonKey: "" };
+      const url = String(cfg.url || "").trim();
+      const key = String(cfg.anonKey || "").trim();
+      const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
+      sb = url && key && sdk && typeof sdk.createClient === "function" ? sdk.createClient(url, key) : null;
     } catch (e) {
       console.error(e);
       sb = null;

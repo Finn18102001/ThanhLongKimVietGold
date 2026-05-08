@@ -277,7 +277,10 @@
 
   <script>
     window.TLKV_BASE = "/";
+    // Kiosk/TV: chỉ bật SSE/Realtime khi vào TV mode (giảm tải trình duyệt TV).
+    window.__TLKV_GOLD_PUSH_MANUAL = true;
   </script>
+  <script src="/js/vendor/supabase.js"></script>
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/world-gold-xau.js"></script>
@@ -285,10 +288,6 @@
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     TLKVGold.mountGoldTable("#gold-table-body");
-    window.addEventListener("tlkv:gold-table-changed", function (ev) {
-      console.log("[TLKV gold-push] page(index): tlkv:gold-table-changed → re-mount bảng giá", ev && ev.detail ? ev.detail : {});
-      TLKVGold.mountGoldTable("#gold-table-body");
-    });
   </script>
 </body>
 <script>
@@ -455,6 +454,10 @@
 
   function openTVMode() {
     loadTVLogo();
+    // Chỉ khi vào TV mode mới bật pipeline SSE/Realtime để nhận cập nhật.
+    if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
+      window.TLKVGold.startGoldPush();
+    }
     tvModal.style.display = 'flex';
     layoutTVSafeArea();
     renderTVTable();
@@ -466,6 +469,10 @@
 
   function closeTVMode() {
     tvModal.style.display = 'none';
+    // Thoát TV mode: tắt EventSource/Realtime để giảm tải kiosk/TV.
+    if (window.TLKVGold && typeof window.TLKVGold.stopGoldTableRealtime === "function") {
+      window.TLKVGold.stopGoldTableRealtime();
+    }
   }
 
   async function renderTVTable() {

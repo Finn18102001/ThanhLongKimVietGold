@@ -5,8 +5,16 @@
   let __sbPromise = null;
   function getSupabaseClient() {
     if (!__sbPromise) {
-      __sbPromise = import("/js/supabaseClient.js").then(function (m) {
-        return m.supabase;
+      __sbPromise = Promise.resolve().then(function () {
+        const cfg =
+          typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
+            ? globalThis.__TLKV_SUPABASE__
+            : { url: "", anonKey: "" };
+        const url = String(cfg.url || "").trim();
+        const anonKey = String(cfg.anonKey || "").trim();
+        const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
+        if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
+        return sdk.createClient(url, anonKey);
       });
     }
     return __sbPromise;

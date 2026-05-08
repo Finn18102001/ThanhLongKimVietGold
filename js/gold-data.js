@@ -6,8 +6,16 @@
   let __sbPromise = null;
   function getSupabaseClient() {
     if (!__sbPromise) {
-      __sbPromise = import("/js/supabaseClient.js").then(function (m) {
-        return m.supabase;
+      __sbPromise = Promise.resolve().then(function () {
+        const cfg =
+          typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
+            ? globalThis.__TLKV_SUPABASE__
+            : { url: "", anonKey: "" };
+        const url = String(cfg.url || "").trim();
+        const anonKey = String(cfg.anonKey || "").trim();
+        const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
+        if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
+        return sdk.createClient(url, anonKey);
       });
     }
     return __sbPromise;
@@ -1142,15 +1150,25 @@
   }
 
   let __goldMountLoadCount = 0;
+  let __goldMountInFlight = null;
+  let __goldMountPending = false;
+  let __goldMountLastSelector = null;
 
   async function mountGoldTable(tbodySelector) {
+    __goldMountLastSelector = tbodySelector;
+    if (__goldMountInFlight) {
+      // Tránh bơm nhiều request/render chồng nhau khi SSE/realtime bắn dày.
+      __goldMountPending = true;
+      return __goldMountInFlight;
+    }
     const tbody = document.querySelector(tbodySelector);
     if (!tbody) return;
     __goldMountLoadCount += 1;
     const seq = __goldMountLoadCount;
     const t0 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
     console.log(GOLD_PUSH_LOG + " client: mountGoldTable() fetch #" + seq + " →", tbodySelector);
-    try {
+    __goldMountInFlight = (async function () {
+      try {
       const data = await getGoldTable();
       applyMetaToDom(data && data.meta);
       renderRowsIntoTbody(tbody, (data && data.rows) || []);
@@ -1160,10 +1178,14 @@
         GOLD_PUSH_LOG + " client: mountGoldTable() render OK #" + seq,
         { rows: ((data && data.rows) || []).length, ms: ms }
       );
-      const sb = await getSupabaseClient();
-      startGoldTableSseThenRealtime(sb);
+      // Mặc định: auto bật pipeline push (SSE → fallback Realtime).
+      // Kiosk/TV mode có thể đặt `window.__TLKV_GOLD_PUSH_MANUAL = true` để chỉ bật khi cần.
+      if (global.__TLKV_GOLD_PUSH_MANUAL !== true) {
+        const sb = await getSupabaseClient();
+        startGoldTableSseThenRealtime(sb);
+      }
       return data;
-    } catch (err) {
+      } catch (err) {
       console.error(err);
       tbody.innerHTML = "";
       const tr = document.createElement("tr");
@@ -1177,7 +1199,19 @@
       tr.appendChild(td);
       tbody.appendChild(tr);
       return null;
-    }
+      } finally {
+        __goldMountInFlight = null;
+        if (__goldMountPending) {
+          __goldMountPending = false;
+          const sel = __goldMountLastSelector || tbodySelector;
+          // queue 1 lần duy nhất cho batch event đến dồn
+          setTimeout(function () {
+            mountGoldTable(sel);
+          }, 0);
+        }
+      }
+    })();
+    return __goldMountInFlight;
   }
 
   /**
