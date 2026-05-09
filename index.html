@@ -399,67 +399,48 @@
  function fitTVTableToViewport() {
     if (!tvModal || tvModal.style.display !== 'flex' || !tvTableWrapper || !tvTableContainer) return;
 
-    const layout = layoutTVSafeArea?.() || {};
-    const wrapperWidth = layout.width || tvTableWrapper.clientWidth;
-    const wrapperHeight = layout.height || tvTableWrapper.clientHeight;
+    const layout = layoutTVSafeArea();
+    const wrapperWidth = layout ? layout.width : tvTableWrapper.clientWidth;
+    const wrapperHeight = layout ? layout.height : tvTableWrapper.clientHeight;
 
-    if (!wrapperWidth || !wrapperHeight) return;
-
-    // Reset trước
+    /*
+     * scale đồng đều: s = min(scaleX, scaleY). Khi nhiều dòng, thường scaleY < scaleX → s co theo chiều cao
+     * mà vẫn áp lên chiều ngang → bề ngang hiển thị = contentWidth * s < wrapperWidth (trông bảng "lọt thỏm").
+     * Bù: nếu đang bị ràng bởi chiều cao, tăng width layout lên ~ wrapperWidth / s rồi đo lại để
+     * sau scale, bề ngang hiển thị ≈ wrapperWidth (cùng mép header/footer), mọi số dòng 10–20+.
+     */
     tvTableContainer.style.width = "100%";
-    tvTableContainer.style.transform = "none";
-    tvTableContainer.style.margin = "0";
-    tvTableContainer.style.padding = "0";
+    tvTableContainer.style.transform = "translate(0px, 0px) scale(1)";
 
-    // === PASS 1: Tính scale ban đầu + điều chỉnh width để ưu tiên lấp đầy ===
-    let contentWidth = tvTableContainer.scrollWidth;
-    let contentHeight = tvTableContainer.scrollHeight;
+    for (let pass = 0; pass < 5; pass++) {
+      const cw = tvTableContainer.scrollWidth;
+      const ch = tvTableContainer.scrollHeight;
+      if (!wrapperWidth || !wrapperHeight || !cw || !ch) return;
 
-    let scaleX = wrapperWidth / contentWidth;
-    let scaleY = wrapperHeight / contentHeight;
-    let scale = Math.min(scaleX, scaleY);
+      const scaleX = wrapperWidth / cw;
+      const scaleY = wrapperHeight / ch;
+      const scale = Math.min(scaleX, scaleY);
+      if (!Number.isFinite(scale) || scale <= 0) return;
 
-    // Nếu bị ràng bởi chiều cao → tăng width để cân bằng (giữ logic cũ)
-    if (scaleY < scaleX * 0.98) {
-        for (let pass = 0; pass < 6; pass++) {
-            const targetW = Math.ceil(wrapperWidth / scaleY * 1.02); // cho dư tí
-            tvTableContainer.style.width = `${targetW}px`;
-            
-            contentWidth = tvTableContainer.scrollWidth;
-            contentHeight = tvTableContainer.scrollHeight;
-            scaleX = wrapperWidth / contentWidth;
-            scaleY = wrapperHeight / contentHeight;
-            scale = Math.min(scaleX, scaleY);
+      if (scale >= scaleX - 0.0001) break;
 
-            if (Math.abs(scaleX - scaleY) < 0.02) break;
-        }
+      const layoutW = Math.min(Math.ceil(wrapperWidth / scale), Math.ceil(wrapperWidth * 4));
+      tvTableContainer.style.width = `${layoutW}px`;
     }
 
-    // === PASS 2: Nếu vẫn còn dư nhiều chiều cao → tăng font/padding để lấp đầy ===
-    const heightRatio = (contentHeight * scale) / wrapperHeight;
+    const contentWidth = tvTableContainer.scrollWidth;
+    const contentHeight = tvTableContainer.scrollHeight;
+    if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) return;
 
-    if (heightRatio < 0.85) { // còn dư >15% chiều cao
-        const extraHeightFactor = Math.min(1.25, 0.85 / heightRatio); // tối đa +25%
-
-        // Tăng font-size và padding động
-        tvTableContainer.style.setProperty('--tv-font-scale', extraHeightFactor.toFixed(3), 'important');
-        
-        // Force reflow
-        contentHeight = tvTableContainer.scrollHeight;
-        scaleY = wrapperHeight / contentHeight;
-        scale = Math.min(scaleX, scaleY);
-    }
-
-    // === Áp dụng scale cuối cùng + center ===
-    const finalScale = Math.min(scale, 1.05); // không để scale quá to gây vỡ
-    const contentW = tvTableContainer.scrollWidth;
-    const contentH = tvTableContainer.scrollHeight;
-
-    const translateX = Math.max((wrapperWidth - contentW * finalScale) / 2, 0);
-    const translateY = Math.max((wrapperHeight - contentH * finalScale) / 2, 0);
+    const scaleX = wrapperWidth / contentWidth;
+    const scaleY = wrapperHeight / contentHeight;
+    const safeScale = Math.min(scaleX, scaleY);
+    const finalScale = Number.isFinite(safeScale) && safeScale > 0 ? safeScale : 1;
+    const translateX = Math.max((wrapperWidth - contentWidth * finalScale) / 2, 0);
+    const translateY = Math.max((wrapperHeight - contentHeight * finalScale) / 2, 0);
 
     tvTableContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${finalScale})`;
-}
+  }
 
   function scheduleTVTableFit() {
     if (tvTableScaleFrame && typeof window.cancelAnimationFrame === 'function') {
