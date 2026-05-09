@@ -477,7 +477,6 @@
 }
 /* ========== TV MODAL ========== */
 .tv-modal {
-  --tv-modal-pad: clamp(16px, 2.5vmin, 40px);
   display: none;
   position: fixed;
   inset: 0;
@@ -492,7 +491,7 @@
 }
 
 .tv-modal-content {
-  background: linear-gradient(180deg, #9f1a1a 0%, #5c0f0f 100%);
+  background: #7F1D1D;
   color: #fff;
   width: min(1920px, 100%);
   max-width: 1920px;
@@ -508,18 +507,14 @@
 
 /* Header */
 .tv-header {
-  background: #b91c1c;
-  padding: 1.1vh 2.2vw;
+  background: #7F1D1D;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5vw;
   position: absolute;
-  min-height: 7.5vh;
+  min-height: 5vh;
   z-index: 3;
-  border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-  box-sizing: border-box;
 }
 
 .tv-logo-company {
@@ -567,7 +562,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: clamp(1rem, 2.2vw, 2.2rem);
+  font-size: clamp(1.2rem, 2.5vw, 2.8rem) !important;
   font-weight: 900;
   white-space: nowrap;
   letter-spacing: 2px;
@@ -577,13 +572,22 @@
 }
 
 .tv-date-line {
-  text-align: center;
-  font-size: clamp(0.7rem, 1.1vw, 1.1rem);
+  text-align: left;
+  font-size: clamp(0.58rem, 0.9vw, 0.95rem);
   font-family: monospace;
-  padding: 0.4vh 1vw;
-  margin: 0 auto 0.4vh;
+  padding: 0;
+  margin: 0;
+  color: #fff;
+  opacity: 0.95;
+  white-space: nowrap;
 }
-
+.tv-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 3;
+}
 .tv-time-close {
   display: flex;
   align-items: center;
@@ -596,10 +600,10 @@
   background: #fff;
   color: #b91c1c;
   border: none;
-  width: clamp(28px, 2.5vw, 44px);
-  height: clamp(28px, 2.5vw, 44px);
+  width: clamp(20px, 1.6vw, 30px);
+  height: clamp(20px, 1.6vw, 30px);
   border-radius: 50%;
-  font-size: clamp(1rem, 1.5vw, 1.5rem);
+  font-size: clamp(0.75rem, 1vw, 1rem);
   cursor: pointer;
 }
 
@@ -611,7 +615,7 @@
 /* ===== TABLE WRAPPER ===== */
 .tv-table-wrapper {
   position: absolute;
-  overflow: hidden;
+  overflow: auto;
   padding: 0;
   background: transparent;
   display: flex;
@@ -624,9 +628,10 @@
 }
 
 .tv-table-container {
-  display: flex;
+  display: inline-block;
   flex-direction: column;
-  width: 100%;
+  width: auto;
+  min-width: 100%;
   margin-bottom: 0;
   flex: 0 0 auto;
   transform-origin: top left;
@@ -637,6 +642,7 @@
 /* ===== TABLE ===== */
 .tv-gold-table {
   width: 100%;
+  height: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   margin-bottom: 0 !important;
@@ -644,7 +650,8 @@
 
 .tv-gold-table th {
   padding: clamp(6px, 1vh, 14px) clamp(6px, 0.8vw, 16px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid #E5D3B3;
+  color: #e8d9a0;
   text-align: center;
   position: relative;
   font-size: clamp(0.75rem, 1.2vw, 1.35rem);
@@ -653,33 +660,33 @@
 }
 
 .tv-gold-table td {
-  padding: clamp(6px, 1.15vh, 16px) clamp(6px, 0.8vw, 16px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: clamp(13px, 1vh, 18px) clamp(6px, 0.8vw, 16px);
+  border: 1.5px solid #E5D3B3;
   text-align: center;
   position: relative;
-  font-size: clamp(0.75rem, 1.15vw, 1.3rem);
+  font-size: clamp(1rem, 1.35vw, 1.5rem);
   line-height: 1.4;
 }
 
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(1),
 .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(1) {
-  width: 17% !important;
+  width: 18% !important;
 }
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(2),
 .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(2) {
-  width: 24% !important;
+  width: 25% !important;
 }
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(3),
 .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(3) {
-  width: 11% !important;
+  width: 7% !important;
 }
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(4),
 .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4) {
-  width: 24% !important;
+  width: 25% !important;
 }
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(5),
 .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5) {
-  width: 24% !important;
+  width: 25% !important;
 }
 
 .tv-gold-table td:nth-child(4), 
@@ -687,8 +694,7 @@
     font-size: 1.55rem !important;   
     font-weight: 700;
     line-height: 1 !important;          
-    padding: 4px 7px !important; /* ~+10% ngang so với 6px */
-    height: 100% !important;
+    padding: 4px 7px !important;
     vertical-align: middle;
     box-sizing: border-box;
 }
@@ -727,7 +733,7 @@
 
 /* ===== TV FOOTER ===== */
 .tv-footer {
-  background: rgba(0, 0, 0, 0.7);
+  background: #7F1D1D;
   text-align: center;
   padding: clamp(6px, 0.8vh, 12px) 2vw;
   font-size: clamp(0.85rem, 1.3vw, 1.4rem);
@@ -736,13 +742,9 @@
   color: #FFD700;
   text-shadow: 0 0 5px #ffaa00, 0 0 8px #ff6600;
   text-transform: uppercase;
-  border-top: 1px solid rgba(255, 215, 0, 0.3);
   margin-top: 0 !important;
   position: absolute;
   z-index: 2;
-  border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-  box-sizing: border-box;
 }
 .tv-button-wrap {
   margin: 20px 0 15px 0;

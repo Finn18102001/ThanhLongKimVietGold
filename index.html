@@ -214,14 +214,16 @@
                         </div>
 
                         <h1 class="tv-main-title">BẢNG GIÁ VÀNG MỚI NHẤT</h1>
-                        <div class="tv-time-close">
-                          <button id="btn-close-tv" class="tv-close-btn">✕</button>
+                        <div class="tv-top-right">
+                          <div class="tv-date-line" id="tv-date-line"></div>
+                          <button id="btn-close-tv" class="tv-close-btn">
+                            ✕
+                          </button>
                         </div>
                       </div>
 
                       <div id="tv-table-wrapper" class="tv-table-wrapper">
                         <div id="tv-table-container" class="tv-table-container">
-                          <div class="tv-date-line" id="tv-date-line"></div>
                           <table id="tv-gold-table" class="tv-gold-table">
                             <thead>
                               <tr>
@@ -277,7 +279,6 @@
 
   <script>
     window.TLKV_BASE = "/";
-    // Kiosk/TV: chỉ bật SSE/Realtime khi vào TV mode (giảm tải trình duyệt TV).
     window.__TLKV_GOLD_PUSH_MANUAL = true;
   </script>
   <script src="/js/vendor/supabase.js"></script>
@@ -351,10 +352,10 @@
       viewportWidth: boxW,
       viewportHeight: boxH,
       safeX: clampNumber(Math.round(boxW * 0.03), 48, 64),
-      safeTop: clampNumber(Math.round(boxH * 0.03), 18, 36),
-      safeBottom: clampNumber(Math.round(boxH * 0.03), 18, 36),
-      tableTopGap: clampNumber(Math.round(boxH * 0.02), 14, 28),
-      footerGap: clampNumber(Math.round(boxH * 0.02), 8, 22)
+      safeTop: clampNumber(Math.round(boxH * 0.012), 8, 18),
+      safeBottom: clampNumber(Math.round(boxH * 0.012), 8, 18),
+      tableTopGap: clampNumber(Math.round(boxH * 0.006), 4, 10),
+      footerGap: clampNumber(Math.round(boxH * 0.006), 2, 8)
     };
   }
 
@@ -395,51 +396,70 @@
     };
   }
 
-  function fitTVTableToViewport() {
+ function fitTVTableToViewport() {
     if (!tvModal || tvModal.style.display !== 'flex' || !tvTableWrapper || !tvTableContainer) return;
 
-    const layout = layoutTVSafeArea();
-    const wrapperWidth = layout ? layout.width : tvTableWrapper.clientWidth;
-    const wrapperHeight = layout ? layout.height : tvTableWrapper.clientHeight;
+    const layout = layoutTVSafeArea?.() || {};
+    const wrapperWidth = layout.width || tvTableWrapper.clientWidth;
+    const wrapperHeight = layout.height || tvTableWrapper.clientHeight;
 
-    /*
-     * scale đồng đều: s = min(scaleX, scaleY). Khi nhiều dòng, thường scaleY < scaleX → s co theo chiều cao
-     * mà vẫn áp lên chiều ngang → bề ngang hiển thị = contentWidth * s < wrapperWidth (trông bảng "lọt thỏm").
-     * Bù: nếu đang bị ràng bởi chiều cao, tăng width layout lên ~ wrapperWidth / s rồi đo lại để
-     * sau scale, bề ngang hiển thị ≈ wrapperWidth (cùng mép header/footer), mọi số dòng 10–20+.
-     */
+    if (!wrapperWidth || !wrapperHeight) return;
+
+    // Reset trước
     tvTableContainer.style.width = "100%";
-    tvTableContainer.style.transform = "translate(0px, 0px) scale(1)";
+    tvTableContainer.style.transform = "none";
+    tvTableContainer.style.margin = "0";
+    tvTableContainer.style.padding = "0";
 
-    for (let pass = 0; pass < 5; pass++) {
-      const cw = tvTableContainer.scrollWidth;
-      const ch = tvTableContainer.scrollHeight;
-      if (!wrapperWidth || !wrapperHeight || !cw || !ch) return;
+    // === PASS 1: Tính scale ban đầu + điều chỉnh width để ưu tiên lấp đầy ===
+    let contentWidth = tvTableContainer.scrollWidth;
+    let contentHeight = tvTableContainer.scrollHeight;
 
-      const scaleX = wrapperWidth / cw;
-      const scaleY = wrapperHeight / ch;
-      const scale = Math.min(scaleX, scaleY);
-      if (!Number.isFinite(scale) || scale <= 0) return;
+    let scaleX = wrapperWidth / contentWidth;
+    let scaleY = wrapperHeight / contentHeight;
+    let scale = Math.min(scaleX, scaleY);
 
-      if (scale >= scaleX - 0.0001) break;
+    // Nếu bị ràng bởi chiều cao → tăng width để cân bằng (giữ logic cũ)
+    if (scaleY < scaleX * 0.98) {
+        for (let pass = 0; pass < 6; pass++) {
+            const targetW = Math.ceil(wrapperWidth / scaleY * 1.02); // cho dư tí
+            tvTableContainer.style.width = `${targetW}px`;
+            
+            contentWidth = tvTableContainer.scrollWidth;
+            contentHeight = tvTableContainer.scrollHeight;
+            scaleX = wrapperWidth / contentWidth;
+            scaleY = wrapperHeight / contentHeight;
+            scale = Math.min(scaleX, scaleY);
 
-      const layoutW = Math.min(Math.ceil(wrapperWidth / scale), Math.ceil(wrapperWidth * 4));
-      tvTableContainer.style.width = `${layoutW}px`;
+            if (Math.abs(scaleX - scaleY) < 0.02) break;
+        }
     }
 
-    const contentWidth = tvTableContainer.scrollWidth;
-    const contentHeight = tvTableContainer.scrollHeight;
-    if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) return;
+    // === PASS 2: Nếu vẫn còn dư nhiều chiều cao → tăng font/padding để lấp đầy ===
+    const heightRatio = (contentHeight * scale) / wrapperHeight;
 
-    const scaleX = wrapperWidth / contentWidth;
-    const scaleY = wrapperHeight / contentHeight;
-    const safeScale = Math.min(scaleX, scaleY);
-    const finalScale = Number.isFinite(safeScale) && safeScale > 0 ? safeScale : 1;
-    const translateX = Math.max((wrapperWidth - contentWidth * finalScale) / 2, 0);
-    const translateY = Math.max((wrapperHeight - contentHeight * finalScale) / 2, 0);
+    if (heightRatio < 0.85) { // còn dư >15% chiều cao
+        const extraHeightFactor = Math.min(1.25, 0.85 / heightRatio); // tối đa +25%
+
+        // Tăng font-size và padding động
+        tvTableContainer.style.setProperty('--tv-font-scale', extraHeightFactor.toFixed(3), 'important');
+        
+        // Force reflow
+        contentHeight = tvTableContainer.scrollHeight;
+        scaleY = wrapperHeight / contentHeight;
+        scale = Math.min(scaleX, scaleY);
+    }
+
+    // === Áp dụng scale cuối cùng + center ===
+    const finalScale = Math.min(scale, 1.05); // không để scale quá to gây vỡ
+    const contentW = tvTableContainer.scrollWidth;
+    const contentH = tvTableContainer.scrollHeight;
+
+    const translateX = Math.max((wrapperWidth - contentW * finalScale) / 2, 0);
+    const translateY = Math.max((wrapperHeight - contentH * finalScale) / 2, 0);
 
     tvTableContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${finalScale})`;
-  }
+}
 
   function scheduleTVTableFit() {
     if (tvTableScaleFrame && typeof window.cancelAnimationFrame === 'function') {
@@ -523,13 +543,8 @@
           cell.style.color = '';
           cell.style.textShadow = '';
 
-          if (index % 2 === 0) {
-            priceSpan.style.color = '#FFD700';
-            priceSpan.style.textShadow = '0 0 6px #ffaa00, 0 0 10px #ff6600';
-          } else {
-            priceSpan.style.color = '#ffffff';
-            priceSpan.style.textShadow = '';
-          }
+          priceSpan.style.color = '#ffffff';
+          priceSpan.style.textShadow = '';
 
           /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */
           cell.querySelectorAll('.gold-price-trend').forEach(function (trend) {
@@ -544,6 +559,8 @@
 
         index++;
       });
+      highlightTVBrandColumn();
+
     } catch (err) {
       console.error("[TV] ERROR", err);
     } finally {
@@ -553,6 +570,15 @@
       }
     }
   }
+
+  function highlightTVBrandColumn() {
+    const brandCells = document.querySelectorAll('#tv-gold-table tbody td.gold-brand-cell');
+    brandCells.forEach(cell => {
+        cell.style.color = '#e8d9a0';
+        cell.style.fontWeight = '700';
+    });
+}
+
 
   window.addEventListener("tlkv:gold-table-changed", function () {
     if (!tvModal || tvModal.style.display !== "flex") return;
