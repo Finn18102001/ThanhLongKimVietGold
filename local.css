@@ -211,7 +211,7 @@
   color: #16a34a;
 }
 .gold-price-trend--down {
-  color: #dc2626;
+  color: #ff0000;
 }
 
 .tv-gold-table .gold-price-trend {
@@ -226,7 +226,7 @@
   text-shadow: none !important;
 }
 .tv-gold-table td.price .gold-price-trend--down {
-  color: #dc2626 !important;
+  color: #ff0000 !important;
   text-shadow: none !important;
 }
 
@@ -438,14 +438,14 @@
   .gold-table-content th:nth-child(5),
   .gold-table-content td:nth-child(5) {   
     width: 21.5% !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
 
   .gold-table-content td.price,
   .gold-table-content thead th:nth-child(4),
   .gold-table-content thead th:nth-child(5) {
     white-space: normal !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: 600;
     word-break: keep-all !important;
   }
@@ -671,22 +671,22 @@
 }
 
 .tv-gold-table th {
-  padding: clamp(8px, 1.2vh, 16px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(8px, 0.8vh, 15px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   color: rgb(255, 217, 0);
   text-align: center;
   position: relative;
-  font-size: clamp(2rem, 2.2vw, 2.4rem);
+  font-size: clamp( 0.8rem, 1.2vw, 1.6rem);
   line-height: 1.4;
   letter-spacing: 0.5px;
 }
 
 .tv-gold-table td { 
-  padding: clamp(14px, 1.3vh, 21px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(8px, 0.8vh, 15px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   text-align: center;
   position: relative;
-  font-size: clamp(2.2rem, 2.4vw, 2.6rem);
+  font-size: clamp( 1.2rem, 1.6vw, 2rem);
   line-height: 1.4; 
 }
 
@@ -721,7 +721,6 @@
     box-sizing: border-box;
 }
 
-/* TV: span chứa text giá (tô vàng/trắng + glow); icon trend giữ màu riêng */
 .tv-gold-table td.price .tv-price-text {
   display: inline;
 }
@@ -737,7 +736,6 @@
   pointer-events: none;
 }
 
-/* TV 4 cột (màn nhỏ): Mua/Bán là cột 3–4 */
 .tv-gold-table.tv-gold-table--stacked th:nth-child(3),
 .tv-gold-table.tv-gold-table--stacked td:nth-child(3),
 .tv-gold-table.tv-gold-table--stacked th:nth-child(4),
@@ -753,21 +751,6 @@
   vertical-align: middle;
 }
 
-/* ===== TV FOOTER ===== */
-.tv-footer {
-  background: rgb(158, 3, 3);
-  text-align: center;
-  padding: clamp(6px, 0.8vh, 12px) 2vw;
-  font-size: clamp(0.85rem, 1.3vw, 1.4rem);
-  font-weight: bold;
-  letter-spacing: 2px;
-  color: #FFD700;
-  text-shadow: 0 0 5px #ffaa00, 0 0 8px #ff6600;
-  text-transform: uppercase;
-  margin-top: 0 !important;
-  position: absolute;
-  z-index: 2;
-}
 .tv-button-wrap {
   margin: 20px 0 15px 0;
   text-align: left;

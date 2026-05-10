@@ -238,10 +238,6 @@
                           </table>
                         </div>
                       </div>
-
-                      <div id="tv-footer" class="tv-footer">
-                        THĂNG LONG KIM VIỆT KÍNH CHÀO QUÝ KHÁCH
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -306,7 +302,7 @@
   let tvTableScaleFrame = 0;
   /** Tránh race khi nhiều lần renderTVTable chồng nhau (Realtime / double notify): request cũ không được ghi đè lên kết quả mới. */
   let __tvGoldRenderGen = 0;
-
+  let currentFontScale = 1;
   /**
    * Trả URL tuyệt đối của logo (scheme + host + port).
    * Cần thiết trên một số TV browser: ảnh trong display:none không tải trước,
@@ -360,86 +356,96 @@
   }
 
   function layoutTVSafeArea() {
-    if (!tvModal || tvModal.style.display !== 'flex' || !tvModalContent || !tvTableWrapper) return null;
-
     const metrics = getTVSafeMetrics();
-    const headerHeight = tvHeader ? tvHeader.offsetHeight : 0;
-    const footerHeight = tvFooter ? tvFooter.offsetHeight : 0;
-    const tableTop = metrics.safeTop + headerHeight + metrics.tableTopGap;
-    const tableBottomReserved = metrics.safeBottom + footerHeight + metrics.footerGap;
-    const tableBottom = Math.max(metrics.viewportHeight - tableBottomReserved, tableTop);
 
+    const headerH = tvHeader ? tvHeader.offsetHeight : 0;
+    const footerH = tvFooter ? tvFooter.offsetHeight : 0;
+
+    // Giảm safe area trên TV TCL một chút
+    const safeTop = Math.max(12, Math.round(metrics.viewportHeight * 0.018));
+    const safeBottom = Math.max(12, Math.round(metrics.viewportHeight * 0.018));
+
+    const tableTop = safeTop + headerH + 8;
+    const tableBottom = metrics.viewportHeight - safeBottom - footerH - 8;
+
+    // Áp dụng
     if (tvHeader) {
+      tvHeader.style.top = `${safeTop}px`;
       tvHeader.style.left = `${metrics.safeX}px`;
       tvHeader.style.right = `${metrics.safeX}px`;
-      tvHeader.style.top = `${metrics.safeTop}px`;
     }
 
     if (tvFooter) {
+      tvFooter.style.bottom = `${safeBottom}px`;
       tvFooter.style.left = `${metrics.safeX}px`;
       tvFooter.style.right = `${metrics.safeX}px`;
-      tvFooter.style.bottom = `${metrics.safeBottom}px`;
     }
 
-    /* Cùng mép ngang với header/footer (trước đây tableInsetX làm bảng hẹp hơn rõ rệt) */
+    tvTableWrapper.style.top = `${tableTop}px`;
+    tvTableWrapper.style.bottom = `${metrics.viewportHeight - tableBottom}px`;
     tvTableWrapper.style.left = `${metrics.safeX}px`;
     tvTableWrapper.style.right = `${metrics.safeX}px`;
-    tvTableWrapper.style.top = `${tableTop}px`;
-    tvTableWrapper.style.bottom = `${tableBottomReserved}px`;
-
-    const availableWidth = tvTableWrapper.clientWidth || Math.max(metrics.viewportWidth - metrics.safeX * 2, 0);
-    const availableHeight = tvTableWrapper.clientHeight || Math.max(tableBottom - tableTop, 0);
 
     return {
-      width: availableWidth,
-      height: availableHeight
+      width: tvTableWrapper.clientWidth,
+      height: tableBottom - tableTop
     };
   }
 
   function fitTVTableToViewport() {
     if (!tvModal || tvModal.style.display !== 'flex' || !tvTableWrapper || !tvTableContainer) return;
 
-    const layout = layoutTVSafeArea();
-    const wrapperWidth = layout ? layout.width : tvTableWrapper.clientWidth;
-    const wrapperHeight = layout ? layout.height : tvTableWrapper.clientHeight;
+    // Force reflow
+    tvTableContainer.style.width = "auto";
+    tvTableContainer.style.transform = "none";
 
-    /*
-     * scale đồng đều: s = min(scaleX, scaleY). Khi nhiều dòng, thường scaleY < scaleX → s co theo chiều cao
-     * mà vẫn áp lên chiều ngang → bề ngang hiển thị = contentWidth * s < wrapperWidth (trông bảng "lọt thỏm").
-     * Bù: nếu đang bị ràng bởi chiều cao, tăng width layout lên ~ wrapperWidth / s rồi đo lại để
-     * sau scale, bề ngang hiển thị ≈ wrapperWidth (cùng mép header/footer), mọi số dòng 10–20+.
-     */
-    tvTableContainer.style.width = "100%";
-    tvTableContainer.style.transform = "translate(0px, 0px) scale(1)";
+    requestAnimationFrame(() => {
+      const wrapperRect = tvTableWrapper.getBoundingClientRect();
+      const contentRect = tvTableContainer.getBoundingClientRect();
 
-    for (let pass = 0; pass < 5; pass++) {
-      const cw = tvTableContainer.scrollWidth;
-      const ch = tvTableContainer.scrollHeight;
-      if (!wrapperWidth || !wrapperHeight || !cw || !ch) return;
+      if (!wrapperRect.width || !wrapperRect.height) return;
 
-      const scaleX = wrapperWidth / cw;
-      const scaleY = wrapperHeight / ch;
-      const scale = Math.min(scaleX, scaleY);
-      if (!Number.isFinite(scale) || scale <= 0) return;
+      // Ưu tiên lấp đầy chiều ngang (thường là bottleneck trên TV)
+      let scaleX = wrapperRect.width / contentRect.width;
+      let scaleY = wrapperRect.height / contentRect.height;
 
-      if (scale >= scaleX - 0.0001) break;
+      // Scale cơ bản = min, nhưng cho phép scaleX lớn hơn một chút nếu chiều cao dư
+      let scale = Math.min(scaleX, scaleY * 1.05); // cho phép hơi "dư" chiều cao 5%
 
-      const layoutW = Math.min(Math.ceil(wrapperWidth / scale), Math.ceil(wrapperWidth * 4));
-      tvTableContainer.style.width = `${layoutW}px`;
+      // Nếu sau khi scale theo ngang mà chiều cao vẫn dư nhiều → tăng font-size
+      if (scaleX > scaleY * 1.15) {
+        increaseTableFontSize();
+        // Sau khi tăng font thì scale lại 1 lần nữa
+        setTimeout(() => fitTVTableToViewport(), 16);
+        return;
+      }
+
+      const finalScale = Math.max(0.6, Math.min(scale, 1.8)); // giới hạn scale
+
+      const contentW = contentRect.width * finalScale;
+      const contentH = contentRect.height * finalScale;
+
+      const translateX = Math.max((wrapperRect.width - contentW) / 2, 0);
+      const translateY = Math.max((wrapperRect.height - contentH) / 2, 0);
+
+      tvTableContainer.style.transformOrigin = "top left";
+      tvTableContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${finalScale})`;
+    });
+  }
+
+  function increaseTableFontSize() {
+    currentFontScale = Math.min(currentFontScale + 0.08, 1.35);
+
+    const table = document.querySelector('.tv-gold-table');
+    if (table) {
+      table.style.fontSize = `${currentFontScale}rem`;   // hoặc clamp(2.2rem * currentFontScale, ...)
+
+      // Tăng riêng cho cột giá
+      const priceCells = table.querySelectorAll('td:nth-child(4), td:nth-child(5)');
+      priceCells.forEach(cell => {
+        cell.style.fontSize = `${1.55 * currentFontScale}rem`;
+      });
     }
-
-    const contentWidth = tvTableContainer.scrollWidth;
-    const contentHeight = tvTableContainer.scrollHeight;
-    if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) return;
-
-    const scaleX = wrapperWidth / contentWidth;
-    const scaleY = wrapperHeight / contentHeight;
-    const safeScale = Math.min(scaleX, scaleY);
-    const finalScale = Number.isFinite(safeScale) && safeScale > 0 ? safeScale : 1;
-    const translateX = Math.max((wrapperWidth - contentWidth * finalScale) / 2, 0);
-    const translateY = Math.max((wrapperHeight - contentHeight * finalScale) / 2, 0);
-
-    tvTableContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${finalScale})`;
   }
 
   function scheduleTVTableFit() {
@@ -502,7 +508,7 @@
         if (priceCells.length < 2) return;
 
         priceCells.forEach(cell => {
-          cell.style.fontSize = '2.6rem';
+          cell.style.fontSize = '1.8rem';
           cell.style.fontWeight = '700';
           cell.style.lineHeight = '1';
           cell.style.padding = '4px 8px';
@@ -524,20 +530,28 @@
 
           if (index % 2 === 0) {
             priceSpan.style.color = '#ffffff';
-            priceSpan.style.fontSize = '2.6rem';
+            priceSpan.style.fontSize = '2rem';
           } else {
             priceSpan.style.color = '#ffffff';
-            priceSpan.style.fontSize = '2.6rem';
+            priceSpan.style.fontSize = '2rem';
           }
 
           /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */
           cell.querySelectorAll('.gold-price-trend').forEach(function (trend) {
+            // Màu sắc
             if (trend.classList.contains('gold-price-trend--up')) {
               trend.style.setProperty('color', '#16a34a', 'important');
             } else if (trend.classList.contains('gold-price-trend--down')) {
-              trend.style.setProperty('color', '#dc2626', 'important');
+              trend.style.setProperty('color', '#ff0000', 'important');
             }
+
+            // Tối ưu kích thước Icon cho TV
+            trend.style.setProperty('font-size', '1.5rem', 'important');
+            trend.style.setProperty('vertical-align', 'middle', 'important');
+            trend.style.setProperty('margin-left', '6px', 'important');
             trend.style.setProperty('text-shadow', 'none', 'important');
+            trend.style.setProperty('line-height', '1', 'important');
+            trend.style.setProperty('display', 'inline-block', 'important');
           });
         });
 
@@ -637,7 +651,15 @@
   if (btnCloseTV) btnCloseTV.addEventListener('click', closeTVMode);
   window.addEventListener('resize', scheduleTVTableFit);
   window.addEventListener('orientationchange', scheduleTVTableFit);
+  window.addEventListener('resize', () => {
+    currentFontScale = 1;
+    scheduleTVTableFit();
+  });
 
+  // Gọi lần đầu sau khi modal hiện
+  setTimeout(() => {
+    fitTVTableToViewport();
+  }, 100);
   document.addEventListener('keydown', e => {
     if (e.key === "Escape" && tvModal && tvModal.style.display === 'flex') closeTVMode();
   });
