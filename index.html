@@ -396,7 +396,7 @@
     };
   }
 
- function fitTVTableToViewport() {
+  function fitTVTableToViewport() {
     if (!tvModal || tvModal.style.display !== 'flex' || !tvTableWrapper || !tvTableContainer) return;
 
     const layout = layoutTVSafeArea();
@@ -502,13 +502,11 @@
         if (priceCells.length < 2) return;
 
         priceCells.forEach(cell => {
-          cell.style.fontSize = '1.9rem';
+          cell.style.fontSize = '2.6rem';
           cell.style.fontWeight = '700';
           cell.style.lineHeight = '1';
           cell.style.padding = '4px 8px';
 
-          // TV browser: tô màu + glow lên cả <td> có thể làm icon ▲/▼ bị "dính" màu.
-          // Giải pháp an toàn: bọc phần text giá vào span riêng và chỉ tô lên span.
           const textNode = Array.from(cell.childNodes).find(n => n && n.nodeType === Node.TEXT_NODE);
           const rawText = textNode ? String(textNode.nodeValue || '') : '';
           if (textNode) cell.removeChild(textNode);
@@ -526,10 +524,10 @@
 
           if (index % 2 === 0) {
             priceSpan.style.color = '#ffffff';
-            priceSpan.style.fontSize = '1.9rem';
+            priceSpan.style.fontSize = '2.6rem';
           } else {
             priceSpan.style.color = '#ffffff';
-           priceSpan.style.fontSize = '1.9rem';
+            priceSpan.style.fontSize = '2.6rem';
           }
 
           /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */
@@ -545,7 +543,11 @@
 
         index++;
       });
+
       highlightTVBrandColumn();
+      highlightProductRows();
+      highlightPurityColumn();
+      highlightPriceColumns();
 
     } catch (err) {
       console.error("[TV] ERROR", err);
@@ -560,11 +562,66 @@
   function highlightTVBrandColumn() {
     const brandCells = document.querySelectorAll('#tv-gold-table tbody td.gold-brand-cell');
     brandCells.forEach(cell => {
-        cell.style.color = 'rgba(255, 200, 0, 1)';
-        cell.style.fontWeight = '700';
+      cell.style.color = 'rgb(255, 217, 0)';
+      cell.style.fontWeight = '700';
     });
-}
+  }
 
+  function highlightProductRows() {
+    const rows = document.querySelectorAll('#tv-gold-table tbody tr');
+    const highlightIndexes = [0, 2, 5, 7];
+
+    const highlightColor = 'rgb(204, 0, 0)';
+
+    rows.forEach((row, idx) => {
+      const productCell = row.querySelector('td.col-product');
+      if (!productCell) return;
+
+      if (highlightIndexes.includes(idx)) {
+        productCell.style.backgroundColor = highlightColor;
+      } else {
+        productCell.style.backgroundColor = '';
+      }
+    });
+  }
+
+  function highlightPurityColumn() {
+    const rows = document.querySelectorAll('#tv-gold-table tbody tr');
+    const highlightIndexes = [0, 2, 5, 7];
+    const highlightColor = 'rgb(204, 0, 0)';
+
+    rows.forEach((row, idx) => {
+      const purityCell = row.querySelector('td.col-purity');
+      if (!purityCell) return;
+
+      if (highlightIndexes.includes(idx)) {
+        purityCell.style.backgroundColor = highlightColor;
+      } else {
+        purityCell.style.backgroundColor = '';
+      }
+    });
+  }
+
+  function highlightPriceColumns() {
+    const rows = document.querySelectorAll('#tv-gold-table tbody tr');
+    const highlightIndexes = [0, 2, 5, 7];
+    const highlightColor = 'rgb(204, 0, 0)';
+
+    rows.forEach((row, idx) => {
+      const priceCells = row.querySelectorAll('td.price');
+      if (priceCells.length < 2) return;
+
+      if (highlightIndexes.includes(idx)) {
+        priceCells.forEach(cell => {
+          cell.style.backgroundColor = highlightColor;
+        });
+      } else {
+        priceCells.forEach(cell => {
+          cell.style.backgroundColor = '';
+        });
+      }
+    });
+  }
 
   window.addEventListener("tlkv:gold-table-changed", function () {
     if (!tvModal || tvModal.style.display !== "flex") return;
