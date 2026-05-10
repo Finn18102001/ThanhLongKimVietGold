@@ -671,7 +671,7 @@
 }
 
 .tv-gold-table th {
-  padding: clamp(8px, 0.8vh, 15px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(5px, 0.5vh, 11px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   color: rgb(255, 217, 0);
   text-align: center;
@@ -682,11 +682,11 @@
 }
 
 .tv-gold-table td { 
-  padding: clamp(8px, 0.8vh, 15px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(5px, 0.5vh, 11px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   text-align: center;
   position: relative;
-  font-size: clamp( 1.2rem, 1.6vw, 2rem);
+  font-size: clamp( 1rem, 1.2vw, 1.6rem);
   line-height: 1.4; 
 }
 
