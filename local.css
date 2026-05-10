@@ -185,17 +185,17 @@
 .gold-table-content.gold-table-extended thead th:nth-child(4),
 .gold-table-content.gold-table-extended thead th:nth-child(5) {
   white-space: nowrap;
-  font-size: 18px !important;
+  font-size: 16px !important;
 }
 
 .gold-table-content.gold-table-extended th {
-  font-size: 18px !important;
+  font-size: 16px !important;
   font-weight: 700;
 }
 
 .gold-table-content.gold-table-extended td.col-product,
 .gold-table-content.gold-table-extended td.price {
-  font-size: 18px !important;      
+  font-size: 16px !important;      
   font-weight: 600;
 }
 
