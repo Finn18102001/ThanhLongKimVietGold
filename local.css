@@ -115,14 +115,12 @@
   white-space: nowrap;
   vertical-align: middle;
   text-align: left;
-  font-size: 19px !important;
 }
 
 .gold-table-content.gold-table-extended tbody td.col-purity,
 .gold-table-content.gold-table-extended tbody td.price {
   font-weight: 400 !important;
   font-synthesis: none;
-  font-size: 19px !important; 
 }
 
 .gold-brand-cell {
@@ -130,7 +128,6 @@
   text-align: center;
   white-space: normal;
   min-width: 7.5rem;
-  font-size: 19px !important;
 }
 
 .gold-table-content.gold-table-extended tbody td.gold-brand-cell:not(.gold-brand-cell--silver) {
@@ -163,7 +160,6 @@
   color: #fff !important;
   font-weight: 400 !important;
   font-synthesis: none;
-  font-size: 19px !important;
 }
 
 .gold-rate-component .table-responsive.gold-table {
@@ -189,13 +185,20 @@
 .gold-table-content.gold-table-extended thead th:nth-child(4),
 .gold-table-content.gold-table-extended thead th:nth-child(5) {
   white-space: nowrap;
-  font-size: 19px !important;
-}
-.gold-table-extended thead th {
-  font-size: 19px !important; /* Tăng size cho header */
+  font-size: 18px !important;
 }
 
-/* So với previous_buy / previous_sell trên gold_price_rows */
+.gold-table-content.gold-table-extended th {
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+.gold-table-content.gold-table-extended td.col-product,
+.gold-table-content.gold-table-extended td.price {
+  font-size: 18px !important;      
+  font-weight: 600;
+}
+
 .gold-price-trend {
   display: inline-block;
   margin-left: 4px;
