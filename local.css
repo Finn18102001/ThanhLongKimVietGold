@@ -185,7 +185,7 @@
 .gold-table-content.gold-table-extended thead th:nth-child(4),
 .gold-table-content.gold-table-extended thead th:nth-child(5) {
   white-space: nowrap;
-  font-size: 16px !important;
+  font-size: 16px;
 }
 
 .gold-table-content.gold-table-extended th {
@@ -195,7 +195,7 @@
 
 .gold-table-content.gold-table-extended td.col-product,
 .gold-table-content.gold-table-extended td.price {
-  font-size: 16px !important;      
+  font-size: 16px ;      
   font-weight: 600;
 }
 
@@ -438,14 +438,14 @@
   .gold-table-content th:nth-child(5),
   .gold-table-content td:nth-child(5) {   
     width: 21.5% !important;
-    font-size: 10.8px !important;
+    font-size: 14px !important;
   }
 
   .gold-table-content td.price,
   .gold-table-content thead th:nth-child(4),
   .gold-table-content thead th:nth-child(5) {
     white-space: normal !important;
-    font-size: 11.6px !important;
+    font-size: 14px !important;
     font-weight: 600;
     word-break: keep-all !important;
   }
