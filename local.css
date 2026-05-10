@@ -671,7 +671,7 @@
 }
 
 .tv-gold-table th {
-  padding: clamp(10px, 1.4vh, 18px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(8px, 1.2vh, 16px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   color: rgb(255, 217, 0);
   text-align: center;
@@ -682,7 +682,7 @@
 }
 
 .tv-gold-table td { 
-  padding: clamp(18px, 1.5vh, 23px) clamp(6px, 0.8vw, 16px);
+  padding: clamp(14px, 1.3vh, 21px) clamp(6px, 0.8vw, 16px);
   border: 2px solid rgba(255, 255, 255, 0.68);
   text-align: center;
   position: relative;
