@@ -615,7 +615,7 @@
 /* ===== TABLE WRAPPER ===== */
 .tv-table-wrapper {
   position: absolute;
-  overflow: auto;
+  overflow: hidden;
   padding: 0;
   background: transparent;
   display: flex;
@@ -646,12 +646,13 @@
   border-collapse: collapse;
   table-layout: fixed;
   margin-bottom: 0 !important;
+  border-radius: 14px;
 }
 
 .tv-gold-table th {
   padding: clamp(6px, 1vh, 14px) clamp(6px, 0.8vw, 16px);
-  border: 1.5px solid #E5D3B3;
-  color: #e8d9a0;
+  border: 2px solid rgba(245, 220, 110, 0.82);
+  color: rgba(255, 200, 0, 1); 
   text-align: center;
   position: relative;
   font-size: clamp(0.75rem, 1.2vw, 1.35rem);
@@ -659,13 +660,13 @@
   letter-spacing: 0.5px;
 }
 
-.tv-gold-table td {
-  padding: clamp(13px, 1vh, 18px) clamp(6px, 0.8vw, 16px);
-  border: 1.5px solid #E5D3B3;
+.tv-gold-table td { 
+  padding: clamp(12px, 1vh, 17px) clamp(6px, 0.8vw, 16px);
+  border: 2px solid rgba(245, 220, 110, 0.82);
   text-align: center;
   position: relative;
-  font-size: clamp(1rem, 1.35vw, 1.5rem);
-  line-height: 1.4;
+  font-size: clamp(1.5rem, 1.85vw, 1.9rem);
+  line-height: 1.4; 
 }
 
 .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(1),

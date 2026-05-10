@@ -502,7 +502,7 @@
         if (priceCells.length < 2) return;
 
         priceCells.forEach(cell => {
-          cell.style.fontSize = '1.55rem';
+          cell.style.fontSize = '1.9rem';
           cell.style.fontWeight = '700';
           cell.style.lineHeight = '1';
           cell.style.padding = '4px 8px';
@@ -524,8 +524,13 @@
           cell.style.color = '';
           cell.style.textShadow = '';
 
-          priceSpan.style.color = '#ffffff';
-          priceSpan.style.textShadow = '';
+          if (index % 2 === 0) {
+            priceSpan.style.color = '#ffffff';
+            priceSpan.style.fontSize = '1.9rem';
+          } else {
+            priceSpan.style.color = '#ffffff';
+           priceSpan.style.fontSize = '1.9rem';
+          }
 
           /* Icon ▲/▼: tách khỏi màu vàng/trắng của giá (TV browser đôi khi kế thừa/shadow dính cả ô) */
           cell.querySelectorAll('.gold-price-trend').forEach(function (trend) {
@@ -555,7 +560,7 @@
   function highlightTVBrandColumn() {
     const brandCells = document.querySelectorAll('#tv-gold-table tbody td.gold-brand-cell');
     brandCells.forEach(cell => {
-        cell.style.color = '#e8d9a0';
+        cell.style.color = 'rgba(255, 200, 0, 1)';
         cell.style.fontWeight = '700';
     });
 }
