@@ -866,6 +866,339 @@
   .tv-date-line { font-size: 0.55rem; }
 }
 
+/* ========== TV TABLE INLINE (WEB MODE) ========== */
+.tv-inline-section {
+  margin: 18px 0 20px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(144, 0, 0, 1);
+  box-shadow: 0 12px 26px rgba(90, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.tv-inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 0;
+  position: relative;
+  background: rgba(144, 0, 0, 1);
+}
+
+.tv-inline-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-inline-brand img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.tv-inline-company-name h4 {
+  margin: 0;
+  color: #fff7d8;
+  font-size: 1.04rem;
+  letter-spacing: 0.35px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tv-inline-company-name p {
+  margin: 2px 0 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.68rem;
+  letter-spacing: 0.2px;
+}
+
+.tv-inline-main-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  color: #ffffff;
+  font-size: 2.72rem;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+}
+
+.tv-inline-date-line {
+  font-family: monospace;
+  font-size: 0.84rem;
+  color: #ffffff;
+  white-space: nowrap;
+  text-shadow: none;
+  margin-left: auto;
+}
+
+.tv-inline-table-wrap {
+  padding: 0 14px 14px;
+}
+
+.tv-inline-section .tv-gold-table {
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.78);
+}
+
+.tv-inline-section .tv-gold-table th,
+.tv-inline-section .tv-gold-table td {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+}
+
+.tv-inline-section .tv-gold-table th {
+  background: rgba(144, 0, 0, 1);
+  font-size: 1.18rem;
+  color: rgba(242, 200, 66, 1);
+  letter-spacing: 0.4px;
+  padding: 13px 10px;
+  font-weight: 800;
+}
+
+.tv-inline-section .tv-gold-table td {
+  color: #ffffff;
+  font-size: 1.2rem;
+  padding: 12px 10px;
+  background: rgba(144, 0, 0, 1);
+  text-shadow: none;
+}
+
+.tv-inline-section .tv-gold-table td:nth-child(4),
+.tv-inline-section .tv-gold-table td:nth-child(5) {
+  font-size: 1.36rem !important;
+  font-weight: 800 !important;
+  padding: 12px 10px !important;
+}
+
+.tv-inline-section .tv-gold-table td.price .tv-price-text {
+  color: #ffffff;
+  font-size: 1.36rem;
+  font-weight: 800;
+}
+
+.tv-inline-section .tv-gold-table td.price .gold-price-trend {
+  margin-left: 6px !important;
+  display: inline-block !important;
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+.tv-inline-section .tv-gold-table td.price .gold-price-trend--up {
+  color: #34d97a !important;
+  text-shadow: 0 0 10px rgba(52, 217, 122, 0.85), 0 0 3px rgba(255, 255, 255, 0.45);
+}
+
+.tv-inline-section .tv-gold-table td.price .gold-price-trend--down {
+  color: #ff5e5e !important;
+  text-shadow: 0 0 10px rgba(255, 94, 94, 0.85), 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+.legacy-gold-table--hidden {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .tv-inline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .tv-inline-main-title {
+    position: static;
+    transform: none;
+    font-size: 1.44rem;
+    line-height: 1.2;
+    margin-top: 2px;
+    white-space: normal;
+  }
+
+  .tv-inline-date-line {
+    font-size: 0.82rem;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .tv-inline-section {
+    margin: 12px 0 16px;
+    border-radius: 12px;
+  }
+
+  .tv-inline-brand img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .tv-inline-company-name h4 {
+    font-size: 0.86rem;
+  }
+
+  .tv-inline-company-name p {
+    font-size: 0.6rem;
+  }
+
+  .tv-inline-main-title {
+    font-size: 1.16rem;
+    letter-spacing: 0.6px;
+  }
+
+  .tv-inline-date-line {
+    font-size: 0.7rem;
+  }
+
+  .tv-inline-table-wrap {
+    padding: 0 8px 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .tv-inline-section .tv-gold-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-width: 1px;
+    border-radius: 10px;
+  }
+
+  .tv-inline-section .tv-gold-table th,
+  .tv-inline-section .tv-gold-table td {
+    border-width: 1px;
+  }
+
+  .tv-inline-section .tv-gold-table td {
+    font-size: 11.8px !important;
+    line-height: 1.45 !important;
+    padding: 9px 3px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    vertical-align: middle !important;
+  }
+
+  .tv-inline-section .tv-gold-table th {
+    font-size: 10.2px !important;
+    line-height: 1.35 !important;
+    padding: 10px 3px !important;
+    font-weight: 700 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: center !important;
+  }
+
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(1),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(1) {
+    width: 21% !important;
+  }
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(2),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(2) {
+    width: 21% !important;
+  }
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(3),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(3) {
+    width: 15% !important;
+  }
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(4),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(5),
+  .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5) {
+    width: 21.5% !important;
+    font-size: 14px !important;
+  }
+
+  .tv-inline-section .tv-gold-table td.price,
+  .tv-inline-section .tv-gold-table thead th:nth-child(4),
+  .tv-inline-section .tv-gold-table thead th:nth-child(5) {
+    white-space: normal !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    word-break: keep-all !important;
+    padding: 9px 4px !important;
+  }
+
+  .tv-inline-section .tv-gold-table td.price .tv-price-text {
+    font-size: 14px !important;
+  }
+
+  .tv-inline-section .gold-brand-cell {
+    white-space: normal !important;
+    font-size: 11.5px !important;
+    line-height: 1.4 !important;
+    padding: 9px 3px !important;
+  }
+
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked th:nth-child(1),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked td:nth-child(1) {
+    width: 22% !important;
+  }
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked th:nth-child(2),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked td:nth-child(2) {
+    width: calc(38% - 20px) !important;
+  }
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked th:nth-child(3),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked td:nth-child(3),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked th:nth-child(4),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked td:nth-child(4) {
+    width: calc(20% + 10px) !important;
+  }
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked td.price,
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked thead th:nth-child(3),
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked thead th:nth-child(4) {
+    white-space: nowrap !important;
+    font-weight: 700 !important;
+  }
+  .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td.col-product {
+    padding-left: 3px !important;
+    padding-right: 0 !important;
+    white-space: normal !important;
+    font-size: 12.5px !important;
+  }
+
+  .tv-inline-section .tv-gold-table .gold-price-trend {
+    font-size: 0.55em !important;
+    margin-left: 2px !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+  }
+
+  .tv-inline-section .tv-gold-table td.price {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .tv-inline-main-title {
+    font-size: 1rem;
+  }
+
+  .tv-inline-section .tv-gold-table td {
+    font-size: 11px !important;
+  }
+
+  .tv-inline-section .tv-gold-table td.price,
+  .tv-inline-section .tv-gold-table td.price .tv-price-text {
+    font-size: 13px !important;
+  }
+
+  .tv-inline-section .tv-gold-table .gold-price-trend {
+    font-size: 0.5em !important;
+    margin-left: 2px !important;
+  }
+}
+
 /* ==========================================================================
    ABOUT PAGE – Giới thiệu
    ========================================================================== */

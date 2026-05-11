@@ -104,8 +104,34 @@
                       <div class="title-deco"></div>
                     </div>
                     <div class="chart-body">
-                      <h2 class="gold-title bold">TẠI THĂNG LONG KIM VIỆT</h2>
-                      <div class="table-responsive gold-table">
+                      <section class="tv-inline-section" aria-label="Bảng giá vàng hiển thị mở rộng">
+                        <div class="tv-inline-header">
+                          <div class="tv-inline-brand">
+                            <img id="tv-header-logo" src="/assets/logo-tv-modal.svg" alt="Logo Thăng Long Kim Việt" loading="eager">
+                            <div class="tv-inline-company-name">
+                              <h4>THĂNG LONG KIM VIỆT</h4>
+                              <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
+                            </div>
+                          </div>
+                          <h3 class="tv-inline-main-title">BẢNG GIÁ VÀNG MỚI NHẤT</h3>
+                          <div class="tv-inline-date-line" id="tv-date-line"></div>
+                        </div>
+                        <div class="tv-inline-table-wrap">
+                          <table id="tv-gold-table" class="tv-gold-table tv-gold-table--web">
+                            <thead>
+                              <tr>
+                                <th>THƯƠNG HIỆU</th>
+                                <th>SẢN PHẨM</th>
+                                <th>HÀM LƯỢNG</th>
+                                <th>MUA VÀO</th>
+                                <th>BÁN RA</th>
+                              </tr>
+                            </thead>
+                            <tbody id="tv-table-body"></tbody>
+                          </table>
+                        </div>
+                      </section>
+                      <div class="table-responsive gold-table legacy-gold-table legacy-gold-table--hidden" aria-hidden="true">
                         <p class="unit gold-table-meta" data-gold-meta-line>Cập nhật lúc: 10h00 · <span class="gold-table-brand-italic">THĂNG LONG KIM VIỆT</span> · ĐVT = 1000đ/chỉ</p>
                         <table class="gold-table-content gold-table-extended">
                           <thead>
@@ -121,7 +147,7 @@
                         </table>
                       </div>
 
-                      <div class="chart-footer gold-table-footer">
+                      <div class="chart-footer gold-table-footer legacy-gold-table--hidden" aria-hidden="true">
                         <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
                       </div>
 
@@ -203,6 +229,7 @@
 
     <script>
       window.TLKV_BASE = "/";
+      window.__TLKV_GOLD_PUSH_MANUAL = true;
     </script>
     <script src="/js/vendor/supabase.js"></script>
     <script src="/js/boot-supabase-env.js"></script>
@@ -214,8 +241,18 @@
       document.getElementById("year").textContent = new Date().getFullYear();
 
       let chartInstance = null;
+      let __tvGoldRenderGen = 0;
+      const tvTableBody = document.getElementById("tv-table-body");
+      const tvHeaderLogo = document.getElementById("tv-header-logo");
 
       function renderChartFromRows(rows) {
+        if (
+          window.TLKVGold &&
+          typeof window.TLKVGold.isLeanGoldPushClient === "function" &&
+          window.TLKVGold.isLeanGoldPushClient()
+        ) {
+          return;
+        }
         const goldRows = rows.filter(function (r) {
           return r.metal === "gold";
         });
@@ -275,17 +312,216 @@
         });
       }
 
-      function refreshPage() {
-        TLKVGold.mountGoldTable("#gold-table-body").then(function (data) {
-          if (data && data.rows) renderChartFromRows(data.rows);
+      function tvLogoAbsUrl() {
+        try {
+          return new URL("/assets/logo-thang-long-kim-viet.png", window.location.href).href;
+        } catch (e) {
+          return window.location.origin + "/assets/logo-thang-long-kim-viet.png";
+        }
+      }
+
+      function loadTVLogo() {
+        if (!tvHeaderLogo) return;
+        var absUrl = tvLogoAbsUrl();
+        if (tvHeaderLogo.getAttribute("src") !== absUrl) {
+          tvHeaderLogo.src = absUrl;
+        }
+      }
+
+      function highlightTVBrandColumn() {
+        const brandCells = document.querySelectorAll("#tv-gold-table tbody td.gold-brand-cell");
+        brandCells.forEach(function (cell) {
+          cell.style.color = "rgba(242, 200, 66, 1)";
+          cell.style.fontWeight = "700";
         });
       }
 
-      refreshPage();
-      window.addEventListener("tlkv:gold-table-changed", function (ev) {
-        console.log("[TLKV gold-push] page(gia-vang): tlkv:gold-table-changed → refreshPage", ev && ev.detail ? ev.detail : {});
+      function highlightProductRows() {
+        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
+        const highlightIndexes = [0, 2, 5, 7];
+        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.88) 0%, rgba(185, 28, 28, 0.92) 100%)";
+
+        rows.forEach(function (row, idx) {
+          const productCell = row.querySelector("td.col-product");
+          if (!productCell) return;
+          if (highlightIndexes.includes(idx)) {
+            productCell.style.background = highlightBackground;
+            productCell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.35)";
+          } else {
+            productCell.style.background = "";
+            productCell.style.boxShadow = "";
+          }
+        });
+      }
+
+      function highlightPurityColumn() {
+        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
+        const highlightIndexes = [0, 2, 5, 7];
+        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.88) 0%, rgba(185, 28, 28, 0.92) 100%)";
+
+        rows.forEach(function (row, idx) {
+          const purityCell = row.querySelector("td.col-purity");
+          if (!purityCell) return;
+          if (highlightIndexes.includes(idx)) {
+            purityCell.style.background = highlightBackground;
+            purityCell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.35)";
+          } else {
+            purityCell.style.background = "";
+            purityCell.style.boxShadow = "";
+          }
+        });
+      }
+
+      function highlightPriceColumns() {
+        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
+        const highlightIndexes = [0, 2, 5, 7];
+        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.92) 0%, rgba(185, 28, 28, 0.96) 100%)";
+
+        rows.forEach(function (row, idx) {
+          const priceCells = row.querySelectorAll("td.price");
+          if (priceCells.length < 2) return;
+          if (highlightIndexes.includes(idx)) {
+            priceCells.forEach(function (cell) {
+              cell.style.background = highlightBackground;
+              cell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.4)";
+            });
+          } else {
+            priceCells.forEach(function (cell) {
+              cell.style.background = "";
+              cell.style.boxShadow = "";
+            });
+          }
+        });
+      }
+
+      async function renderTVTable(dataOverride) {
+        if (!tvTableBody) return;
+
+        const gen = ++__tvGoldRenderGen;
+        const data = dataOverride || (await TLKVGold.getGoldTable());
+        if (gen !== __tvGoldRenderGen || !data || !data.rows) return;
+
+        TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
+
+        const rows = tvTableBody.querySelectorAll("tr");
+        let index = 0;
+
+        rows.forEach(function (row) {
+          const priceCells = row.querySelectorAll("td.price");
+          if (priceCells.length < 2) return;
+
+          priceCells.forEach(function (cell) {
+            cell.style.fontSize = "1.36rem";
+            cell.style.fontWeight = "700";
+            cell.style.lineHeight = "1";
+            cell.style.padding = "10px 9px";
+
+            const textNode = Array.from(cell.childNodes).find(function (n) {
+              return n && n.nodeType === Node.TEXT_NODE;
+            });
+            const rawText = textNode ? String(textNode.nodeValue || "") : "";
+            if (textNode) cell.removeChild(textNode);
+
+            let priceSpan = cell.querySelector(".tv-price-text");
+            if (!priceSpan) {
+              priceSpan = document.createElement("span");
+              priceSpan.className = "tv-price-text";
+              cell.insertBefore(priceSpan, cell.firstChild);
+            }
+            priceSpan.textContent = rawText;
+
+            cell.style.color = "";
+            cell.style.textShadow = "";
+
+            if (index % 2 === 0) {
+              priceSpan.style.color = "#ffffff";
+              priceSpan.style.fontSize = "1.36rem";
+            } else {
+              priceSpan.style.color = "#ffffff";
+              priceSpan.style.fontSize = "1.36rem";
+            }
+
+            cell.querySelectorAll(".gold-price-trend").forEach(function (trend) {
+              if (trend.classList.contains("gold-price-trend--up")) {
+                trend.style.setProperty("color", "#34d97a", "important");
+              } else if (trend.classList.contains("gold-price-trend--down")) {
+                trend.style.setProperty("color", "#ff5e5e", "important");
+              }
+            });
+          });
+
+          index++;
+        });
+
+        highlightTVBrandColumn();
+        highlightProductRows();
+        highlightPurityColumn();
+        highlightPriceColumns();
+      }
+
+      function updateTVDateTime() {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, "0");
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const year = now.getFullYear();
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12 || 12;
+        const formatted = day + "/" + month + "/" + year + " " + hours + ":" + minutes + ":" + seconds + " " + ampm;
+        const el = document.getElementById("tv-date-line");
+        if (el) el.textContent = "Ngày/Date: " + formatted;
+      }
+
+      async function refreshPage() {
+        let data = null;
+        const mainGoldTableBody = document.getElementById("gold-table-body");
+        const legacyTableIsVisible = !document.querySelector(".legacy-gold-table--hidden");
+
+        if (mainGoldTableBody && legacyTableIsVisible) {
+          data = await TLKVGold.mountGoldTable("#gold-table-body");
+        } else {
+          data = await TLKVGold.getGoldTable();
+        }
+
+        if (data && data.rows) {
+          renderChartFromRows(data.rows);
+        }
+        await renderTVTable(data);
+        updateTVDateTime();
+      }
+
+      function openInlineTVMode() {
+        loadTVLogo();
+        if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
+          console.log("[TLKV gold-push] page(gia-vang): openInlineTVMode → startGoldPush");
+          window.TLKVGold.startGoldPush();
+        }
         refreshPage();
+      }
+
+      function closeInlineTVMode() {
+        if (window.TLKVGold && typeof window.TLKVGold.stopGoldTableRealtime === "function") {
+          console.log("[TLKV gold-push] page(gia-vang): closeInlineTVMode → stopGoldTableRealtime");
+          window.TLKVGold.stopGoldTableRealtime();
+        }
+      }
+
+      openInlineTVMode();
+
+      window.addEventListener("tlkv:gold-table-changed", function (ev) {
+        console.log(
+          "[TLKV gold-push] page(gia-vang): tlkv:gold-table-changed → renderTVTable",
+          ev && ev.detail ? ev.detail : {}
+        );
+        renderTVTable();
+        updateTVDateTime();
       });
+
+      window.addEventListener("pagehide", closeInlineTVMode);
+
+      setInterval(updateTVDateTime, 1000);
     </script>
   </body>
 </html>

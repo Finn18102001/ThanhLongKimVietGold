@@ -93,6 +93,26 @@
   display: block;
 }
 
+/* TV / save-data: không nhúng TradingView (iframe quá nặng) */
+.tlkv-world-xau-tv-skip {
+  padding: 20px 18px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #44403c;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+.tlkv-world-xau-tv-skip p {
+  margin: 0 0 10px;
+}
+.tlkv-world-xau-tv-skip p:last-child {
+  margin-bottom: 0;
+}
+.tlkv-world-xau-tv-skip-link a {
+  color: #8b1d1d;
+  font-weight: 600;
+}
+
 .tlkv-world-xau-side {
   background: #fff;
   border: 1px solid #e8e4e0;

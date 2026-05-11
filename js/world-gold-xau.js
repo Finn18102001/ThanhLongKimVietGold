@@ -10,6 +10,31 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     if (el) el.textContent = text == null ? "" : String(text);
   }
 
+  function shouldSkipTradingViewEmbed() {
+    if (global.__TLKV_SKIP_TRADINGVIEW === true) return true;
+    if (global.__TLKV_SKIP_TRADINGVIEW === false) return false;
+    try {
+      var ua = String(global.navigator && global.navigator.userAgent ? global.navigator.userAgent : "");
+      if (
+        /SmartTV|SMART-TV|HbbTV|Tizen|webOS|NetCast|NETTV|BRAVIA|CrKey|AFT|AppleTV|googletv|Linux; Android.*TV|TCL|MiTV|TV\s*Safari|PLAYSTATION|Xbox/i.test(
+          ua
+        )
+      ) {
+        return true;
+      }
+    } catch (e) {}
+    try {
+      var c = global.navigator && global.navigator.connection;
+      if (c && c.saveData === true) return true;
+    } catch (e2) {}
+    if (typeof global.matchMedia === "function") {
+      try {
+        if (global.matchMedia("(prefers-reduced-data: reduce)").matches) return true;
+      } catch (e3) {}
+    }
+    return false;
+  }
+
   function tvIframeSrc() {
     var q = new URLSearchParams({
       autosize: "true",
@@ -135,13 +160,23 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     root.setAttribute("data-tlkv-xau-mounted", "1");
 
     var tvWrap = $(".tlkv-world-xau-tv-wrap", root);
-    if (tvWrap && !tvWrap.querySelector("iframe")) {
-      var ifr = document.createElement("iframe");
-      ifr.setAttribute("title", "Biểu đồ XAU/USD — TradingView");
-      ifr.setAttribute("loading", "lazy");
-      ifr.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
-      ifr.src = tvIframeSrc();
-      tvWrap.appendChild(ifr);
+    if (tvWrap && !tvWrap.querySelector("iframe") && !tvWrap.querySelector(".tlkv-world-xau-tv-skip")) {
+      if (shouldSkipTradingViewEmbed()) {
+        var skip = document.createElement("div");
+        skip.className = "tlkv-world-xau-tv-skip";
+        skip.setAttribute("role", "note");
+        skip.innerHTML =
+          "<p><strong>Biểu đồ TradingView</strong> không tải trên TV/trình duyệt tiết kiệm dữ liệu để tránh treo máy. Giá spot và bảng kỳ hạn bên dưới vẫn cập nhật từ máy chủ.</p>" +
+          '<p class="tlkv-world-xau-tv-skip-link"><a href="https://www.tradingview.com/chart/?symbol=FOREXCOM%3AXAUUSD" rel="noopener noreferrer" target="_blank">Mở biểu đồ XAU/USD trên thiết bị khác</a></p>';
+        tvWrap.appendChild(skip);
+      } else {
+        var ifr = document.createElement("iframe");
+        ifr.setAttribute("title", "Biểu đồ XAU/USD — TradingView");
+        ifr.setAttribute("loading", "lazy");
+        ifr.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
+        ifr.src = tvIframeSrc();
+        tvWrap.appendChild(ifr);
+      }
     }
 
     var spotEl = $(".tlkv-world-xau-price", root);

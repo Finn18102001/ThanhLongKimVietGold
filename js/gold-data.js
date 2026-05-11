@@ -31,9 +31,73 @@
   let __goldEventSource = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let __goldSseFallbackTimer = null;
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let __goldPollTimer = null;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let __goldTableChangedDebounceTimer = null;
   let __goldPushStarted = false;
 
+  /** Khoảng cách tối thiểu giữa hai lần broadcast UI khi SSE/Realtime dồn event (giảm fetch/re-render chồng chất). */
+  const GOLD_TABLE_CHANGED_DEBOUNCE_MS = 500;
+
+  function flushGoldTableChangedDispatch(detail) {
+    __goldTableChangedDebounceTimer = null;
+    if (detail === undefined) {
+      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
+    } else {
+      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: detail }));
+    }
+  }
+
+  /**
+   * Gộp nhiều tín hiệu push trong cửa sổ ngắn → một lần làm mới (TV/kiosk ít RAM hơn).
+   * Lưu / admin vẫn dùng dispatch trực tiếp (xem saveToStorage).
+   */
+  function dispatchGoldTableChangedDebounced(detail) {
+    if (__goldTableChangedDebounceTimer != null) {
+      clearTimeout(__goldTableChangedDebounceTimer);
+      __goldTableChangedDebounceTimer = null;
+    }
+    __goldTableChangedDebounceTimer = setTimeout(function () {
+      flushGoldTableChangedDispatch(detail);
+    }, GOLD_TABLE_CHANGED_DEBOUNCE_MS);
+  }
+
+  /** TV / trình duyệt yếu: không mở EventSource + không mở Realtime WebSocket trên tab (chỉ poll nhẹ). */
+  function isLeanGoldPushClient() {
+    if (global.__TLKV_LEAN_GOLD_PUSH === true) return true;
+    if (global.__TLKV_LEAN_GOLD_PUSH === false) return false;
+    try {
+      var ua = String(global.navigator && global.navigator.userAgent ? global.navigator.userAgent : "");
+      if (
+        /SmartTV|SMART-TV|HbbTV|Tizen|webOS|NetCast|NETTV|BRAVIA|CrKey|AFT|AppleTV|googletv|Linux; Android.*TV|TCL|MiTV|TV\s*Safari|PLAYSTATION|Xbox/i.test(
+          ua
+        )
+      ) {
+        return true;
+      }
+    } catch (_) {}
+    try {
+      var c = global.navigator && global.navigator.connection;
+      if (c && c.saveData === true) return true;
+    } catch (_) {}
+    if (typeof global.matchMedia === "function") {
+      try {
+        if (global.matchMedia("(prefers-reduced-data: reduce)").matches) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
   function stopGoldTableRealtime() {
+    if (__goldTableChangedDebounceTimer != null) {
+      clearTimeout(__goldTableChangedDebounceTimer);
+      __goldTableChangedDebounceTimer = null;
+    }
+    if (__goldPollTimer != null) {
+      clearInterval(__goldPollTimer);
+      __goldPollTimer = null;
+    }
     if (__goldSseFallbackTimer != null) {
       clearTimeout(__goldSseFallbackTimer);
       __goldSseFallbackTimer = null;
@@ -83,7 +147,7 @@
             : {}
         );
       }
-      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
+      dispatchGoldTableChangedDebounced(undefined);
     };
     __goldRealtimeSb = sb;
     __goldRealtimeChannel = sb
@@ -153,6 +217,24 @@
     if (__goldPushStarted) return;
     __goldPushStarted = true;
 
+    if (isLeanGoldPushClient()) {
+      var pollMs = Number(global.__TLKV_GOLD_POLL_MS);
+      if (!Number.isFinite(pollMs) || pollMs < 15000) pollMs = 90000;
+      if (typeof console !== "undefined" && console.log) {
+        console.log(
+          GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không SSE/Realtime tab"
+        );
+      }
+      __goldPollTimer = setInterval(function () {
+        dispatchGoldTableChangedDebounced(undefined);
+      }, pollMs);
+      setTimeout(function () {
+        dispatchGoldTableChangedDebounced(undefined);
+      }, 2500);
+      ensureGoldRealtimePagehideCleanup();
+      return;
+    }
+
     const notifyFromSse = function (ev) {
       __goldSseNotifyCount += 1;
       var detail = {};
@@ -162,7 +244,7 @@
       if (typeof console !== "undefined" && console.log) {
         console.log(GOLD_PUSH_LOG + " client: SSE message → dispatch #" + __goldSseNotifyCount, detail);
       }
-      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
+      dispatchGoldTableChangedDebounced(undefined);
     };
 
     if (global.__TLKV_DISABLE_GOLD_SSE === true) {
@@ -1225,6 +1307,7 @@
 
   global.TLKVGold = {
     STORAGE_KEY,
+    isLeanGoldPushClient,
     getGoldTable,
     fetchDefaultJson,
     loadFromStorage,
