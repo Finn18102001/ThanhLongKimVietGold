@@ -32,7 +32,7 @@ module.exports = function registerRoutes(app, ROOT) {
   app.get("/js/vendor/supabase.js", function (req, res) {
     res.type("application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=86400");
-    res.sendFile(path.join(ROOT, "node_modules", "@supabase", "supabase-js", "dist", "umd", "supabase.js"));
+    res.sendFile(path.join(ROOT, "js", "vendor", "supabase.js"));
   });
 
   /**
