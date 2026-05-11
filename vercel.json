@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60,
+        "includeFiles": [
+          "index.html",
+          "homepage.html",
+          "gia-vang-hom-nay.html",
+          "googlea0e5d99f07f9bb75.html",
+          "admin/**",
+          "assets/**",
+          "css/**",
+          "js/**",
+          "data/**",
+          "gioi-thieu/**",
+          "san-pham/**",
+          "local.css"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/server.js" }
+  ]
+}
