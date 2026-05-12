@@ -96,44 +96,20 @@
       <main class="">
         <div class="master-wrapper">
           <main>
-            <div class="home-chart gold-rate-component" style="padding-top: 32px;">
+            <div class="home-chart gold-rate-component">
               <div class="container">
-                <div class="chart-container-row d-flex" style="flex-direction: column; gap: 24px;">
-                  <div class="chart-container container-l" style="width: 100%;">
+                <div class="chart-container-row d-flex">
+                  <div class="chart-container container-l">
                     <div class="chart-title title-w-deco">
-                      <h4>GIÁ VÀNG HÔM NAY</h4>
+                      <h4>THỊ TRƯỜNG VÀNG</h4>
                       <div class="title-deco"></div>
                     </div>
                     <div class="chart-body">
-                      <section class="tv-inline-section" aria-label="Bảng giá vàng hiển thị mở rộng">
-                        <div class="tv-inline-header">
-                          <div class="tv-inline-brand">
-                            <img id="tv-header-logo" src="/assets/logo-tv-modal.svg" alt="Logo Thăng Long Kim Việt" loading="eager">
-                            <div class="tv-inline-company-name">
-                              <h4>THĂNG LONG KIM VIỆT</h4>
-                              <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
-                            </div>
-                          </div>
-                          <h3 class="tv-inline-main-title">BẢNG GIÁ VÀNG MỚI NHẤT</h3>
-                          <div class="tv-inline-date-line" id="tv-date-line"></div>
-                        </div>
-                        <div class="tv-inline-table-wrap">
-                          <table id="tv-gold-table" class="tv-gold-table tv-gold-table--web">
-                            <thead>
-                              <tr>
-                                <th>THƯƠNG HIỆU</th>
-                                <th>SẢN PHẨM</th>
-                                <th>HÀM LƯỢNG</th>
-                                <th>MUA VÀO</th>
-                                <th>BÁN RA</th>
-                              </tr>
-                            </thead>
-                            <tbody id="tv-table-body"></tbody>
-                          </table>
-                        </div>
-                      </section>
-                      <div class="table-responsive gold-table legacy-gold-table legacy-gold-table--hidden" aria-hidden="true">
-                        <p class="unit gold-table-meta" data-gold-meta-line>Cập nhật lúc: 10h00 · <span class="gold-table-brand-italic">THĂNG LONG KIM VIỆT</span> · ĐVT = 1000đ/chỉ</p>
+                      <h5 class="gold-title">GIÁ VÀNG HÔM NAY</h5>
+                      <h2 class="gold-title bold">TẠI THĂNG LONG KIM VIỆT</h2>
+                      <div class="table-responsive gold-table">
+                        <p class="unit gold-table-meta" data-gold-meta-line>Cập nhật lúc: 10h00 · <span
+                            class="gold-table-brand-italic">THĂNG LONG KIM VIỆT</span> · ĐVT = Đồng/chỉ</p>
                         <table class="gold-table-content gold-table-extended">
                           <thead>
                             <tr>
@@ -148,7 +124,7 @@
                         </table>
                       </div>
 
-                      <div class="chart-footer gold-table-footer legacy-gold-table--hidden" aria-hidden="true">
+                      <div class="chart-footer gold-table-footer">
                         <div class="note" data-gold-footer-note>(Cập nhật lúc 10:00 09/04/2026) (ĐVT = Đồng/chỉ)</div>
                       </div>
 
@@ -158,7 +134,8 @@
                             <div class="tlkv-world-xau-head">
                               <div>
                                 <h3 class="tlkv-world-xau-title">Giá vàng thế giới</h3>
-                                <p class="tlkv-world-xau-sub"><span class="tlkv-world-xau-symbol">FOREXCOM:XAUUSD</span> · VÀNG / ĐÔ LA MỸ</p>
+                                <p class="tlkv-world-xau-sub"><span class="tlkv-world-xau-symbol">FOREXCOM:XAUUSD</span> ·
+                                  VÀNG / ĐÔ LA MỸ</p>
                               </div>
                               <div class="tlkv-world-xau-spot">
                                 <div class="tlkv-world-xau-price">—</div>
@@ -184,18 +161,6 @@
                           </aside>
                         </div>
                       </section>
-                    </div>
-                  </div>
-
-                  <div class="chart-container container-r tlkv-gold-chart--hidden" style="width: 100%;" aria-hidden="true">
-                    <div class="chart-title title-w-deco">
-                      <h4>BIỂU ĐỒ GIÁ VÀNG</h4>
-                      <div class="title-deco"></div>
-                    </div>
-                    <div class="chart-body">
-                      <div class="gold-chart-wrap">
-                        <canvas id="goldChart"></canvas>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -237,138 +202,9 @@
     <script src="/js/gold-data.js"></script>
     <script src="/js/world-gold-xau.js"></script>
     <script src="/js/site-nav.js"></script>
-    <script src="/js/tv-gold-board.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
-
-      let chartInstance = null;
-
-      const tvGoldBoard = TLKVTvGoldBoard.createBoard({
-        tableSelector: "#tv-gold-table",
-        tbodySelector: "#tv-table-body",
-        dateLineSelector: "#tv-date-line",
-        logoSelector: "#tv-header-logo",
-        useColumnStripes: true,
-      });
-
-      function renderChartFromRows(rows) {
-        if (
-          window.TLKVGold &&
-          typeof window.TLKVGold.isLeanGoldPushClient === "function" &&
-          window.TLKVGold.isLeanGoldPushClient()
-        ) {
-          return;
-        }
-        const goldRows = rows.filter(function (r) {
-          return r.metal === "gold";
-        });
-        const mua = goldRows.map(function (r) {
-          const s = String(r.buy || "").trim();
-          if (!s) return 0;
-          const v = parseFloat(s.replace(/\./g, "").replace(",", "."));
-          return Number.isFinite(v) ? v : 0;
-        });
-        const labels = goldRows.map(function (_, i) {
-          return String(i + 1);
-        });
-        const ban = goldRows.map(function (r) {
-          const s = String(r.sell || "").trim();
-          if (!s) return 0;
-          const v = parseFloat(s.replace(/\./g, "").replace(",", "."));
-          return Number.isFinite(v) ? v : 0;
-        });
-        const ctx = document.getElementById("goldChart");
-        if (!ctx || typeof Chart === "undefined") return;
-        if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels.length ? labels : ["1", "2", "3"],
-            datasets: [
-              {
-                label: "Mua",
-                data: mua.some(Boolean) ? mua : [15400, 15500, 15450],
-                borderColor: "#8b1d1d",
-                backgroundColor: "rgba(139, 29, 29, 0.08)",
-                tension: 0.35,
-              },
-              {
-                label: "Bán",
-                data: ban.some(Boolean) ? ban : [15750, 15800, 15750],
-                borderColor: "#2e7d32",
-                backgroundColor: "rgba(46, 125, 50, 0.08)",
-                tension: 0.35,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: "top" } },
-            scales: {
-              y: {
-                ticks: {
-                  callback: function (v) {
-                    return (Number(v) || 0).toLocaleString("vi-VN");
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
-
-      async function refreshPage() {
-        let data = null;
-        const mainGoldTableBody = document.getElementById("gold-table-body");
-        const legacyTableIsVisible = !document.querySelector(".legacy-gold-table--hidden");
-
-        if (mainGoldTableBody && legacyTableIsVisible) {
-          data = await TLKVGold.mountGoldTable("#gold-table-body");
-        } else {
-          data = await TLKVGold.getGoldTable();
-        }
-
-        if (data && data.rows) {
-          renderChartFromRows(data.rows);
-        }
-        await tvGoldBoard.renderTVTable(data);
-        tvGoldBoard.updateTVDateTime();
-      }
-
-      function openInlineTVMode() {
-        tvGoldBoard.loadTVLogos();
-        if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
-          console.log("[TLKV gold-push] page(gia-vang): openInlineTVMode → startGoldPush");
-          window.TLKVGold.startGoldPush();
-        }
-        refreshPage();
-      }
-
-      function closeInlineTVMode() {
-        if (window.TLKVGold && typeof window.TLKVGold.stopGoldTableRealtime === "function") {
-          console.log("[TLKV gold-push] page(gia-vang): closeInlineTVMode → stopGoldTableRealtime");
-          window.TLKVGold.stopGoldTableRealtime();
-        }
-      }
-
-      openInlineTVMode();
-
-      window.addEventListener("tlkv:gold-table-changed", function (ev) {
-        console.log(
-          "[TLKV gold-push] page(gia-vang): tlkv:gold-table-changed → renderTVTable",
-          ev && ev.detail ? ev.detail : {}
-        );
-        tvGoldBoard.renderTVTable();
-        tvGoldBoard.updateTVDateTime();
-      });
-
-      window.addEventListener("pagehide", closeInlineTVMode);
-
-      setInterval(function () {
-        tvGoldBoard.updateTVDateTime();
-      }, 1000);
+      TLKVGold.mountGoldTable("#gold-table-body");
     </script>
   </body>
 </html>

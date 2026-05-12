@@ -437,6 +437,22 @@
     return parseGoldMoneyToInt(v);
   }
 
+  /**
+   * Chỉ /tv-model: `html.tlkv-tv-model-page` + `#tv-gold-table` → SVG; bảng thường → ▲ / ▼.
+   * `tableHint`: bắt buộc khi `td` chưa gắn vào DOM (renderRowsIntoTbody gọi appendPriceCellContent trước appendChild hàng).
+   */
+  function shouldUseTvModelTrendSvg(td, tableHint) {
+    if (typeof document === "undefined" || !document.documentElement) return false;
+    if (!document.documentElement.classList.contains("tlkv-tv-model-page")) return false;
+    const table =
+      tableHint && tableHint.nodeType === 1 && String(tableHint.tagName || "").toUpperCase() === "TABLE"
+        ? tableHint
+        : td && typeof td.closest === "function"
+          ? td.closest("#tv-gold-table")
+          : null;
+    return !!(table && table.id === "tv-gold-table");
+  }
+
   const __GOLD_TREND_SVG_NS = "http://www.w3.org/2000/svg";
 
   function createGoldPriceTrendSvg(isUp) {
@@ -464,7 +480,8 @@
   }
 
 
-  function appendPriceCellContent(td, displayText, field, rt) {
+  /** @param {HTMLTableElement | null} [tableHint] — ancestor table khi `td` chưa nối vào DOM */
+  function appendPriceCellContent(td, displayText, field, rt, tableHint) {
     td.textContent = "";
     const text = displayText == null ? "" : String(displayText);
     td.appendChild(document.createTextNode(text));
@@ -487,7 +504,11 @@
       "aria-label",
       diff > 0 ? "Giá cao hơn mức trước khi cập nhật" : "Giá thấp hơn mức trước khi cập nhật"
     );
-    span.appendChild(createGoldPriceTrendSvg(diff > 0));
+    if (shouldUseTvModelTrendSvg(td, tableHint)) {
+      span.appendChild(createGoldPriceTrendSvg(diff > 0));
+    } else {
+      span.textContent = diff > 0 ? "▲" : "▼";
+    }
     td.appendChild(span);
   }
 
@@ -517,6 +538,7 @@
   function renderRowsStackedMobile(tbody, rows) {
     const ordered = orderRowsForTable(rows.slice());
     if (!ordered.length) return;
+    const stackTable = tbody && tbody.closest ? tbody.closest("table") : null;
     let i = 0;
     while (i < ordered.length) {
       const brand = ordered[i].brand;
@@ -546,12 +568,12 @@
 
         const tdBuy = document.createElement("td");
         tdBuy.className = "price";
-        appendPriceCellContent(tdBuy, rt.buy, "buy", rt);
+        appendPriceCellContent(tdBuy, rt.buy, "buy", rt, stackTable);
         tr.appendChild(tdBuy);
 
         const tdSell = document.createElement("td");
         tdSell.className = "price";
-        appendPriceCellContent(tdSell, rt.sell, "sell", rt);
+        appendPriceCellContent(tdSell, rt.sell, "sell", rt, stackTable);
         tr.appendChild(tdSell);
 
         tbody.appendChild(tr);
@@ -1234,14 +1256,15 @@
     for (let i = 0; i < expectedIds.length; i++) {
       if (trs[i].getAttribute("data-tlkv-gold-row-id") !== expectedIds[i]) return false;
     }
+    const patchTable = tbody.closest("table");
     let idx = 0;
     walkMergedGoldRows(ordered, function (ctx) {
       const rt = ctx.row;
       const tr = trs[idx++];
       const prices = tr.querySelectorAll("td.price");
       if (prices.length < 2) return;
-      appendPriceCellContent(prices[0], rt.buy, "buy", rt);
-      appendPriceCellContent(prices[1], rt.sell, "sell", rt);
+      appendPriceCellContent(prices[0], rt.buy, "buy", rt, patchTable);
+      appendPriceCellContent(prices[1], rt.sell, "sell", rt, patchTable);
     });
     global.__TLKV_LAST_GOLD_ROWS = ordered;
     markGoldTableBottomCorners(tbody);
@@ -1285,11 +1308,11 @@
         tr.appendChild(tdPur);
         const tdBuy = document.createElement("td");
         tdBuy.className = "price";
-        appendPriceCellContent(tdBuy, rt.buy, "buy", rt);
+        appendPriceCellContent(tdBuy, rt.buy, "buy", rt, table);
         tr.appendChild(tdBuy);
         const tdSell = document.createElement("td");
         tdSell.className = "price";
-        appendPriceCellContent(tdSell, rt.sell, "sell", rt);
+        appendPriceCellContent(tdSell, rt.sell, "sell", rt, table);
         tr.appendChild(tdSell);
         tbody.appendChild(tr);
       });
