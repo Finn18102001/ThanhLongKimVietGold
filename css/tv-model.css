@@ -108,6 +108,15 @@ body.tlkv-tv-model-page .tv-inline-company-name p {
   color: #ffffff !important;
 }
 
+/* Tên thương hiệu + tên công ty: lớn hơn ~4–5px so với local.css */
+body.tlkv-tv-model-page .tv-inline-company-name h4 {
+  font-size: calc(1.04rem + 4.5px) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-company-name p {
+  font-size: calc(0.68rem + 4.5px) !important;
+}
+
 body.tlkv-tv-model-page .tv-inline-header {
   flex: 0 0 auto;
   background: var(--tlkv-tv-greeting-board-bg) !important;
@@ -231,16 +240,16 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-t
   white-space: nowrap;
 }
 
-.tlkv-tv-marquee__text {
-  font-size: clamp(0.95rem, 1.65vw, 2.25rem);
+body.tlkv-tv-model-page .tlkv-tv-marquee__text {
+  font-size: calc(clamp(0.95rem, 1.65vw, 2.25rem) - 3.5px);
   font-weight: 800;
   letter-spacing: 0.04em;
   color: rgba(255, 254, 248, 0.96);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.tlkv-tv-marquee__dot {
-  font-size: clamp(0.85rem, 1.4vw, 1.85rem);
+body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
+  font-size: calc(clamp(0.85rem, 1.4vw, 1.85rem) - 3px);
   color: rgba(255, 242, 120, 0.95);
   font-weight: 900;
 }
