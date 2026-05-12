@@ -132,6 +132,12 @@
   let __goldBrowserRealtimeNotifyCount = 0;
   let __goldSseNotifyCount = 0;
 
+  function dispatchGoldPushUi(detail) {
+    try {
+      global.dispatchEvent(new CustomEvent("tlkv:gold-push-ui", { detail: detail || {} }));
+    } catch (_) {}
+  }
+
   /**
    * Một subscription Realtime cho bảng giá; gọi stopGoldTableRealtime khi không cần (SPA unmount / pagehide đã gắn sẵn).
    */
@@ -155,16 +161,23 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "gold_meta" }, notify)
       .on("postgres_changes", { event: "*", schema: "public", table: "gold_price_rows" }, notify);
     __goldRealtimeChannel.subscribe(function (status, err) {
-      if (typeof console === "undefined" || !console.log) return;
       if (status === "SUBSCRIBED") {
-        console.log(GOLD_PUSH_LOG + " client: browser Realtime SUBSCRIBED (tlkv_public_gold)");
+        dispatchGoldPushUi({ mode: "realtime", state: "live" });
+        if (typeof console !== "undefined" && console.log) {
+          console.log(GOLD_PUSH_LOG + " client: browser Realtime SUBSCRIBED (tlkv_public_gold)");
+        }
         return;
       }
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-        console.warn(GOLD_PUSH_LOG + " client: browser Realtime", status, err || "");
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn(GOLD_PUSH_LOG + " client: browser Realtime", status, err || "");
+        }
+        dispatchGoldPushUi({ mode: "realtime", state: "reconnecting" });
         return;
       }
-      console.log(GOLD_PUSH_LOG + " client: browser Realtime status", status);
+      if (typeof console !== "undefined" && console.log) {
+        console.log(GOLD_PUSH_LOG + " client: browser Realtime status", status);
+      }
     });
     console.log(GOLD_PUSH_LOG + " client: using Supabase Realtime trong trình duyệt (fallback hoặc tắt SSE)");
     ensureGoldRealtimePagehideCleanup();
@@ -225,6 +238,7 @@
           GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không SSE/Realtime tab"
         );
       }
+      dispatchGoldPushUi({ mode: "poll", intervalMs: pollMs });
       __goldPollTimer = setInterval(function () {
         dispatchGoldTableChangedDebounced(undefined);
       }, pollMs);
@@ -249,23 +263,27 @@
 
     if (global.__TLKV_DISABLE_GOLD_SSE === true) {
       console.log(GOLD_PUSH_LOG + " client: __TLKV_DISABLE_GOLD_SSE=true → bỏ qua EventSource");
+      dispatchGoldPushUi({ mode: "realtime", reason: "disable-sse-flag" });
       startGoldTableRealtime(sb);
       return;
     }
     if (typeof EventSource === "undefined") {
       console.log(GOLD_PUSH_LOG + " client: không có EventSource → Realtime trên trình duyệt");
+      dispatchGoldPushUi({ mode: "realtime", reason: "no-eventsource" });
       startGoldTableRealtime(sb);
       return;
     }
 
     var streamUrl = goldTableSseUrl();
     console.log(GOLD_PUSH_LOG + " client: EventSource →", streamUrl);
+    dispatchGoldPushUi({ mode: "sse", state: "connecting", url: streamUrl });
 
     let es;
     try {
       es = new EventSource(streamUrl);
     } catch (e) {
       console.warn(GOLD_PUSH_LOG + " client: EventSource throw → Realtime", e && e.message ? e.message : e);
+      dispatchGoldPushUi({ mode: "realtime", reason: "eventsource-throw" });
       startGoldTableRealtime(sb);
       return;
     }
@@ -283,6 +301,7 @@
       if (typeof console !== "undefined" && console.log) {
         console.log(GOLD_PUSH_LOG + " client: SSE stream OK (" + (reason || "ready") + ")");
       }
+      dispatchGoldPushUi({ mode: "sse", state: "live", reason: reason || "ready" });
     }
 
     es.addEventListener("open", function () {
@@ -304,6 +323,7 @@
       console.warn(
         GOLD_PUSH_LOG + " client: không nhận SSE `ready` trong 4s → fallback Realtime (kiểm tra npm start + /api/gold-table/stream)"
       );
+      dispatchGoldPushUi({ mode: "realtime", reason: "sse-ready-timeout" });
       try {
         es.close();
       } catch (_) {}
@@ -316,6 +336,7 @@
         if (typeof console !== "undefined" && console.log) {
           console.log(GOLD_PUSH_LOG + " client: EventSource error (đã ready — trình duyệt có thể tự reconnect)");
         }
+        dispatchGoldPushUi({ mode: "sse", state: "reconnecting" });
         return;
       }
       if (typeof EventSource !== "undefined" && es.readyState === EventSource.CLOSED) {
@@ -324,6 +345,7 @@
           __goldSseFallbackTimer = null;
         }
         console.warn(GOLD_PUSH_LOG + " client: EventSource CLOSED trước khi ready → fallback Realtime");
+        dispatchGoldPushUi({ mode: "realtime", reason: "sse-closed-before-ready" });
         __goldEventSource = null;
         startGoldTableRealtime(sb);
       }
@@ -415,10 +437,33 @@
     return parseGoldMoneyToInt(v);
   }
 
-  /**
-   * Mũi tên theo data: (buy|sell hiện tại từ DB) − (previous_buy | previous_sell), cả hai ép int (bigint OK).
-   * diff > 0 → xanh ▲, diff < 0 → đỏ ▼, diff === 0 hoặc thiếu previous → không hiện.
-   */
+  const __GOLD_TREND_SVG_NS = "http://www.w3.org/2000/svg";
+
+  function createGoldPriceTrendSvg(isUp) {
+    const svg = document.createElementNS(__GOLD_TREND_SVG_NS, "svg");
+    svg.setAttribute("width", "12");
+    svg.setAttribute("height", "12");
+    svg.setAttribute("viewBox", "0 0 20 20");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("xmlns", __GOLD_TREND_SVG_NS);
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = document.createElementNS(__GOLD_TREND_SVG_NS, "path");
+    if (isUp) {
+      path.setAttribute("d", "M10 2L10 18M10 2L16 9M10 2L4 9");
+      path.setAttribute("stroke", "#00E676");
+    } else {
+      path.setAttribute("d", "M10 18L10 2M10 18L16 11M10 18L4 11");
+      path.setAttribute("stroke", "#FF1744");
+    }
+    path.setAttribute("stroke-width", "5");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+    return svg;
+  }
+
+
   function appendPriceCellContent(td, displayText, field, rt) {
     td.textContent = "";
     const text = displayText == null ? "" : String(displayText);
@@ -442,7 +487,7 @@
       "aria-label",
       diff > 0 ? "Giá cao hơn mức trước khi cập nhật" : "Giá thấp hơn mức trước khi cập nhật"
     );
-    span.textContent = diff > 0 ? "▲" : "▼";
+    span.appendChild(createGoldPriceTrendSvg(diff > 0));
     td.appendChild(span);
   }
 
@@ -468,10 +513,7 @@
     return base || "—";
   }
 
-  /**
-   * Mobile nhỏ: 4 cột (ẩn hàm lượng), nhưng vẫn gộp rowspan theo THƯƠNG HIỆU như bảng cũ.
-   * Hàm lượng hiển thị cuối tên sản phẩm: "Tên SP (999,9)" cho từng dòng.
-   */
+  
   function renderRowsStackedMobile(tbody, rows) {
     const ordered = orderRowsForTable(rows.slice());
     if (!ordered.length) return;
@@ -484,6 +526,7 @@
       for (let idx = i; idx < j; idx++) {
         const rt = ordered[idx];
         const tr = document.createElement("tr");
+        tr.setAttribute("data-tlkv-gold-row-id", String(rt.id));
         if (rt.metal === "silver") tr.classList.add("row-silver");
         if (rt.highlight === true) tr.classList.add("row-highlight");
 
@@ -1178,10 +1221,33 @@
     }
   }
 
-  /**
-   * Cùng thương hiệu: rowspan cột THƯƠNG HIỆU.
-   * Cùng sản phẩm + nhiều hàm lượng/giá: dòng tiếp theo để product = "" → rowspan cột SẢN PHẨM.
-   */
+  function tryPatchGoldTbodyPricesOnly(tbody, rows) {
+    if (!tbody || !rows || !Array.isArray(rows) || rows.length === 0) return false;
+    if (isGoldTableStackedLayout()) return false;
+    const ordered = orderRowsForTable(rows.slice());
+    const expectedIds = [];
+    walkMergedGoldRows(ordered, function (ctx) {
+      expectedIds.push(String(ctx.row.id));
+    });
+    const trs = tbody.querySelectorAll("tr");
+    if (trs.length !== expectedIds.length) return false;
+    for (let i = 0; i < expectedIds.length; i++) {
+      if (trs[i].getAttribute("data-tlkv-gold-row-id") !== expectedIds[i]) return false;
+    }
+    let idx = 0;
+    walkMergedGoldRows(ordered, function (ctx) {
+      const rt = ctx.row;
+      const tr = trs[idx++];
+      const prices = tr.querySelectorAll("td.price");
+      if (prices.length < 2) return;
+      appendPriceCellContent(prices[0], rt.buy, "buy", rt);
+      appendPriceCellContent(prices[1], rt.sell, "sell", rt);
+    });
+    global.__TLKV_LAST_GOLD_ROWS = ordered;
+    markGoldTableBottomCorners(tbody);
+    return true;
+  }
+
   function renderRowsIntoTbody(tbody, rows) {
     if (!tbody || !rows) return;
     global.__TLKV_LAST_GOLD_ROWS = rows;
@@ -1195,6 +1261,7 @@
       walkMergedGoldRows(rows, function (ctx) {
         const rt = ctx.row;
         const tr = document.createElement("tr");
+        tr.setAttribute("data-tlkv-gold-row-id", String(rt.id));
         if (rt.metal === "silver") tr.classList.add("row-silver");
         if (rt.highlight === true) tr.classList.add("row-highlight");
         if (ctx.showBrand) {
@@ -1322,6 +1389,7 @@
     orderRowsForTable,
     applyMetaToDom,
     renderRowsIntoTbody,
+    tryPatchGoldTbodyPricesOnly,
     mountGoldTable,
     assetUrl,
     brandsMatch,

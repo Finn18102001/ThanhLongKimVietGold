@@ -1,0 +1,312 @@
+/* /tv-model — fullscreen shell + trend icon colors only (table look from local.css) */
+
+html.tlkv-tv-model-page {
+  --tlkv-tv-greeting-board-bg: rgba(180, 0, 0);
+  /* Brighter lemon than rgba(242, 200, 66) — header row + cột Thương hiệu */
+  --tlkv-tv-label-yellow: #fff278;
+  background: var(--tlkv-tv-greeting-board-bg);
+}
+
+html.tlkv-tv-model-page,
+body.tlkv-tv-model-page {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body.tlkv-tv-model-page {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--tlkv-tv-greeting-board-bg);
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.tlkv-tv-model-page .tlkv-tv-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 1vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--tlkv-tv-greeting-board-bg);
+}
+
+.tlkv-tv-model-page .tlkv-tv-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--tlkv-tv-greeting-board-bg);
+}
+
+/* Status pill */
+.tlkv-tv-conn-pill {
+  position: fixed;
+  top: calc(1vw + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: min(92vw, 960px);
+  padding: 0.45em 1em;
+  border-radius: 999px;
+  font-size: clamp(0.75rem, 1.1vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1a0505;
+  background: rgba(255, 235, 120, 0.96);
+  border: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+.tlkv-tv-conn-pill[hidden] {
+  display: none !important;
+}
+
+/* Cùng một màu nền với dải marquee chào khách — áp cho toàn bộ vùng bảng */
+body.tlkv-tv-model-page .home-chart.gold-rate-component {
+  margin: 0;
+  padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section {
+  margin: 0;
+  border-radius: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+  /* Viền ngoài khung bảng (local.css) — không phải lưới ô */
+  border: none !important;
+  box-shadow: none !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-company-name h4,
+body.tlkv-tv-model-page .tv-inline-company-name p {
+  color: #ffffff !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-header {
+  flex: 0 0 auto;
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th,
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
+  /* Không !important trên background — ô highlight dùng inline + important từ JS */
+  background: var(--tlkv-tv-greeting-board-bg);
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  box-shadow: none;
+}
+
+/* +3% cỡ chữ toàn bảng; !important đè font-size inline từ decoratePriceCells */
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th {
+  font-size: calc(1.18rem * 1.03) !important;
+  color: var(--tlkv-tv-label-yellow) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
+  font-size: calc(1.2rem * 1.03) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(4),
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5) {
+  font-size: calc(1.36rem * 1.03) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
+  font-size: calc(1.36rem * 1.03) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-trend {
+  font-size: calc(1.15rem * 1.03) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.gold-brand-cell {
+  color: var(--tlkv-tv-label-yellow) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  border-collapse: collapse !important;
+}
+
+/* Bỏ gạch dưới trang trí ở cột giá (local.css) */
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(4)::after,
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5)::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Màu trend (SVG dùng stroke riêng; giữ rule cho tương thích / outline) */
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-trend--up {
+  color: rgba(44, 154, 0, 1) !important;
+  text-shadow: none !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-trend--down {
+  color: rgba(230, 18, 9, 1) !important;
+  text-shadow: none !important;
+}
+
+/* Marquee: cùng nền với bảng */
+.tlkv-tv-marquee {
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(40px, 5.2vh, 72px);
+  background: var(--tlkv-tv-greeting-board-bg) !important;
+  border-top: none;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.tlkv-tv-marquee__viewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--tlkv-tv-greeting-board-bg);
+}
+
+.tlkv-tv-marquee__track {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  align-items: center;
+  will-change: transform;
+  animation: tlkvTvMarquee 48s linear infinite;
+}
+
+@keyframes tlkvTvMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.tlkv-tv-marquee__chunk {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: 0 clamp(1.5rem, 3vw, 3rem);
+  white-space: nowrap;
+}
+
+.tlkv-tv-marquee__text {
+  font-size: clamp(0.95rem, 1.65vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(255, 254, 248, 0.96);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.tlkv-tv-marquee__dot {
+  font-size: clamp(0.85rem, 1.4vw, 1.85rem);
+  color: rgba(255, 242, 120, 0.95);
+  font-weight: 900;
+}
+
+@media (max-width: 860px) {
+  body.tlkv-tv-model-page .tv-inline-header {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-date-line {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* Cùng hệ số +3% như desktop khi local.css thu nhỏ bảng (màn hẹp / zoom) */
+@media (max-width: 768px) {
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td {
+    font-size: calc(11.8px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table th {
+    font-size: calc(10.2px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(4),
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4),
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(5),
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5) {
+    font-size: calc(14px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price,
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th:nth-child(4),
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th:nth-child(5) {
+    font-size: calc(14px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
+    font-size: calc(14px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .gold-brand-cell {
+    font-size: calc(11.5px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td.col-product {
+    font-size: calc(12.5px * 1.03) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td {
+    font-size: calc(11px * 1.03) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price,
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
+    font-size: calc(13px * 1.03) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tlkv-tv-marquee__track {
+    animation: none !important;
+    transform: none !important;
+  }
+}

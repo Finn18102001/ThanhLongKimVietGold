@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi" class="tlkv-tv-model-page">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Bảng giá vàng — TV | Thăng Long Kim Việt</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
+    <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
+    <link href="/local.css" rel="stylesheet" />
+    <link href="/css/tv-model.css" rel="stylesheet" />
+  </head>
+  <body class="tlkv-tv-model-page">
+    <div id="tv-conn-pill" class="tlkv-tv-conn-pill" role="status" hidden></div>
+
+    <div class="tlkv-tv-shell">
+      <div class="tlkv-tv-main">
+        <div class="home-chart gold-rate-component" aria-label="Bảng giá vàng toàn màn hình">
+          <section class="tv-inline-section" aria-label="Bảng giá vàng hiển thị TV">
+            <div class="tv-inline-header tv-inline-header--tv-model">
+              <div class="tv-inline-brand tv-inline-brand--corner">
+                <img
+                  id="tv-header-logo-left"
+                  src="/assets/logo-thang-long-kim-viet.png"
+                  alt="Thăng Long Kim Việt"
+                  width="88"
+                  height="88"
+                  loading="eager"
+                  decoding="async"
+                />
+                <div class="tv-inline-company-name">
+                  <h4>THĂNG LONG KIM VIỆT</h4>
+                  <p>CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</p>
+                </div>
+              </div>
+
+              <div class="tv-inline-heading-block">
+                <h3 class="tv-inline-main-title">BẢNG GIÁ VÀNG MỚI NHẤT</h3>
+              </div>
+
+              <div class="tv-inline-brand tv-inline-brand--corner tv-inline-brand--end">
+                <div class="tv-inline-date-line" id="tv-date-line"></div>
+              </div>
+            </div>
+
+            <div class="tv-inline-table-wrap">
+              <table id="tv-gold-table" class="tv-gold-table tv-gold-table--web">
+                <thead>
+                  <tr>
+                    <th>THƯƠNG HIỆU</th>
+                    <th>SẢN PHẨM</th>
+                    <th>HÀM LƯỢNG</th>
+                    <th>MUA VÀO</th>
+                    <th>BÁN RA</th>
+                  </tr>
+                </thead>
+                <tbody id="tv-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="tlkv-tv-marquee" aria-label="Thông điệp chào mừng">
+        <div class="tlkv-tv-marquee__viewport">
+          <div class="tlkv-tv-marquee__track">
+            <div class="tlkv-tv-marquee__chunk">
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot" aria-hidden="true">·</span>
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot" aria-hidden="true">·</span>
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot" aria-hidden="true">·</span>
+            </div>
+            <div class="tlkv-tv-marquee__chunk" aria-hidden="true">
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot">·</span>
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot">·</span>
+              <span class="tlkv-tv-marquee__text">Thăng Long Kim Việt Kính Chào Quý Khách</span>
+              <span class="tlkv-tv-marquee__dot">·</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.TLKV_BASE = "/";
+      window.__TLKV_GOLD_PUSH_MANUAL = true;
+      window.__TLKV_LEAN_GOLD_PUSH = false;
+    </script>
+    <script src="/js/vendor/supabase.js"></script>
+    <script src="/js/boot-supabase-env.js"></script>
+    <script src="/js/gold-data.js"></script>
+    <script src="/js/tv-gold-board.js"></script>
+    <script>
+      TLKVTvGoldBoard.initTvModelPage();
+    </script>
+  </body>
+</html>

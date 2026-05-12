@@ -200,12 +200,17 @@
 }
 
 .gold-price-trend {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   margin-left: 4px;
   font-size: 0.82em;
   font-weight: 700;
   vertical-align: middle;
-  line-height: 1;
+  line-height: 0;
+}
+.gold-price-trend svg {
+  display: block;
+  flex-shrink: 0;
 }
 .gold-price-trend--up {
   color: #16a34a;

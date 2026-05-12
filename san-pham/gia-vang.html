@@ -4,8 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Giá vàng hôm nay - Thăng Long Kim Việt</title>
-    <link rel="icon" href="/assets/logo-thang-long-kim-viet.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/assets/logo-thang-long-kim-viet.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
+    <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png" />
     <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
     <link href="/css/vendor/style.css" rel="stylesheet">
     <link href="/local.css" rel="stylesheet">
@@ -236,14 +237,20 @@
     <script src="/js/gold-data.js"></script>
     <script src="/js/world-gold-xau.js"></script>
     <script src="/js/site-nav.js"></script>
+    <script src="/js/tv-gold-board.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
 
       let chartInstance = null;
-      let __tvGoldRenderGen = 0;
-      const tvTableBody = document.getElementById("tv-table-body");
-      const tvHeaderLogo = document.getElementById("tv-header-logo");
+
+      const tvGoldBoard = TLKVTvGoldBoard.createBoard({
+        tableSelector: "#tv-gold-table",
+        tbodySelector: "#tv-table-body",
+        dateLineSelector: "#tv-date-line",
+        logoSelector: "#tv-header-logo",
+        useColumnStripes: true,
+      });
 
       function renderChartFromRows(rows) {
         if (
@@ -312,168 +319,6 @@
         });
       }
 
-      function tvLogoAbsUrl() {
-        try {
-          return new URL("/assets/logo-thang-long-kim-viet.png", window.location.href).href;
-        } catch (e) {
-          return window.location.origin + "/assets/logo-thang-long-kim-viet.png";
-        }
-      }
-
-      function loadTVLogo() {
-        if (!tvHeaderLogo) return;
-        var absUrl = tvLogoAbsUrl();
-        if (tvHeaderLogo.getAttribute("src") !== absUrl) {
-          tvHeaderLogo.src = absUrl;
-        }
-      }
-
-      function highlightTVBrandColumn() {
-        const brandCells = document.querySelectorAll("#tv-gold-table tbody td.gold-brand-cell");
-        brandCells.forEach(function (cell) {
-          cell.style.color = "rgba(242, 200, 66, 1)";
-          cell.style.fontWeight = "700";
-        });
-      }
-
-      function highlightProductRows() {
-        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
-        const highlightIndexes = [0, 2, 5, 7];
-        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.88) 0%, rgba(185, 28, 28, 0.92) 100%)";
-
-        rows.forEach(function (row, idx) {
-          const productCell = row.querySelector("td.col-product");
-          if (!productCell) return;
-          if (highlightIndexes.includes(idx)) {
-            productCell.style.background = highlightBackground;
-            productCell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.35)";
-          } else {
-            productCell.style.background = "";
-            productCell.style.boxShadow = "";
-          }
-        });
-      }
-
-      function highlightPurityColumn() {
-        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
-        const highlightIndexes = [0, 2, 5, 7];
-        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.88) 0%, rgba(185, 28, 28, 0.92) 100%)";
-
-        rows.forEach(function (row, idx) {
-          const purityCell = row.querySelector("td.col-purity");
-          if (!purityCell) return;
-          if (highlightIndexes.includes(idx)) {
-            purityCell.style.background = highlightBackground;
-            purityCell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.35)";
-          } else {
-            purityCell.style.background = "";
-            purityCell.style.boxShadow = "";
-          }
-        });
-      }
-
-      function highlightPriceColumns() {
-        const rows = document.querySelectorAll("#tv-gold-table tbody tr");
-        const highlightIndexes = [0, 2, 5, 7];
-        const highlightBackground = "linear-gradient(135deg, rgba(239, 68, 68, 0.92) 0%, rgba(185, 28, 28, 0.96) 100%)";
-
-        rows.forEach(function (row, idx) {
-          const priceCells = row.querySelectorAll("td.price");
-          if (priceCells.length < 2) return;
-          if (highlightIndexes.includes(idx)) {
-            priceCells.forEach(function (cell) {
-              cell.style.background = highlightBackground;
-              cell.style.boxShadow = "inset 0 0 0 1px rgba(254, 240, 138, 0.4)";
-            });
-          } else {
-            priceCells.forEach(function (cell) {
-              cell.style.background = "";
-              cell.style.boxShadow = "";
-            });
-          }
-        });
-      }
-
-      async function renderTVTable(dataOverride) {
-        if (!tvTableBody) return;
-
-        const gen = ++__tvGoldRenderGen;
-        const data = dataOverride || (await TLKVGold.getGoldTable());
-        if (gen !== __tvGoldRenderGen || !data || !data.rows) return;
-
-        TLKVGold.renderRowsIntoTbody(tvTableBody, data.rows);
-
-        const rows = tvTableBody.querySelectorAll("tr");
-        let index = 0;
-
-        rows.forEach(function (row) {
-          const priceCells = row.querySelectorAll("td.price");
-          if (priceCells.length < 2) return;
-
-          priceCells.forEach(function (cell) {
-            cell.style.fontSize = "1.36rem";
-            cell.style.fontWeight = "700";
-            cell.style.lineHeight = "1";
-            cell.style.padding = "10px 9px";
-
-            const textNode = Array.from(cell.childNodes).find(function (n) {
-              return n && n.nodeType === Node.TEXT_NODE;
-            });
-            const rawText = textNode ? String(textNode.nodeValue || "") : "";
-            if (textNode) cell.removeChild(textNode);
-
-            let priceSpan = cell.querySelector(".tv-price-text");
-            if (!priceSpan) {
-              priceSpan = document.createElement("span");
-              priceSpan.className = "tv-price-text";
-              cell.insertBefore(priceSpan, cell.firstChild);
-            }
-            priceSpan.textContent = rawText;
-
-            cell.style.color = "";
-            cell.style.textShadow = "";
-
-            if (index % 2 === 0) {
-              priceSpan.style.color = "#ffffff";
-              priceSpan.style.fontSize = "1.36rem";
-            } else {
-              priceSpan.style.color = "#ffffff";
-              priceSpan.style.fontSize = "1.36rem";
-            }
-
-            cell.querySelectorAll(".gold-price-trend").forEach(function (trend) {
-              if (trend.classList.contains("gold-price-trend--up")) {
-                trend.style.setProperty("color", "#34d97a", "important");
-              } else if (trend.classList.contains("gold-price-trend--down")) {
-                trend.style.setProperty("color", "#ff5e5e", "important");
-              }
-            });
-          });
-
-          index++;
-        });
-
-        highlightTVBrandColumn();
-        highlightProductRows();
-        highlightPurityColumn();
-        highlightPriceColumns();
-      }
-
-      function updateTVDateTime() {
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, "0");
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const year = now.getFullYear();
-        let hours = now.getHours();
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        const seconds = String(now.getSeconds()).padStart(2, "0");
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-        const formatted = day + "/" + month + "/" + year + " " + hours + ":" + minutes + ":" + seconds + " " + ampm;
-        const el = document.getElementById("tv-date-line");
-        if (el) el.textContent = "Ngày/Date: " + formatted;
-      }
-
       async function refreshPage() {
         let data = null;
         const mainGoldTableBody = document.getElementById("gold-table-body");
@@ -488,12 +333,12 @@
         if (data && data.rows) {
           renderChartFromRows(data.rows);
         }
-        await renderTVTable(data);
-        updateTVDateTime();
+        await tvGoldBoard.renderTVTable(data);
+        tvGoldBoard.updateTVDateTime();
       }
 
       function openInlineTVMode() {
-        loadTVLogo();
+        tvGoldBoard.loadTVLogos();
         if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
           console.log("[TLKV gold-push] page(gia-vang): openInlineTVMode → startGoldPush");
           window.TLKVGold.startGoldPush();
@@ -515,13 +360,15 @@
           "[TLKV gold-push] page(gia-vang): tlkv:gold-table-changed → renderTVTable",
           ev && ev.detail ? ev.detail : {}
         );
-        renderTVTable();
-        updateTVDateTime();
+        tvGoldBoard.renderTVTable();
+        tvGoldBoard.updateTVDateTime();
       });
 
       window.addEventListener("pagehide", closeInlineTVMode);
 
-      setInterval(updateTVDateTime, 1000);
+      setInterval(function () {
+        tvGoldBoard.updateTVDateTime();
+      }, 1000);
     </script>
   </body>
 </html>

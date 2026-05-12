@@ -8,6 +8,7 @@
         "maxDuration": 60,
         "includeFiles": [
           "index.html",
+          "tv-model.html",
           "homepage.html",
           "gia-vang-hom-nay.html",
           "googlea0e5d99f07f9bb75.html",
