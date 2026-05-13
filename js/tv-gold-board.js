@@ -19,6 +19,37 @@
     }
   }
 
+  function isTvModelHtmlPage() {
+    return (
+      typeof document !== "undefined" &&
+      document.documentElement &&
+      document.documentElement.classList.contains("tlkv-tv-model-page")
+    );
+  }
+
+  /**
+   * @param {{ rows?: unknown[], meta?: object } | null} data
+   */
+  function applyTvModelRowCap(data) {
+    if (!data || !Array.isArray(data.rows) || !isTvModelHtmlPage()) return data;
+    if (!global.TLKVGold || typeof global.TLKVGold.clampGoldRowsForDisplay !== "function") return data;
+    var max = Number(global.__TLKV_TV_MAX_GOLD_ROWS);
+    if (!Number.isFinite(max) || max < 1) max = 300;
+    var capped = global.TLKVGold.clampGoldRowsForDisplay(data.rows, max);
+    if (capped === data.rows) return data;
+    return { meta: data.meta, rows: capped };
+  }
+
+  /**
+   * @param {unknown} detail — ev.detail từ `tlkv:gold-table-changed`
+   */
+  function goldTableChangedDetailToData(detail) {
+    if (!detail || typeof detail !== "object") return null;
+    if (detail.metaOnly === true) return null;
+    if (!global.TLKVGold || typeof global.TLKVGold.normalizePayload !== "function") return null;
+    return global.TLKVGold.normalizePayload(detail);
+  }
+
   /**
    * @param {object} opts
    * @param {string} [opts.tableSelector]
@@ -34,6 +65,7 @@
    * @param {boolean} [opts.applyBrandGoldTint] default true — set false on light /tv-model
    * @param {string} [opts.priceTextColor] default #fff — price span color
    * @param {string} [opts.stripeHighlightBackground] default TLKV_TV_CUSTOM_STRIPE_BACKGROUND
+   * @param {boolean} [opts.stripeUseInsetShadow] default true — false trên TV để bớt paint (inset box-shadow)
    * @param {(tbody: HTMLElement, err: unknown) => void} [opts.onRenderError]
    */
   function createGoldTvBoard(opts) {
@@ -54,6 +86,7 @@
     var stripeIndexes = Array.isArray(opts.columnStripeIndexes) ? opts.columnStripeIndexes : TLKV_TV_CUSTOM_STRIPE_INDEXES.slice();
     var stripeHighlightBackground =
       opts.stripeHighlightBackground != null ? String(opts.stripeHighlightBackground) : TLKV_TV_CUSTOM_STRIPE_BACKGROUND;
+    var stripeUseInsetShadow = opts.stripeUseInsetShadow !== false;
 
     var __tvGoldRenderGen = 0;
 
@@ -61,7 +94,11 @@
       if (!el || !el.style) return;
       if (active) {
         el.style.setProperty("background", stripeHighlightBackground, "important");
-        el.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
+        if (stripeUseInsetShadow) {
+          el.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
+        } else {
+          el.style.removeProperty("box-shadow");
+        }
       } else {
         el.style.removeProperty("background");
         el.style.removeProperty("box-shadow");
@@ -208,7 +245,11 @@
         priceCells.forEach(function (cell) {
           if (evenRow) {
             cell.style.setProperty("background", "rgba(226, 52, 52)", "important");
-            cell.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
+            if (stripeUseInsetShadow) {
+              cell.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
+            } else {
+              cell.style.removeProperty("box-shadow");
+            }
           } else {
             cell.style.removeProperty("background");
             cell.style.removeProperty("box-shadow");
@@ -325,6 +366,7 @@
         return;
       }
 
+      data = applyTvModelRowCap(data);
       var patched = false;
       if (typeof global.TLKVGold.tryPatchGoldTbodyPricesOnly === "function") {
         patched = global.TLKVGold.tryPatchGoldTbodyPricesOnly(tbody, data.rows);
@@ -379,6 +421,7 @@
       logoSelector: "#tv-header-logo-left",
       datePrefix: "NGÀY/DATE: ",
       useColumnStripes: true,
+      stripeUseInsetShadow: false,
       trendColors: { up: "rgba(44, 154, 0)", down: "rgba(230, 18, 9)" },
       priceFontRem: "clamp(1rem, 1.35vw, 2.35rem)",
       pricePadding: "clamp(2px, 0.26vh, 7px) clamp(5px, 0.55vw, 14px)",
@@ -454,11 +497,14 @@
     });
 
     window.addEventListener("tlkv:gold-table-changed", function (ev) {
-      console.log(
-        "[TLKV gold-push] page(tv-model): tlkv:gold-table-changed → renderTVTable",
-        ev && ev.detail ? ev.detail : {}
-      );
-      board.renderTVTable();
+      var preloaded = goldTableChangedDetailToData(ev && ev.detail ? ev.detail : null);
+      if (global.__TLKV_TV_DEBUG === true && typeof console !== "undefined" && console.log) {
+        console.log(
+          "[TLKV gold-push] page(tv-model): tlkv:gold-table-changed → renderTVTable",
+          preloaded ? { preloadedRows: preloaded.rows.length } : ev && ev.detail ? ev.detail : {}
+        );
+      }
+      board.renderTVTable(preloaded || undefined);
       board.updateTVDateTime();
     });
 

@@ -37,8 +37,12 @@
   let __goldTableChangedDebounceTimer = null;
   let __goldPushStarted = false;
 
-  /** Khoảng cách tối thiểu giữa hai lần broadcast UI khi SSE/Realtime dồn event (giảm fetch/re-render chồng chất). */
-  const GOLD_TABLE_CHANGED_DEBOUNCE_MS = 500;
+  /** Debounce giữa các `tlkv:gold-table-changed` (tv-model có thể tăng qua `window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS`). */
+  function getGoldTableChangedDebounceMs() {
+    const n = Number(global.__TLKV_GOLD_CHANGED_DEBOUNCE_MS);
+    if (Number.isFinite(n) && n >= 200 && n <= 60000) return n;
+    return 500;
+  }
 
   function flushGoldTableChangedDispatch(detail) {
     __goldTableChangedDebounceTimer = null;
@@ -60,7 +64,7 @@
     }
     __goldTableChangedDebounceTimer = setTimeout(function () {
       flushGoldTableChangedDispatch(detail);
-    }, GOLD_TABLE_CHANGED_DEBOUNCE_MS);
+    }, getGoldTableChangedDebounceMs());
   }
 
   /** TV / trình duyệt yếu: không mở EventSource + không mở Realtime WebSocket trên tab (chỉ poll nhẹ). */
@@ -1060,6 +1064,19 @@
     };
   }
 
+  /**
+   * Giới hạn số dòng logic trước khi render (TV / kiosk RAM thấp).
+   * @param {unknown[]} rows
+   * @param {number} maxRows
+   */
+  function clampGoldRowsForDisplay(rows, maxRows) {
+    if (!rows || !Array.isArray(rows)) return rows;
+    const cap = Number(maxRows);
+    if (!Number.isFinite(cap) || cap < 1) return rows;
+    if (rows.length <= cap) return rows;
+    return rows.slice(0, cap);
+  }
+
   /* ---------- Mock localStorage (JSON) — tạm comment, không xóa ----------
   function loadFromStorage() {
     try {
@@ -1408,6 +1425,7 @@
     notifyGoldTableChanged,
     clearStorage,
     normalizePayload,
+    clampGoldRowsForDisplay,
     normalizeRow,
     orderRowsForTable,
     applyMetaToDom,

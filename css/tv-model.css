@@ -271,8 +271,15 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-t
   width: max-content;
   height: 100%;
   align-items: center;
+  /* mặc định local: will-change + animation — trên /tv-model ghi đè bên dưới */
   will-change: transform;
   animation: tlkvTvMarquee 48s linear infinite;
+}
+
+/* TV: giảm chi phí compositing (nhiều máy TV không GPU tốt) — chạy chậm hơn, bỏ will-change */
+body.tlkv-tv-model-page .tlkv-tv-marquee__track {
+  will-change: auto;
+  animation-duration: 96s;
 }
 
 @keyframes tlkvTvMarquee {
