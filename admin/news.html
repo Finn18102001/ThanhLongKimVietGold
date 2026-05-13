@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý tin tức - Thăng Long Kim Việt</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
+
+  <link href="/admin/admin.css" rel="stylesheet" />
+  <link href="/css/news-admin.css" rel="stylesheet" />
+</head>
+
+<body class="news-admin-shell">
+
+  <!-- LOGIN -->
+  <div id="news-admin-login" class="news-admin-wrap" hidden style="max-width:440px;margin-top:80px">
+    <div class="news-admin-card">
+      <div class="news-admin-card__header"><strong>Đăng nhập quản trị</strong></div>
+      <div class="news-admin-card__body">
+        <form id="news-admin-login-form">
+          <div class="news-admin-field">
+            <label for="na-login-email">Email</label>
+            <input id="na-login-email" type="email" autocomplete="username" required placeholder="you@example.com" />
+          </div>
+          <div class="news-admin-field">
+            <label for="na-login-pass">Mật khẩu</label>
+            <input id="na-login-pass" type="password" autocomplete="current-password" required />
+          </div>
+          <button id="na-login-btn" type="submit" class="news-admin-btn news-admin-btn--primary" style="width:100%">
+            Đăng nhập
+          </button>
+          <p class="news-admin-bcrumb" style="margin-top:14px"><a href="/">← Về trang chủ</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="news-admin-root" class="news-admin-wrap" hidden>
+    <div class="news-admin-topbar">
+      <div>
+        <p class="news-admin-bcrumb">
+          <a href="/admin/">Bảng điều khiển</a> ›
+          <a href="/admin/news.html">Tin tức</a>
+        </p>
+        <h1>Quản lý tin tức</h1>
+      </div>
+      <div class="news-admin-actions">
+        <span class="news-admin-bcrumb">Đăng nhập: <strong id="na-current-user">—</strong></span>
+        <a class="news-admin-btn" href="/admin/">Quay lại bảng điều khiển</a>
+        <button id="na-logout" type="button" class="news-admin-btn news-admin-btn--ghost">Đăng xuất</button>
+      </div>
+    </div>
+
+    <div id="news-admin-content"></div>
+  </div>
+
+  <div id="news-admin-toast-host" class="news-admin-toast-host" aria-live="polite"></div>
+
+  <!-- Supabase config + SDK (parity with the rest of the project) -->
+  <script>window.TLKV_BASE = "/";</script>
+  <script src="/js/boot-supabase-env.js"></script>
+  <script src="/js/vendor/supabase.js"></script>
+
+  <!-- Editor.js core + tools (CDN UMD bundles). Pinned majors keep the API stable. -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/nested-list@1.4.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@2.6.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1.4.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/embed@2.7.6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@2.10.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@1.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@1.5.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/table@2.4.2"></script>
+
+  <!-- News modules -->
+  <script src="/js/news/news-sanitize.js"></script>
+  <script src="/js/news/news-renderer.js"></script>
+  <script src="/js/news/news-api.js"></script>
+
+  <script src="/js/admin/news-storage.js"></script>
+  <script src="/js/admin/news-editor.js"></script>
+  <script src="/js/admin/news-admin.js"></script>
+</body>
+
+</html>
