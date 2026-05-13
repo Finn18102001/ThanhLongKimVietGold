@@ -108,13 +108,21 @@ body.tlkv-tv-model-page .tv-inline-company-name p {
   color: #ffffff !important;
 }
 
-/* Tên thương hiệu + tên công ty: lớn hơn ~4–5px so với local.css */
+/* THĂNG LONG KIM VIỆT + tên công ty: nhỏ hơn ~8–10px so với bản trước */
 body.tlkv-tv-model-page .tv-inline-company-name h4 {
-  font-size: calc(1.04rem + 4.5px) !important;
+  font-size: max(14px, calc(1.04rem + 4.5px - 9px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-company-name p {
-  font-size: calc(0.68rem + 4.5px) !important;
+  font-size: max(10px, calc(0.68rem + 4.5px - 9px)) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-main-title {
+  font-size: max(1.25rem, calc(2.72rem - 13px)) !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-date-line {
+  font-size: max(11px, calc(0.84rem - 7px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-header {
@@ -139,27 +147,27 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
   box-shadow: none;
 }
 
-/* +3% cỡ chữ toàn bảng; !important đè font-size inline từ decoratePriceCells */
+/* Toàn bảng: nhỏ hơn ~6–8px so với calc(*1.03); !important đè inline decoratePriceCells */
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th {
-  font-size: calc(1.18rem * 1.03) !important;
+  font-size: max(12px, calc(1.18rem * 1.03 - 7px)) !important;
   color: var(--tlkv-tv-label-yellow) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
-  font-size: calc(1.2rem * 1.03) !important;
+  font-size: max(12px, calc(1.2rem * 1.03 - 7px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(4),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5) {
-  font-size: calc(1.36rem * 1.03) !important;
+  font-size: max(13px, calc(1.36rem * 1.03 - 7px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
-  font-size: calc(1.36rem * 1.03) !important;
+  font-size: max(13px, calc(1.36rem * 1.03 - 7px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-trend {
-  font-size: calc(1.15rem * 1.03) !important;
+  font-size: max(11px, calc(1.15rem * 1.03 - 6px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.gold-brand-cell {
@@ -266,50 +274,50 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
   }
 }
 
-/* Cùng hệ số +3% như desktop khi local.css thu nhỏ bảng (màn hẹp / zoom) */
+/* Màn hẹp: cùng mức trừ ~6–8px, có sàn tối thiểu để không vỡ layout */
 @media (max-width: 768px) {
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td {
-    font-size: calc(11.8px * 1.03) !important;
+    font-size: max(10px, calc(11.8px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table th {
-    font-size: calc(10.2px * 1.03) !important;
+    font-size: max(9px, calc(10.2px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(4),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(5),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5) {
-    font-size: calc(14px * 1.03) !important;
+    font-size: max(10px, calc(14px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price,
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th:nth-child(4),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table thead th:nth-child(5) {
-    font-size: calc(14px * 1.03) !important;
+    font-size: max(10px, calc(14px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
-    font-size: calc(14px * 1.03) !important;
+    font-size: max(10px, calc(14px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .gold-brand-cell {
-    font-size: calc(11.5px * 1.03) !important;
+    font-size: max(10px, calc(11.5px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td.col-product {
-    font-size: calc(12.5px * 1.03) !important;
+    font-size: max(10px, calc(12.5px * 1.03 - 7px)) !important;
   }
 }
 
 @media (max-width: 576px) {
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td {
-    font-size: calc(11px * 1.03) !important;
+    font-size: max(9px, calc(11px * 1.03 - 7px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price,
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
-    font-size: calc(13px * 1.03) !important;
+    font-size: max(9px, calc(13px * 1.03 - 7px)) !important;
   }
 }
 
