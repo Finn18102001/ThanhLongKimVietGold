@@ -110,7 +110,8 @@
       rows.forEach(function (row, idx) {
         var productCell = row.querySelector("td.col-product");
         if (!productCell) return;
-        setStripeCellFill(productCell, stripeIndexes.indexOf(idx) !== -1);
+        productCell.style.color = "rgb(255, 242, 120)";
+        productCell.style.fontWeight = "500";
       });
     }
 
@@ -122,7 +123,6 @@
       rows.forEach(function (row, idx) {
         var purityCell = row.querySelector("td.col-purity");
         if (!purityCell) return;
-        setStripeCellFill(purityCell, stripeIndexes.indexOf(idx) !== -1);
       });
     }
 
@@ -134,9 +134,15 @@
       rows.forEach(function (row, idx) {
         var priceCells = row.querySelectorAll("td.price");
         if (priceCells.length < 2) return;
-        var on = stripeIndexes.indexOf(idx) !== -1;
+        var evenRow = (idx + 1) % 2 === 0;
         priceCells.forEach(function (cell) {
-          setStripeCellFill(cell, on);
+          if (evenRow) {
+            cell.style.setProperty("background", "rgba(226, 52, 52)", "important");
+            cell.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
+          } else {
+            cell.style.removeProperty("background");
+            cell.style.removeProperty("box-shadow");
+          }
         });
       });
     }
@@ -229,7 +235,7 @@
             if (onRenderError) {
               try {
                 onRenderError(tbody, err);
-              } catch (_) {}
+              } catch (_) { }
             }
             return;
           }
@@ -237,7 +243,7 @@
           if (onRenderError) {
             try {
               onRenderError(tbody, err);
-            } catch (_) {}
+            } catch (_) { }
           }
           return;
         }
@@ -305,7 +311,7 @@
       useColumnStripes: true,
       trendColors: { up: "rgba(44, 154, 0)", down: "rgba(230, 18, 9)" },
       priceFontRem: "clamp(1rem, 1.35vw, 2.35rem)",
-      pricePadding: "clamp(6px, 0.55vw, 14px) clamp(6px, 0.65vw, 16px)",
+      pricePadding: "clamp(2px, 0.26vh, 7px) clamp(5px, 0.55vw, 14px)",
     });
 
     var pill = document.getElementById("tv-conn-pill");
