@@ -76,6 +76,46 @@
       return document.querySelector(tbodySelector);
     }
 
+    /** `tr.row-silver` cuối cùng trong tbody (khối bạc). */
+    function getLastSilverTbodyTr(table) {
+      if (!table) return null;
+      var nodes = table.querySelectorAll("tbody tr.row-silver");
+      return nodes.length ? nodes[nodes.length - 1] : null;
+    }
+
+    function tbodyRowIndex(table, tr) {
+      if (!table || !tr) return -1;
+      var rows = table.querySelectorAll("tbody tr");
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i] === tr) return i;
+      }
+      return -1;
+    }
+
+    /**
+     * Ô đầu tiên theo selector trong các dòng 0..targetIdx có rowspan phủ tới targetIdx.
+     * Dùng khi brand/product rowspan — ô không nằm trên `tr` cuối.
+     */
+    function cellCoveringTbodyRowIndex(table, targetIdx, cellSelector) {
+      if (!table || targetIdx < 0) return null;
+      var rows = table.querySelectorAll("tbody tr");
+      for (var j = 0; j <= targetIdx && j < rows.length; j++) {
+        var tr = rows[j];
+        var cell = tr.querySelector(cellSelector);
+        if (!cell) continue;
+        var rs = parseInt(cell.getAttribute("rowspan") || "1", 10);
+        if (isNaN(rs) || rs < 1) rs = 1;
+        if (j + rs - 1 >= targetIdx) return cell;
+      }
+      return null;
+    }
+
+    function productCellForTbodyRow(table, row, rowIdx) {
+      var pc = row.querySelector("td.col-product");
+      if (pc) return pc;
+      return cellCoveringTbodyRowIndex(table, rowIdx, "td.col-product");
+    }
+
     function loadTVLogos() {
       var absUrl = tvLogoAbsUrl();
       var primary = document.querySelector(logoSelector);
@@ -95,45 +135,75 @@
       if (!applyBrandGoldTint) return;
       var table = tableEl();
       if (!table) return;
-      var brandCells = table.querySelectorAll("tbody td.gold-brand-cell");
-      brandCells.forEach(function (cell) {
+      var lastSilverTr = getLastSilverTbodyTr(table);
+      var iLast = lastSilverTr ? tbodyRowIndex(table, lastSilverTr) : -1;
+      table.querySelectorAll("tbody td.gold-brand-cell").forEach(function (cell) {
         cell.style.color = "rgba(242, 200, 66, 1)";
         cell.style.fontWeight = "700";
+        setStripeCellFill(cell, false);
       });
+      if (iLast >= 0) {
+        var bc = cellCoveringTbodyRowIndex(table, iLast, "td.gold-brand-cell");
+        if (bc) setStripeCellFill(bc, true);
+      }
     }
 
     function highlightProductRows() {
-      if (!useColumnStripes) return;
       var table = tableEl();
       if (!table) return;
+      var lastSilverTr = getLastSilverTbodyTr(table);
       var rows = table.querySelectorAll("tbody tr");
-      rows.forEach(function (row, idx) {
-        var productCell = row.querySelector("td.col-product");
-        if (!productCell) return;
-        productCell.style.color = "rgb(255, 242, 120)";
-        productCell.style.fontWeight = "500";
-      });
+
+      if (useColumnStripes) {
+        rows.forEach(function (row, idx) {
+          var productCell = productCellForTbodyRow(table, row, idx);
+          if (!productCell) return;
+          productCell.style.color = "rgb(255, 242, 120)";
+          productCell.style.fontWeight = "500";
+          setStripeCellFill(productCell, row === lastSilverTr);
+        });
+      } else {
+        rows.forEach(function (row, idx) {
+          var productCell = productCellForTbodyRow(table, row, idx);
+          if (!productCell) return;
+          setStripeCellFill(productCell, row === lastSilverTr);
+        });
+      }
     }
 
     function highlightPurityColumn() {
-      if (!useColumnStripes) return;
       var table = tableEl();
       if (!table) return;
+      var lastSilverTr = getLastSilverTbodyTr(table);
       var rows = table.querySelectorAll("tbody tr");
       rows.forEach(function (row, idx) {
         var purityCell = row.querySelector("td.col-purity");
         if (!purityCell) return;
+        setStripeCellFill(purityCell, row === lastSilverTr);
       });
     }
 
     function highlightPriceColumns() {
-      if (!useColumnStripes) return;
       var table = tableEl();
       if (!table) return;
+      var lastSilverTr = getLastSilverTbodyTr(table);
       var rows = table.querySelectorAll("tbody tr");
       rows.forEach(function (row, idx) {
         var priceCells = row.querySelectorAll("td.price");
         if (priceCells.length < 2) return;
+        if (row === lastSilverTr) {
+          priceCells.forEach(function (cell) {
+            setStripeCellFill(cell, true);
+          });
+          return;
+        }
+        if (!useColumnStripes) {
+          priceCells.forEach(function (cell) {
+            cell.style.removeProperty("background");
+            cell.style.removeProperty("box-shadow");
+          });
+          return;
+        }
         var evenRow = (idx + 1) % 2 === 0;
         priceCells.forEach(function (cell) {
           if (evenRow) {
