@@ -884,9 +884,34 @@
     return out;
   }
 
+  /** Chuẩn hoá hàm lượng để gộp ô theo chuỗi hiển thị (trim). */
+  function purityKeyForMerge(p) {
+    return String(p ?? "").trim();
+  }
+
   /**
-   * Duyệt từng dòng dữ liệu với cùng quy tắc gộp ô TH / Sản phẩm như bảng public.
-   * fn({ row, showBrand, brandRowspan, showProduct, productRowspan, productLabel })
+   * Trong khối cùng thương hiệu [i, j), tính rowspan HÀM LƯỢNG cho từng chỉ số dòng:
+   * các dòng liên tiếp cùng `purityKeyForMerge` → một ô gộp dọc.
+   */
+  function buildPurityMergeMeta(rows, i, j) {
+    const meta = {};
+    let ps = i;
+    while (ps < j) {
+      const key = purityKeyForMerge(rows[ps].purity);
+      let pe = ps + 1;
+      while (pe < j && purityKeyForMerge(rows[pe].purity) === key) pe++;
+      const span = pe - ps;
+      for (let r = ps; r < pe; r++) {
+        meta[r] = { showPurity: r === ps, purityRowspan: span };
+      }
+      ps = pe;
+    }
+    return meta;
+  }
+
+  /**
+   * Duyệt từng dòng dữ liệu với cùng quy tắc gộp ô TH / Sản phẩm / Hàm lượng như bảng public.
+   * fn({ row, showBrand, brandRowspan, showProduct, productRowspan, productLabel, showPurity, purityRowspan })
    */
   function walkMergedGoldRows(rows, fn) {
     if (!rows || !rows.length) return;
@@ -896,6 +921,7 @@
       let j = i;
       while (j < rows.length && brandsMatch(rows[j].brand, brand)) j++;
       const brandSpan = j - i;
+      const purityMerge = buildPurityMergeMeta(rows, i, j);
       let k = i;
       while (k < j) {
         const label = String(rows[k].product || "").trim();
@@ -907,6 +933,7 @@
         }
         const productSpan = m - k;
         for (let t = k; t < m; t++) {
+          const pm = purityMerge[t] || { showPurity: true, purityRowspan: 1 };
           fn({
             row: rows[t],
             showBrand: t === i,
@@ -914,6 +941,8 @@
             showProduct: t === k,
             productRowspan: productSpan,
             productLabel: label,
+            showPurity: pm.showPurity,
+            purityRowspan: pm.purityRowspan,
           });
         }
         k = m;
@@ -1319,10 +1348,14 @@
           tdP.textContent = ctx.productLabel;
           tr.appendChild(tdP);
         }
-        const tdPur = document.createElement("td");
-        tdPur.className = "col-purity";
-        tdPur.textContent = rt.purity;
-        tr.appendChild(tdPur);
+        if (ctx.showPurity) {
+          const tdPur = document.createElement("td");
+          tdPur.className = "col-purity";
+          const prs = parseInt(String(ctx.purityRowspan != null ? ctx.purityRowspan : "1"), 10);
+          if (!isNaN(prs) && prs > 1) tdPur.rowSpan = prs;
+          tdPur.textContent = rt.purity;
+          tr.appendChild(tdPur);
+        }
         const tdBuy = document.createElement("td");
         tdBuy.className = "price";
         appendPriceCellContent(tdBuy, rt.buy, "buy", rt, table);

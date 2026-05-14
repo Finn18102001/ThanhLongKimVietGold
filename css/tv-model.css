@@ -3,6 +3,12 @@
 html.tlkv-tv-model-page {
   --tlkv-tv-greeting-board-bg: rgba(180, 0, 0);
   --tlkv-tv-label-yellow: #fff278;
+  /* Cột bảng TV (colgroup): Hàm lượng +1% so với lưới gốc 18/25/7/25/25 → 8% cột 3 */
+  --tlkv-tv-col-brand-pct: 17.75%;
+  --tlkv-tv-col-product-pct: 24.75%;
+  --tlkv-tv-col-purity-pct: 8%;
+  --tlkv-tv-col-buy-pct: 24.75%;
+  --tlkv-tv-col-sell-pct: 24.75%;
   /* Shell: bottom flush for ticker; horizontal safe inset scales with viewport */
   --tlkv-tv-shell-pad-x: clamp(5px, 0.75vw, 14px);
   --tlkv-tv-shell-pad-y-top: clamp(5px, 0.75vw, 14px);
@@ -131,9 +137,12 @@ body.tlkv-tv-model-page .tv-inline-company-name p {
   font-size: max(10px, calc(0.68rem + 4.5px - 9px)) !important;
 }
 
-/* B. Title — ~5–6px smaller than prior tv-model; table-first hierarchy */
+/* B. Title — nhỏ thêm ~3–4px so với bản trước; màu vàng tiêu đề cột TH */
 body.tlkv-tv-model-page .tv-inline-main-title {
-  font-size: max(1.12rem, calc(2.72rem - 19px)) !important;
+  font-size: max(1.05rem, calc(2.72rem - 23px)) !important;
+  color: var(--tlkv-tv-label-yellow) !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 /* A. Date — ~3–4px smaller, visually secondary */
@@ -162,6 +171,23 @@ body.tlkv-tv-model-page .tv-inline-table-wrap {
   flex-direction: column;
   padding: 0 var(--tlkv-tv-shell-pad-x) clamp(3px, 0.45vh, 8px);
   background: var(--tlkv-tv-greeting-board-bg) !important;
+}
+
+/* Cột logic qua colgroup — ổn định khi rowspan Thương hiệu / Hàm lượng */
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) col.tlkv-tv-gold-col--brand {
+  width: var(--tlkv-tv-col-brand-pct) !important;
+}
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) col.tlkv-tv-gold-col--product {
+  width: var(--tlkv-tv-col-product-pct) !important;
+}
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) col.tlkv-tv-gold-col--purity {
+  width: var(--tlkv-tv-col-purity-pct) !important;
+}
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) col.tlkv-tv-gold-col--buy {
+  width: var(--tlkv-tv-col-buy-pct) !important;
+}
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) col.tlkv-tv-gold-col--sell {
+  width: var(--tlkv-tv-col-sell-pct) !important;
 }
 
 /* Stable grid: fixed algorithm, explicit widths from local.css, symmetric 1px borders */
@@ -263,7 +289,8 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-t
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.gold-brand-cell {
   color: var(--tlkv-tv-label-yellow) !important;
-  font-size: max(10px, calc(1.2rem * 1.03 - 13px + var(--tlkv-tv-fs-body-bump))) !important;
+  font-size: max(11px, calc(1.2rem * 1.03 - 13px + var(--tlkv-tv-fs-body-bump) + 2.5px)) !important;
+  line-height: 1.18 !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.col-product {
@@ -271,8 +298,12 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.col-product {
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(3),
-body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(3) {
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td.col-purity {
   white-space: nowrap !important;
+}
+
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td.col-purity {
+  vertical-align: middle !important;
 }
 
 /* Bỏ gạch dưới trang trí ở cột giá (local.css) */
@@ -384,6 +415,12 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
 @media (max-width: 768px) {
   html.tlkv-tv-model-page {
     --tlkv-tv-table-pad-y: clamp(2px, 0.26vh, 6px);
+    /* Lưới hẹp ~21/21/15/21.5/21.5: Hàm lượng +1% → 16%, trừ đều bốn cột còn lại */
+    --tlkv-tv-col-brand-pct: 20.75%;
+    --tlkv-tv-col-product-pct: 20.75%;
+    --tlkv-tv-col-purity-pct: 16%;
+    --tlkv-tv-col-buy-pct: 21.25%;
+    --tlkv-tv-col-sell-pct: 21.25%;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td {
@@ -410,7 +447,8 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
   }
 
   body.tlkv-tv-model-page .tv-inline-section .gold-brand-cell {
-    font-size: max(9px, calc(11.5px * 1.03 - 13px + var(--tlkv-tv-fs-body-bump))) !important;
+    font-size: max(10px, calc(11.5px * 1.03 - 13px + var(--tlkv-tv-fs-body-bump) + 2.5px)) !important;
+    line-height: 1.18 !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td.col-product {

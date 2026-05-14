@@ -6,6 +6,8 @@
   /** Chỉ ô Sản phẩm / Hàm lượng / Giá — không áp nền custom lên cột Thương hiệu */
   var TLKV_TV_CUSTOM_STRIPE_INDEXES = [0, 2, 5, 7];
   var TLKV_TV_CUSTOM_STRIPE_BACKGROUND = "rgba(17, 31, 244)";
+  /** Chỉ số dòng sản phẩm đã render (1-based), áp nền MUA VÀO / BÁN RA — cấu hình được từng trang */
+  var TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS = [1, 3, 6, 8];
 
   function tvStripeHighlightBoxShadow() {
     return "inset 0 0 0 1px rgba(255, 255, 255, 0.28)";
@@ -66,6 +68,7 @@
    * @param {string} [opts.priceTextColor] default #fff — price span color
    * @param {string} [opts.stripeHighlightBackground] default TLKV_TV_CUSTOM_STRIPE_BACKGROUND
    * @param {boolean} [opts.stripeUseInsetShadow] default true — false trên TV để bớt paint (inset box-shadow)
+   * @param {number[]} [opts.highlightedPriceRowIndexes] chỉ số dòng 1-based: chỉ các `<tr>` có đủ 2 ô giá, không tính dòng bạc cuối (stripe xanh)
    * @param {(tbody: HTMLElement, err: unknown) => void} [opts.onRenderError]
    */
   function createGoldTvBoard(opts) {
@@ -87,6 +90,13 @@
     var stripeHighlightBackground =
       opts.stripeHighlightBackground != null ? String(opts.stripeHighlightBackground) : TLKV_TV_CUSTOM_STRIPE_BACKGROUND;
     var stripeUseInsetShadow = opts.stripeUseInsetShadow !== false;
+    var highlightedPriceRowIndexes = Array.isArray(opts.highlightedPriceRowIndexes)
+      ? opts.highlightedPriceRowIndexes.map(function (n) {
+          return parseInt(String(n), 10);
+        }).filter(function (n) {
+          return Number.isFinite(n) && n >= 1;
+        })
+      : TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS.slice();
 
     var __tvGoldRenderGen = 0;
 
@@ -153,6 +163,12 @@
       return cellCoveringTbodyRowIndex(table, rowIdx, "td.col-product");
     }
 
+    function purityCellForTbodyRow(table, row, rowIdx) {
+      var pc = row.querySelector("td.col-purity");
+      if (pc) return pc;
+      return cellCoveringTbodyRowIndex(table, rowIdx, "td.col-purity");
+    }
+
     function loadTVLogos() {
       var absUrl = tvLogoAbsUrl();
       var primary = document.querySelector(logoSelector);
@@ -214,7 +230,7 @@
       var lastSilverTr = getLastSilverTbodyTr(table);
       var rows = table.querySelectorAll("tbody tr");
       rows.forEach(function (row, idx) {
-        var purityCell = row.querySelector("td.col-purity");
+        var purityCell = purityCellForTbodyRow(table, row, idx);
         if (!purityCell) return;
         setStripeCellFill(purityCell, row === lastSilverTr);
       });
@@ -225,7 +241,9 @@
       if (!table) return;
       var lastSilverTr = getLastSilverTbodyTr(table);
       var rows = table.querySelectorAll("tbody tr");
-      rows.forEach(function (row, idx) {
+      /** Chỉ các dòng có đủ 2 ô giá, không tính dòng bạc cuối (stripe riêng). */
+      var displayRowIndex = 0;
+      rows.forEach(function (row) {
         var priceCells = row.querySelectorAll("td.price");
         if (priceCells.length < 2) return;
         if (row === lastSilverTr) {
@@ -234,6 +252,7 @@
           });
           return;
         }
+        displayRowIndex += 1;
         if (!useColumnStripes) {
           priceCells.forEach(function (cell) {
             cell.style.removeProperty("background");
@@ -241,9 +260,9 @@
           });
           return;
         }
-        var evenRow = (idx + 1) % 2 === 0;
+        var isHighlighted = highlightedPriceRowIndexes.indexOf(displayRowIndex) !== -1;
         priceCells.forEach(function (cell) {
-          if (evenRow) {
+          if (isHighlighted) {
             cell.style.setProperty("background", "rgba(226, 52, 52)", "important");
             if (stripeUseInsetShadow) {
               cell.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
@@ -422,6 +441,7 @@
       datePrefix: "NGÀY/DATE: ",
       useColumnStripes: true,
       stripeUseInsetShadow: false,
+      highlightedPriceRowIndexes: TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS,
       trendColors: { up: "rgba(44, 154, 0)", down: "rgba(230, 18, 9)" },
       priceFontRem: "clamp(1rem, 1.35vw, 2.35rem)",
       pricePadding: "clamp(2px, 0.26vh, 7px) clamp(5px, 0.55vw, 14px)",
@@ -530,5 +550,7 @@
     /** Custom stripe rows (product / purity / price cells) */
     TV_CUSTOM_STRIPE_INDEXES: TLKV_TV_CUSTOM_STRIPE_INDEXES,
     TV_CUSTOM_STRIPE_BACKGROUND: TLKV_TV_CUSTOM_STRIPE_BACKGROUND,
+    /** Mặc định /tv-model: highlight nền đỏ MUA/BÁN ở các dòng 1,3,6,8 (1-based). */
+    DEFAULT_HIGHLIGHTED_PRICE_ROWS: TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS,
   };
 })(typeof window !== "undefined" ? window : globalThis);
