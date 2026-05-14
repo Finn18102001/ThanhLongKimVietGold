@@ -279,9 +279,13 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(1),
-body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(2),
-body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(3) {
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(2) {
   font-size: max(13px, calc(1.18rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add))) !important;
+}
+
+/* Chỉ tiêu đề cột HÀM LƯỢNG — nhỏ hơn các title còn lại 2px (không áp vào ô dữ liệu / layout stacked) */
+body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(3) {
+  font-size: max(11px, calc(1.18rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) - 2px)) !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(4),
@@ -494,6 +498,10 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table th {
     font-size: max(11px, calc(10.2px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add))) !important;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(3) {
+    font-size: max(9px, calc(10.2px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) - 2px)) !important;
   }
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(4),

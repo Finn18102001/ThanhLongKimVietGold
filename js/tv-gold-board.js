@@ -13,25 +13,16 @@
     return "inset 0 0 0 1px rgba(255, 255, 255, 0.28)";
   }
 
+  /** URL tuyệt đối logo TV — luôn resolve theo `location` (tránh path sai trên TV/browser). */
   function tvLogoAbsUrl() {
-    var path = "/assets/logo-thang-long-kim-viet.png";
     try {
-      var raw = global.TLKV_BASE;
-      if (raw != null && String(raw).trim()) {
-        var root = String(raw).trim().replace(/\/+$/, "");
-        if (root) {
-          path = root + "/assets/logo-thang-long-kim-viet.png";
-          path = path.replace(/\/+/g, "/");
-          if (path.charAt(0) !== "/") path = "/" + path;
-        }
-      }
-      return new URL(path, global.location.href).href;
+      return new URL("/assets/logo-thang-long-kim-viet.png", global.location.href).href;
     } catch (e) {
       try {
         var origin = global.location && global.location.origin ? global.location.origin : "";
-        return origin + path;
+        return origin + "/assets/logo-thang-long-kim-viet.png";
       } catch (e2) {
-        return path;
+        return "/assets/logo-thang-long-kim-viet.png";
       }
     }
   }
@@ -186,34 +177,20 @@
       return cellCoveringTbodyRowIndex(table, rowIdx, "td.col-purity");
     }
 
-    function applyTvLogoToImg(img, absUrl) {
-      if (!img || !img.getAttribute || String(img.tagName || "").toUpperCase() !== "IMG") return;
-      if (!img.__tlkvTvLogoErrorBound) {
-        img.__tlkvTvLogoErrorBound = true;
-        img.addEventListener(
-          "error",
-          function () {
-            if (img.__tlkvTvLogoRetried) return;
-            img.__tlkvTvLogoRetried = true;
-            var base = absUrl.split("?")[0];
-            img.setAttribute("src", base + "?r=" + String(Date.now()));
-          },
-          { passive: true }
-        );
-      }
-      if (img.getAttribute("src") === absUrl && img.complete && img.naturalWidth > 0) return;
-      img.setAttribute("decoding", "async");
-      img.setAttribute("loading", "eager");
-      img.setAttribute("src", absUrl);
-    }
-
     function loadTVLogos() {
       var absUrl = tvLogoAbsUrl();
       var primary = document.querySelector(logoSelector);
-      applyTvLogoToImg(primary, absUrl);
+      if (primary && String(primary.tagName || "").toUpperCase() === "IMG") {
+        if (primary.getAttribute("src") !== absUrl) {
+          primary.setAttribute("src", absUrl);
+        }
+      }
       if (extraLogoSelector) {
         document.querySelectorAll(extraLogoSelector).forEach(function (img) {
-          applyTvLogoToImg(img, absUrl);
+          if (!img || String(img.tagName || "").toUpperCase() !== "IMG") return;
+          if (img.getAttribute("src") !== absUrl) {
+            img.setAttribute("src", absUrl);
+          }
         });
       }
     }
@@ -472,6 +449,15 @@
    * Boot script for `/tv-model` standalone page (fullscreen + marquee + status pill).
    */
   function initTvModelPage() {
+    (function loadTvModelHeaderLogoEarly() {
+      var el = document.getElementById("tv-header-logo-left");
+      if (!el || String(el.tagName || "").toUpperCase() !== "IMG") return;
+      var absUrl = tvLogoAbsUrl();
+      if (el.getAttribute("src") !== absUrl) {
+        el.setAttribute("src", absUrl);
+      }
+    })();
+
     var board = createGoldTvBoard({
       tableSelector: "#tv-gold-table",
       tbodySelector: "#tv-table-body",
