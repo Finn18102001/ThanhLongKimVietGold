@@ -370,7 +370,7 @@
   }
 
   /**
-   * Chuỗi / number / bigint giá (VN: 15.900.000; DB: 15900000 hoặc 15900000.00) → số nguyên; lỗi → null.
+   * Chuỗi / number / bigint giá (VN: 15.900.000 hoặc 169.000; DB: 15900000 hoặc 15900000.00) → số nguyên; lỗi → null.
    * Dùng thống nhất cho icon trend, previous_*, và parse trước khi upsert.
    */
   function parseGoldMoneyToInt(value) {
@@ -395,6 +395,12 @@
     }
     const dotCount = (t.match(/\./g) || []).length;
     const commaCount = (t.match(/,/g) || []).length;
+    // Một dấu chấm + đúng 3 chữ số sau: nghìn VN ("169.000", "12.345") — tránh parseFloat("169.000") === 169
+    if (dotCount === 1 && commaCount === 0 && /^-?\d+\.\d{3}$/.test(t)) {
+      const parts = t.split(".");
+      const n = parseInt(parts[0] + parts[1], 10);
+      return Number.isFinite(n) ? n : null;
+    }
     // Một dấu chấm/phẩy kiểu số thập phân (Postgres numeric → "15570000.00")
     if (dotCount === 1 && commaCount === 0 && /^-?\d+\.\d+$/.test(t)) {
       const n = parseFloat(t);

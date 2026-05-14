@@ -63,6 +63,7 @@
    * @param {{ up: string, down: string }} [opts.trendColors]
    * @param {string} [opts.priceFontRem]
    * @param {string} [opts.pricePadding]
+   * @param {boolean} [opts.managePricePaddingInCss] true → không set padding inline trên ô giá (CSS kiểm soát, đồng bộ hàng)
    * @param {string} [opts.datePrefix]
    * @param {boolean} [opts.applyBrandGoldTint] default true — set false on light /tv-model
    * @param {string} [opts.priceTextColor] default #fff — price span color
@@ -85,6 +86,7 @@
     var trendColors = opts.trendColors || { up: "#34d97a", down: "#ff5e5e" };
     var priceFontRem = opts.priceFontRem || "1.36rem";
     var pricePadding = opts.pricePadding || "10px 9px";
+    var managePricePaddingInCss = opts.managePricePaddingInCss === true;
     var onRenderError = typeof opts.onRenderError === "function" ? opts.onRenderError : null;
     var stripeIndexes = Array.isArray(opts.columnStripeIndexes) ? opts.columnStripeIndexes : TLKV_TV_CUSTOM_STRIPE_INDEXES.slice();
     var stripeHighlightBackground =
@@ -297,7 +299,11 @@
           cell.style.fontSize = priceFontRem;
           cell.style.fontWeight = "700";
           cell.style.lineHeight = "1";
-          cell.style.padding = pricePadding;
+          if (managePricePaddingInCss) {
+            cell.style.removeProperty("padding");
+          } else {
+            cell.style.padding = pricePadding;
+          }
 
           var textNode = Array.from(cell.childNodes).find(function (n) {
             return n && n.nodeType === Node.TEXT_NODE;
@@ -444,6 +450,7 @@
       highlightedPriceRowIndexes: TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS,
       trendColors: { up: "rgba(44, 154, 0)", down: "rgba(230, 18, 9)" },
       priceFontRem: "clamp(1rem, 1.35vw, 2.35rem)",
+      managePricePaddingInCss: true,
       pricePadding: "clamp(2px, 0.26vh, 7px) clamp(5px, 0.55vw, 14px)",
     });
 
