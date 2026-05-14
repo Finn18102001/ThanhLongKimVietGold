@@ -21,6 +21,22 @@ module.exports = function webRouter(ROOT) {
   router.get("/sanpham/gia-vang", send("san-pham/gia-vang.html"));
   router.get("/tv-model", send("tv-model.html"));
 
+  /**
+   * News (Tin tức).
+   *  - /tin-tuc          → listing page
+   *  - /tin-tuc/:slug    → detail page (slug parsed client-side from URL)
+   *
+   *  Slug validation: only [a-z0-9-]+, length 2..200. Anything else 404.
+   *  This keeps Express from forwarding noisy bot URLs into the SPA shell.
+   */
+  router.get("/tin-tuc", send("tin-tuc/index.html"));
+  router.get("/tin-tuc/", function (req, res) { res.redirect(301, "/tin-tuc"); });
+  router.get("/tin-tuc/:slug", function (req, res, next) {
+    var slug = String(req.params.slug || "");
+    if (!/^[a-z0-9][a-z0-9-]{1,198}[a-z0-9]$/.test(slug)) return next();
+    res.sendFile(path.join(ROOT, "tin-tuc", "chi-tiet.html"));
+  });
+
   router.get("/gioi-thieu", function (req, res) {
     res.redirect(301, "/gioithieu");
   });
