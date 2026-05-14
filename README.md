@@ -42,6 +42,5 @@ Mở `http://localhost:5173/`. Trang `/gioithieu` cần server có hỗ trợ re
 
 ### Ghi chú
 
-- CSS giao diện một phần từ [baotinmanhhai.vn](https://baotinmanhhai.vn/).
 - Admin lưu bảng giá (`tlkv_gold_table_v1`) và sản phẩm (`tlkv_products_v1`) trong **localStorage**; nút tải lại JSON xóa bản local tương ứng.
 - `gia-vang-hom-nay.html` chuyển hướng tới `/sanpham/gia-vang`.
