@@ -14,10 +14,25 @@
   }
 
   function tvLogoAbsUrl() {
+    var path = "/assets/logo-thang-long-kim-viet.png";
     try {
-      return new URL("/assets/logo-thang-long-kim-viet.png", global.location.href).href;
+      var raw = global.TLKV_BASE;
+      if (raw != null && String(raw).trim()) {
+        var root = String(raw).trim().replace(/\/+$/, "");
+        if (root) {
+          path = root + "/assets/logo-thang-long-kim-viet.png";
+          path = path.replace(/\/+/g, "/");
+          if (path.charAt(0) !== "/") path = "/" + path;
+        }
+      }
+      return new URL(path, global.location.href).href;
     } catch (e) {
-      return global.location.origin + "/assets/logo-thang-long-kim-viet.png";
+      try {
+        var origin = global.location && global.location.origin ? global.location.origin : "";
+        return origin + path;
+      } catch (e2) {
+        return path;
+      }
     }
   }
 
@@ -171,17 +186,34 @@
       return cellCoveringTbodyRowIndex(table, rowIdx, "td.col-purity");
     }
 
+    function applyTvLogoToImg(img, absUrl) {
+      if (!img || !img.getAttribute || String(img.tagName || "").toUpperCase() !== "IMG") return;
+      if (!img.__tlkvTvLogoErrorBound) {
+        img.__tlkvTvLogoErrorBound = true;
+        img.addEventListener(
+          "error",
+          function () {
+            if (img.__tlkvTvLogoRetried) return;
+            img.__tlkvTvLogoRetried = true;
+            var base = absUrl.split("?")[0];
+            img.setAttribute("src", base + "?r=" + String(Date.now()));
+          },
+          { passive: true }
+        );
+      }
+      if (img.getAttribute("src") === absUrl && img.complete && img.naturalWidth > 0) return;
+      img.setAttribute("decoding", "async");
+      img.setAttribute("loading", "eager");
+      img.setAttribute("src", absUrl);
+    }
+
     function loadTVLogos() {
       var absUrl = tvLogoAbsUrl();
       var primary = document.querySelector(logoSelector);
-      if (primary && primary.getAttribute("src") !== absUrl) {
-        primary.setAttribute("src", absUrl);
-      }
+      applyTvLogoToImg(primary, absUrl);
       if (extraLogoSelector) {
         document.querySelectorAll(extraLogoSelector).forEach(function (img) {
-          if (img && img.getAttribute("src") !== absUrl) {
-            img.setAttribute("src", absUrl);
-          }
+          applyTvLogoToImg(img, absUrl);
         });
       }
     }
@@ -406,6 +438,7 @@
       highlightPurityColumn();
       highlightPriceColumns();
       highlightTVBrandColumn();
+      loadTVLogos();
     }
 
     function updateTVDateTime() {
@@ -449,7 +482,7 @@
       stripeUseInsetShadow: false,
       highlightedPriceRowIndexes: TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS,
       trendColors: { up: "rgba(44, 154, 0)", down: "rgba(230, 18, 9)" },
-      priceFontRem: "clamp(1rem, 1.35vw, 2.35rem)",
+      priceFontRem: "clamp(1.08rem, 1.48vw, 2.55rem)",
       managePricePaddingInCss: true,
       pricePadding: "clamp(2px, 0.26vh, 7px) clamp(5px, 0.55vw, 14px)",
     });
@@ -500,6 +533,7 @@
       setPill("Đã có mạng — đang làm mới…", true);
       board.renderTVTable().finally(function () {
         board.updateTVDateTime();
+        board.loadTVLogos();
         if (pill) {
           pill.hidden = true;
         }
@@ -518,10 +552,19 @@
     board.renderTVTable().finally(function () {
       booted = true;
       board.updateTVDateTime();
+      board.loadTVLogos();
       if (pill) {
         pill.hidden = true;
       }
     });
+
+    window.addEventListener(
+      "pageshow",
+      function (ev) {
+        board.loadTVLogos();
+      },
+      { passive: true }
+    );
 
     window.addEventListener("tlkv:gold-table-changed", function (ev) {
       var preloaded = goldTableChangedDetailToData(ev && ev.detail ? ev.detail : null);
@@ -533,6 +576,7 @@
       }
       board.renderTVTable(preloaded || undefined);
       board.updateTVDateTime();
+      board.loadTVLogos();
     });
 
     window.addEventListener(

@@ -91,3 +91,19 @@ comment on column public.gold_price_change_log.payload is 'JSON: row_update {bef
 
 create index if not exists gold_price_change_log_entity_created_idx
   on public.gold_price_change_log (entity_id, created_at desc);
+
+-- ─── Data API: GRANT cho PostgREST (bắt buộc project mới từ 30/05/2026) ───
+-- Chi tiết đầy đủ mọi bảng app: supabase/data-api-grants.sql
+do $$
+begin
+  if to_regclass('public.gold_price_change_log') is not null then
+    execute 'grant select on public.gold_price_change_log to anon';
+    execute 'grant select, insert, update, delete on public.gold_price_change_log to authenticated';
+    execute 'grant select, insert, update, delete on public.gold_price_change_log to service_role';
+  end if;
+  if to_regclass('public.product_change_log') is not null then
+    execute 'grant select on public.product_change_log to anon';
+    execute 'grant select, insert, update, delete on public.product_change_log to authenticated';
+    execute 'grant select, insert, update, delete on public.product_change_log to service_role';
+  end if;
+end $$;

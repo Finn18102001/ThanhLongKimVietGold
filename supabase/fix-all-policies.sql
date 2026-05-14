@@ -2,6 +2,9 @@
 -- CHẠY NGUYÊN FILE NÀY trong Supabase → SQL Editor.
 -- Xoá TOÀN BỘ policy cũ trên 3 bảng rồi tạo lại sạch sẽ.
 -- Sửa email admin nếu khác tuananh18101@gmail.com
+--
+-- Project mới / sau đổi mặc định Supabase: chạy trước hoặc sau file
+-- supabase/data-api-grants.sql (GRANT anon|authenticated|service_role).
 -- ============================================================
 
 -- ─── BƯỚC 0: Bật RLS (nếu chưa) ────────────────────────────
