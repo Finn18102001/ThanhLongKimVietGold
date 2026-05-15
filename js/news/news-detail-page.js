@@ -1,28 +1,46 @@
 /**
- * /tin-tuc/:slug — detail page controller.
+ * /tin-tuc/:articleSlug — trang chi tiết MỘT bài viết (shell: tin-tuc/chi-tiet.html).
  *
- *  Responsibilities:
- *    - Read slug from window.location.pathname.
- *    - Fetch article + related; render via TLKVNewsRenderer.
- *    - Rewrite SEO meta tags (title, description, og:..., twitter:..., canonical).
- *    - Inject Article + BreadcrumbList JSON-LD.
- *    - Increment view counter (best-effort, fire-and-forget).
- *    - 404 view if the slug doesn't exist or is unpublished.
+ * Phạm vi (đừng nhầm với danh mục):
+ *   - Đoạn URL sau `/tin-tuc/` ở đây là **slug bài** (chuỗi khớp cột `news.slug`), dùng trong `getBySlug(slug)`.
+ *     Không phải khóa số tự tăng, không phải “index trang”, không phải “lấy tất cả bài”.
+ *   - Danh sách đầy đủ + “Xem tất cả” → `/tin-tuc/danh-sach` (tin-tuc/danh-sach.html + news-list-page.js).
+ *     Script này **không** được bundle cho URL đó; Express cũng route `danh-sach` trước `:slug`.
+ *
+ * Trách nhiệm: SEO meta, JSON-LD, breadcrumb, nội dung bài, bài liên quan, view count.
  */
 (function () {
   "use strict";
 
   var $  = function (sel) { return document.querySelector(sel); };
 
-  // ---------------------------------------------------------------------------
-  // Slug extraction. URL shape: /tin-tuc/<slug>.
-  // ---------------------------------------------------------------------------
-  function getSlug() {
+  /**
+   * Phân đoạn ngay sau `/tin-tuc/` dành cho route ứng dụng — không phải slug trong bảng `news`.
+   * Khớp với routes/web.js (khi thêm path con mới, cập nhật cả hai nơi).
+   */
+  var RESERVED_TIN_TUC_PATH_SEGMENTS = {
+    "danh-sach": true,
+    "thi-truong": true,
+  };
+
+  /**
+   * Phân tích pathname cho **trang chi tiết**:
+   *   - `article` + `slug` → gọi API một bài theo slug.
+   *   - `reserved`      → segment là route hệ thống (vd. danh mục); chuyển hướng an toàn.
+   *   - `none`          → không khớp pattern /tin-tuc/segment (vd. /tin-tuc).
+   */
+  function resolveNewsDetailRoute() {
     try {
       var p = (window.location.pathname || "").replace(/\/+$/, "");
       var m = p.match(/^\/tin-tuc\/([^/?#]+)$/i);
-      return m ? decodeURIComponent(m[1]) : "";
-    } catch (e) { return ""; }
+      if (!m) return { type: "none" };
+      var raw = String(decodeURIComponent(m[1]) || "").trim();
+      if (!raw) return { type: "none" };
+      if (RESERVED_TIN_TUC_PATH_SEGMENTS[raw.toLowerCase()]) return { type: "reserved" };
+      return { type: "article", slug: raw };
+    } catch (e) {
+      return { type: "none" };
+    }
   }
 
   function fmtDate(iso, withTime) {
@@ -52,7 +70,7 @@
     var desc =
       article.seoDescription ||
       article.shortDescription ||
-      "Tin tức từ " + siteName;
+      "Tin tức thị trường từ " + siteName;
     var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-256.png");
 
     document.title = title;
@@ -91,7 +109,7 @@
           "height": 256
         }
       },
-      "articleSection": article.category ? article.category.name : "Tin tức"
+      "articleSection": article.category ? article.category.name : "Tin tức thị trường"
     };
 
     var crumbs = {
@@ -99,7 +117,7 @@
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Trang chủ", "item": siteOrigin + "/" },
-        { "@type": "ListItem", "position": 2, "name": "Tin tức",   "item": siteOrigin + "/tin-tuc" },
+        { "@type": "ListItem", "position": 2, "name": "Tin tức thị trường", "item": siteOrigin + "/tin-tuc" },
         { "@type": "ListItem", "position": 3, "name": article.title, "item": pageUrl }
       ]
     };
@@ -140,10 +158,10 @@
     }
     nav.appendChild(link("/", "Trang chủ"));
     nav.appendChild(sep());
-    nav.appendChild(link("/tin-tuc", "Tin tức"));
+    nav.appendChild(link("/tin-tuc", "Tin tức thị trường"));
     if (article.category && article.category.slug) {
       nav.appendChild(sep());
-      nav.appendChild(link("/tin-tuc?cat=" + encodeURIComponent(article.category.slug), article.category.name));
+      nav.appendChild(link("/tin-tuc/danh-sach?cat=" + encodeURIComponent(article.category.slug), article.category.name));
     }
     nav.appendChild(sep());
     var current = document.createElement("span");
@@ -155,8 +173,7 @@
   // Related
   // ---------------------------------------------------------------------------
 
-  function renderRelated(host, items) {
-    if (!items || !items.length) return;
+  function renderRelatedSection(host, items) {
     var card = document.createElement("div");
     card.className = "tlkv-news-side-card";
     var h = document.createElement("h3");
@@ -164,40 +181,47 @@
     h.textContent = "Bài viết liên quan";
     card.appendChild(h);
 
-    var list = document.createElement("div");
-    list.className = "tlkv-news-related";
-    items.forEach(function (it) {
-      var a = document.createElement("a");
-      a.className = "tlkv-news-related__item";
-      a.href = "/tin-tuc/" + encodeURIComponent(it.slug);
+    if (items && items.length) {
+      var list = document.createElement("div");
+      list.className = "tlkv-news-related";
+      items.forEach(function (it) {
+        var a = document.createElement("a");
+        a.className = "tlkv-news-related__item";
+        a.href = "/tin-tuc/" + encodeURIComponent(it.slug);
 
-      var media = document.createElement("div");
-      media.className = "tlkv-news-related__media";
-      if (it.thumbnailUrl) {
-        var img = document.createElement("img");
-        img.src = it.thumbnailUrl;
-        img.loading = "lazy";
-        img.decoding = "async";
-        img.alt = it.title || "";
-        img.onerror = function () { this.onerror = null; this.style.display = "none"; };
-        media.appendChild(img);
-      }
-      a.appendChild(media);
+        var media = document.createElement("div");
+        media.className = "tlkv-news-related__media";
+        if (it.thumbnailUrl) {
+          var img = document.createElement("img");
+          img.src = it.thumbnailUrl;
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.alt = it.title || "";
+          img.onerror = function () { this.onerror = null; this.style.display = "none"; };
+          media.appendChild(img);
+        }
+        a.appendChild(media);
 
-      var body = document.createElement("div");
-      body.className = "tlkv-news-related__body";
-      var date = document.createElement("span");
-      date.className = "tlkv-news-related__date";
-      date.textContent = fmtDate(it.publishedAt || it.createdAt);
-      body.appendChild(date);
-      var title = document.createElement("h4");
-      title.className = "tlkv-news-related__title";
-      title.textContent = it.title || "";
-      body.appendChild(title);
-      a.appendChild(body);
-      list.appendChild(a);
-    });
-    card.appendChild(list);
+        var body = document.createElement("div");
+        body.className = "tlkv-news-related__body";
+        var date = document.createElement("span");
+        date.className = "tlkv-news-related__date";
+        date.textContent = fmtDate(it.publishedAt || it.createdAt);
+        body.appendChild(date);
+        var title = document.createElement("h4");
+        title.className = "tlkv-news-related__title";
+        title.textContent = it.title || "";
+        body.appendChild(title);
+        a.appendChild(body);
+        list.appendChild(a);
+      });
+      card.appendChild(list);
+    } else {
+      var empty = document.createElement("p");
+      empty.className = "tlkv-news-related-empty";
+      empty.textContent = "Chưa có bài viết phù hợp.";
+      card.appendChild(empty);
+    }
     host.appendChild(card);
   }
 
@@ -228,7 +252,7 @@
     if (article.category && article.category.slug) {
       var c = document.createElement("a");
       c.className = "tlkv-news-detail__cat";
-      c.href = "/tin-tuc?cat=" + encodeURIComponent(article.category.slug);
+      c.href = "/tin-tuc/danh-sach?cat=" + encodeURIComponent(article.category.slug);
       c.textContent = article.category.name;
       meta.appendChild(c);
     }
@@ -274,8 +298,11 @@
       excludeId: article.id,
       limit: 4,
     }).then(function (rel) {
-      renderRelated(side, rel || []);
-    }).catch(function (e) { console.warn("[news] related failed", e); });
+      renderRelatedSection(side, rel || []);
+    }).catch(function (e) {
+      console.warn("[news] related failed", e);
+      renderRelatedSection(side, []);
+    });
   }
 
   function renderNotFound(slug) {
@@ -288,7 +315,8 @@
       '<p>Bài viết với đường dẫn <code>' +
       (slug ? slug.replace(/[<>&"]/g, "") : "") +
       '</code> không tồn tại hoặc chưa được xuất bản.</p>' +
-      '<p><a href="/tin-tuc">← Quay lại danh sách tin tức</a></p>';
+      '<p><a href="/tin-tuc/danh-sach">← Quay lại danh sách tin tức thị trường</a></p>' +
+      '<p><a href="/tin-tuc">Trang tin nổi bật</a></p>';
     host.appendChild(box);
     document.title = "Không tìm thấy bài viết - Thăng Long Kim Việt";
     var robots = document.querySelector('meta[name="robots"]');
@@ -309,11 +337,16 @@
   // ---------------------------------------------------------------------------
 
   async function load() {
-    var slug = getSlug();
-    if (!slug) {
-      renderNotFound(slug);
+    var route = resolveNewsDetailRoute();
+    if (route.type === "reserved") {
+      window.location.replace("/tin-tuc/danh-sach");
       return;
     }
+    if (route.type !== "article") {
+      renderNotFound("");
+      return;
+    }
+    var slug = route.slug;
     try {
       var article = await TLKVNewsAPI.getBySlug(slug);
       if (!article) { renderNotFound(slug); return; }

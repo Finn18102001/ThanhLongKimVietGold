@@ -480,7 +480,7 @@
     var edHolder = el("div", { class: "news-admin-editor", id: "tlkv-news-editor-holder" });
     edField.appendChild(edHolder);
     edField.appendChild(el("span", { class: "news-admin-hint" },
-      "Nhấn “/” trong vùng soạn thảo để chọn loại khối (Tiêu đề, Danh sách, Trích dẫn, Ảnh, Embed, …)."));
+      "Nhấn “/” để thêm khối (Đoạn văn, Tiêu đề, …). Bôi đen đoạn chữ rồi trên thanh công cụ chọn cỡ chữ (Aa) hoặc marker / liên kết."));
     left.appendChild(edField);
 
     form.appendChild(left);
@@ -524,7 +524,7 @@
     var featField = el("div", { class: "news-admin-field" }, [
       el("label", { class: "news-admin-toggle", for: "f-feat" }, [
         el("input", { id: "f-feat", type: "checkbox" }),
-        el("span", null, "Đánh dấu nổi bật (hiển thị trong hero của trang Tin tức)"),
+        el("span", null, "Đánh dấu nổi bật (hiển thị trong khối tin nổi bật trên /tin-tuc)"),
       ]),
     ]);
     catBody.appendChild(featField);

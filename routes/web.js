@@ -22,15 +22,28 @@ module.exports = function webRouter(ROOT) {
   router.get("/tv-model", send("tv-model.html"));
 
   /**
-   * News (Tin tức).
-   *  - /tin-tuc          → listing page
-   *  - /tin-tuc/:slug    → detail page (slug parsed client-side from URL)
+   * News (Tin tức thị trường).
+   *  - /tin-tuc              → landing (featured / latest preview)
+   *  - /tin-tuc/danh-sach    → full archive (search, category, pagination)
+   *  - /tin-tuc/thi-truong   → alias → /tin-tuc/danh-sach
+   *  - /tin-tuc/:slug        → detail (slug parsed client-side from URL)
    *
    *  Slug validation: only [a-z0-9-]+, length 2..200. Anything else 404.
    *  This keeps Express from forwarding noisy bot URLs into the SPA shell.
    */
+  router.get("/tin-tuc/danh-sach", send("tin-tuc/danh-sach.html"));
+  router.get("/tin-tuc/danh-sach/", function (req, res) {
+    res.redirect(301, "/tin-tuc/danh-sach");
+  });
+  router.get("/tin-tuc/thi-truong", function (req, res) {
+    res.redirect(301, "/tin-tuc/danh-sach");
+  });
+  router.get("/tin-tuc/thi-truong/", function (req, res) {
+    res.redirect(301, "/tin-tuc/danh-sach");
+  });
   router.get("/tin-tuc", send("tin-tuc/index.html"));
   router.get("/tin-tuc/", function (req, res) { res.redirect(301, "/tin-tuc"); });
+  /** Bắt buộc khai báo TRƯỚC :slug — nếu không, `danh-sach` sẽ bị coi là slug bài và vào chi-tiet.html. */
   router.get("/tin-tuc/:slug", function (req, res, next) {
     var slug = String(req.params.slug || "");
     if (!/^[a-z0-9][a-z0-9-]{1,198}[a-z0-9]$/.test(slug)) return next();
