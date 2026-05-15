@@ -309,6 +309,31 @@
   transition: width .2s ease;
 }
 
+/* Inline content image uploader (above Editor.js) */
+.news-admin-content-img {
+  margin-bottom: 12px;
+  text-align: left;
+}
+.news-admin-content-img__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--na-text);
+  margin-bottom: 4px;
+}
+.news-admin-content-img__preview {
+  aspect-ratio: 16 / 9;
+  max-height: 160px;
+}
+.news-admin-content-img__caption {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--na-border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
 /* Editor.js holder */
 .news-admin-editor {
   border: 1px solid var(--na-border);

@@ -474,13 +474,48 @@
     sdField.appendChild(sdInput);
     left.appendChild(sdField);
 
-    // Editor
+    // Editor + inline image uploader (stored in news.content JSON blocks)
     var edField = el("div", { class: "news-admin-field" });
     edField.appendChild(el("label", null, "Nội dung"));
+
+    var contentImgBox = el("div", { class: "news-admin-thumb news-admin-content-img" });
+    contentImgBox.appendChild(el("span", { class: "news-admin-content-img__title" }, "Ảnh trong nội dung bài viết"));
+    var ciPreview = el("div", {
+      class: "news-admin-thumb__preview news-admin-thumb__preview--empty news-admin-content-img__preview",
+    });
+    ciPreview.textContent = "Ảnh chèn vào bài sẽ hiển thị ở đây";
+    contentImgBox.appendChild(ciPreview);
+    var ciRow = el("div", { class: "news-admin-thumb__row" });
+    var ciFile = el("input", { type: "file", id: "f-content-img-file", accept: "image/*" });
+    var ciChoose = el("label", { class: "news-admin-btn", for: "f-content-img-file" }, "📁 Chọn ảnh");
+    var ciInsert = el("button", {
+      class: "news-admin-btn news-admin-btn--primary",
+      type: "button",
+      id: "f-content-img-insert",
+    }, "Chèn ảnh");
+    ciRow.appendChild(ciChoose);
+    ciRow.appendChild(ciInsert);
+    contentImgBox.appendChild(ciRow);
+    contentImgBox.appendChild(el("div", { class: "news-admin-field", style: "margin-bottom:0;text-align:left" }, [
+      el("label", { for: "f-content-img-url" }, "Hoặc dán URL ảnh"),
+      el("input", { id: "f-content-img-url", type: "url", placeholder: "https://... hoặc /assets/..." }),
+    ]));
+    contentImgBox.appendChild(el("input", {
+      id: "f-content-img-caption",
+      type: "text",
+      placeholder: "Chú thích ảnh (tuỳ chọn)",
+      maxlength: "500",
+      class: "news-admin-content-img__caption",
+    }));
+    var ciProgress = el("div", { class: "news-admin-thumb__progress", style: "display:none" }, el("span"));
+    contentImgBox.appendChild(ciProgress);
+    contentImgBox.appendChild(ciFile);
+    edField.appendChild(contentImgBox);
+
     var edHolder = el("div", { class: "news-admin-editor", id: "tlkv-news-editor-holder" });
     edField.appendChild(edHolder);
     edField.appendChild(el("span", { class: "news-admin-hint" },
-      "Nhấn “/” để thêm khối (Đoạn văn, Tiêu đề, …). Bôi đen đoạn chữ rồi trên thanh công cụ chọn cỡ chữ (Aa) hoặc marker / liên kết."));
+      "Chèn ảnh bằng khối phía trên hoặc nhấn “/” → “Ảnh” trong trình soạn thảo."));
     left.appendChild(edField);
 
     form.appendChild(left);
@@ -659,6 +694,72 @@
     $("#f-seo-title", form).addEventListener("input", function () { FORM_STATE.seoTitle = this.value; });
     $("#f-seo-desc", form).addEventListener("input",  function () { FORM_STATE.seoDescription = this.value; });
     $("#f-seo-kw", form).addEventListener("input",    function () { FORM_STATE.seoKeywords = this.value; });
+
+    function setContentImgPreview(url) {
+      if (!url) {
+        ciPreview.classList.add("news-admin-thumb__preview--empty");
+        ciPreview.textContent = "Ảnh chèn vào bài sẽ hiển thị ở đây";
+        ciPreview.style.backgroundImage = "";
+        return;
+      }
+      ciPreview.classList.remove("news-admin-thumb__preview--empty");
+      ciPreview.textContent = "";
+      ciPreview.style.backgroundImage = "url('" + url + "')";
+    }
+
+    async function insertContentImage(url, caption) {
+      if (!EDITOR_INSTANCE || typeof EDITOR_INSTANCE.insertImage !== "function") {
+        toast("Trình soạn thảo chưa sẵn sàng.", "warn");
+        return;
+      }
+      try {
+        await EDITOR_INSTANCE.insertImage(url, caption);
+        setContentImgPreview(url);
+        toast("Đã chèn ảnh vào nội dung.", "success");
+      } catch (e) {
+        toast("Không chèn được ảnh: " + (e && e.message ? e.message : String(e)), "error");
+      }
+    }
+
+    ciFile.addEventListener("change", async function () {
+      var f = ciFile.files && ciFile.files[0];
+      if (!f) return;
+      ciProgress.style.display = "block";
+      ciProgress.firstChild.style.width = "30%";
+      try {
+        var res = await TLKVNewsStorage.upload("content", f);
+        ciProgress.firstChild.style.width = "100%";
+        $("#f-content-img-url", form).value = res.publicUrl;
+        var cap = $("#f-content-img-caption", form);
+        await insertContentImage(res.publicUrl, cap ? cap.value.trim() : "");
+      } catch (e) {
+        toast("Lỗi upload: " + (e && e.message ? e.message : String(e)), "error");
+      } finally {
+        setTimeout(function () {
+          ciProgress.style.display = "none";
+          ciProgress.firstChild.style.width = "0%";
+        }, 600);
+        ciFile.value = "";
+      }
+    });
+
+    ciInsert.addEventListener("click", async function () {
+      var url = ($("#f-content-img-url", form) || {}).value;
+      url = url ? url.trim() : "";
+      if (!url) {
+        toast("Nhập URL ảnh hoặc chọn file trước.", "warn");
+        return;
+      }
+      var allowed = global.TLKVNewsEditor && TLKVNewsEditor.isAllowedImageUrl
+        ? TLKVNewsEditor.isAllowedImageUrl(url)
+        : /^https:\/\//i.test(url);
+      if (!allowed) {
+        toast("URL phải bắt đầu bằng https:// hoặc /.", "warn");
+        return;
+      }
+      var capEl = $("#f-content-img-caption", form);
+      await insertContentImage(url, capEl ? capEl.value.trim() : "");
+    });
 
     // Mount Editor.js
     try {

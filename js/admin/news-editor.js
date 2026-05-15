@@ -21,7 +21,16 @@
     return null;
   }
 
+  function isAllowedImageUrl(url) {
+    var s = String(url || "").trim();
+    if (!s) return false;
+    if (/^https:\/\//i.test(s)) return true;
+    if (s.indexOf("/") === 0 && s.indexOf("//") !== 0) return true;
+    return false;
+  }
+
   function buildTools() {
+    var Paragraph  = pick(["Paragraph"]);
     var Header     = pick(["Header"]);
     var List       = pick(["NestedList", "EditorJsList", "List"]);
     var Quote      = pick(["Quote"]);
@@ -34,6 +43,13 @@
     var Table      = pick(["Table"]);
 
     var tools = {};
+    if (Paragraph) {
+      tools.paragraph = {
+        class: Paragraph,
+        inlineToolbar: true,
+        config: { placeholder: "Viết nội dung…" },
+      };
+    }
     if (Header) {
       tools.header = {
         class: Header,
@@ -83,6 +99,7 @@
         class: ImageTool,
         config: {
           captionPlaceholder: "Chú thích ảnh (không bắt buộc)",
+          buttonContent: "Chọn ảnh từ máy",
           uploader: {
             uploadByFile: function (file) {
               return global.TLKVNewsStorage.upload("content", file).then(function (r) {
@@ -92,11 +109,13 @@
               });
             },
             uploadByUrl: function (url) {
-              // We don't proxy remote uploads. Allow only safe HTTPS URLs.
-              if (!/^https:\/\//i.test(String(url || ""))) {
-                return Promise.resolve({ success: 0, message: "Chỉ chấp nhận URL https." });
+              if (!isAllowedImageUrl(url)) {
+                return Promise.resolve({
+                  success: 0,
+                  message: "URL phải bắt đầu bằng https:// hoặc / (đường dẫn tương đối).",
+                });
               }
-              return Promise.resolve({ success: 1, file: { url: String(url) } });
+              return Promise.resolve({ success: 1, file: { url: String(url).trim() } });
             },
           },
         },
@@ -165,9 +184,33 @@
       try { return editor.destroy(); } catch (e) { return Promise.resolve(); }
     }
 
+    /** Insert an image block at the end of the document (used by admin sidebar uploader). */
+    function insertImage(url, caption) {
+      if (!isAllowedImageUrl(url)) {
+        return Promise.reject(new Error("URL ảnh không hợp lệ (https:// hoặc /…)."));
+      }
+      return editor.isReady.then(function () {
+        var data = {
+          file: { url: String(url).trim() },
+          caption: String(caption || ""),
+          withBorder: false,
+          withBackground: false,
+          stretched: false,
+        };
+        var index = editor.blocks.getBlocksCount();
+        return editor.blocks.insert("image", data, {}, index, true);
+      });
+    }
+
     await editor.isReady;
-    return { save: save, setData: setData, destroy: destroy, _editor: editor };
+    return {
+      save: save,
+      setData: setData,
+      destroy: destroy,
+      insertImage: insertImage,
+      _editor: editor,
+    };
   }
 
-  global.TLKVNewsEditor = { mount: mount };
+  global.TLKVNewsEditor = { mount: mount, isAllowedImageUrl: isAllowedImageUrl };
 })(typeof window !== "undefined" ? window : globalThis);

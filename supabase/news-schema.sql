@@ -88,8 +88,10 @@ create table if not exists public.news (
   title              text not null,
   slug               text not null unique,
   short_description  text,
-  thumbnail_url      text,
-  -- Editor.js / structured JSON: { time, blocks: [...], version }
+  thumbnail_url      text,   -- cover / OG hero (single URL)
+  -- Editor.js JSON: { time, blocks: [...], version }
+  -- Inline images live in blocks, e.g. { "type": "image", "data": { "file": { "url": "…/content/…" } } }
+  -- Files upload to Storage bucket news-media/content/ (no extra column needed).
   content            jsonb not null default jsonb_build_object('blocks', '[]'::jsonb),
   category_id        uuid references public.news_categories(id) on delete set null,
   status             text not null default 'draft'
