@@ -6,9 +6,9 @@ html.tlkv-tv-model-page {
   /* Cột bảng TV (colgroup): Hàm lượng +1% so với lưới gốc 18/25/7/25/25 → 8% cột 3 */
   --tlkv-tv-col-brand-pct: 17.5%;
   --tlkv-tv-col-product-pct: 24%;
-  --tlkv-tv-col-purity-pct: 9%;
-  --tlkv-tv-col-buy-pct: 24.75%;
-  --tlkv-tv-col-sell-pct: 24.75%;
+  --tlkv-tv-col-purity-pct: 11%;
+  --tlkv-tv-col-buy-pct: 23.75%;
+  --tlkv-tv-col-sell-pct: 23.75%;
   /* Shell: tối thiểu mép ngang (TV bezel) — bảng rộng gần full viewport */
   --tlkv-tv-shell-pad-x: clamp(2px, 0.28vw, 5px);
   --tlkv-tv-shell-pad-y-top: clamp(4px, 0.55vw, 10px);
@@ -347,15 +347,19 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.gold-brand-ce
   color: var(--tlkv-tv-label-yellow) !important;
   font-size: max(13px, calc(1.2rem * 1.03 - 13px + var(--tlkv-tv-fs-body-bump) + 2.5px + var(--tlkv-tv-fs-table-add))) !important;
   line-height: var(--tlkv-tv-cell-lh) !important;
-  white-space: nowrap !important;
-  text-overflow: ellipsis;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-overflow: unset;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td.col-product {
   font-size: max(13px, calc(1.2rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add))) !important;
   line-height: var(--tlkv-tv-cell-lh) !important;
-  white-space: nowrap !important;
-  text-overflow: ellipsis;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-overflow: unset;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) th:nth-child(3),
@@ -401,7 +405,7 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody tr:last-child td
   margin-top: 0;
   height: clamp(32px, 3.55vh, 54px);
   min-height: 0;
-  background: var(--tlkv-tv-greeting-board-bg) !important;
+  background: transparent !important;
   border-top: none;
   overflow: hidden;
   display: flex;
@@ -414,7 +418,7 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody tr:last-child td
   height: 100%;
   overflow: hidden;
   position: relative;
-  background: var(--tlkv-tv-greeting-board-bg);
+  background: transparent;
 }
 
 .tlkv-tv-marquee__track {
