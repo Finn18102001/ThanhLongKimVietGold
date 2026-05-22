@@ -54,8 +54,39 @@
   margin-bottom: 8px;
 }
 
-.header-gr--spacer {
-  min-width: 120px;
+.header-gr.right-gr .header-gr-item {
+  display: flex;
+  align-items: center;
+}
+
+.header-zalo-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.header-zalo-link:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+  text-decoration: none;
+}
+
+.header-zalo-link img {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.header-mb-wrap .header-zalo-link--mb {
+  margin-left: auto;
+}
+
+.header-zalo-link--mb img {
+  width: 32px;
+  height: 32px;
 }
 
 /* Khung section bảng giá: mở rộng, không cắt cột giá (template hay để .container-l ~50%) */
