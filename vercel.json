@@ -19,6 +19,7 @@
           "data/**",
           "gioi-thieu/**",
           "san-pham/**",
+          "tin-tuc/**",
           "local.css"
         ]
       }
