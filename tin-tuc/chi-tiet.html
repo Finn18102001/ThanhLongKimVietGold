@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- These are placeholders; the detail controller rewrites them once the
+       article is fetched (title, description, og:*, twitter:*, canonical, JSON-LD). -->
+  <title data-tlkv-news-title>Đang tải bài viết - Thăng Long Kim Việt</title>
+  <link rel="canonical" data-tlkv-news-canonical href="https://thanglongkimviet.vn/tin-tuc" />
+
+  <meta name="description" data-tlkv-news-desc content="" />
+  <meta name="keywords"    data-tlkv-news-keywords content="" />
+  <meta name="robots" content="index, follow" />
+
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
+  <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png" />
+
+  <meta property="og:type"   content="article" />
+  <meta property="og:title"  data-tlkv-news-og-title content="" />
+  <meta property="og:description" data-tlkv-news-og-desc content="" />
+  <meta property="og:image"  data-tlkv-news-og-image content="https://thanglongkimviet.vn/assets/og-logo-256.png" />
+  <meta property="og:url"    data-tlkv-news-og-url content="" />
+  <meta property="og:locale" content="vi_VN" />
+  <meta property="og:site_name" content="Thăng Long Kim Việt" />
+  <meta property="article:published_time" data-tlkv-news-published content="" />
+  <meta property="article:modified_time"  data-tlkv-news-modified content="" />
+
+  <meta name="twitter:card"  content="summary_large_image" />
+  <meta name="twitter:title" data-tlkv-news-tw-title content="" />
+  <meta name="twitter:description" data-tlkv-news-tw-desc content="" />
+  <meta name="twitter:image" data-tlkv-news-tw-image content="https://thanglongkimviet.vn/assets/og-logo-256.png" />
+
+  <script type="application/ld+json" id="tlkv-news-jsonld">
+    { "@context": "https://schema.org", "@type": "Article" }
+  </script>
+
+  <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/vendor/style.css" rel="stylesheet">
+  <link href="/local.css" rel="stylesheet">
+  <link href="/css/news.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-pc">
+        <div class="container">
+          <div class="header--inner d-flex align-items-center justify-content-between">
+            <div class="header-gr left-gr">
+              <div class="header-gr-bot d-flex">
+                <div class="header-gr-item"><a href="/" class="nav-link link-no-ic">Trang chủ</a></div>
+                <div class="header-gr-item"><a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a></div>
+                <div class="header-gr-item"><a href="/sanpham" class="nav-link link-no-ic">Sản phẩm</a></div>
+                <div class="header-gr-item"><a href="/tin-tuc" class="nav-link link-no-ic active">Tin tức thị trường</a></div>
+              </div>
+            </div>
+            <div class="header-logo">
+              <a href="/" class="logo">
+                <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg" alt="Thăng Long Kim Việt" />
+              </a>
+            </div>
+            <div class="header-gr right-gr header-gr--spacer" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="tlkv-news-shell tlkv-news-detail">
+      <div class="tlkv-news-container">
+        <nav class="tlkv-news-breadcrumb" id="tlkv-news-breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Trang chủ</a>
+          <span class="tlkv-news-breadcrumb__sep">›</span>
+          <a href="/tin-tuc">Tin tức thị trường</a>
+        </nav>
+
+        <div id="tlkv-news-detail-host">
+          <div class="tlkv-news-skel tlkv-news-skel--line lg" style="width:60%"></div>
+          <div class="tlkv-news-skel tlkv-news-skel--line" style="width:40%"></div>
+          <div class="tlkv-news-skel tlkv-news-skel--media tlkv-news-skel--big" style="margin-top:20px"></div>
+          <div class="tlkv-news-skel tlkv-news-skel--line" style="width:95%; margin-top:24px"></div>
+          <div class="tlkv-news-skel tlkv-news-skel--line" style="width:90%"></div>
+          <div class="tlkv-news-skel tlkv-news-skel--line" style="width:85%"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-credit">
+          <h5>Copyright <span id="year"></span> © CÔNG TY TNHH VÀNG BẠC THĂNG LONG KIM VIỆT</h5>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <noscript>
+    <p style="padding:32px;text-align:center">
+      Vui lòng bật JavaScript để xem nội dung bài viết.
+    </p>
+  </noscript>
+
+  <script>
+    window.TLKV_BASE = "/";
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+  <script src="/js/vendor/supabase.js"></script>
+  <script src="/js/boot-supabase-env.js"></script>
+  <script src="/js/site-nav.js"></script>
+
+  <script src="/js/news/news-sanitize.js"></script>
+  <script src="/js/news/news-renderer.js"></script>
+  <script src="/js/news/news-api.js"></script>
+  <script src="/js/news/news-detail-page.js"></script>
+</body>
+
+</html>

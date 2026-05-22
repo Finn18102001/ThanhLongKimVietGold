@@ -75,6 +75,7 @@
   <link href="/css/vendor/style.css" rel="stylesheet">
   <link href="/local.css" rel="stylesheet">
   <link href="/css/world-gold-xau.css" rel="stylesheet">
+  <link href="/css/news.css" rel="stylesheet">
 </head>
 
 <body>
@@ -105,6 +106,9 @@
                       </div>
                     </div>
                   </div>
+                </div>
+                <div class="header-gr-item">
+                  <a href="/tin-tuc" class="nav-link link-no-ic">Tin tức thị trường</a>
                 </div>
               </div>
             </div>
@@ -164,6 +168,7 @@
                     </div>
                   </div>
                 </li>
+                <li><a href="/tin-tuc">Tin tức thị trường</a></li>
               </ul>
             </div>
           </div>
@@ -264,6 +269,18 @@
               </div>
             </div>
           </div>
+
+          <section class="tlkv-home-news tlkv-news-shell" aria-labelledby="tlkv-home-news-title">
+            <div class="container">
+              <div class="tlkv-news-section-head">
+                <h2 id="tlkv-home-news-title" class="tlkv-news-page-title tlkv-news-page-title--home">Tin tức thị trường</h2>
+                <a href="/tin-tuc/danh-sach" class="tlkv-news-see-all" data-news-catalog-link
+                  title="Mở danh sách đầy đủ: mọi bài đã xuất bản được lấy từ cơ sở dữ liệu (có phân trang)"
+                  aria-label="Xem tất cả bài viết đã xuất bản — danh sách động từ máy chủ">Xem tất cả</a>
+              </div>
+              <div id="tlkv-home-news-host" class="tlkv-home-news__host" aria-live="polite"></div>
+            </div>
+          </section>
         </main>
       </div>
     </main>
@@ -301,6 +318,8 @@
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/world-gold-xau.js"></script>
+  <script src="/js/news/news-api.js"></script>
+  <script src="/js/news/news-home-preview.js"></script>
   <script src="/js/site-nav.js"></script>
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
