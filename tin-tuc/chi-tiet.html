@@ -37,32 +37,74 @@
     { "@context": "https://schema.org", "@type": "Article" }
   </script>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/design-system.css" rel="stylesheet" />
   <link href="/css/vendor/style.css" rel="stylesheet">
+  <link href="/css/header.css" rel="stylesheet">
   <link href="/local.css" rel="stylesheet">
   <link href="/css/news.css" rel="stylesheet">
+  <link href="/css/floating-contact.css" rel="stylesheet" />
 </head>
 
 <body>
   <div id="app">
     <header class="header">
-      <div class="header-pc">
+      <div class="header-topbar">
         <div class="container">
-          <div class="header--inner d-flex align-items-center justify-content-between">
-            <div class="header-gr left-gr">
-              <div class="header-gr-bot d-flex">
-                <div class="header-gr-item"><a href="/" class="nav-link link-no-ic">Trang chủ</a></div>
-                <div class="header-gr-item"><a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a></div>
-                <div class="header-gr-item"><a href="/sanpham" class="nav-link link-no-ic">Sản phẩm</a></div>
-                <div class="header-gr-item"><a href="/tin-tuc" class="nav-link link-no-ic active">Tin tức thị trường</a></div>
-              </div>
-            </div>
-            <div class="header-logo">
-              <a href="/" class="logo">
-                <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg" alt="Thăng Long Kim Việt" />
+          <div class="header-topbar__inner">
+            <p class="header-topbar__meta">
+              <span class="header-topbar__item">322 Nguyễn Trãi, Phường Đại Mỗ, TP Hà Nội</span>
+              <span class="header-topbar__sep" aria-hidden="true">·</span>
+              <span class="header-topbar__item">7:00 – 19:00</span>
+            </p>
+            <div class="header-topbar__zalo">
+              <a href="https://zalo.me/0995682568" class="header-topbar__zalo-link" target="_blank" rel="noopener noreferrer" title="Chat Zalo" aria-label="Liên hệ qua Zalo">
+                <img src="/assets/icon-zalo.svg" alt="" class="header-topbar__zalo-icon" width="32" height="32" decoding="async" />
               </a>
             </div>
-            <div class="header-gr right-gr header-gr--spacer" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+      <div class="header-pc">
+        <div class="container">
+          <div class="header--inner d-flex align-items-center">
+            <div class="header-start">
+              <div class="header-brand">
+                <a href="/" class="header-brand__link" title="Thăng Long Kim Việt">
+                  <span class="header-brand__mark">
+                    <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg" alt="" />
+                  </span>
+                  <span class="header-brand__text">
+                    <span class="header-brand__line">Thăng Long</span>
+                    <span class="header-brand__line header-brand__line--accent">Kim Việt</span>
+                  </span>
+                </a>
+              </div>
+              <div class="header-gr left-gr">
+                <div class="header-gr-bot d-flex">
+                  <div class="header-gr-item"><a href="/" class="nav-link link-no-ic">Trang chủ</a></div>
+                  <div class="header-gr-item"><a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a></div>
+                  <div class="header-gr-item"><a href="/sanpham" class="nav-link link-no-ic">Sản phẩm</a></div>
+                  <div class="header-gr-item"><a href="/tin-tuc" class="nav-link link-no-ic active">Tin tức thị trường</a></div>
+                </div>
+              </div>
+            </div>
+            <div class="header-gr right-gr">
+              <div class="header-gr-item header-cta">
+                <span class="header-cta__icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5.5 4.5h2.4l1.6 4.2-2.1 2.1a11 11 0 0 0 5.3 5.3l2.1-2.1 4.2 1.6v2.4c0 .6-.4 1-1 1A14.5 14.5 0 0 1 3.5 5.5c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <div class="header-cta__copy">
+                  <span class="header-cta__label">Tư vấn miễn phí</span>
+                  <a href="tel:0995682568" class="header-cta__phone">099 568 2568</a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -108,7 +150,8 @@
   </script>
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/boot-supabase-env.js"></script>
-  <script src="/js/site-nav.js"></script>
+    <script src="/js/floating-contact.js" defer></script>
+<script src="/js/site-nav.js"></script>
 
   <script src="/js/news/news-sanitize.js"></script>
   <script src="/js/news/news-renderer.js"></script>

@@ -1,0 +1,336 @@
+/* ==========================================================================
+   Homepage — Sản phẩm nổi bật (UI only, scoped)
+   Palette: #F8F6F1 cream · #FDFCF8 pearl · #C9A14A champagne · #1A1A1A charcoal
+   ========================================================================== */
+
+.tlkv-home-featured {
+  background: #f8f6f1;
+  padding: 56px 0 64px;
+  border-top: 1px solid rgba(201, 161, 74, 0.12);
+}
+
+.tlkv-home-featured__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* —— Section header —— */
+.tlkv-home-featured__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.tlkv-home-featured__ornament {
+  flex: 1;
+  max-width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d6b25e 45%, transparent);
+  position: relative;
+}
+
+.tlkv-home-featured__ornament::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  background: #c9a14a;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.tlkv-home-featured__ornament--end::after {
+  right: auto;
+  left: 0;
+}
+
+.tlkv-home-featured__title {
+  font-family: var(--tlkv-font-heading, "Cormorant Garamond", serif);
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.tlkv-home-featured__catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.tlkv-home-featured__footer-cta {
+  text-align: center;
+  margin: 36px 0 0;
+}
+
+.tlkv-home-featured__link-all {
+  display: inline-block;
+  padding: 12px 28px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #1a1a1a;
+  border: 1px solid #c9a14a;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tlkv-home-featured__link-all:hover {
+  background: #c9a14a;
+  color: #fdfcf8;
+}
+
+/* —— Brand showcase row: brand | products —— */
+.tlkv-home-featured .tlkv-brand-showcase--home {
+  display: grid;
+  grid-template-columns: minmax(168px, 200px) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  background: #fdfcf8;
+  border: 1px solid rgba(26, 26, 26, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 20px;
+  background: linear-gradient(180deg, #fdfcf8 0%, #f8f6f1 100%);
+  border-right: 1px solid rgba(201, 161, 74, 0.15);
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__logo-frame {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 8px;
+  background: #fdfcf8;
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  border-radius: 50%;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__logo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__monogram {
+  font-family: var(--tlkv-font-heading, "Cormorant Garamond", serif);
+  font-size: 2rem;
+  font-weight: 600;
+  color: #c9a14a;
+  line-height: 1;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__name {
+  font-family: var(--tlkv-font-heading, "Cormorant Garamond", serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__name-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__name-link:hover {
+  color: #c9a14a;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__desc {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #666666;
+  max-width: 16ch;
+}
+
+.tlkv-home-featured .tlkv-brand-showcase__products {
+  padding: 20px 20px 20px 16px;
+  background: #fdfcf8;
+  min-width: 0;
+}
+
+/* —— Product grid in showcase —— */
+.tlkv-home-featured .tlkv-product-grid--showcase {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+  margin: 0;
+  max-width: none;
+}
+
+/* —— Showcase product card —— */
+.tlkv-home-featured .tlkv-product-card--showcase {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  background: #fdfcf8;
+  border: 1px solid rgba(26, 26, 26, 0.07);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase:hover {
+  border-color: rgba(201, 161, 74, 0.35);
+  box-shadow: 0 4px 20px rgba(26, 26, 26, 0.06);
+}
+
+/* Showcase uses normalized layout (1:1 cover) — typography overrides only */
+.tlkv-home-featured .tlkv-product-card--showcase.tlkv-product-card--normalized .tlkv-product-card__content {
+  padding: 12px 10px 0;
+  min-height: 4.25rem;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase.tlkv-product-card--normalized .tlkv-product-card__footer {
+  padding: 8px 10px 14px;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase.tlkv-product-card--normalized .tlkv-product-card__name {
+  font-family: var(--tlkv-font-body, "Inter", sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #1a1a1a;
+  min-height: 2.45em;
+  max-height: 2.45em;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase.tlkv-product-card--normalized .tlkv-product-card__price {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #c9a14a;
+  min-height: 1.25em;
+  max-height: 1.25em;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase.tlkv-product-card--normalized .tlkv-product-card__cta {
+  width: 100%;
+  max-width: 108px;
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-decoration: none;
+  color: #1a1a1a;
+  background: transparent;
+  border: 1px solid #c9a14a;
+  border-radius: 2px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tlkv-home-featured .tlkv-product-card--showcase .tlkv-product-card__cta:hover {
+  background: #c9a14a;
+  color: #fdfcf8;
+  transform: none;
+  box-shadow: none;
+}
+
+.tlkv-home-featured .tlkv-product-empty {
+  color: #666666;
+  text-align: center;
+  padding: 24px;
+}
+
+/* —— Tablet —— */
+@media (max-width: 1199.98px) {
+  .tlkv-home-featured .tlkv-product-grid--showcase {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 991.98px) {
+  .tlkv-home-featured .tlkv-brand-showcase--home {
+    grid-template-columns: 1fr;
+  }
+
+  .tlkv-home-featured .tlkv-brand-showcase__brand {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 20px 24px;
+    border-right: none;
+    border-bottom: 1px solid rgba(201, 161, 74, 0.15);
+  }
+
+  .tlkv-home-featured .tlkv-brand-showcase__logo-frame {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 0;
+  }
+
+  .tlkv-home-featured .tlkv-brand-showcase__desc {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .tlkv-home-featured .tlkv-product-grid--showcase {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+/* —— Mobile —— */
+@media (max-width: 575.98px) {
+  .tlkv-home-featured {
+    padding: 40px 0 48px;
+  }
+
+  .tlkv-home-featured__head {
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .tlkv-home-featured__ornament {
+    max-width: 48px;
+  }
+
+  .tlkv-home-featured__title {
+    font-size: 1.125rem;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .tlkv-home-featured .tlkv-brand-showcase__brand {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+
+  .tlkv-home-featured .tlkv-brand-showcase__products {
+    padding: 16px;
+  }
+
+  .tlkv-home-featured .tlkv-product-grid--showcase {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}

@@ -1,0 +1,297 @@
+/* ==========================================================================
+   Homepage Hero — UI only (scoped .tlkv-hero)
+   Does not affect .header / navbar / tv-model
+   ========================================================================== */
+
+.tlkv-hero {
+  --tlkv-hero-bg: var(--tlkv-bg-pearl, #fdfcf8);
+  --tlkv-hero-bg-soft: var(--tlkv-bg-cream, #f8f6f1);
+  --tlkv-hero-gold: var(--tlkv-gold, #c9a14a);
+  --tlkv-hero-gold-soft: var(--tlkv-gold-light, #d6b25e);
+  --tlkv-hero-text: var(--tlkv-text, #1a1a1a);
+  --tlkv-hero-muted: var(--tlkv-text-muted, #666666);
+  --tlkv-hero-border: #ebe6dc;
+
+  position: relative;
+  overflow: hidden;
+  background: var(--tlkv-hero-bg);
+  border-bottom: 1px solid var(--tlkv-hero-border);
+}
+
+.tlkv-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 85% at 8% 50%, rgba(201, 161, 74, 0.06) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 60% at 92% 30%, rgba(214, 178, 94, 0.04) 0%, transparent 48%),
+    linear-gradient(180deg, var(--tlkv-hero-bg) 0%, var(--tlkv-hero-bg-soft) 100%);
+}
+
+.tlkv-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(3rem, 5.5vw, 4.5rem) 0 clamp(2.75rem, 4vw, 4rem);
+}
+
+.tlkv-hero__content {
+  max-width: 36rem;
+  padding-right: clamp(0rem, 2vw, 1.5rem);
+}
+
+.tlkv-hero__eyebrow {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0 0 1.25rem;
+  font-family: var(--tlkv-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tlkv-hero-gold);
+}
+
+.tlkv-hero__eyebrow::after {
+  content: "";
+  width: 2.5rem;
+  height: 1px;
+  background: var(--tlkv-hero-gold-soft);
+  opacity: 0.85;
+}
+
+.tlkv-hero__title {
+  margin: 0 0 1.25rem;
+  font-family: var(--tlkv-font-heading);
+  font-size: clamp(1.875rem, 3.2vw, 2.625rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  color: var(--tlkv-hero-text);
+}
+
+.tlkv-hero__lead {
+  margin: 0 0 2rem;
+  font-family: var(--tlkv-font-body);
+  font-size: clamp(0.9375rem, 1.2vw, 1.03125rem);
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--tlkv-hero-muted);
+  max-width: 30rem;
+}
+
+.tlkv-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.25rem;
+}
+
+.tlkv-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 1.5rem;
+  font-family: var(--tlkv-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 5px;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tlkv-hero__btn--primary {
+  color: #fff;
+  background: var(--tlkv-hero-gold);
+  border: 1px solid var(--tlkv-hero-gold);
+  box-shadow: 0 2px 10px rgba(201, 161, 74, 0.18);
+}
+
+.tlkv-hero__btn--primary:hover {
+  background: var(--tlkv-gold-dark, #a88432);
+  border-color: var(--tlkv-gold-dark, #a88432);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 3px 14px rgba(201, 161, 74, 0.24);
+}
+
+.tlkv-hero__btn--outline {
+  color: var(--tlkv-hero-text);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--tlkv-hero-gold);
+}
+
+.tlkv-hero__btn--outline:hover {
+  color: var(--tlkv-hero-gold);
+  background: rgba(201, 161, 74, 0.05);
+  text-decoration: none;
+}
+
+.tlkv-hero__trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+  padding: 1.25rem 0 0;
+  list-style: none;
+  border-top: 1px solid var(--tlkv-hero-border);
+}
+
+.tlkv-hero__trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-family: var(--tlkv-font-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--tlkv-hero-muted);
+}
+
+.tlkv-hero__trust-icon {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.15rem;
+  color: var(--tlkv-hero-gold);
+  opacity: 0.9;
+}
+
+.tlkv-hero__trust-item strong {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--tlkv-hero-text);
+  margin-bottom: 0.15rem;
+}
+
+/* ----- Media (right, desktop) ----- */
+.tlkv-hero__media {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.tlkv-hero__media-frame {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--tlkv-hero-bg-soft);
+  border: 1px solid rgba(235, 230, 220, 0.9);
+  box-shadow: 0 16px 48px rgba(26, 26, 26, 0.07);
+}
+
+.tlkv-hero__media-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    rgba(253, 252, 248, 0.12) 0%,
+    transparent 40%,
+    rgba(201, 161, 74, 0.04) 100%
+  );
+}
+
+.tlkv-hero__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 460px;
+  object-fit: cover;
+  object-position: center 40%;
+}
+
+/* Desktop: trust row + balanced columns */
+@media (min-width: 992px) {
+  .tlkv-hero__trust {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Tablet / small desktop */
+@media (max-width: 991.98px) {
+  .tlkv-hero__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .tlkv-hero__content {
+    max-width: none;
+    padding-right: 0;
+    text-align: center;
+  }
+
+  .tlkv-hero__eyebrow {
+    align-items: center;
+  }
+
+  .tlkv-hero__eyebrow::after {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .tlkv-hero__lead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .tlkv-hero__actions {
+    justify-content: center;
+  }
+
+  .tlkv-hero__trust {
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+  }
+
+  .tlkv-hero__media {
+    order: -1;
+    justify-content: center;
+  }
+
+  .tlkv-hero__media-frame {
+    max-width: 32rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tlkv-hero__trust {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+
+  .tlkv-hero__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .tlkv-hero__btn {
+    width: 100%;
+  }
+
+  .tlkv-hero__img {
+    aspect-ratio: 16 / 11;
+    max-height: 300px;
+  }
+}

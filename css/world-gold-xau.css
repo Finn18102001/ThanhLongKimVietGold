@@ -1,30 +1,32 @@
 /* Khối Giá vàng thế giới (XAU/USD) — dưới bảng giá cửa hàng */
 .tlkv-world-xau {
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(51, 14, 10, 0.12);
+  margin-top: var(--tlkv-space-8);
+  padding-top: var(--tlkv-space-6);
+  border-top: 1px solid var(--tlkv-border);
+}
+
+/* Ẩn bảng "Diễn biến" — chỉ hiển thị biểu đồ (logic JS giữ nguyên) */
+.tlkv-world-xau-side {
+  display: none !important;
+}
+
+.tlkv-gold-dashboard .tlkv-world-xau {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .tlkv-world-xau-inner {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+  display: block;
   align-items: stretch;
 }
 
-@media (min-width: 992px) {
-  .tlkv-world-xau-inner {
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-    gap: 24px;
-  }
-}
-
 .tlkv-world-xau-main {
-  background: #fff;
-  border: 1px solid #e8e4e0;
-  border-radius: 12px;
+  background: var(--tlkv-bg-pearl, #fdfcf8);
+  border: 1px solid #ebe6dc;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(51, 14, 10, 0.06);
+  box-shadow: 0 4px 24px rgba(26, 26, 26, 0.04);
 }
 
 .tlkv-world-xau-head {
@@ -32,24 +34,24 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px 16px;
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid #f0ebe6;
+  gap: var(--tlkv-space-3) var(--tlkv-space-4);
+  padding: var(--tlkv-space-4) 18px var(--tlkv-space-3);
+  border-bottom: 1px solid var(--tlkv-border-light);
 }
 
 .tlkv-world-xau-title {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #330e0a;
+  font-family: var(--tlkv-font-heading);
+  font-size: var(--tlkv-text-xl);
+  font-weight: var(--tlkv-weight-semibold);
+  color: var(--tlkv-text);
   margin: 0 0 6px;
 }
 
 .tlkv-world-xau-sub {
   margin: 0;
-  font-size: 0.85rem;
-  color: #5c534f;
-  letter-spacing: 0.02em;
+  font-size: var(--tlkv-text-sm);
+  color: var(--tlkv-text-muted);
+  letter-spacing: var(--tlkv-tracking-normal);
 }
 
 .tlkv-world-xau-spot {
@@ -58,32 +60,32 @@
 
 .tlkv-world-xau-price {
   font-size: 1.65rem;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.15;
+  font-weight: var(--tlkv-weight-bold);
+  color: var(--tlkv-text);
+  line-height: var(--tlkv-leading-tight);
 }
 
 .tlkv-world-xau-change {
   font-size: 0.95rem;
-  font-weight: 600;
-  margin-top: 4px;
+  font-weight: var(--tlkv-weight-semibold);
+  margin-top: var(--tlkv-space-1);
 }
 
 .tlkv-world-xau-change--up {
-  color: #15803d;
+  color: #3d7a52;
 }
 
 .tlkv-world-xau-change--down {
-  color: #b91c1c;
+  color: #9e4a4a;
 }
 
 .tlkv-world-xau-change--flat {
-  color: #71717a;
+  color: var(--tlkv-text-muted);
 }
 
 .tlkv-world-xau-tv-wrap {
   min-height: 420px;
-  background: #faf9f8;
+  background: var(--tlkv-bg-pearl);
 }
 
 .tlkv-world-xau-tv-wrap iframe {
@@ -95,10 +97,10 @@
 
 /* TV / save-data: không nhúng TradingView (iframe quá nặng) */
 .tlkv-world-xau-tv-skip {
-  padding: 20px 18px;
+  padding: var(--tlkv-space-5) 18px;
   font-size: 0.92rem;
-  line-height: 1.55;
-  color: #44403c;
+  line-height: var(--tlkv-leading-normal);
+  color: var(--tlkv-text-muted);
   max-width: 42rem;
   margin: 0 auto;
 }
@@ -109,26 +111,26 @@
   margin-bottom: 0;
 }
 .tlkv-world-xau-tv-skip-link a {
-  color: #8b1d1d;
-  font-weight: 600;
+  color: var(--tlkv-gold-dark);
+  font-weight: var(--tlkv-weight-semibold);
 }
 
 .tlkv-world-xau-side {
-  background: #fff;
-  border: 1px solid #e8e4e0;
-  border-radius: 12px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 12px rgba(51, 14, 10, 0.06);
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-lg);
+  padding: var(--tlkv-space-4) 18px;
+  box-shadow: var(--tlkv-shadow-sm);
 }
 
 .tlkv-world-xau-side h3 {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #330e0a;
+  font-family: var(--tlkv-font-heading);
+  font-size: var(--tlkv-text-lg);
+  font-weight: var(--tlkv-weight-semibold);
+  color: var(--tlkv-text);
   margin: 0 0 14px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #f0ebe6;
+  border-bottom: 1px solid var(--tlkv-border-light);
 }
 
 .tlkv-world-xau-table {
@@ -138,7 +140,7 @@
 }
 
 .tlkv-world-xau-table tr {
-  border-bottom: 1px solid #f0ebe6;
+  border-bottom: 1px solid var(--tlkv-border-light);
 }
 
 .tlkv-world-xau-table tr:last-child {
@@ -147,7 +149,7 @@
 
 .tlkv-world-xau-table th,
 .tlkv-world-xau-table td {
-  padding: 10px 8px;
+  padding: 10px var(--tlkv-space-2);
   text-align: left;
 }
 
@@ -162,31 +164,31 @@
 }
 
 .tlkv-world-xau-table th {
-  font-weight: 600;
-  color: #5c534f;
+  font-weight: var(--tlkv-weight-semibold);
+  color: var(--tlkv-text-muted);
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tlkv-tracking-wide);
 }
 
 .tlkv-world-xau-num--up {
-  color: #15803d;
-  font-weight: 600;
+  color: var(--tlkv-success);
+  font-weight: var(--tlkv-weight-semibold);
 }
 
 .tlkv-world-xau-num--down {
-  color: #b91c1c;
-  font-weight: 600;
+  color: var(--tlkv-danger);
+  font-weight: var(--tlkv-weight-semibold);
 }
 
 .tlkv-world-xau-num--na {
-  color: #a1a1aa;
+  color: var(--tlkv-text-soft);
 }
 
 .tlkv-world-xau-foot {
-  margin-top: 12px;
+  margin-top: var(--tlkv-space-3);
   font-size: 0.75rem;
-  color: #8b8682;
+  color: var(--tlkv-text-soft);
 }
 
 .tlkv-world-xau--error .tlkv-world-xau-main,
@@ -196,10 +198,10 @@
 }
 
 .tlkv-world-xau-msg {
-  padding: 16px;
-  color: #991b1b;
+  padding: var(--tlkv-space-4);
+  color: var(--tlkv-danger);
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: var(--tlkv-leading-normal);
   white-space: normal;
   word-break: break-word;
 }

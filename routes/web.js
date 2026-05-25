@@ -19,6 +19,14 @@ module.exports = function webRouter(ROOT) {
   router.get("/gioithieu", send("gioi-thieu/index.html"));
   router.get("/sanpham", send("san-pham/index.html"));
   router.get("/sanpham/gia-vang", send("san-pham/gia-vang.html"));
+  router.get("/sanpham/danh-muc/:categorySlug", send("san-pham/index.html"));
+  router.get("/thuong-hieu/:brandSlug", send("thuong-hieu/index.html"));
+  /** Product detail: /sanpham/:categorySlug/:productSlug (not danh-muc, gia-vang) */
+  router.get("/sanpham/:categorySlug/:productSlug", function (req, res, next) {
+    var cat = String(req.params.categorySlug || "").toLowerCase();
+    if (cat === "danh-muc" || cat === "gia-vang") return next();
+    res.sendFile(path.join(ROOT, "san-pham", "chi-tiet.html"));
+  });
   router.get("/tv-model", send("tv-model.html"));
 
   /**

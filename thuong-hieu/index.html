@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thương hiệu - Thăng Long Kim Việt</title>
+    <link rel="canonical" href="https://thanglongkimviet.vn/sanpham" />
+    <meta name="description" content="Sản phẩm theo thương hiệu - Thăng Long Kim Việt" />
+    <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
+    <link href="/css/vendor/bootstrap.min.css" rel="stylesheet" />
+    <link href="/css/design-system.css" rel="stylesheet" />
+    <link href="/css/vendor/style.css" rel="stylesheet" />
+    <link href="/css/header.css" rel="stylesheet" />
+    <link href="/local.css" rel="stylesheet" />
+    <link href="/css/products-catalog.css" rel="stylesheet" />
+    <link href="/css/product-card-layout.css" rel="stylesheet" />
+    <link href="/css/floating-contact.css" rel="stylesheet" />
+</head>
+  <body>
+    <div id="app">
+      <header class="header"></header>
+      <main>
+        <div class="container" style="padding: 48px 16px;">
+          <p><a href="/sanpham">← Tất cả sản phẩm</a></p>
+          <h1 id="brand-page-title" class="gold-title bold">Thương hiệu</h1>
+          <div id="brand-catalog-root" aria-live="polite"></div>
+        </div>
+      </main>
+      <footer class="footer"><div class="container"><div class="footer-credit"><h5>Copyright <span id="year"></span> © TLKV</h5></div></div></footer>
+    </div>
+    <script>window.TLKV_BASE = "/";</script>
+    <script src="/js/vendor/supabase.js"></script>
+    <script src="/js/boot-supabase-env.js"></script>
+    <script src="/js/products/constants.js"></script>
+    <script src="/js/products-data.js"></script>
+    <script src="/js/products/product-card-layout.js"></script>
+    <script src="/js/products/product-card.js"></script>
+    <script src="/js/products/product-grid.js"></script>
+    <script src="/js/products/brand-section.js"></script>
+    <script src="/js/products/catalog-api.js"></script>
+    <script src="/js/products/catalog-filters.js"></script>
+    <script src="/js/products/brand-page.js"></script>
+      <script src="/js/floating-contact.js" defer></script>
+<script src="/js/site-nav.js"></script>
+    <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+  </body>
+</html>

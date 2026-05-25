@@ -4,20 +4,21 @@
  * ========================================================================== */
 
 :root {
-  --tlkv-news-ink:        #1a1a1a;
-  --tlkv-news-ink-soft:   #54545c;
-  --tlkv-news-muted:      #8a8a92;
-  --tlkv-news-brand:      #8b1d1d;
-  --tlkv-news-brand-dark: #6a1414;
-  --tlkv-news-bg:         #fff;
-  --tlkv-news-bg-soft:    #faf7f3;
-  --tlkv-news-border:     #e7e4df;
-  --tlkv-news-accent:     #c8a35f;
-  --tlkv-news-radius:     14px;
-  --tlkv-news-shadow:     0 1px 2px rgba(20,20,28,.04), 0 6px 18px rgba(20,20,28,.06);
-  --tlkv-news-shadow-h:   0 6px 14px rgba(20,20,28,.08), 0 18px 32px rgba(20,20,28,.10);
-  --tlkv-news-serif:      "Source Serif 4", "Playfair Display", Georgia, "Times New Roman", serif;
-  --tlkv-news-sans:       "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Aliased to global design system (requires /css/design-system.css) */
+  --tlkv-news-ink:        var(--tlkv-text);
+  --tlkv-news-ink-soft:   var(--tlkv-text-muted);
+  --tlkv-news-muted:      var(--tlkv-text-soft);
+  --tlkv-news-brand:      var(--tlkv-gold-dark);
+  --tlkv-news-brand-dark: var(--tlkv-hover-gold);
+  --tlkv-news-bg:         var(--tlkv-bg-pearl);
+  --tlkv-news-bg-soft:    var(--tlkv-bg-cream);
+  --tlkv-news-border:     var(--tlkv-border);
+  --tlkv-news-accent:     var(--tlkv-gold);
+  --tlkv-news-radius:     var(--tlkv-radius-lg);
+  --tlkv-news-shadow:     var(--tlkv-shadow-sm);
+  --tlkv-news-shadow-h:   var(--tlkv-shadow-md);
+  --tlkv-news-serif:      var(--tlkv-font-heading);
+  --tlkv-news-sans:       var(--tlkv-font-body);
 }
 
 /* ------------------------ Layout shell --------------------------------- */

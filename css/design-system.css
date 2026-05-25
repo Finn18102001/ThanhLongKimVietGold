@@ -1,0 +1,327 @@
+/* ==========================================================================
+   Thăng Long Kim Việt – Design System (UI foundation)
+   Load before /css/vendor/style.css. Do not add business logic here.
+   ========================================================================== */
+
+:root {
+  /* ----- Brand gold ----- */
+  --tlkv-gold: #c9a14a;
+  --tlkv-gold-light: #d6b25e;
+  --tlkv-gold-dark: #a88432;
+  --tlkv-gold-muted: #e8dcc0;
+  --tlkv-gold-ghost: rgba(201, 161, 74, 0.12);
+
+  /* Backward-compatible aliases (was burgundy; now gold-led brand) */
+  --tlkv-primary: var(--tlkv-gold);
+  --tlkv-primary-dark: #2a2620;
+
+  /* ----- Backgrounds ----- */
+  --tlkv-bg-cream: #f8f6f1;
+  --tlkv-bg-pearl: #fdfcf8;
+  --tlkv-bg: var(--tlkv-bg-pearl);
+  --tlkv-bg-elevated: #ffffff;
+  --tlkv-bg-muted: var(--tlkv-bg-cream);
+
+  /* ----- Text ----- */
+  --tlkv-text: #1a1a1a;
+  --tlkv-text-muted: #666666;
+  --tlkv-text-soft: #8a8580;
+  --tlkv-text-inverse: #ffffff;
+  --tlkv-text-on-gold: #1a1a1a;
+
+  /* ----- Borders ----- */
+  --tlkv-border: #e5e0d6;
+  --tlkv-border-light: #f0ede6;
+  --tlkv-border-gold: rgba(201, 161, 74, 0.35);
+  --tlkv-border-focus: var(--tlkv-gold);
+
+  /* ----- Interactive ----- */
+  --tlkv-hover-gold: #b8923a;
+  --tlkv-hover-bg: #f3efe6;
+  --tlkv-hover-text: var(--tlkv-gold-dark);
+  --tlkv-active-gold: var(--tlkv-gold-dark);
+
+  /* ----- Shadows ----- */
+  --tlkv-shadow-color: rgba(26, 26, 26, 0.08);
+  --tlkv-shadow-gold-color: rgba(201, 161, 74, 0.18);
+  --tlkv-shadow-sm: 0 1px 3px var(--tlkv-shadow-color);
+  --tlkv-shadow-md: 0 4px 16px var(--tlkv-shadow-color);
+  --tlkv-shadow-lg: 0 12px 36px var(--tlkv-shadow-color);
+  --tlkv-shadow-gold: 0 4px 20px var(--tlkv-shadow-gold-color);
+
+  /* ----- Semantic ----- */
+  --tlkv-success: #15803d;
+  --tlkv-danger: #c53030;
+  --tlkv-info: #1a56a8;
+
+  /* ----- Header / chrome ----- */
+  --tlkv-header-bg: var(--tlkv-bg-pearl);
+  --tlkv-header-border: var(--tlkv-border-light);
+  --tlkv-header-text: var(--tlkv-text);
+  --tlkv-header-text-muted: var(--tlkv-text-muted);
+  --tlkv-header-shadow: 0 1px 0 var(--tlkv-border-light), 0 4px 24px rgba(26, 26, 26, 0.04);
+  --tlkv-topbar-bg: var(--tlkv-bg-cream);
+  --tlkv-footer-bg: var(--tlkv-bg-cream);
+  --tlkv-footer-text: var(--tlkv-text-muted);
+  --tlkv-footer-heading: var(--tlkv-text);
+
+  /* ----- Typography ----- */
+  --tlkv-font-heading: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
+  --tlkv-font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --tlkv-text-xs: 0.75rem;
+  --tlkv-text-sm: 0.8125rem;
+  --tlkv-text-base: 0.875rem;
+  --tlkv-text-md: 1rem;
+  --tlkv-text-lg: 1.125rem;
+  --tlkv-text-xl: 1.375rem;
+  --tlkv-text-2xl: 1.75rem;
+  --tlkv-text-3xl: 2.25rem;
+  --tlkv-text-4xl: 2.75rem;
+
+  --tlkv-leading-tight: 1.25;
+  --tlkv-leading-snug: 1.4;
+  --tlkv-leading-normal: 1.6;
+  --tlkv-leading-relaxed: 1.75;
+
+  --tlkv-weight-normal: 400;
+  --tlkv-weight-medium: 500;
+  --tlkv-weight-semibold: 600;
+  --tlkv-weight-bold: 700;
+
+  --tlkv-tracking-tight: -0.01em;
+  --tlkv-tracking-normal: 0;
+  --tlkv-tracking-wide: 0.04em;
+  --tlkv-tracking-wider: 0.08em;
+
+  /* ----- Spacing scale ----- */
+  --tlkv-space-1: 4px;
+  --tlkv-space-2: 8px;
+  --tlkv-space-3: 12px;
+  --tlkv-space-4: 16px;
+  --tlkv-space-5: 20px;
+  --tlkv-space-6: 24px;
+  --tlkv-space-8: 32px;
+  --tlkv-space-10: 40px;
+  --tlkv-space-12: 48px;
+  --tlkv-space-16: 64px;
+  --tlkv-space-20: 80px;
+
+  /* ----- Layout ----- */
+  --tlkv-container-max: 1200px;
+  --tlkv-container-wide: 1680px;
+  --tlkv-container-pad: var(--tlkv-space-4);
+  --tlkv-section-y: var(--tlkv-space-16);
+  --tlkv-section-y-sm: var(--tlkv-space-10);
+  --tlkv-card-pad: var(--tlkv-space-5);
+  --tlkv-card-gap: var(--tlkv-space-6);
+
+  /* ----- Radius ----- */
+  --tlkv-radius-sm: 4px;
+  --tlkv-radius: 8px;
+  --tlkv-radius-md: 10px;
+  --tlkv-radius-lg: 12px;
+  --tlkv-radius-xl: 16px;
+  --tlkv-radius-pill: 999px;
+
+  /* ----- Transitions (subtle; no heavy animation) ----- */
+  --tlkv-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --tlkv-duration: 0.2s;
+}
+
+/* ----- Base typography ----- */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--tlkv-font-body);
+  font-size: var(--tlkv-text-base);
+  line-height: var(--tlkv-leading-normal);
+  color: var(--tlkv-text);
+  background-color: var(--tlkv-bg);
+  font-weight: var(--tlkv-weight-normal);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.tlkv-heading {
+  font-family: var(--tlkv-font-heading);
+  font-weight: var(--tlkv-weight-semibold);
+  line-height: var(--tlkv-leading-tight);
+  color: var(--tlkv-text);
+  letter-spacing: var(--tlkv-tracking-tight);
+  margin-top: 0;
+}
+
+h1 { font-size: var(--tlkv-text-4xl); }
+h2 { font-size: var(--tlkv-text-3xl); }
+h3 { font-size: var(--tlkv-text-2xl); }
+h4 { font-size: var(--tlkv-text-xl); }
+h5 { font-size: var(--tlkv-text-lg); }
+h6 { font-size: var(--tlkv-text-md); }
+
+p {
+  margin-top: 0;
+  margin-bottom: var(--tlkv-space-4);
+}
+
+a {
+  color: var(--tlkv-gold-dark);
+  text-decoration: none;
+  transition: color var(--tlkv-duration) var(--tlkv-ease);
+}
+
+a:hover {
+  color: var(--tlkv-hover-gold);
+  text-decoration: none;
+}
+
+/* ----- Layout utilities ----- */
+.tlkv-container {
+  width: 100%;
+  max-width: var(--tlkv-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--tlkv-container-pad);
+  padding-right: var(--tlkv-container-pad);
+}
+
+.tlkv-container--wide {
+  max-width: var(--tlkv-container-wide);
+}
+
+.container.tlkv-container--wide {
+  max-width: var(--tlkv-container-wide);
+}
+
+.tlkv-section {
+  padding-top: var(--tlkv-section-y);
+  padding-bottom: var(--tlkv-section-y);
+}
+
+.tlkv-section--sm {
+  padding-top: var(--tlkv-section-y-sm);
+  padding-bottom: var(--tlkv-section-y-sm);
+}
+
+.tlkv-section--cream {
+  background-color: var(--tlkv-bg-cream);
+}
+
+.tlkv-section--pearl {
+  background-color: var(--tlkv-bg-pearl);
+}
+
+/* ----- Surface / card primitives ----- */
+.tlkv-surface {
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-lg);
+  box-shadow: var(--tlkv-shadow-sm);
+}
+
+.tlkv-card {
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-md);
+  padding: var(--tlkv-card-pad);
+  box-shadow: var(--tlkv-shadow-sm);
+}
+
+/* ----- Section title pattern ----- */
+.tlkv-section-title {
+  font-family: var(--tlkv-font-heading);
+  font-size: var(--tlkv-text-2xl);
+  font-weight: var(--tlkv-weight-semibold);
+  color: var(--tlkv-text);
+  margin: 0 0 var(--tlkv-space-2);
+  letter-spacing: var(--tlkv-tracking-tight);
+}
+
+.tlkv-section-title--upper {
+  font-family: var(--tlkv-font-body);
+  font-size: var(--tlkv-text-sm);
+  font-weight: var(--tlkv-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tlkv-tracking-wide);
+  color: var(--tlkv-gold-dark);
+}
+
+.tlkv-title-deco {
+  width: 48px;
+  height: 3px;
+  background: var(--tlkv-gold);
+  border-radius: var(--tlkv-radius-sm);
+  margin-bottom: var(--tlkv-space-6);
+}
+
+/* ----- Buttons (visual only; existing markup may use other classes) ----- */
+.tlkv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tlkv-space-2);
+  padding: 10px 24px;
+  font-family: var(--tlkv-font-body);
+  font-size: var(--tlkv-text-sm);
+  font-weight: var(--tlkv-weight-semibold);
+  letter-spacing: var(--tlkv-tracking-wide);
+  line-height: 1;
+  border-radius: var(--tlkv-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--tlkv-duration) var(--tlkv-ease),
+    border-color var(--tlkv-duration) var(--tlkv-ease),
+    color var(--tlkv-duration) var(--tlkv-ease);
+  text-decoration: none;
+}
+
+.tlkv-btn--primary {
+  background: var(--tlkv-gold);
+  color: var(--tlkv-text-inverse);
+  border-color: var(--tlkv-gold);
+}
+
+.tlkv-btn--primary:hover {
+  background: var(--tlkv-hover-gold);
+  border-color: var(--tlkv-hover-gold);
+  color: var(--tlkv-text-inverse);
+}
+
+.tlkv-btn--outline {
+  background: transparent;
+  color: var(--tlkv-gold-dark);
+  border-color: var(--tlkv-gold);
+}
+
+.tlkv-btn--outline:hover {
+  background: var(--tlkv-gold-ghost);
+  color: var(--tlkv-gold-dark);
+}
+
+/* ----- Bootstrap container alignment ----- */
+.container {
+  max-width: var(--tlkv-container-max);
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: var(--tlkv-container-wide);
+  }
+}
+
+/* ----- Minimal responsive guard ----- */
+@media (max-width: 768px) {
+  :root {
+    --tlkv-section-y: var(--tlkv-space-10);
+    --tlkv-text-4xl: 2rem;
+    --tlkv-text-3xl: 1.625rem;
+  }
+}

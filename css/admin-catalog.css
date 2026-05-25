@@ -1,0 +1,355 @@
+/* ==========================================================================
+   Admin — Catalog (Sản phẩm / Thương hiệu / Danh mục)
+   ========================================================================== */
+
+.catalog-admin-panel {
+  max-width: 1100px;
+}
+
+/* —— Sub tabs —— */
+.catalog-admin-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.catalog-admin-subtabs .admin-tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #52525b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.catalog-admin-subtabs .admin-tab:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.catalog-admin-subtabs .admin-tab--active {
+  background: #fff;
+  border-color: #e4e4e7;
+  color: #8b1d1d;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* —— Toolbar & filters —— */
+.catalog-admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.catalog-admin-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px 16px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+}
+
+/* —— Shared field system —— */
+.catalog-admin-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #52525b;
+  margin-bottom: 6px;
+}
+
+.catalog-admin-label .required {
+  color: #dc2626;
+}
+
+.catalog-admin-input,
+.catalog-admin-select,
+.catalog-admin-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #18181b;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+}
+
+.catalog-admin-select {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2371717a' d='M3 4.5L6 8l3-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+
+.catalog-admin-input::placeholder,
+.catalog-admin-textarea::placeholder {
+  color: #a1a1aa;
+}
+
+.catalog-admin-input:hover,
+.catalog-admin-select:hover,
+.catalog-admin-textarea:hover {
+  border-color: #a1a1aa;
+}
+
+.catalog-admin-input:focus,
+.catalog-admin-select:focus,
+.catalog-admin-textarea:focus {
+  outline: none;
+  border-color: #8b1d1d;
+  box-shadow: 0 0 0 3px rgba(139, 29, 29, 0.08);
+}
+
+.catalog-admin-input--muted {
+  background: #fafafa;
+  font-size: 13px;
+}
+
+.catalog-admin-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.catalog-admin-field {
+  min-width: 0;
+}
+
+/* —— Card & form layout —— */
+.catalog-admin-card {
+  margin-bottom: 24px;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.catalog-admin-card__head {
+  padding: 18px 22px;
+  background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.catalog-admin-card__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.catalog-admin-card__sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #71717a;
+  line-height: 1.45;
+}
+
+.catalog-admin-form {
+  padding: 22px;
+}
+
+.catalog-admin-form--compact {
+  padding: 20px 22px;
+}
+
+.catalog-admin-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+  margin-bottom: 8px;
+}
+
+.catalog-admin-field--full {
+  grid-column: 1 / -1;
+}
+
+.catalog-admin-field--advanced {
+  padding-top: 4px;
+  border-top: 1px dashed #e4e4e7;
+}
+
+.catalog-admin-checkgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+}
+
+.catalog-admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3f3f46;
+  cursor: pointer;
+  margin: 0;
+}
+
+.catalog-admin-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #8b1d1d;
+  cursor: pointer;
+}
+
+.catalog-admin-check--solo {
+  padding: 4px 0;
+}
+
+.catalog-admin-hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #71717a;
+  line-height: 1.5;
+}
+
+.catalog-admin-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #f4f4f5;
+}
+
+.catalog-admin-form__actions .btn-save {
+  margin-right: 4px;
+}
+
+.catalog-admin-btn-refresh {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid #d4d4d8;
+  background: #fff;
+  color: #52525b;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.catalog-admin-btn-refresh:hover {
+  background: #f4f4f5;
+  border-color: #a1a1aa;
+  color: #18181b;
+}
+
+@media (max-width: 520px) {
+  .catalog-admin-form__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .catalog-admin-form__actions .btn-save {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .catalog-admin-btn-refresh {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.catalog-admin-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #18181b;
+  margin: 28px 0 12px;
+}
+
+/* Product image block inside catalog form */
+.catalog-admin-form .image-upload-wrapper {
+  margin-top: 4px;
+}
+
+.catalog-admin-form .image-url-row {
+  margin-bottom: 12px;
+}
+
+.catalog-admin-form .image-url-input {
+  width: 100%;
+}
+
+.catalog-admin-form .image-upload-area {
+  padding: 14px;
+  background: #fafafa;
+  border: 1px dashed #d4d4d8;
+  border-radius: 8px;
+}
+
+/* —— Status badges (table) —— */
+.tlkv-admin-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 6px;
+  margin-right: 4px;
+  line-height: 1.3;
+}
+
+.tlkv-admin-badge--featured {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.tlkv-admin-badge--best {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tlkv-admin-badge--hot {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.tlkv-admin-badge--off {
+  background: #f4f4f5;
+  color: #71717a;
+}
+
+.tlkv-admin-badge--on {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.catalog-admin-table td {
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.catalog-admin-table .admin-cell-actions {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .catalog-admin-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-admin-filters {
+    grid-template-columns: 1fr;
+  }
+}

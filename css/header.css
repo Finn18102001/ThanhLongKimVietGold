@@ -1,0 +1,622 @@
+/* ==========================================================================
+   Thăng Long Kim Việt – Header & Navbar (UI only)
+   Scoped to .header / .header-* — does not affect tv-model (.tv-*)
+   ========================================================================== */
+
+:root {
+  --tlkv-header-cream: #f8f6f1;
+  --tlkv-header-pearl: #fdfcf8;
+  --tlkv-header-gold: #c9a14a;
+  --tlkv-header-gold-soft: #d6b25e;
+  --tlkv-header-red-deep: #6f1020;
+  --tlkv-header-red-wine: #8b1e2d;
+  --tlkv-header-text: #1a1a1a;
+  --tlkv-header-muted: #666666;
+  --tlkv-header-border: #ebe6dc;
+  --tlkv-header-mark-size: 58px;
+  --tlkv-header-inner-min-h: 80px;
+  --tlkv-header-nav-gap: 4px;
+  --tlkv-header-nav-offset: 10%;
+}
+
+/* ----- Shell ----- */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--tlkv-header-pearl);
+  border-bottom: 1px solid var(--tlkv-header-border);
+  box-shadow: none;
+}
+
+/* ----- Topbar ----- */
+.header-topbar {
+  background: var(--tlkv-header-cream);
+  color: var(--tlkv-header-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--tlkv-header-border);
+}
+
+.header-topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 32px;
+  padding: 5px 0;
+}
+
+.header-topbar__meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.header-topbar__item {
+  white-space: nowrap;
+}
+
+.header-topbar__sep {
+  opacity: 0.4;
+}
+
+.header-topbar__zalo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.header-topbar__zalo-link {
+  display: block;
+  line-height: 0;
+  transition: opacity 0.2s ease;
+}
+
+.header-topbar__zalo-link:hover {
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.header-topbar__zalo-icon {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* ----- Main navbar ----- */
+.header-pc {
+  display: block;
+  background: var(--tlkv-header-pearl);
+}
+
+.header--inner {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: var(--tlkv-header-inner-min-h);
+}
+
+.header-start {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* ----- Unified branding block (logo + wordmark) ----- */
+.header-brand {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0;
+}
+
+.header-brand__link {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.header-brand__link:hover {
+  text-decoration: none;
+  opacity: 0.92;
+}
+
+.header-brand__mark {
+  flex: 0 0 var(--tlkv-header-mark-size);
+  width: var(--tlkv-header-mark-size);
+  height: var(--tlkv-header-mark-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-brand__mark .site-logo-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: none;
+}
+
+.header-brand__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  padding-top: 0.125rem;
+}
+
+.header-brand__line {
+  display: block;
+  font-family: var(--tlkv-font-heading);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tlkv-header-gold);
+  white-space: nowrap;
+}
+
+/* Thăng Long — dòng trên (+4px) */
+.header-brand__line:first-child {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--tlkv-header-gold-soft);
+}
+
+/* Kim Việt — dòng dưới (+4px) */
+.header-brand__line--accent {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--tlkv-header-gold);
+}
+
+.header-gr.left-gr {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  margin-left: var(--tlkv-header-nav-offset);
+}
+
+.header-gr.right-gr {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  margin-left: auto;
+  padding-left: 1.5rem;
+}
+
+.header-gr-bot {
+  display: flex;
+  align-items: center;
+  gap: var(--tlkv-header-nav-gap);
+  flex-wrap: nowrap;
+}
+
+.header-gr-item {
+  position: relative;
+}
+
+/* ----- Navigation ----- */
+.header .nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.8125rem 1.0625rem;
+  color: var(--tlkv-header-text);
+  font-family: var(--tlkv-font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.header .nav-link:hover {
+  color: var(--tlkv-header-gold);
+  text-decoration: none;
+}
+
+.header .nav-link.active {
+  color: var(--tlkv-header-gold);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.header .nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 1.0625rem;
+  right: 1.0625rem;
+  bottom: 0.4375rem;
+  height: 1.5px;
+  background: var(--tlkv-header-gold);
+  border-radius: 1px;
+}
+
+.header .nav-link.link-w-ic img {
+  width: 18px;
+  height: 18px;
+}
+
+/* ----- Hotline / CTA ----- */
+.header-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-cta__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 161, 74, 0.45);
+  color: var(--tlkv-header-gold);
+  background: rgba(201, 161, 74, 0.06);
+}
+
+.header-cta__icon svg {
+  display: block;
+}
+
+.header-cta__copy {
+  text-align: left;
+  line-height: 1.35;
+}
+
+.header-cta__label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tlkv-header-muted);
+  margin-bottom: 1px;
+}
+
+.header-cta__phone {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tlkv-header-text);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+
+.header-cta__phone:hover {
+  color: var(--tlkv-header-gold);
+  text-decoration: none;
+}
+
+/* ----- Submenu ----- */
+.header .has-submenu {
+  position: relative;
+}
+
+.header .sanpham-subheader {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  padding-top: 0.5rem;
+  z-index: 100;
+}
+
+.header .has-submenu:hover .sanpham-subheader {
+  display: block;
+}
+
+.header .sanpham-category {
+  background: var(--tlkv-header-pearl);
+  border-radius: 10px;
+  border: 1px solid var(--tlkv-header-border);
+  box-shadow: 0 8px 24px rgba(26, 26, 26, 0.06);
+  padding: 1.125rem 1.25rem;
+}
+
+.header .category-name {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tlkv-header-muted);
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.header .category-link {
+  display: block;
+  padding: 0.35rem 0;
+  color: var(--tlkv-header-text);
+  font-size: 0.875rem;
+}
+
+.header .category-link:hover {
+  color: var(--tlkv-header-gold);
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   Mobile
+   ========================================================================== */
+.header-mb {
+  display: none;
+  position: relative;
+  background: var(--tlkv-header-pearl);
+  border-bottom: 1px solid var(--tlkv-header-border);
+}
+
+.header-mb > .container {
+  position: relative;
+  z-index: 1;
+}
+
+.header-mb-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 60px;
+}
+
+.header-brand--mb {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.375rem 0;
+}
+
+.header-brand--mb .header-brand__link {
+  gap: 0.625rem;
+}
+
+.header-brand--mb .header-brand__mark {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+}
+
+.header-brand--mb .header-brand__line:first-child {
+  font-size: 0.8125rem;
+}
+
+.header-brand--mb .header-brand__line--accent {
+  font-size: 1.125rem;
+}
+
+.mb-ham {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.mb-ham:hover {
+  background: rgba(201, 161, 74, 0.08);
+}
+
+.mb-ham span {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--tlkv-header-text);
+  border-radius: 1px;
+}
+
+.header-mb-wrap .header-cta {
+  flex-shrink: 0;
+}
+
+.header-mb-wrap .header-cta__icon {
+  width: 2.125rem;
+  height: 2.125rem;
+}
+
+.header-mb-wrap .header-cta__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.header-mb-wrap .header-cta__label {
+  display: none;
+}
+
+.header-mb-wrap .header-cta__phone {
+  font-size: 0.8125rem;
+}
+
+/* Legacy mobile logo hook (if still present) */
+.mb-logo {
+  display: none;
+}
+
+/* Mobile drawer */
+.header .menu-mb {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.header .menu-mb.open {
+  display: block;
+}
+
+.header .menu-mb-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.4);
+}
+
+.header .menu-mb-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(288px, 84vw);
+  background: var(--tlkv-header-pearl);
+  overflow-y: auto;
+  box-shadow: 4px 0 24px rgba(26, 26, 26, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.header .menu-mb-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--tlkv-header-border);
+  background: var(--tlkv-header-cream);
+}
+
+.header .close-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--tlkv-header-text);
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.header .close-menu:hover {
+  background: rgba(201, 161, 74, 0.1);
+}
+
+.header .menu-mb-body {
+  padding: 0 1rem 1.5rem;
+}
+
+.header .menu-mb-section {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.header .menu-mb-section > li {
+  border-bottom: 1px solid var(--tlkv-header-border);
+}
+
+.header .menu-mb-section > li > a {
+  display: flex;
+  padding: 0.875rem 0.25rem;
+  color: var(--tlkv-header-text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.header .menu-mb-section > li > a:hover {
+  color: var(--tlkv-header-gold);
+  text-decoration: none;
+}
+
+.header .menu-subs.menu-mega {
+  display: none;
+}
+
+.header .menu-subs.menu-mega.open {
+  display: block;
+}
+
+.header .mega-subs-title,
+.header .list-item .title,
+.header .list-item ul li a {
+  color: var(--tlkv-header-text);
+}
+
+.header .mega-subs-title:hover,
+.header .list-item .title:hover,
+.header .list-item ul li a:hover {
+  color: var(--tlkv-header-gold);
+  text-decoration: none;
+}
+
+.header .list-item {
+  padding: 0 0 0.5rem 0.5rem;
+}
+
+.header .list-item ul {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+  list-style: none;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 1199.98px) {
+  :root {
+    --tlkv-header-mark-size: 52px;
+    --tlkv-header-nav-offset: 8%;
+  }
+
+  .header-brand__line:first-child {
+    font-size: 0.875rem;
+  }
+
+  .header-brand__line--accent {
+    font-size: 1.375rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .header-topbar__meta .header-topbar__sep,
+  .header-topbar__meta .header-topbar__item:last-child {
+    display: none;
+  }
+
+  :root {
+    --tlkv-header-nav-offset: 6%;
+  }
+
+  .header .nav-link {
+    padding: 0.6875rem 0.8125rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-pc {
+    display: none;
+  }
+
+  .header-mb {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-topbar__meta {
+    display: none;
+  }
+
+  .header-brand--mb .header-brand__text {
+    display: none;
+  }
+
+  .header-brand--mb .header-brand__mark {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+  }
+}

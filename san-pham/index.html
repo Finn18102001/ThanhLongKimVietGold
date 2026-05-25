@@ -18,54 +18,92 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
     <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="/css/vendor/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/design-system.css" rel="stylesheet" />
     <link href="/css/vendor/style.css" rel="stylesheet">
+    <link href="/css/header.css" rel="stylesheet">
     <link href="/local.css" rel="stylesheet">
-  </head>
+    <link href="/css/products-catalog.css" rel="stylesheet" />
+    <link href="/css/product-card-layout.css" rel="stylesheet" />
+    <link href="/css/floating-contact.css" rel="stylesheet" />
+</head>
   <body>
     <div id="app">
       <header class="header ">
+        <div class="header-topbar">
+          <div class="container">
+            <div class="header-topbar__inner">
+              <p class="header-topbar__meta">
+                <span class="header-topbar__item">322 Nguyễn Trãi, Phường Đại Mỗ, TP Hà Nội</span>
+                <span class="header-topbar__sep" aria-hidden="true">·</span>
+                <span class="header-topbar__item">7:00 – 19:00</span>
+              </p>
+              <div class="header-topbar__zalo">
+                <a href="https://zalo.me/0995682568" class="header-topbar__zalo-link" target="_blank" rel="noopener noreferrer" title="Chat Zalo" aria-label="Liên hệ qua Zalo">
+                  <img src="/assets/icon-zalo.svg" alt="" class="header-topbar__zalo-icon" width="32" height="32" decoding="async" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="header-pc">
           <div class="container">
-            <div class="header--inner d-flex align-items-center justify-content-between">
-              <div class="header-gr left-gr">
-                <div class="header-gr-bot d-flex">
-                  <div class="header-gr-item">
-                    <a href="/" class="nav-link link-no-ic">Trang chủ</a>
-                  </div>
-                  <div class="header-gr-item">
-                    <a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a>
-                  </div>
-                  <div class="header-gr-item has-submenu">
-                    <a href="/sanpham" class="nav-link link-no-ic active">Sản phẩm</a>
-                    <div class="sanpham-subheader">
-                      <div class="container">
-                        <div class="sanpham-category">
-                          <div class="sanpham-category-item">
-                            <h4 class="category-name">Danh mục</h4>
-                            <ul class="list-unstyle p-0 m-0">
-                              <li><a href="/sanpham/gia-vang" class="category-link">Giá vàng hôm nay</a></li>
-                            </ul>
+            <div class="header--inner d-flex align-items-center">
+              <div class="header-start">
+                <div class="header-brand">
+                  <a href="/" class="header-brand__link" title="Thăng Long Kim Việt">
+                    <span class="header-brand__mark">
+                      <img class="img-fluid site-logo-img" src="/assets/logo-thang-long-kim-viet.png" alt="" />
+                    </span>
+                    <span class="header-brand__text">
+                      <span class="header-brand__line">Thăng Long</span>
+                      <span class="header-brand__line header-brand__line--accent">Kim Việt</span>
+                    </span>
+                  </a>
+                </div>
+                <div class="header-gr left-gr">
+                  <div class="header-gr-bot d-flex">
+                    <div class="header-gr-item">
+                      <a href="/" class="nav-link link-no-ic">Trang chủ</a>
+                    </div>
+                    <div class="header-gr-item">
+                      <a href="/gioithieu" class="nav-link link-no-ic">Giới thiệu</a>
+                    </div>
+                    <div class="header-gr-item has-submenu">
+                      <a href="/sanpham" class="nav-link link-no-ic active">Sản phẩm</a>
+                      <div class="sanpham-subheader">
+                        <div class="container">
+                          <div class="sanpham-category">
+                            <div class="sanpham-category-item">
+                              <h4 class="category-name">Danh mục</h4>
+                              <ul class="list-unstyle p-0 m-0">
+                                <li><a href="/sanpham/gia-vang" class="category-link">Giá vàng hôm nay</a></li>
+                              </ul>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div class="header-gr-item">
-                    <a href="/tin-tuc" class="nav-link link-no-ic">Tin tức thị trường</a>
+                    <div class="header-gr-item">
+                      <a href="/tin-tuc" class="nav-link link-no-ic">Tin tức thị trường</a>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="header-logo">
-                <a href="/" class="logo">
-                  <img class="img-fluid site-logo-img" src="/assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
-                </a>
-              </div>
               <div class="header-gr right-gr">
-                <div class="header-gr-item">
-                  <a href="https://zalo.me/0995682568" class="header-zalo-link" target="_blank" rel="noopener noreferrer" title="Chat Zalo" aria-label="Liên hệ qua Zalo">
-                    <img src="/assets/icon-zalo.svg" alt="" width="36" height="36" decoding="async" />
-                  </a>
+                <div class="header-gr-item header-cta">
+                  <span class="header-cta__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5.5 4.5h2.4l1.6 4.2-2.1 2.1a11 11 0 0 0 5.3 5.3l2.1-2.1 4.2 1.6v2.4c0 .6-.4 1-1 1A14.5 14.5 0 0 1 3.5 5.5c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <div class="header-cta__copy">
+                    <span class="header-cta__label">Tư vấn miễn phí</span>
+                    <a href="tel:0995682568" class="header-cta__phone">099 568 2568</a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -75,12 +113,27 @@
           <div class="container">
             <div class="header-mb-wrap">
               <a href="javascript:void(0)" class="mb-ham"><span></span><span></span><span></span></a>
-              <a href="/" class="mb-logo">
-                <img class="img-fluid site-logo-img site-logo-img--sm" src="/assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
-              </a>
-              <a href="https://zalo.me/0995682568" class="header-zalo-link header-zalo-link--mb" target="_blank" rel="noopener noreferrer" title="Chat Zalo" aria-label="Liên hệ qua Zalo">
-                <img src="/assets/icon-zalo.svg" alt="" width="32" height="32" decoding="async" />
-              </a>
+              <div class="header-brand header-brand--mb">
+                <a href="/" class="header-brand__link" title="Thăng Long Kim Việt">
+                  <span class="header-brand__mark">
+                    <img class="img-fluid site-logo-img site-logo-img--sm" src="/assets/logo-thang-long-kim-viet.png" alt="" />
+                  </span>
+                  <span class="header-brand__text">
+                    <span class="header-brand__line">Thăng Long</span>
+                    <span class="header-brand__line header-brand__line--accent">Kim Việt</span>
+                  </span>
+                </a>
+              </div>
+              <div class="header-cta">
+                <span class="header-cta__icon" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5.5 4.5h2.4l1.6 4.2-2.1 2.1a11 11 0 0 0 5.3 5.3l2.1-2.1 4.2 1.6v2.4c0 .6-.4 1-1 1A14.5 14.5 0 0 1 3.5 5.5c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <div class="header-cta__copy">
+                  <a href="tel:0995682568" class="header-cta__phone">099 568 2568</a>
+                </div>
+              </div>
             </div>
           </div>
           <div class="menu-mb" id="mb-menu">
@@ -120,11 +173,31 @@
         <div class="master-wrapper">
           <main>
             <div class="container" style="padding: 48px 16px; min-height: 40vh;">
-              <h1 class="gold-title bold" style="margin-bottom: 16px;">Sản phẩm</h1>
+              <h1 id="catalog-page-title" class="gold-title bold" style="margin-bottom: 16px;">Sản phẩm</h1>
+
+              <div id="catalog-filter-toolbar" class="tlkv-catalog-toolbar" role="search">
+                <div class="tlkv-catalog-toolbar__row">
+                  <input type="search" id="catalog-filter-q" placeholder="Tìm sản phẩm…" aria-label="Tìm kiếm" />
+                  <select id="catalog-filter-brand" aria-label="Thương hiệu"><option value="">Tất cả thương hiệu</option></select>
+                  <select id="catalog-filter-category" aria-label="Danh mục"><option value="">Tất cả danh mục</option></select>
+                  <select id="catalog-filter-sort" aria-label="Sắp xếp">
+                    <option value="sort">Thứ tự</option>
+                    <option value="newest">Mới nhất</option>
+                    <option value="price_asc">Giá tăng</option>
+                    <option value="price_desc">Giá giảm</option>
+                  </select>
+                </div>
+                <div class="tlkv-catalog-toolbar__row tlkv-catalog-toolbar__flags">
+                  <label><input type="checkbox" id="catalog-filter-featured" /> Nổi bật</label>
+                  <label><input type="checkbox" id="catalog-filter-hot" /> Hot</label>
+                  <label><input type="checkbox" id="catalog-filter-bestseller" /> Bán chạy</label>
+                  <button type="button" id="catalog-filter-apply" class="tlkv-catalog-btn">Áp dụng</button>
+                  <button type="button" id="catalog-filter-reset" class="tlkv-catalog-btn tlkv-catalog-btn--ghost">Xóa lọc</button>
+                </div>
+              </div>
+
               <div id="product-list" class="tlkv-bestseller-root" aria-live="polite"></div>
-              <p style="margin-bottom: 12px; margin-top: 100px;">
-                <a href="/sanpham/gia-vang" class="nav-link link-no-ic" style="display: inline; padding: 0; color: #8b1d1d; font-weight: 600;">→ Giá vàng hôm nay (bảng giá &amp; biểu đồ)</a>
-              </p>
+              <div id="catalog-pagination" class="tlkv-catalog-pagination"></div>
             </div>
           </main>
         </div>
@@ -157,14 +230,27 @@
     </script>
     <script src="/js/vendor/supabase.js"></script>
     <script src="/js/boot-supabase-env.js"></script>
+    <script src="/js/products/constants.js"></script>
     <script src="/js/products-data.js"></script>
-    <script src="/js/site-nav.js"></script>
+    <script src="/js/products/product-card-layout.js"></script>
+    <script src="/js/products/product-card.js"></script>
+    <script src="/js/products/product-grid.js"></script>
+    <script src="/js/products/brand-section.js"></script>
+    <script src="/js/products/catalog-api.js"></script>
+    <script src="/js/products/catalog-filters.js"></script>
+    <script src="/js/products/catalog-archive.js"></script>
+      <script src="/js/floating-contact.js" defer></script>
+<script src="/js/site-nav.js"></script>
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
-      TLKVProducts.mountProductList("#product-list");
-      window.addEventListener("tlkv:products-changed", function () {
+      if (window.TLKVCatalogArchive) {
+        TLKVCatalogArchive.mountCatalogArchive();
+        window.addEventListener("tlkv:products-changed", function () {
+          TLKVCatalogArchive.loadAndRender();
+        });
+      } else {
         TLKVProducts.mountProductList("#product-list");
-      });
+      }
     </script>
   </body>
 </html>

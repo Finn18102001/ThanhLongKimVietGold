@@ -1,0 +1,612 @@
+/* ==========================================================================
+   Gold pricing dashboard — UI only (scoped .tlkv-gold-dashboard)
+   Does not affect .header, .tlkv-hero, .tv-*, tv-model
+   ========================================================================== */
+
+.tlkv-gold-dashboard {
+  --tlkv-gp-bg: var(--tlkv-bg-cream, #f8f6f1);
+  --tlkv-gp-card: var(--tlkv-bg-pearl, #fdfcf8);
+  --tlkv-gp-border: #ebe6dc;
+  --tlkv-gp-gold: var(--tlkv-gold, #c9a14a);
+  --tlkv-gp-gold-soft: var(--tlkv-gold-light, #d6b25e);
+  --tlkv-gp-text: var(--tlkv-text, #1a1a1a);
+  --tlkv-gp-muted: var(--tlkv-text-muted, #666666);
+  --tlkv-gp-row-h: 2.5rem;
+  --tlkv-gp-head-h: 2.375rem;
+
+  padding: clamp(2.5rem, 5vw, 3.5rem) 0;
+  background: var(--tlkv-gp-bg);
+}
+
+/* Gần full viewport — padding hai bên tối thiểu */
+.tlkv-gold-dashboard > .container {
+  width: 100%;
+  max-width: min(98vw, var(--tlkv-container-wide, 1680px)) !important;
+  padding-left: clamp(0.375rem, 0.65vw, 0.625rem);
+  padding-right: clamp(0.375rem, 0.65vw, 0.625rem);
+}
+
+/* Hai cột cân bằng — Grid stretch = chiều cao đồng bộ (Bloomberg-style) */
+.tlkv-gold-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+  align-items: stretch;
+}
+
+@media (min-width: 992px) {
+  .tlkv-gold-dashboard__grid {
+    grid-auto-rows: 1fr;
+    min-height: min(72vh, 640px);
+  }
+}
+
+/* Premium panel cards */
+.tlkv-gold-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--tlkv-gp-card);
+  border: 1px solid var(--tlkv-gp-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(26, 26, 26, 0.04);
+  overflow: hidden;
+}
+
+.tlkv-gold-panel__head {
+  padding: 1.25rem 1.375rem 0.875rem;
+  border-bottom: 1px solid var(--tlkv-gp-border);
+}
+
+.tlkv-gold-panel__title {
+  margin: 0 0 0.5rem;
+  font-family: var(--tlkv-font-heading);
+  font-size: clamp(1.25rem, 1.85vw, 1.4375rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--tlkv-gp-text);
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+.tlkv-gold-panel__meta,
+.tlkv-gold-dashboard .gold-table-meta {
+  margin: 0;
+  text-align: left;
+  font-family: var(--tlkv-font-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--tlkv-gp-muted);
+}
+
+.tlkv-gold-dashboard .gold-table-brand-italic {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--tlkv-gp-gold);
+}
+
+.tlkv-gold-panel__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tlkv-gold-panel--store .tlkv-gold-panel__body {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Scroll shell — header sticky, body scroll nội bộ */
+.tlkv-gp-table-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tlkv-gp-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.tlkv-world-xau-meta {
+  margin: 0 0 0.35rem;
+}
+
+/* ----- TLKV table (store panel) ----- */
+.tlkv-gold-dashboard .tlkv-gp-table-shell.table-responsive.gold-table {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+}
+
+.tlkv-gold-dashboard .gold-table-content,
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  border: 1px solid var(--tlkv-gp-border) !important;
+  border-radius: 0 !important;
+  background: var(--tlkv-gp-card);
+  box-shadow: none !important;
+  font-size: 0.75rem;
+  overflow: visible !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content thead th,
+.tlkv-gold-dashboard .gold-table-content tbody td {
+  border: 1px solid var(--tlkv-gp-border) !important;
+  box-sizing: border-box;
+}
+
+.tlkv-gold-dashboard .gold-table-content thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: var(--tlkv-gp-head-h);
+  max-height: var(--tlkv-gp-head-h);
+  background: var(--tlkv-gp-bg);
+  color: var(--tlkv-gp-muted);
+  font-family: var(--tlkv-font-body);
+  font-size: 0.625rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 0.5rem !important;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  box-shadow: 0 1px 0 var(--tlkv-gp-border);
+}
+
+.tlkv-gold-dashboard .gold-table-content thead th:first-child,
+.tlkv-gold-dashboard .gold-table-content thead th:last-child {
+  border-radius: 0;
+}
+
+.tlkv-gold-dashboard .gold-table-content tbody td {
+  height: var(--tlkv-gp-row-h);
+  max-height: var(--tlkv-gp-row-h);
+  padding: 0 0.5rem !important;
+  color: var(--tlkv-gp-text);
+  font-size: 0.75rem !important;
+  text-align: center;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  overflow: hidden;
+  line-height: var(--tlkv-gp-row-h) !important;
+}
+
+/* Single-line ellipsis — text layer tách khỏi layout box */
+.tlkv-gold-dashboard .tlkv-gp-cell__text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: var(--tlkv-gp-row-h);
+}
+
+.tlkv-gold-dashboard td.col-product .tlkv-gp-cell__text {
+  text-align: left;
+}
+
+.tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  height: var(--tlkv-gp-row-h);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tlkv-gold-dashboard td.price .tlkv-gp-cell__inner .tv-price-text,
+.tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.tlkv-gold-dashboard td.price .gold-price-trend {
+  flex-shrink: 0;
+}
+
+.tlkv-gold-dashboard td.price {
+  line-height: normal !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content tbody tr:last-child td {
+  border-bottom: 1px solid var(--tlkv-gp-border) !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content tbody tr:hover td {
+  background: rgba(201, 161, 74, 0.04);
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product {
+  text-align: left !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-purity {
+  white-space: nowrap !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended td.price,
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended thead th:nth-child(4),
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended thead th:nth-child(5) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap !important;
+  font-weight: 600 !important;
+}
+
+/* Giá Mua/Bán: +2px so với các cột khác, không đổi --tlkv-gp-row-h */
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended td.price {
+  font-size: 0.875rem !important;
+}
+
+.tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+  font-size: inherit;
+  line-height: 1;
+}
+
+.tlkv-gold-dashboard td.price .gold-price-trend {
+  font-size: 0.8125rem;
+  line-height: 1;
+  margin-left: 0.2rem;
+}
+
+.tlkv-gold-dashboard td.price .gold-price-trend svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.gold-brand-cell {
+  min-width: 5.5rem;
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.gold-table-corner-bl,
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.gold-table-corner-br {
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content th:nth-child(1),
+.tlkv-gold-dashboard .gold-table-content td:nth-child(1) {
+  min-width: 5.75rem;
+}
+
+.tlkv-gold-dashboard .gold-table-content th:nth-child(2),
+.tlkv-gold-dashboard .gold-table-content td:nth-child(2) {
+  min-width: 9.5rem;
+}
+
+.tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product .tlkv-gp-cell__text {
+  max-width: none;
+}
+
+.tlkv-gold-dashboard .gold-table-content th:nth-child(3),
+.tlkv-gold-dashboard .gold-table-content td:nth-child(3) {
+  min-width: 5.25rem;
+}
+
+.tlkv-gold-dashboard .gold-table-content th:nth-child(4),
+.tlkv-gold-dashboard .gold-table-content td:nth-child(4),
+.tlkv-gold-dashboard .gold-table-content th:nth-child(5),
+.tlkv-gold-dashboard .gold-table-content td:nth-child(5) {
+  min-width: 5rem;
+}
+
+.tlkv-gold-dashboard .gold-price-trend--up {
+  color: #3d7a52;
+}
+
+.tlkv-gold-dashboard .gold-price-trend--down {
+  color: #9e4a4a;
+}
+
+/* World panel: chart card fills column */
+.tlkv-gold-panel--world {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--tlkv-gp-card);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau {
+  margin: 0;
+  padding: 0;
+  border: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  gap: 0;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--tlkv-gp-card);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-head {
+  padding: 1.25rem 1.375rem 1rem;
+  border-bottom: 1px solid var(--tlkv-gp-border);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-title {
+  font-family: var(--tlkv-font-heading);
+  font-size: clamp(1.25rem, 1.85vw, 1.4375rem);
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--tlkv-gp-text);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-meta {
+  font-family: var(--tlkv-font-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--tlkv-gp-muted);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-sub {
+  margin: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--tlkv-gp-muted);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-spot {
+  text-align: right;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-price {
+  font-family: var(--tlkv-font-body);
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tlkv-gp-text);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-change {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-change--up {
+  color: #3d7a52;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-change--down {
+  color: #9e4a4a;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-tv-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  background: var(--tlkv-gp-bg);
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-tv-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+@media (min-width: 992px) {
+  .tlkv-gold-panel {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended {
+    table-layout: fixed !important;
+  }
+
+  /* SP rộng hơn để hiện full tên SP; Mua/Bán thu hẹp nhẹ */
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(1) {
+    width: 20% !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(2),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(2) {
+    width: 34% !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(3) {
+    width: 13% !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(4) {
+    width: 16.5% !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(5),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(5) {
+    width: 16.5% !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content td.price {
+    padding-left: 0.3rem !important;
+    padding-right: 0.3rem !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th,
+  .tlkv-gold-dashboard .gold-table-content tbody td {
+    font-size: clamp(0.6875rem, 0.85vw, 0.8125rem) !important;
+    padding: 0.5rem 0.375rem !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended td.price {
+    font-size: 0.875rem !important;
+  }
+
+}
+
+@media (min-width: 1200px) {
+  .tlkv-gold-dashboard > .container {
+    max-width: min(98.5vw, 1680px) !important;
+    padding-left: clamp(0.5rem, 0.5vw, 0.75rem);
+    padding-right: clamp(0.5rem, 0.5vw, 0.75rem);
+  }
+
+  .tlkv-gold-dashboard {
+    --tlkv-gp-row-h: 2.625rem;
+    --tlkv-gp-head-h: 2.5rem;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th,
+  .tlkv-gold-dashboard .gold-table-content tbody td {
+    font-size: 0.8125rem !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended td.price {
+    font-size: 0.9375rem !important;
+  }
+
+  .tlkv-gold-dashboard td.price .gold-price-trend {
+    font-size: 0.875rem;
+  }
+
+  .tlkv-gold-dashboard td.price .gold-price-trend svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* Legacy wrappers inside dashboard — neutralize old layout */
+.tlkv-gold-dashboard .chart-container-row {
+  display: block;
+}
+
+.tlkv-gold-dashboard .chart-container.container-l {
+  width: 100%;
+  max-width: 100%;
+  flex: none;
+}
+
+.tlkv-gold-dashboard .chart-title.title-w-deco,
+.tlkv-gold-dashboard .chart-body > .gold-title {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+  .tlkv-gold-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tlkv-gold-dashboard__grid {
+    min-height: 0;
+  }
+
+  .tlkv-gold-panel--world .tlkv-world-xau-tv-wrap {
+    min-height: 320px;
+  }
+
+  .tlkv-gold-panel--world .tlkv-world-xau-tv-wrap iframe {
+    min-height: 320px;
+    height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended {
+    width: max-content !important;
+    min-width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(2),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(2),
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content th:nth-child(5),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(5) {
+    width: auto !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content td.price,
+  .tlkv-gold-dashboard .gold-table-content thead th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content thead th:nth-child(5) {
+    white-space: nowrap !important;
+    word-break: normal !important;
+  }
+
+  .tlkv-gold-dashboard .gold-brand-cell {
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tlkv-gold-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tlkv-gold-panel__head,
+  .tlkv-gold-panel--world .tlkv-world-xau-head {
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  .tlkv-gold-panel__body {
+    padding-bottom: 0.75rem;
+  }
+
+  .tlkv-gold-panel--world .tlkv-world-xau-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tlkv-gold-panel--world .tlkv-world-xau-spot {
+    text-align: left;
+    width: 100%;
+  }
+}

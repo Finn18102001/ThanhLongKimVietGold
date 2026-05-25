@@ -926,6 +926,10 @@ function showToast(message, type = 'success') {
 
   /* ───── refreshProductsTable ───── */
   function refreshProductsTable() {
+    if (window.TLKVCatalogAdmin && typeof window.TLKVCatalogAdmin.refreshProductsTableAdmin === "function") {
+      window.TLKVCatalogAdmin.refreshProductsTableAdmin();
+      return;
+    }
     if (!window.TLKVProducts) return;
     window.TLKVProducts.getProducts()
       .then(function (data) {
@@ -1057,11 +1061,15 @@ function showToast(message, type = 'success') {
 
   /* ───── applySession ───── */
   function applySession(session) {
+    var wasAuthed = adminAuthed;
     adminAuthed = !!session;
     if (adminAuthed) {
       showAdmin();
-      currentTab = "gold";
-      switchTab("gold");
+      /* Chỉ về tab giá vàng khi vừa đăng nhập — không khi TOKEN_REFRESHED sau lưu SP */
+      if (!wasAuthed) {
+        currentTab = "gold";
+        switchTab("gold");
+      }
       refreshTable();
       refreshMetaForm();
       refreshProductsTable();
@@ -1334,19 +1342,9 @@ function showToast(message, type = 'success') {
 
     $("btn-product-new")?.addEventListener("click", resetProductForm);
 
-    $("btn-refresh-products")?.addEventListener("click", function () {
-      refreshProductsTable();
-    });
-
-    $("btn-reset-products-json")?.addEventListener("click", function () {
-      if (!confirm("Xóa khóa localStorage cũ của sản phẩm (nếu có)? Dữ liệu trên Supabase không bị xóa."))
-        return;
-      window.TLKVProducts.clearStorage();
-      refreshProductsTable();
-    });
-
     $("product-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (document.getElementById("pf-brand-id")) return;
       if (!window.TLKVProducts) return;
 
       const isEdit = !!$("pf-id").value.trim();
@@ -2046,13 +2044,14 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
     // Tạo tên file duy nhất
     const fileExt = currentUploadFile.name.split('.').pop();
     const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
-    const filePath = `products/${fileName}`;
+    const productId = (document.getElementById('pf-id') && document.getElementById('pf-id').value.trim()) || 'new';
+    const filePath = `products/${productId}/thumbnail/${fileName}`;
 
     console.log('📤 Uploading to:', filePath);
 
-    // Upload lên Supabase Storage
+    // Upload lên Supabase Storage (bucket product-media)
     const { data, error } = await supabaseClient.storage
-      .from('product-images')
+      .from('product-media')
       .upload(filePath, currentUploadFile, {
         cacheControl: '3600',
         upsert: false,
@@ -2065,7 +2064,7 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
 
     // Lấy public URL
     const { data: { publicUrl } } = supabaseClient.storage
-      .from('product-images')
+      .from('product-media')
       .getPublicUrl(filePath);
 
     console.log('🔗 Public URL:', publicUrl);
@@ -2131,6 +2130,16 @@ function clearProductForm() {
 
   const categoryField = document.getElementById('pf-category');
   if (categoryField) categoryField.value = '';
+  ['pf-brand-id', 'pf-category-id', 'pf-slug'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['pf-is-featured', 'pf-is-best-seller', 'pf-is-hot'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  var activeEl = document.getElementById('pf-is-active');
+  if (activeEl) activeEl.checked = true;
 
   const priceTextField = document.getElementById('pf-priceText');
   if (priceTextField) priceTextField.value = '';
@@ -2164,7 +2173,7 @@ function clearProductForm() {
 
   // Reset form title
   const formTitle = document.getElementById('product-form-title');
-  if (formTitle) formTitle.textContent = '✨ Thêm sản phẩm mới';
+  if (formTitle) formTitle.textContent = 'Thêm sản phẩm mới';
 
   // Enable upload button
   const uploadBtn = document.getElementById('btn-upload-supabase');

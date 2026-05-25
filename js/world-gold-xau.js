@@ -10,6 +10,19 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     if (el) el.textContent = text == null ? "" : String(text);
   }
 
+  function formatWorldMetaAsOf(iso) {
+    if (!iso) return "Cập nhật lúc: —";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "Cập nhật lúc: —";
+    var t = d.toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    return "Cập nhật lúc: " + String(t).replace(/\s/g, "").replace(":", "h");
+  }
+
   function shouldSkipTradingViewEmbed() {
     if (global.__TLKV_SKIP_TRADINGVIEW === true) return true;
     if (global.__TLKV_SKIP_TRADINGVIEW === false) return false;
@@ -121,8 +134,10 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     var chEl = els.chEl;
     var tbody = els.tbody;
     var foot = els.foot;
+    var metaEl = els.metaEl;
 
     setText(spotEl, s.priceDisplay || "—");
+    setText(metaEl, formatWorldMetaAsOf(j.asOf));
 
     if (chEl) {
       var ch = s.ch;
@@ -183,9 +198,10 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     var chEl = $(".tlkv-world-xau-change", root);
     var tbody = $(".tlkv-world-xau-tbody", root);
     var foot = $(".tlkv-world-xau-foot", root);
+    var metaEl = $(".tlkv-world-xau-meta", root);
     var errBox = $(".tlkv-world-xau-msg", root);
 
-    var els = { spotEl, chEl, tbody, foot };
+    var els = { spotEl, chEl, tbody, foot, metaEl };
 
     var cached = getCache();
 

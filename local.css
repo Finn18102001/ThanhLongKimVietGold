@@ -1,4 +1,4 @@
-/* Thăng Long Kim Việt – Local overrides (loaded after /css/vendor/style.css) */
+/* Thăng Long Kim Việt – Local overrides (loaded after design-system + vendor style) */
 
 /* Placeholder blocks replacing external images */
 .img-ph {
@@ -21,20 +21,16 @@
   display: block;
   width: 150px;
   height: 48px;
-  border-radius: 10px;
-  background: rgba(153, 0, 0, 0.25);
-  border: 1px solid rgba(153, 0, 0, 0.35);
+  border-radius: var(--tlkv-radius-md);
+  background: var(--tlkv-gold-ghost);
+  border: 1px solid var(--tlkv-border-gold);
 }
 .logo-ph--sm {
   width: 120px;
   height: 38px;
 }
 
-.banner-frame {
-  height: 420px;
-  background: linear-gradient(135deg, rgba(153, 0, 0, 0.18), rgba(0, 0, 0, 0.05));
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
+/* Homepage hero: /css/hero.css */
 
 /* Footer text tweaks */
 .footer .footer-info ul li span {
@@ -42,59 +38,25 @@
 }
 
 .site-logo-img {
-  max-height: 56px;
   width: auto;
   display: block;
 }
 .site-logo-img--sm {
-  max-height: 44px;
+  width: auto;
 }
 .site-logo-img--footer {
   max-height: 64px;
   margin-bottom: 8px;
 }
 
-.header-gr.right-gr .header-gr-item {
-  display: flex;
-  align-items: center;
-}
+/* Header / navbar UI: /css/header.css */
 
-.header-zalo-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 0;
-  transition: transform 0.2s ease, filter 0.2s ease;
-}
-
-.header-zalo-link:hover {
-  transform: scale(1.08);
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
-  text-decoration: none;
-}
-
-.header-zalo-link img {
-  width: 36px;
-  height: 36px;
-  display: block;
-}
-
-.header-mb-wrap .header-zalo-link--mb {
-  margin-left: auto;
-}
-
-.header-zalo-link--mb img {
-  width: 32px;
-  height: 32px;
-}
-
-/* Khung section bảng giá: mở rộng, không cắt cột giá (template hay để .container-l ~50%) */
-.home-chart.gold-rate-component {
+/* Gold pricing dashboard: /css/gold-pricing.css */
+.home-chart.gold-rate-component:not(.tlkv-gold-dashboard) {
   overflow: visible;
 }
 
-.home-chart.gold-rate-component > .container {
+.home-chart.gold-rate-component:not(.tlkv-gold-dashboard) > .container {
   max-width: min(100vw - 24px, 1680px);
   width: 100%;
 }
@@ -131,8 +93,8 @@
 }
 .gold-table-brand-italic {
   font-style: italic;
-  color: #8b1d1d;
-  font-weight: 600;
+  color: var(--tlkv-gold-dark);
+  font-weight: var(--tlkv-weight-semibold);
 }
 
 .gold-table-extended th,
@@ -162,8 +124,8 @@
 }
 
 .gold-table-content.gold-table-extended tbody td.gold-brand-cell:not(.gold-brand-cell--silver) {
-  background: #fff !important;
-  color: #18181b !important;
+  background: var(--tlkv-bg-elevated) !important;
+  color: var(--tlkv-text) !important;
 }
 
 .gold-table-content.gold-table-extended tbody td.gold-brand-cell--silver {
@@ -244,10 +206,10 @@
   flex-shrink: 0;
 }
 .gold-price-trend--up {
-  color: #16a34a;
+  color: var(--tlkv-success);
 }
 .gold-price-trend--down {
-  color: #ff0000;
+  color: var(--tlkv-danger);
 }
 
 .tv-gold-table .gold-price-trend {
@@ -258,11 +220,11 @@
 
 /* TV: giá vàng/trắng trên td — icon xu hướng luôn xanh/đỏ, không dính glow của giá */
 .tv-gold-table td.price .gold-price-trend--up {
-  color: #16a34a !important;
+  color: var(--tlkv-success) !important;
   text-shadow: none !important;
 }
 .tv-gold-table td.price .gold-price-trend--down {
-  color: #ff0000 !important;
+  color: var(--tlkv-danger) !important;
   text-shadow: none !important;
 }
 
@@ -275,10 +237,12 @@
 .gold-chart-wrap {
   width: 100%;
   height: 300px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--tlkv-bg-elevated);
+  border-radius: var(--tlkv-radius-lg);
+  border: 1px solid var(--tlkv-border);
+  padding: var(--tlkv-space-4);
   position: relative;
+  box-shadow: var(--tlkv-shadow-sm);
 }
 
 .menu-mb {
@@ -295,9 +259,6 @@
 }
 
 @media (max-width: 576px) {
-  .banner-frame {
-    height: 240px;
-  }
   .gold-table-extended {
     font-size: 12px;
   }
@@ -309,43 +270,39 @@
 }
 .tlkv-bestseller-title {
   text-align: center;
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #b91c1c;
-  margin: 0 0 24px;
-  text-transform: uppercase;
+  font-family: var(--tlkv-font-heading);
+  font-size: var(--tlkv-text-xl);
+  font-weight: var(--tlkv-weight-semibold);
+  letter-spacing: var(--tlkv-tracking-tight);
+  color: var(--tlkv-text);
+  margin: 0 0 var(--tlkv-space-6);
 }
+/* Product grid column sizing → css/product-card-layout.css (320px cards) */
 .tlkv-product-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
-  max-width: 1100px;
   margin: 0 auto;
-}
-@media (max-width: 991.98px) {
-  .tlkv-product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 575.98px) {
-  .tlkv-product-grid {
-    grid-template-columns: 1fr;
-  }
+  align-items: stretch;
 }
 .tlkv-product-card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-md);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
+  box-shadow: var(--tlkv-shadow-sm);
+  transition: box-shadow var(--tlkv-duration) var(--tlkv-ease), border-color var(--tlkv-duration) var(--tlkv-ease);
+}
+.tlkv-product-card:hover {
+  border-color: var(--tlkv-border-gold);
+  box-shadow: var(--tlkv-shadow-md);
 }
 .tlkv-product-card__media {
   position: relative;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  background: var(--tlkv-bg-pearl);
+  border-bottom: 1px solid var(--tlkv-border-light);
 }
 .tlkv-product-card__watermark {
   position: absolute;
@@ -366,15 +323,16 @@
   object-fit: contain;
   display: block;
 }
-.tlkv-product-card__img-wrap {
+/* Legacy cards (non-normalized fallback) */
+.tlkv-product-card:not(.tlkv-product-card--normalized) .tlkv-product-card__img-wrap {
   min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px 20px;
-  background: #fff;
+  padding: 40px var(--tlkv-space-4) var(--tlkv-space-5);
+  background: var(--tlkv-bg-pearl);
 }
-.tlkv-product-card__img {
+.tlkv-product-card:not(.tlkv-product-card--normalized) .tlkv-product-card__img {
   max-width: 100%;
   max-height: 190px;
   width: auto;
@@ -382,8 +340,8 @@
   object-fit: contain;
 }
 .tlkv-product-card__noimg {
-  font-size: 13px;
-  color: #a1a1aa;
+  font-size: var(--tlkv-text-sm);
+  color: var(--tlkv-text-soft);
 }
 .tlkv-product-card__body {
   padding: 14px 12px 18px;
@@ -393,45 +351,45 @@
   flex-direction: column;
 }
 .tlkv-product-card__name {
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: #18181b;
+  font-size: var(--tlkv-text-base);
+  font-weight: var(--tlkv-weight-normal);
+  line-height: var(--tlkv-leading-snug);
+  color: var(--tlkv-text);
   margin: 0 0 10px;
 }
 .tlkv-product-card__price {
-  font-size: 15px;
-  font-weight: 700;
-  color: #b91c1c;
+  font-size: var(--tlkv-text-md);
+  font-weight: var(--tlkv-weight-bold);
+  color: var(--tlkv-gold-dark);
   margin: 0;
 }
 .tlkv-product-empty {
-  color: #71717a;
+  color: var(--tlkv-text-muted);
   text-align: center;
-  padding: 24px;
+  padding: var(--tlkv-space-6);
 }
 
 @media (max-width: 768px) {
-  .gold-rate-component .table-responsive.gold-table {
+  .gold-rate-component:not(.tlkv-gold-dashboard) .table-responsive.gold-table {
     overflow-x: auto !important;
     overscroll-behavior-x: contain;
   }
-  .gold-table-content.gold-table-extended {
-    border: 1px solid #b91c1c !important;
+  .gold-rate-component:not(.tlkv-gold-dashboard) .gold-table-content.gold-table-extended {
+    border: 1px solid var(--tlkv-gold) !important;
     border-radius: 16px !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
     overflow: hidden !important;
   }
 
-  .gold-table-content.gold-table-extended {
+  .gold-rate-component:not(.tlkv-gold-dashboard) .gold-table-content.gold-table-extended {
     width: 100% !important;
     max-width: 100% !important;
     table-layout: fixed !important;
     border-collapse: collapse;
   }
 
-  .gold-table-content td {
+  .gold-rate-component:not(.tlkv-gold-dashboard) .gold-table-content td {
     font-size: 11.8px !important;
     line-height: 1.45 !important;
     padding: 9px 3px !important;           
@@ -441,7 +399,7 @@
     vertical-align: middle !important;
   }
 
-  .gold-table-content th {
+  .gold-rate-component:not(.tlkv-gold-dashboard) .gold-table-content th {
     font-size: 10.2px !important;
     line-height: 1.35 !important;
     padding: 10px 3px !important;         
@@ -1238,16 +1196,16 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #fff;
+  color: var(--tlkv-text-inverse);
   overflow: hidden;
   background:
-    linear-gradient(160deg, rgba(107,21,21,.92) 0%, rgba(139,29,29,.88) 40%, rgba(92,15,15,.95) 100%),
+    linear-gradient(160deg, rgba(42, 38, 32, 0.92) 0%, rgba(26, 26, 26, 0.88) 45%, rgba(42, 38, 32, 0.95) 100%),
     url('https://images.unsplash.com/photo-1624365168968-f283d506c6b6?w=1600&q=80') center / cover no-repeat;
 }
 .about-hero-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 60%, rgba(197,164,78,.18) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 30% 60%, rgba(201, 161, 74, 0.22) 0%, transparent 70%);
   pointer-events: none;
 }
 .about-hero-inner {
@@ -1271,10 +1229,10 @@
 }
 .about-hero-slogan {
   font-size: 1.25rem;
-  font-weight: 600;
-  color: #e8d9a0;
-  letter-spacing: .06em;
-  margin: 0 0 16px;
+  font-weight: var(--tlkv-weight-semibold);
+  color: var(--tlkv-gold-light);
+  letter-spacing: var(--tlkv-tracking-wider);
+  margin: 0 0 var(--tlkv-space-4);
 }
 .about-hero-desc {
   max-width: 620px;
@@ -1286,10 +1244,10 @@
 
 /* ----- Sections ----- */
 .about-section {
-  padding: 64px 0;
+  padding: var(--tlkv-section-y) 0;
 }
 .about-section--dark {
-  background: #faf7f0;
+  background: var(--tlkv-bg-cream);
 }
 
 .about-heading {
@@ -1328,8 +1286,8 @@
 }
 .about-col--text p {
   font-size: 15px;
-  line-height: 1.75;
-  color: #333;
+  line-height: var(--tlkv-leading-relaxed);
+  color: var(--tlkv-text-muted);
   margin: 0 0 14px;
 }
 .about-col--text p:last-child {
@@ -1338,10 +1296,11 @@
 
 /* Image frame */
 .about-img-frame {
-  border-radius: 14px;
+  border-radius: var(--tlkv-radius-lg);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  box-shadow: var(--tlkv-shadow-md);
   aspect-ratio: 4/3;
+  border: 1px solid var(--tlkv-border);
 }
 .about-img-frame img {
   width: 100%;
@@ -1353,13 +1312,14 @@
 /* Quote */
 .about-quote {
   border-left: 4px solid var(--tlkv-gold);
-  padding: 12px 20px;
-  margin: 16px 0;
+  padding: var(--tlkv-space-3) var(--tlkv-space-5);
+  margin: var(--tlkv-space-4) 0;
   font-size: 1.1rem;
   font-style: italic;
-  color: var(--tlkv-primary);
-  background: rgba(197,164,78,.06);
-  border-radius: 0 8px 8px 0;
+  font-family: var(--tlkv-font-heading);
+  color: var(--tlkv-gold-dark);
+  background: var(--tlkv-gold-ghost);
+  border-radius: 0 var(--tlkv-radius) var(--tlkv-radius) 0;
 }
 
 /* Check list */
@@ -1371,10 +1331,10 @@
 .about-check-list li {
   position: relative;
   padding-left: 28px;
-  margin-bottom: 8px;
+  margin-bottom: var(--tlkv-space-2);
   font-size: 15px;
-  line-height: 1.6;
-  color: #333;
+  line-height: var(--tlkv-leading-normal);
+  color: var(--tlkv-text-muted);
 }
 .about-check-list li::before {
   content: '\2714';
@@ -1397,8 +1357,8 @@
   padding-left: 28px;
   margin-bottom: 10px;
   font-size: 15px;
-  line-height: 1.7;
-  color: #333;
+  line-height: var(--tlkv-leading-relaxed);
+  color: var(--tlkv-text-muted);
 }
 .about-slogan-list li::before {
   content: '';
@@ -1419,16 +1379,17 @@
   margin-top: 32px;
 }
 .about-value-card {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 14px;
-  padding: 28px 20px;
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-lg);
+  padding: 28px var(--tlkv-space-5);
   text-align: center;
-  transition: transform .25s, box-shadow .25s;
+  box-shadow: var(--tlkv-shadow-sm);
+  transition: box-shadow var(--tlkv-duration) var(--tlkv-ease), border-color var(--tlkv-duration) var(--tlkv-ease);
 }
 .about-value-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 28px rgba(0,0,0,.1);
+  border-color: var(--tlkv-border-gold);
+  box-shadow: var(--tlkv-shadow-md);
 }
 .about-value-icon {
   font-size: 2rem;
@@ -1438,20 +1399,21 @@
 }
 .about-value-card h3 {
   font-size: 1rem;
-  font-weight: 700;
-  color: var(--tlkv-primary);
-  margin: 0 0 8px;
+  font-weight: var(--tlkv-weight-semibold);
+  font-family: var(--tlkv-font-heading);
+  color: var(--tlkv-text);
+  margin: 0 0 var(--tlkv-space-2);
 }
 .about-value-card p {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.6;
+  font-size: var(--tlkv-text-base);
+  color: var(--tlkv-text-muted);
+  line-height: var(--tlkv-leading-normal);
   margin: 0;
 }
 
 /* ----- Vision / Mission ----- */
 .about-vision-section {
-  background: #faf7f0;
+  background: var(--tlkv-bg-cream);
 }
 .about-vision-grid {
   display: grid;
@@ -1459,10 +1421,11 @@
   gap: 40px;
 }
 .about-vision-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  background: var(--tlkv-bg-elevated);
+  border: 1px solid var(--tlkv-border);
+  border-radius: var(--tlkv-radius-xl);
+  padding: var(--tlkv-space-10) var(--tlkv-space-8);
+  box-shadow: var(--tlkv-shadow-sm);
 }
 .about-vision-icon {
   color: var(--tlkv-gold);
@@ -1472,8 +1435,8 @@
 .about-vision-card p,
 .about-vision-card li {
   font-size: 15px;
-  line-height: 1.75;
-  color: #333;
+  line-height: var(--tlkv-leading-relaxed);
+  color: var(--tlkv-text-muted);
 }
 .about-mission-list {
   list-style: none;
@@ -1496,10 +1459,10 @@
 
 /* ----- CTA ----- */
 .about-cta {
-  background: var(--tlkv-primary);
-  color: #fff;
+  background: var(--tlkv-primary-dark);
+  color: var(--tlkv-text-inverse);
   text-align: center;
-  padding: 48px 16px;
+  padding: var(--tlkv-space-12) var(--tlkv-space-4);
 }
 .about-cta h2 {
   font-size: 1.5rem;
@@ -1510,19 +1473,18 @@
   display: inline-block;
   padding: 12px 36px;
   background: var(--tlkv-gold);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  border-radius: 40px;
-  letter-spacing: .04em;
-  transition: background .25s, transform .25s;
+  color: var(--tlkv-text-inverse);
+  font-weight: var(--tlkv-weight-bold);
+  font-size: var(--tlkv-text-md);
+  border-radius: var(--tlkv-radius-pill);
+  letter-spacing: var(--tlkv-tracking-wide);
+  transition: background var(--tlkv-duration) var(--tlkv-ease);
   text-decoration: none;
 }
 .about-cta-btn:hover {
-  background: #b8922d;
-  transform: translateY(-2px);
+  background: var(--tlkv-hover-gold);
   text-decoration: none;
-  color: #fff;
+  color: var(--tlkv-text-inverse);
 }
 
 /* ----- Responsive ----- */

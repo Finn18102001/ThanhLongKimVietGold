@@ -29,18 +29,80 @@
     };
     sb.channel("tlkv_public_products")
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, notify)
+      .on("postgres_changes", { event: "*", schema: "public", table: "brands" }, notify)
       .subscribe();
+  }
+
+  function parsePriceNumeric(priceText) {
+    const d = String(priceText || "").replace(/[^0-9]/g, "");
+    if (!d) return null;
+    const n = Number(d);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function slugifySimple(name) {
+    return String(name || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  /** Số nguyên >= 0; null nếu không có giá trị hợp lệ (ô trống / NaN). */
+  function coerceSortOrder(value) {
+    if (value == null || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n) || isNaN(n)) return null;
+    return Math.max(0, Math.floor(n));
+  }
+
+  async function resolveSortOrderForSave(sb, item) {
+    const fromForm = coerceSortOrder(item.sortOrder);
+    if (fromForm != null) return fromForm;
+
+    const id = String(item.id || "").trim();
+    if (id) {
+      const { data: ex, error } = await sb.from("products").select("sort_order").eq("id", id).maybeSingle();
+      if (error) throw error;
+      const kept = coerceSortOrder(ex && ex.sort_order);
+      if (kept != null) return kept;
+    }
+
+    const { data: rows, error: eRows } = await sb.from("products").select("sort_order");
+    if (eRows) throw eRows;
+    let max = 0;
+    (rows || []).forEach(function (r) {
+      const n = coerceSortOrder(r.sort_order);
+      if (n != null && n > max) max = n;
+    });
+    return max + 1;
   }
 
   function productDbToApp(r) {
     if (!r || typeof r !== "object") return normalizeItem({});
     const priceRaw = r.price_text ?? r.priceText ?? r.pricetext ?? "";
+    const brand = r.brands || null;
+    const cat = r.categories || null;
     return normalizeItem({
       id: r.id,
       name: r.name ?? "",
-      category: r.category ?? "",
+      slug: r.slug ?? "",
+      category: r.category ?? (cat && cat.name) ?? "",
+      categoryId: r.category_id ?? (cat && cat.id) ?? "",
+      categorySlug: (cat && cat.slug) || "",
+      brandId: r.brand_id ?? (brand && brand.id) ?? "",
+      brandName: (brand && brand.name) || "",
+      brandSlug: (brand && brand.slug) || "",
       priceText: priceRaw,
+      priceNumeric: r.price_numeric != null ? Number(r.price_numeric) : parsePriceNumeric(priceRaw),
       image: r.image ?? "",
+      sortOrder: r.sort_order,
+      isFeatured: !!r.is_featured,
+      isBestSeller: !!r.is_best_seller,
+      isHot: !!r.is_hot,
+      isActive: r.is_active !== false,
     });
   }
 
@@ -56,8 +118,18 @@
   }
 
   /** Không dùng .order(sort_order) trên query — tránh lỗi cột/không index; sắp xếp sau khi nhận dữ liệu. */
+  const PRODUCT_ADMIN_SELECT =
+    "*, brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)";
+
   async function fetchProductsFromSupabase(sb) {
-    const { data: rows, error } = await sb.from("products").select("*");
+    let res = await sb.from("products").select(PRODUCT_ADMIN_SELECT);
+    if (res.error && String(res.error.message || "").toLowerCase().includes("product_images")) {
+      res = await sb.from("products").select("*, brands(id, name, slug), categories(id, name, slug)");
+    }
+    if (res.error && String(res.error.message || "").toLowerCase().includes("brands")) {
+      res = await sb.from("products").select("*");
+    }
+    const { data: rows, error } = res;
     if (error) throw error;
     const list = rows || [];
     if (list.length === 0) {
@@ -91,33 +163,10 @@
       }
     }
     const upsertsWithOrder = fixed.items.map(function (p, idx) {
-      return {
-        id: p.id,
-        sort_order: idx + 1,
-        name: p.name,
-        category: p.category || "",
-        price_text: p.priceText || "",
-        image: p.image || "",
-      };
+      const so = coerceSortOrder(p.sortOrder);
+      return productAppToDb(p, so != null ? so : idx + 1);
     });
-    let eUp = (await sb.from("products").upsert(upsertsWithOrder, { onConflict: "id" })).error;
-    if (
-      eUp &&
-      String(eUp.message || eUp.details || "")
-        .toLowerCase()
-        .includes("sort_order")
-    ) {
-      const upsertsPlain = fixed.items.map(function (p) {
-        return {
-          id: p.id,
-          name: p.name,
-          category: p.category || "",
-          price_text: p.priceText || "",
-          image: p.image || "",
-        };
-      });
-      eUp = (await sb.from("products").upsert(upsertsPlain, { onConflict: "id" })).error;
-    }
+    const { error: eUp } = await sb.from("products").upsert(upsertsWithOrder, { onConflict: "id" });
     if (eUp) throw eUp;
   }
 
@@ -157,10 +206,73 @@
         (global.crypto && crypto.randomUUID ? crypto.randomUUID() : "p-" + Math.random().toString(36).slice(2))
       ),
       name: String(p.name ?? ""),
+      slug: String(p.slug ?? ""),
       category: String(p.category ?? ""),
+      categoryId: p.categoryId ? String(p.categoryId) : "",
+      categorySlug: String(p.categorySlug ?? ""),
+      brandId: p.brandId ? String(p.brandId) : "",
+      brandName: String(p.brandName ?? ""),
+      brandSlug: String(p.brandSlug ?? ""),
       priceText: String(p.priceText ?? ""),
+      priceNumeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
       image: String(p.image ?? "").trim(),
+      sortOrder: coerceSortOrder(p.sortOrder),
+      isFeatured: !!p.isFeatured,
+      isBestSeller: !!p.isBestSeller,
+      isHot: !!p.isHot,
+      isActive: p.isActive !== false,
     };
+  }
+
+  function productAppToDb(p, sortOrderResolved) {
+    const slug = String(p.slug || "").trim() || slugifySimple(p.name) || String(p.id);
+    const sortOrder =
+      sortOrderResolved != null ? coerceSortOrder(sortOrderResolved) : coerceSortOrder(p.sortOrder);
+    return {
+      id: p.id,
+      name: p.name || "",
+      slug: slug,
+      category: p.category || "",
+      price_text: p.priceText || "",
+      price_numeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
+      image: p.image || "",
+      sort_order: sortOrder != null ? sortOrder : 0,
+      brand_id: p.brandId || null,
+      category_id: p.categoryId || null,
+      is_featured: !!p.isFeatured,
+      is_best_seller: !!p.isBestSeller,
+      is_hot: !!p.isHot,
+      is_active: p.isActive !== false,
+    };
+  }
+
+  async function saveProduct(item) {
+    assertProductsAdminWrite();
+    const normalized = normalizeItem(item);
+    const sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    const sortOrder = await resolveSortOrderForSave(sb, normalized);
+    normalized.sortOrder = sortOrder;
+    const row = productAppToDb(normalized, sortOrder);
+    const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
+    if (error) throw error;
+    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
+      global.TLKVCatalogApi.invalidateHomeCache();
+    }
+    global.dispatchEvent(new CustomEvent("tlkv:products-changed", { detail: { item: normalized } }));
+    return normalized;
+  }
+
+  async function deleteProductById(id) {
+    assertProductsAdminWrite();
+    const sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    const { error } = await sb.from("products").delete().eq("id", id);
+    if (error) throw error;
+    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
+      global.TLKVCatalogApi.invalidateHomeCache();
+    }
+    global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
   function normalizePayload(raw) {
@@ -386,6 +498,16 @@
   async function mountProductList(containerSelector) {
     const el = document.querySelector(containerSelector);
     if (!el) return null;
+    if (global.TLKVCatalogPage && typeof global.TLKVCatalogPage.mountCatalogPage === "function") {
+      try {
+        const result = await global.TLKVCatalogPage.mountCatalogPage(el);
+        const sb = await getSupabaseClient();
+        startProductsRealtime(sb);
+        return result;
+      } catch (e) {
+        console.warn("[TLKVProducts] catalog mount failed, legacy grid:", e);
+      }
+    }
     try {
       const data = await getProducts();
       renderProductGrid(el, data && data.items);
@@ -411,8 +533,15 @@
     fetchDefaultJson,
     loadFromStorage,
     saveToStorage,
+    saveProduct,
+    deleteProductById,
     clearStorage,
     normalizePayload,
+    normalizeItem,
+    productAppToDb,
+    parsePriceNumeric,
+    slugifySimple,
+    coerceSortOrder,
     mountProductList,
     renderList,
     renderProductGrid,

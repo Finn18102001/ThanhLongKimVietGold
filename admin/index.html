@@ -179,47 +179,79 @@
 
       <section id="admin-tab-products" class="admin-tab-panel admin-tab-panel--hidden" role="tabpanel"
         aria-labelledby="tab-btn-products" hidden>
-        <div class="admin-actions" style="margin-bottom: 16px">
-          <button type="button" id="btn-refresh-products" class="btn-secondary">Làm mới danh sách</button>
-          <button type="button" id="btn-reset-products-json" class="btn-secondary">Xóa cache local sản phẩm (nếu
-            có)</button>
+        <nav class="catalog-admin-subtabs" aria-label="Quản lý catalog">
+          <button type="button" class="admin-tab admin-tab--active" data-catalog-subtab="products">Sản phẩm</button>
+          <button type="button" class="admin-tab" data-catalog-subtab="brands">Thương hiệu</button>
+          <button type="button" class="admin-tab" data-catalog-subtab="categories">Danh mục</button>
+        </nav>
+
+        <div data-catalog-panel="products" class="catalog-admin-panel">
+        <div class="catalog-admin-filters">
+          <div class="catalog-admin-field">
+            <label class="catalog-admin-label" for="catalog-admin-search">Tìm kiếm</label>
+            <input type="search" id="catalog-admin-search" class="catalog-admin-input" placeholder="Tên sản phẩm…" autocomplete="off" />
+          </div>
+          <div class="catalog-admin-field">
+            <label class="catalog-admin-label" for="catalog-admin-filter-brand">Thương hiệu</label>
+            <select id="catalog-admin-filter-brand" class="catalog-admin-select"><option value="">Tất cả</option></select>
+          </div>
+          <div class="catalog-admin-field">
+            <label class="catalog-admin-label" for="catalog-admin-filter-category">Danh mục</label>
+            <select id="catalog-admin-filter-category" class="catalog-admin-select"><option value="">Tất cả</option></select>
+          </div>
         </div>
 
-        <div class="admin-card product-form-card"
-          style="box-shadow: none; border: 1px solid #e4e4e7; padding: 0; overflow: hidden;">
-          <div style="padding: 20px 24px; background: #fafafa; border-bottom: 1px solid #e4e4e7;">
-            <h2 id="product-form-title"
-              style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-              <span>✨</span> Thêm sản phẩm mới
-            </h2>
-          </div>
+        <div class="catalog-admin-card product-form-card">
+          <header class="catalog-admin-card__head">
+            <h2 id="product-form-title" class="catalog-admin-card__title">Thêm sản phẩm mới</h2>
+          </header>
 
-          <form id="product-form" style="padding: 24px;">
+          <form id="product-form" class="catalog-admin-form">
             <input type="hidden" id="pf-id" />
+            <input type="hidden" id="pf-category" />
 
-            <div class="product-form-grid">
-              <div class="form-field">
-                <label>📦 Tên sản phẩm <span class="required">*</span></label>
-                <input type="text" id="pf-name" required placeholder="VD: Nhẫn tròn Thăng Long" />
+            <div class="catalog-admin-form__grid">
+              <div class="catalog-admin-field catalog-admin-field--full">
+                <label class="catalog-admin-label" for="pf-name">Tên sản phẩm <span class="required">*</span></label>
+                <input type="text" id="pf-name" class="catalog-admin-input" required placeholder="VD: Nhẫn tròn Thăng Long" />
               </div>
 
-              <div class="form-field">
-                <label>🏷️ Danh mục</label>
-                <input type="text" id="pf-category" placeholder="VD: Vàng, Trang sức, Nhẫn..." />
+              <div class="catalog-admin-field">
+                <label class="catalog-admin-label" for="pf-brand-id">Thương hiệu</label>
+                <select id="pf-brand-id" class="catalog-admin-select"></select>
               </div>
 
-              <div class="form-field">
-                <label>💰 Giá / ghi chú</label>
-                <input type="text" id="pf-priceText" placeholder="5.120.000đ hoặc Liên hệ" />
+              <div class="catalog-admin-field">
+                <label class="catalog-admin-label" for="pf-category-id">Danh mục</label>
+                <select id="pf-category-id" class="catalog-admin-select"></select>
               </div>
 
-              <div class="form-field full-width">
-                <label class="admin-label-full">
-                  🖼️ Ảnh sản phẩm
+              <div class="catalog-admin-field">
+                <label class="catalog-admin-label" for="pf-priceText">Giá / ghi chú</label>
+                <input type="text" id="pf-priceText" class="catalog-admin-input" placeholder="5.120.000đ hoặc Liên hệ" />
+              </div>
+
+              <div class="catalog-admin-field catalog-admin-field--full">
+                <span class="catalog-admin-label">Trạng thái &amp; nhãn</span>
+                <div class="catalog-admin-checkgroup">
+                  <label class="catalog-admin-check"><input type="checkbox" id="pf-is-featured" /> Nổi bật</label>
+                  <label class="catalog-admin-check"><input type="checkbox" id="pf-is-best-seller" /> Bán chạy</label>
+                  <label class="catalog-admin-check"><input type="checkbox" id="pf-is-hot" /> Hot</label>
+                  <label class="catalog-admin-check"><input type="checkbox" id="pf-is-active" checked /> Hiển thị</label>
+                </div>
+              </div>
+
+              <div class="catalog-admin-field catalog-admin-field--full catalog-admin-field--advanced">
+                <label class="catalog-admin-label" for="pf-slug">Slug (SEO)</label>
+                <input type="text" id="pf-slug" class="catalog-admin-input catalog-admin-input--muted" placeholder="Tự tạo từ tên nếu để trống" />
+              </div>
+
+              <div class="catalog-admin-field catalog-admin-field--full">
+                <label class="catalog-admin-label" for="pf-image">Ảnh sản phẩm</label>
                   <div class="image-upload-wrapper">
                     <!-- URL input -->
                     <div class="image-url-row">
-                      <input type="text" id="pf-image" class="image-url-input"
+                      <input type="text" id="pf-image" class="catalog-admin-input image-url-input"
                         placeholder="https://... hoặc /assets/..." />
                     </div>
 
@@ -231,7 +263,7 @@
                           <input type="file" id="pf-image-file" accept="image/*" hidden />
                         </label>
                         <button type="button" id="btn-upload-supabase" class="btn-upload-supabase" disabled>
-                          ☁️ Upload lên Supabase
+                          ☁️ Upload lên Supabase trước khi tạo mới
                         </button>
                         <button type="button" id="btn-clear-image" class="btn-clear-image">🗑 Xóa</button>
                       </div>
@@ -258,28 +290,19 @@
                     <!-- Upload status -->
                     <div id="upload-status" class="upload-status" style="display: none;"></div>
                   </div>
-                </label>
               </div>
             </div>
 
-            <div class="form-hint">
-              <div class="hint-icon">💡</div>
-              <div class="hint-text">
-                <strong>Hướng dẫn:</strong><br>
-                • <strong>Cách 1:</strong> Dán trực tiếp URL ảnh từ web vào ô trên.<br>
-                • <strong>Cách 2:</strong> Chọn file ảnh từ máy tính → bấm <strong>Upload</strong> để lưu lên Supabase
-                Storage (URL tự động điền).
-              </div>
-            </div>
+            <p class="catalog-admin-hint">Dán URL ảnh hoặc chọn file rồi upload lên Supabase — URL sẽ tự điền.</p>
 
-            <div class="form-actions">
-              <button type="submit" class="btn-primary btn-save">💾 Lưu sản phẩm</button>
-              <button type="button" id="btn-product-new" class="btn-secondary btn-reset">🔄 Mục mới</button>
+            <div class="catalog-admin-form__actions">
+              <button type="submit" class="btn-primary btn-save">Lưu sản phẩm</button>
+              <button type="button" id="btn-product-new" class="btn-secondary btn-reset">Mục mới</button>
             </div>
           </form>
         </div>
 
-        <h2>Danh sách sản phẩm</h2>
+        <h2 class="catalog-admin-section-title">Danh sách sản phẩm</h2>
         <div class="admin-table-wrap">
           <table class="admin-table">
             <thead>
@@ -287,8 +310,10 @@
                 <th>ID</th>
                 <th>Ảnh</th>
                 <th>Tên</th>
+                <th>Thương hiệu</th>
                 <th>Danh mục</th>
                 <th>Giá / ghi chú</th>
+                <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -322,6 +347,83 @@
             </table>
           </div>
           <div class="admin-pagination" id="product-hist-pagination"></div>
+        </div>
+        </div>
+
+        <div data-catalog-panel="brands" class="catalog-admin-panel" hidden>
+          <div class="catalog-admin-card">
+            <header class="catalog-admin-card__head">
+              <h2 class="catalog-admin-card__title" id="brand-form-title">Thêm thương hiệu</h2>
+              <p class="catalog-admin-card__sub">Thêm hoặc chỉnh sửa thương hiệu hiển thị trên trang chủ</p>
+            </header>
+            <form id="brand-form" class="catalog-admin-form catalog-admin-form--compact">
+              <input type="hidden" id="brand-form-id" />
+              <div class="catalog-admin-form__grid">
+                <div class="catalog-admin-field catalog-admin-field--full">
+                  <label class="catalog-admin-label" for="brand-form-name">Tên thương hiệu <span class="required">*</span></label>
+                  <input type="text" id="brand-form-name" class="catalog-admin-input" required placeholder="VD: Bảo Tín Minh Châu" />
+                </div>
+                <div class="catalog-admin-field catalog-admin-field--full">
+                  <label class="catalog-admin-label" for="brand-form-desc">Mô tả ngắn</label>
+                  <textarea id="brand-form-desc" class="catalog-admin-textarea" rows="2" placeholder="Mô tả hiển thị cạnh logo (tuỳ chọn)"></textarea>
+                </div>
+                <div class="catalog-admin-field catalog-admin-field--full">
+                  <label class="catalog-admin-label" for="brand-form-logo">Logo (URL ảnh)</label>
+                  <input type="url" id="brand-form-logo" class="catalog-admin-input" placeholder="https://... hoặc /assets/..." />
+                </div>
+                <div class="catalog-admin-field">
+                  <label class="catalog-admin-check catalog-admin-check--solo">
+                    <input type="checkbox" id="brand-form-active" checked /> Hiển thị trên website
+                  </label>
+                </div>
+              </div>
+              <div class="catalog-admin-form__actions">
+                <button type="submit" class="btn-primary btn-save">Lưu thương hiệu</button>
+                <button type="button" class="btn-secondary catalog-admin-btn-refresh" id="brand-form-refresh">Làm mới</button>
+              </div>
+            </form>
+          </div>
+          <h3 class="catalog-admin-section-title">Danh sách thương hiệu</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table catalog-admin-table">
+              <thead><tr><th>Tên</th><th>Mô tả</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+              <tbody id="admin-brand-rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div data-catalog-panel="categories" class="catalog-admin-panel" hidden>
+          <div class="catalog-admin-card">
+            <header class="catalog-admin-card__head">
+              <h2 class="catalog-admin-card__title" id="category-form-title">Thêm danh mục</h2>
+              <p class="catalog-admin-card__sub">Nhóm sản phẩm: Vàng miếng, Nhẫn trơn, Trang sức…</p>
+            </header>
+            <form id="category-form" class="catalog-admin-form catalog-admin-form--compact">
+              <input type="hidden" id="category-form-id" />
+              <div class="catalog-admin-form__grid">
+                <div class="catalog-admin-field catalog-admin-field--full">
+                  <label class="catalog-admin-label" for="category-form-name">Tên danh mục <span class="required">*</span></label>
+                  <input type="text" id="category-form-name" class="catalog-admin-input" required placeholder="VD: Vàng miếng" />
+                </div>
+                <div class="catalog-admin-field">
+                  <label class="catalog-admin-check catalog-admin-check--solo">
+                    <input type="checkbox" id="category-form-active" checked /> Hiển thị trên website
+                  </label>
+                </div>
+              </div>
+              <div class="catalog-admin-form__actions">
+                <button type="submit" class="btn-primary btn-save">Lưu danh mục</button>
+                <button type="button" class="btn-secondary catalog-admin-btn-refresh" id="category-form-refresh">Làm mới</button>
+              </div>
+            </form>
+          </div>
+          <h3 class="catalog-admin-section-title">Danh sách danh mục</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table catalog-admin-table">
+              <thead><tr><th>Tên</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+              <tbody id="admin-category-rows"></tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>
@@ -374,9 +476,13 @@
   </script>
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/gold-data.js"></script>
+  <script src="/js/products/constants.js"></script>
   <script src="/js/products-data.js"></script>
+  <script src="/js/products/catalog-api.js"></script>
   <script src="/js/admin-audit.js"></script>
   <script src="/js/admin-app.js"></script>
+  <script src="/js/admin/catalog-admin.js"></script>
+  <link href="/css/admin-catalog.css" rel="stylesheet" />
 
 </body>
 
