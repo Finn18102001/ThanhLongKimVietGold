@@ -1,23 +1,11 @@
 (function (global) {
   const STORAGE_KEY = "tlkv_products_v1";
 
-  /** @type {Promise<import("@supabase/supabase-js").SupabaseClient | null> | null} */
-  let __sbPromise = null;
   function getSupabaseClient() {
-    if (!__sbPromise) {
-      __sbPromise = Promise.resolve().then(function () {
-        const cfg =
-          typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
-            ? globalThis.__TLKV_SUPABASE__
-            : { url: "", anonKey: "" };
-        const url = String(cfg.url || "").trim();
-        const anonKey = String(cfg.anonKey || "").trim();
-        const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
-        if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
-        return sdk.createClient(url, anonKey);
-      });
+    if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
+      return global.TLKVSupabase.getSupabaseClient();
     }
-    return __sbPromise;
+    return Promise.resolve(null);
   }
 
   let __productsRealtimeStarted = false;
@@ -246,11 +234,76 @@
     };
   }
 
-  async function saveProduct(item) {
-    assertProductsAdminWrite();
-    const normalized = normalizeItem(item);
+  function validateProductForSave(item) {
+    if (global.TLKVProductCrud && global.TLKVProductCrud.validateForSave) {
+      return global.TLKVProductCrud.validateForSave(item);
+    }
+    var name = String((item && item.name) || "").trim();
+    if (!name) return { ok: false, errors: ["Tên sản phẩm là bắt buộc."] };
+    return { ok: true, errors: [] };
+  }
+
+  /** Create: slugify + collision suffix. Edit: keep existing slug. */
+  async function resolveSlugForSave(item, mode, existingSlug) {
+    if (mode === "edit" && existingSlug) return String(existingSlug).trim();
+    const base = slugifySimple(item.name) || item.id || "san-pham";
+    const sb = await getSupabaseClient();
+    if (!sb) return base;
+    let candidate = base;
+    for (let n = 0; n < 30; n++) {
+      const res = await sb.from("products").select("id").eq("slug", candidate).maybeSingle();
+      if (res.error) return base;
+      if (!res.data || res.data.id === item.id) return candidate;
+      candidate = base + "-" + (n + 2);
+    }
+    return candidate;
+  }
+
+  async function getProductById(id) {
     const sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
+    const res = await sb
+      .from("products")
+      .select("*, brands(id, name, slug), categories(id, name, slug)")
+      .eq("id", id)
+      .maybeSingle();
+    if (res.error) throw res.error;
+    if (!res.data) return null;
+    return productDbToApp(res.data);
+  }
+
+  async function assertSupabaseAdminSession(sb) {
+    if (!sb || !sb.auth || typeof sb.auth.getUser !== "function") {
+      throw new Error("Supabase chưa cấu hình.");
+    }
+    const { data, error } = await sb.auth.getUser();
+    if (error) throw error;
+    if (!data || !data.user) {
+      throw new Error(
+        "Chưa đăng nhập admin hoặc phiên đã hết hạn. Vào /admin, đăng nhập lại rồi thử lưu sản phẩm."
+      );
+    }
+  }
+
+  async function saveProduct(item, opts) {
+    assertProductsAdminWrite();
+    opts = opts || {};
+    const validation = validateProductForSave(item);
+    if (!validation.ok) {
+      throw new Error(validation.errors.join(" "));
+    }
+    const normalized = normalizeItem(item);
+    const mode = opts.mode === "edit" ? "edit" : "create";
+    if (mode === "create" && !String(normalized.id || "").trim()) {
+      normalized.id =
+        global.TLKVProductCrud && global.TLKVProductCrud.resolveProductId
+          ? global.TLKVProductCrud.resolveProductId(normalized, "create")
+          : "p-" + Date.now();
+    }
+    normalized.slug = await resolveSlugForSave(normalized, mode, opts.existingSlug || normalized.slug);
+    const sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    await assertSupabaseAdminSession(sb);
     const sortOrder = await resolveSortOrderForSave(sb, normalized);
     normalized.sortOrder = sortOrder;
     const row = productAppToDb(normalized, sortOrder);
@@ -263,10 +316,26 @@
     return normalized;
   }
 
+  /** Soft delete (recommended): hide from site, keep row + history. */
+  async function deactivateProductById(id) {
+    assertProductsAdminWrite();
+    const sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    await assertSupabaseAdminSession(sb);
+    const { error } = await sb.from("products").update({ is_active: false, is_featured: false }).eq("id", id);
+    if (error) throw error;
+    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
+      global.TLKVCatalogApi.invalidateHomeCache();
+    }
+    global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
+  }
+
+  /** Hard delete — use only when admin confirms; does not remove storage files. */
   async function deleteProductById(id) {
     assertProductsAdminWrite();
     const sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
+    await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").delete().eq("id", id);
     if (error) throw error;
     if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
@@ -534,6 +603,10 @@
     loadFromStorage,
     saveToStorage,
     saveProduct,
+    validateProductForSave,
+    resolveSlugForSave,
+    getProductById,
+    deactivateProductById,
     deleteProductById,
     clearStorage,
     normalizePayload,

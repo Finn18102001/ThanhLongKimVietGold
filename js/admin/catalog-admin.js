@@ -75,50 +75,9 @@
     if (current) sel.value = current;
   }
 
-  function collectProductForm() {
-    var brandEl = $("pf-brand-id");
-    var catEl = $("pf-category-id");
-    var brandId = brandEl ? brandEl.value : "";
-    var categoryId = catEl ? catEl.value : "";
-    var catRow = categoriesCache.find(function (c) {
-      return c.id === categoryId;
-    });
-    return {
-      id: ($("pf-id") && $("pf-id").value.trim()) || "",
-      name: ($("pf-name") && $("pf-name").value.trim()) || "",
-      slug: ($("pf-slug") && $("pf-slug").value.trim()) || "",
-      brandId: brandId,
-      categoryId: categoryId,
-      category: catRow ? catRow.name : ($("pf-category") && $("pf-category").value.trim()) || "",
-      priceText: ($("pf-priceText") && $("pf-priceText").value.trim()) || "",
-      image: ($("pf-image") && $("pf-image").value.trim()) || "",
-      sortOrder: null,
-      isFeatured: !!($("pf-is-featured") && $("pf-is-featured").checked),
-      isBestSeller: !!($("pf-is-best-seller") && $("pf-is-best-seller").checked),
-      isHot: !!($("pf-is-hot") && $("pf-is-hot").checked),
-      isActive: !($("pf-is-active") && $("pf-is-active").checked === false),
-    };
-  }
-
   function fillProductForm(item) {
-    if (!item) return;
-    if ($("pf-id")) $("pf-id").value = item.id || "";
-    if ($("pf-name")) $("pf-name").value = item.name || "";
-    if ($("pf-slug")) $("pf-slug").value = item.slug || "";
-    if ($("pf-brand-id")) $("pf-brand-id").value = item.brandId || "";
-    if ($("pf-category-id")) $("pf-category-id").value = item.categoryId || "";
-    if ($("pf-category")) $("pf-category").value = item.category || "";
-    if ($("pf-priceText")) $("pf-priceText").value = item.priceText || "";
-    if ($("pf-image")) $("pf-image").value = item.image || "";
-    if ($("pf-is-featured")) $("pf-is-featured").checked = !!item.isFeatured;
-    if ($("pf-is-best-seller")) $("pf-is-best-seller").checked = !!item.isBestSeller;
-    if ($("pf-is-hot")) $("pf-is-hot").checked = !!item.isHot;
-    if ($("pf-is-active")) $("pf-is-active").checked = item.isActive !== false;
-    if ($("product-form-title")) $("product-form-title").textContent = "Sửa sản phẩm";
-    var src = window.TLKVProducts && window.TLKVProducts.resolveProductImageSrc(item.image);
-    if (src && $("pf-image-preview")) {
-      $("pf-image-preview").src = src;
-      if ($("image-preview-container")) $("image-preview-container").style.display = "flex";
+    if (window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.loadForEdit) {
+      window.TLKVProductFormAdmin.loadForEdit(item);
     }
   }
 
@@ -441,37 +400,50 @@
         submitBtn.textContent = "⏳ Đang lưu...";
       }
 
-      var isEdit = !!($("pf-id") && $("pf-id").value.trim());
-      var payload = collectProductForm();
-      if (!payload.id) payload.id = "p-" + Date.now();
-      if (!payload.slug && window.TLKVProducts.slugifySimple) {
-        payload.slug = window.TLKVProducts.slugifySimple(payload.name) || payload.id;
-      }
+      var isEdit =
+        window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.getMode() === "edit";
 
-      window.TLKVProducts
-        .saveProduct(payload)
-        .then(function (saved) {
+      var payloadPromise =
+        window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.buildPayload
+          ? window.TLKVProductFormAdmin.buildPayload(categoriesCache)
+          : Promise.reject(new Error("TLKVProductFormAdmin chưa load."));
+
+      payloadPromise
+        .then(function (payload) {
+          return window.TLKVProducts.saveProduct(payload, {
+            mode: isEdit ? "edit" : "create",
+            existingSlug:
+              isEdit && window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.getOriginalSlug
+                ? window.TLKVProductFormAdmin.getOriginalSlug()
+                : "",
+          }).then(function (saved) {
+            return { saved: saved, payload: payload };
+          });
+        })
+        .then(function (result) {
+          var saved = result.saved;
           if (window.TLKVAudit) {
             return getSb().then(function (client) {
-              if (!client) return;
+              if (!client) return saved;
               return window.TLKVAudit.logProduct(client, {
                 action: isEdit ? "product_update" : "product_insert",
                 entity_name: saved.name,
                 entity_id: saved.id,
                 summary: isEdit ? "Cập nhật sản phẩm (catalog)" : "Thêm sản phẩm (catalog)",
                 payload: saved,
+              }).then(function () {
+                return saved;
               });
             });
           }
+          return saved;
         })
-        .then(function () {
+        .then(function (saved) {
           toast(isEdit ? "Đã cập nhật." : "Đã thêm sản phẩm.", "success");
-          if (typeof window.clearProductForm === "function") window.clearProductForm();
-          else {
-            form.reset();
-            if ($("pf-id")) $("pf-id").value = "";
-          }
-          if ($("product-form-title")) $("product-form-title").textContent = "Thêm sản phẩm mới";
+          if (window.TLKVProductFormAdmin) {
+            if (isEdit && saved) window.TLKVProductFormAdmin.loadForEdit(saved, { scroll: false });
+            else window.TLKVProductFormAdmin.resetToCreateMode();
+          } else if (typeof window.clearProductForm === "function") window.clearProductForm();
           refreshProductsTableAdmin();
         })
         .catch(function (err) {
@@ -485,11 +457,6 @@
         });
     });
 
-    $("pf-name")?.addEventListener("blur", function () {
-      if ($("pf-slug") && !$("pf-slug").value.trim() && window.TLKVProducts.slugifySimple) {
-        $("pf-slug").value = window.TLKVProducts.slugifySimple($("pf-name").value);
-      }
-    });
   }
 
   function initSubTabs() {
@@ -507,6 +474,9 @@
   }
 
   function boot() {
+    if (window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.init) {
+      window.TLKVProductFormAdmin.init();
+    }
     hookProductForm();
     initSubTabs();
     loadTaxonomies().then(function () {

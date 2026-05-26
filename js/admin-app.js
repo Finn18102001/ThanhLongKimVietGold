@@ -1028,6 +1028,10 @@ function showToast(message, type = 'success') {
                 return x.id === id;
               });
               if (!row) return;
+              if (window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.loadForEdit) {
+                window.TLKVProductFormAdmin.loadForEdit(row);
+                return;
+              }
               $("pf-id").value = row.id;
               $("pf-name").value = row.name;
               $("pf-category").value = row.category;
@@ -1051,12 +1055,11 @@ function showToast(message, type = 'success') {
   }
 
   function resetProductForm() {
-    $("pf-id").value = "";
-    $("pf-name").value = "";
-    $("pf-category").value = "";
-    $("pf-priceText").value = "";
-    if ($("pf-image")) $("pf-image").value = "";
-    $("product-form-title").textContent = "Thêm sản phẩm";
+    if (window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.resetToCreateMode) {
+      window.TLKVProductFormAdmin.resetToCreateMode();
+      return;
+    }
+    if (typeof clearProductForm === "function") clearProductForm();
   }
 
   /* ───── applySession ───── */
@@ -1085,14 +1088,18 @@ function showToast(message, type = 'success') {
   /* ───── bootSupabaseAuth ───── */
   async function bootSupabaseAuth() {
     try {
-      const cfg =
-        typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
-          ? globalThis.__TLKV_SUPABASE__
-          : { url: "", anonKey: "" };
-      const url = String(cfg.url || "").trim();
-      const key = String(cfg.anonKey || "").trim();
-      const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
-      sb = url && key && sdk && typeof sdk.createClient === "function" ? sdk.createClient(url, key) : null;
+      if (window.TLKVSupabase && typeof window.TLKVSupabase.getSupabaseClient === "function") {
+        sb = await window.TLKVSupabase.getSupabaseClient();
+      } else {
+        const cfg =
+          typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
+            ? globalThis.__TLKV_SUPABASE__
+            : { url: "", anonKey: "" };
+        const url = String(cfg.url || "").trim();
+        const key = String(cfg.anonKey || "").trim();
+        const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
+        sb = url && key && sdk && typeof sdk.createClient === "function" ? sdk.createClient(url, key) : null;
+      }
     } catch (e) {
       console.error(e);
       sb = null;
@@ -2118,78 +2125,38 @@ document.getElementById('btn-remove-preview')?.addEventListener('click', functio
 });
 
 function clearProductForm() {
-  console.log('🧹 Clearing product form...');
-
-  // Clear hidden ID
-  const idField = document.getElementById('pf-id');
-  if (idField) idField.value = '';
-
-  // Clear text inputs
-  const nameField = document.getElementById('pf-name');
-  if (nameField) nameField.value = '';
-
-  const categoryField = document.getElementById('pf-category');
-  if (categoryField) categoryField.value = '';
-  ['pf-brand-id', 'pf-category-id', 'pf-slug'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  ['pf-is-featured', 'pf-is-best-seller', 'pf-is-hot'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.checked = false;
-  });
-  var activeEl = document.getElementById('pf-is-active');
-  if (activeEl) activeEl.checked = true;
-
-  const priceTextField = document.getElementById('pf-priceText');
-  if (priceTextField) priceTextField.value = '';
-
-  const imageField = document.getElementById('pf-image');
-  if (imageField) imageField.value = '';
-
-  // Clear file upload
-  currentUploadFile = null;
-  const fileInput = document.getElementById('pf-image-file');
-  if (fileInput) fileInput.value = '';
-
-  // Hide selected file info
-  const fileInfo = document.getElementById('selected-file-info');
-  if (fileInfo) fileInfo.style.display = 'none';
-
-  // Clear preview
-  const preview = document.getElementById('pf-image-preview');
-  if (preview) preview.src = '';
-
-  const previewContainer = document.getElementById('image-preview-container');
-  if (previewContainer) previewContainer.style.display = 'none';
-
-  // Clear upload status
-  const statusDiv = document.getElementById('upload-status');
-  if (statusDiv) {
-    statusDiv.style.display = 'none';
-    statusDiv.innerHTML = '';
-    statusDiv.className = 'upload-status';
+  if (window.TLKVProductFormAdmin && window.TLKVProductFormAdmin.resetToCreateMode) {
+    window.TLKVProductFormAdmin.resetToCreateMode();
+    return;
   }
+  __tlkvResetProductImageUpload();
+}
 
-  // Reset form title
-  const formTitle = document.getElementById('product-form-title');
-  if (formTitle) formTitle.textContent = 'Thêm sản phẩm mới';
-
-  // Enable upload button
-  const uploadBtn = document.getElementById('btn-upload-supabase');
+global.__tlkvResetProductImageUpload = function __tlkvResetProductImageUpload() {
+  currentUploadFile = null;
+  var fileInput = document.getElementById("pf-image-file");
+  if (fileInput) fileInput.value = "";
+  var fileInfo = document.getElementById("selected-file-info");
+  if (fileInfo) fileInfo.style.display = "none";
+  var preview = document.getElementById("pf-image-preview");
+  if (preview) preview.removeAttribute("src");
+  var previewContainer = document.getElementById("image-preview-container");
+  if (previewContainer) previewContainer.style.display = "none";
+  var statusDiv = document.getElementById("upload-status");
+  if (statusDiv) {
+    statusDiv.style.display = "none";
+    statusDiv.innerHTML = "";
+    statusDiv.className = "upload-status";
+  }
+  var uploadBtn = document.getElementById("btn-upload-supabase");
   if (uploadBtn) {
     uploadBtn.disabled = true;
-    uploadBtn.innerHTML = '☁️ Upload lên Supabase';
+    uploadBtn.textContent = "☁️ Upload lên Supabase trước khi tạo mới";
   }
-
-  // Reset file name and size display
-  const fileNameSpan = document.getElementById('file-name');
-  const fileSizeSpan = document.getElementById('file-size');
-  if (fileNameSpan) fileNameSpan.textContent = '';
-  if (fileSizeSpan) fileSizeSpan.textContent = '';
-
-  console.log('✅ Product form cleared successfully');
-
-}
+  var fileNameSpan = document.getElementById("file-name");
+  var fileSizeSpan = document.getElementById("file-size");
+  if (fileNameSpan) fileNameSpan.textContent = "";
+  if (fileSizeSpan) fileSizeSpan.textContent = "";
+};
 // Khởi tạo
 initSupabaseClient();

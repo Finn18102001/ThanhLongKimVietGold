@@ -241,9 +241,12 @@
                 </div>
               </div>
 
-              <div class="catalog-admin-field catalog-admin-field--full catalog-admin-field--advanced">
-                <label class="catalog-admin-label" for="pf-slug">Slug (SEO)</label>
-                <input type="text" id="pf-slug" class="catalog-admin-input catalog-admin-input--muted" placeholder="Tự tạo từ tên nếu để trống" />
+              <div class="catalog-admin-field catalog-admin-field--full catalog-admin-field--slug-preview">
+                <span class="catalog-admin-label">Đường dẫn (tự động)</span>
+                <p id="pf-slug-preview" class="catalog-admin-slug-preview" aria-live="polite">—</p>
+                <p class="catalog-admin-slug-hint" id="pf-slug-hint">
+                  Tự tạo từ tên sản phẩm. Khi sửa, đường dẫn giữ nguyên để không gãy link.
+                </p>
               </div>
 
               <div class="catalog-admin-field catalog-admin-field--full">
@@ -471,16 +474,19 @@
   </div>
   <div id="admin-toast-host" class="admin-toast-host" aria-live="polite"></div>
   <script src="/js/boot-supabase-env.js"></script>
+  <script src="/js/tlkv-supabase-client.js"></script>
   <script>
     window.TLKV_BASE = "/";
   </script>
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/products/constants.js"></script>
+  <script src="/js/products/product-crud.js"></script>
   <script src="/js/products-data.js"></script>
   <script src="/js/products/catalog-api.js"></script>
   <script src="/js/admin-audit.js"></script>
   <script src="/js/admin-app.js"></script>
+  <script src="/js/admin/product-form-admin.js"></script>
   <script src="/js/admin/catalog-admin.js"></script>
   <link href="/css/admin-catalog.css" rel="stylesheet" />
 

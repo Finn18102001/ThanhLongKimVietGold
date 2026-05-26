@@ -17,21 +17,13 @@
     ")",
   ].join("\n");
 
-  var CACHE_HOME_KEY = "tlkv:cache:homepage:v1";
-  var CACHE_HOME_TTL_MS = 60000;
+  // Homepage featured cache intentionally disabled to always reflect latest API data.
 
   function getSupabaseClient() {
-    return Promise.resolve().then(function () {
-      var cfg =
-        typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
-          ? globalThis.__TLKV_SUPABASE__
-          : { url: "", anonKey: "" };
-      var url = String(cfg.url || "").trim();
-      var anonKey = String(cfg.anonKey || "").trim();
-      var sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
-      if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
-      return sdk.createClient(url, anonKey);
-    });
+    if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
+      return global.TLKVSupabase.getSupabaseClient();
+    }
+    return Promise.resolve(null);
   }
 
   function sortByOrder(a, b) {
@@ -122,44 +114,34 @@
   }
 
   function readHomeCache() {
-    try {
-      var raw = sessionStorage.getItem(CACHE_HOME_KEY);
-      if (!raw) return null;
-      var o = JSON.parse(raw);
-      if (!o || Date.now() - o.t > CACHE_HOME_TTL_MS) return null;
-      return o.data;
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   function writeHomeCache(data) {
-    try {
-      sessionStorage.setItem(CACHE_HOME_KEY, JSON.stringify({ t: Date.now(), data: data }));
-    } catch (_) {}
+    return data;
   }
 
   function invalidateHomeCache() {
-    try {
-      sessionStorage.removeItem(CACHE_HOME_KEY);
-    } catch (_) {}
+    return null;
   }
 
-  async function fetchFeaturedProducts(limit) {
+  /** Temporary homepage: all products, no is_active / is_featured filter. */
+  async function fetchAllProductsForHomepage() {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var cap = limit || 8;
     var rfn = resolveFn();
     var res = await runProductsQuery(function (q) {
-      return q
-        .eq("is_active", true)
-        .eq("is_featured", true)
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .limit(cap);
+      return q.order("sort_order", { ascending: true }).order("id", { ascending: true });
     });
     return (res.data || []).map(function (row) {
       return normalizeProduct(row, rfn);
     });
+  }
+
+  async function fetchFeaturedProducts(limit) {
+    var all = await fetchAllProductsForHomepage();
+    var cap = limit || 8;
+    return all.slice(0, cap);
   }
 
   async function fetchBrandCatalogSections(productLimitPerBrand) {
@@ -187,29 +169,110 @@
       });
   }
 
+  function getHomepageFeaturedLimit(override) {
+    if (global.TLKVHomepageBrandGrouping && global.TLKVHomepageBrandGrouping.resolvePerBrandLimit) {
+      return global.TLKVHomepageBrandGrouping.resolvePerBrandLimit(override);
+    }
+    if (override != null && override > 0) return Math.min(24, Math.floor(override));
+    return 6;
+  }
+
+  function getHomepageBrandDefinitions() {
+    var defs = Array.isArray(global.TLKV_HOMEPAGE_BRAND_SECTIONS)
+      ? global.TLKV_HOMEPAGE_BRAND_SECTIONS
+      : [];
+    return defs
+      .map(function (d) {
+        return d || {};
+      })
+      .filter(function (d) {
+        return !!String(d.slug || "").trim();
+      });
+  }
+
+  async function fetchAllBrandsForHomepage() {
+    var sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    var res = await sb
+      .from("brands")
+      .select("id, name, slug, description, logo_url, sort_order")
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true });
+    if (res.error) throw res.error;
+    return res.data || [];
+  }
+
+  /** Per-brand slice from full catalog (temporary — no featured/active filter). */
+  async function fetchFeaturedProductsForBrand(sb, brandId, limit, rfn) {
+    if (!brandId) return [];
+    var all = await fetchAllProductsForHomepage();
+    var Group = global.TLKVHomepageBrandGrouping;
+    var grouped = Group ? Group.groupByBrandId(all) : {};
+    var list = grouped[String(brandId)] || [];
+    var cap = getHomepageFeaturedLimit(limit);
+    return Group ? Group.takeFirst(list, cap) : list.slice(0, cap);
+  }
+
+  /**
+   * Homepage data flow:
+   * 1) get all brands
+   * 2) get all products
+   * 3) match config brand with API brand by slug/name
+   * 4) group products by brand_id
+   * 5) limit max 6 products per brand
+   * 6) render dynamic sections
+   */
+  async function fetchHomeFeaturedBrandSections(productLimitPerBrand) {
+    var perBrand = getHomepageFeaturedLimit(productLimitPerBrand);
+    var configBrands = getHomepageBrandDefinitions();
+    if (!configBrands.length) return [];
+
+    var apiBrands = [];
+    try {
+      apiBrands = await fetchAllBrandsForHomepage();
+    } catch (e) {
+      console.warn("[TLKVCatalog] homepage brands:", e);
+      apiBrands = [];
+    }
+
+    var allProducts = [];
+    try {
+      allProducts = await fetchAllProductsForHomepage();
+    } catch (e) {
+      console.warn("[TLKVCatalog] homepage products:", e);
+      allProducts = [];
+    }
+
+    if (
+      global.TLKVHomepageBrandGrouping &&
+      global.TLKVHomepageBrandGrouping.buildRenderableBrandSections
+    ) {
+      return global.TLKVHomepageBrandGrouping.buildRenderableBrandSections({
+        configBrands: configBrands,
+        apiBrands: apiBrands,
+        products: allProducts,
+        perBrandLimit: perBrand,
+      });
+    }
+
+    return [];
+  }
+
   async function fetchHomepageCatalog(opts) {
     opts = opts || {};
-    if (!opts.skipCache) {
-      var cached = readHomeCache();
-      if (cached) return cached;
-    }
-    var featuredLimit = opts.featuredLimit || 8;
-    var brandLimit = opts.brandProductLimit || 6;
+    var brandLimit =
+      opts.brandProductLimit != null
+        ? opts.brandProductLimit
+        : getHomepageFeaturedLimit();
 
-    var featured = [];
     var brandSections = [];
     try {
-      featured = await fetchFeaturedProducts(featuredLimit);
+      brandSections = await fetchHomeFeaturedBrandSections(brandLimit);
     } catch (e) {
-      console.warn("[TLKVCatalog] featured:", e);
-    }
-    try {
-      brandSections = await fetchBrandCatalogSections(brandLimit);
-    } catch (e) {
-      console.warn("[TLKVCatalog] brands:", e);
+      console.warn("[TLKVCatalog] homepage sections:", e);
     }
 
-    var payload = { featured: featured, brandSections: brandSections };
+    var payload = { brandSections: brandSections };
     writeHomeCache(payload);
     return payload;
   }
@@ -394,6 +457,8 @@
   global.TLKVCatalogApi = {
     getSupabaseClient: getSupabaseClient,
     fetchFeaturedProducts: fetchFeaturedProducts,
+    fetchFeaturedProductsForBrand: fetchFeaturedProductsForBrand,
+    fetchHomeFeaturedBrandSections: fetchHomeFeaturedBrandSections,
     fetchBrandCatalogSections: fetchBrandCatalogSections,
     fetchHomepageCatalog: fetchHomepageCatalog,
     fetchProductsPage: fetchProductsPage,

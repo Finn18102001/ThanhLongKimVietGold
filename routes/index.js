@@ -44,7 +44,17 @@ module.exports = function registerRoutes(app, ROOT) {
     res.setHeader("Cache-Control", "no-store");
     const { url, anonKey } = supabasePublicFromProcessEnv();
     const payload = { url, anonKey };
-    res.send("window.__TLKV_SUPABASE__=" + JSON.stringify(payload) + ";");
+    res.send(
+      "window.__TLKV_SUPABASE__=" +
+        JSON.stringify(payload) +
+        ";" +
+        "window.TLKV_SUPABASE_URL=" +
+        JSON.stringify(url) +
+        ";" +
+        "window.TLKV_SUPABASE_ANON_KEY=" +
+        JSON.stringify(anonKey) +
+        ";"
+    );
   });
 
   app.use("/api", require("./api")(ROOT));

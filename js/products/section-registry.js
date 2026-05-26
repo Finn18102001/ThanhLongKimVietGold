@@ -1,11 +1,11 @@
 (function (global) {
   "use strict";
 
-  /** Homepage: brand-first showcase only (featured items surface inside brand rows). */
+  /** Homepage sections: config brands + API brand/product matching, max 6 products per brand. */
   global.TLKV_HOMEPAGE_SECTIONS = [
     {
-      id: "brands",
-      type: "brand_group",
+      id: "featured_by_brand",
+      type: "featured_by_brand",
       productLimitPerBrand: 6,
     },
   ];

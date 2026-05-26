@@ -2,23 +2,11 @@
   const STORAGE_KEY = "tlkv_gold_table_v1";
   const GOLD_PUSH_LOG = "[TLKV gold-push]";
 
-  /** @type {Promise<import("@supabase/supabase-js").SupabaseClient | null> | null} */
-  let __sbPromise = null;
   function getSupabaseClient() {
-    if (!__sbPromise) {
-      __sbPromise = Promise.resolve().then(function () {
-        const cfg =
-          typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
-            ? globalThis.__TLKV_SUPABASE__
-            : { url: "", anonKey: "" };
-        const url = String(cfg.url || "").trim();
-        const anonKey = String(cfg.anonKey || "").trim();
-        const sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
-        if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
-        return sdk.createClient(url, anonKey);
-      });
+    if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
+      return global.TLKVSupabase.getSupabaseClient();
     }
-    return __sbPromise;
+    return Promise.resolve(null);
   }
 
   /** @type {import("@supabase/supabase-js").SupabaseClient | null} */

@@ -15,23 +15,11 @@
   // ---------------------------------------------------------------------------
   // Supabase client (lazy, singleton).
   // ---------------------------------------------------------------------------
-  /** @type {Promise<import("@supabase/supabase-js").SupabaseClient | null> | null} */
-  var __sbPromise = null;
-
   function getSupabaseClient() {
-    if (__sbPromise) return __sbPromise;
-    __sbPromise = Promise.resolve().then(function () {
-      var cfg =
-        typeof globalThis !== "undefined" && globalThis.__TLKV_SUPABASE__
-          ? globalThis.__TLKV_SUPABASE__
-          : { url: "", anonKey: "" };
-      var url = String(cfg.url || "").trim();
-      var anonKey = String(cfg.anonKey || "").trim();
-      var sdk = typeof globalThis !== "undefined" ? globalThis.supabase : null;
-      if (!url || !anonKey || !sdk || typeof sdk.createClient !== "function") return null;
-      return sdk.createClient(url, anonKey);
-    });
-    return __sbPromise;
+    if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
+      return global.TLKVSupabase.getSupabaseClient();
+    }
+    return Promise.resolve(null);
   }
 
   function requireSupabase() {
