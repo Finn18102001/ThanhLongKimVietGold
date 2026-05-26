@@ -83,6 +83,7 @@
   <link href="/css/world-gold-xau.css" rel="stylesheet">
   <link href="/css/gold-pricing.css" rel="stylesheet">
   <link href="/css/news.css" rel="stylesheet">
+  <link href="/css/products-catalog.css" rel="stylesheet" />
   <link href="/css/home-sections.css" rel="stylesheet" />
   <link href="/css/product-card-layout.css" rel="stylesheet" />
   <link href="/css/floating-contact.css" rel="stylesheet" />
@@ -381,6 +382,29 @@
             </div>
           </section>
 
+          <section class="tlkv-featured-products" aria-labelledby="tlkv-featured-products-title">
+            <div class="container tlkv-container--wide">
+              <header class="tlkv-featured-products__head">
+                <p class="tlkv-featured-products__eyebrow">Tuyển chọn theo thương hiệu</p>
+                <h2 id="tlkv-featured-products-title" class="tlkv-featured-products__title">
+                  <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--left" aria-hidden="true">
+                    <span class="tlkv-featured-products__ornament-line"></span>
+                  </span>
+                  <span class="tlkv-featured-products__title-text">Sản phẩm nổi bật</span>
+                  <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--right" aria-hidden="true">
+                    <span class="tlkv-featured-products__ornament-line"></span>
+                  </span>
+                </h2>
+              </header>
+              <div
+                id="tlkv-featured-products-root"
+                class="tlkv-featured-products__rows"
+                data-featured-products-host
+                aria-live="polite"
+              ></div>
+            </div>
+          </section>
+
           <section class="tlkv-value-strip" aria-labelledby="tlkv-value-strip-heading">
             <div class="container tlkv-container--wide">
               <h2 id="tlkv-value-strip-heading" class="visually-hidden">Giá trị và cam kết dịch vụ</h2>
@@ -596,6 +620,11 @@
   <script src="/js/gold-data.js"></script>
   <script src="/js/gold-pricing-layout.js"></script>
   <script src="/js/world-gold-xau.js"></script>
+  <script src="/js/products/constants.js"></script>
+  <script src="/js/products/product-card-layout.js"></script>
+  <script src="/js/products/product-card.js"></script>
+  <script src="/js/products/catalog-api.js"></script>
+  <script src="/js/products/featured-products-section.js"></script>
   <script src="/js/news/news-api.js"></script>
   <script src="/js/news/news-home-preview.js"></script>
     <script src="/js/floating-contact.js" defer></script>
@@ -603,6 +632,24 @@
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     TLKVGold.mountGoldTable("#gold-table-body");
+
+    if (window.TLKVFeaturedProductsSection) {
+      TLKVFeaturedProductsSection.mountFeaturedProductsSection("#tlkv-featured-products-root", { limit: 6 });
+
+      var featuredRefreshTimer = null;
+      var scheduleFeaturedRefresh = function () {
+        if (featuredRefreshTimer) {
+          clearTimeout(featuredRefreshTimer);
+        }
+        featuredRefreshTimer = setTimeout(function () {
+          featuredRefreshTimer = null;
+          TLKVFeaturedProductsSection.refreshIfChanged("#tlkv-featured-products-root", { limit: 6 });
+        }, 250);
+      };
+
+      window.addEventListener("tlkv:gold-table-changed", scheduleFeaturedRefresh);
+      window.addEventListener("tlkv:products-changed", scheduleFeaturedRefresh);
+    }
   </script>
   </body>
 

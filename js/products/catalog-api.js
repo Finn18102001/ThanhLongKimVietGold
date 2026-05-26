@@ -16,6 +16,10 @@
     "  product_images ( role, public_url, sort_order )",
     ")",
   ].join("\n");
+  var FEATURED_BRAND_SELECT = "id, name, slug, logo_url, sort_order";
+  var FEATURED_PRODUCT_SELECT = "id, name, slug, image, price_text, sort_order";
+  var FEATURED_FALLBACK_PRODUCT_SELECT =
+    "id, name, slug, image, price_text, sort_order, product_images ( role, public_url, sort_order )";
 
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
@@ -87,6 +91,19 @@
     };
   }
 
+  function normalizeFeaturedProduct(row, rfn) {
+    rfn = rfn || resolveFn();
+    return {
+      id: row.id,
+      name: row.name || "",
+      slug: row.slug || "",
+      image: row.image || "",
+      thumbnailUrl: pickImageUrl(row, rfn),
+      priceText: row.price_text || "",
+      sortOrder: row.sort_order,
+    };
+  }
+
   function normalizeBrand(row, rfn, productLimit) {
     var products = (row.products || [])
       .filter(function (p) {
@@ -134,6 +151,91 @@
       .filter(function (s) {
         return s.products && s.products.length > 0;
       });
+  }
+
+  /**
+   * Homepage featured flow:
+   * 1) load active brands ordered by sort_order
+   * 2) per brand, load active + featured products from gold_meta
+   * 3) attach to featured_products and drop empty brands
+   */
+  async function fetchFeaturedBrandsWithProducts(productLimitPerBrand) {
+    var sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    var rfn = resolveFn();
+    var limit = productLimitPerBrand != null ? productLimitPerBrand : 6;
+
+    var brandRes = await sb
+      .from("brands")
+      .select(FEATURED_BRAND_SELECT)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (brandRes.error) throw brandRes.error;
+
+    var brands = brandRes.data || [];
+    var out = [];
+    var featuredSource = "gold_meta";
+
+    async function queryFeaturedProductsFromGoldMeta(brandId) {
+      return sb
+        .from("gold_meta")
+        .select(FEATURED_PRODUCT_SELECT)
+        .eq("brand_id", brandId)
+        .eq("is_featured", true)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(limit);
+    }
+
+    async function queryFeaturedProductsFromProducts(brandId) {
+      return sb
+        .from("products")
+        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
+        .eq("brand_id", brandId)
+        .eq("is_featured", true)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(limit);
+    }
+
+    for (var i = 0; i < brands.length; i += 1) {
+      var brand = brands[i];
+      var productRes =
+        featuredSource === "gold_meta"
+          ? await queryFeaturedProductsFromGoldMeta(brand.id)
+          : await queryFeaturedProductsFromProducts(brand.id);
+
+      if (productRes.error && featuredSource === "gold_meta") {
+        var msg = String((productRes.error && productRes.error.message) || "").toLowerCase();
+        var shouldFallback =
+          msg.indexOf("does not exist") >= 0 ||
+          msg.indexOf("column") >= 0 ||
+          msg.indexOf("schema cache") >= 0;
+        if (shouldFallback) {
+          featuredSource = "products";
+          productRes = await queryFeaturedProductsFromProducts(brand.id);
+        }
+      }
+
+      if (productRes.error) throw productRes.error;
+
+      var featuredProducts = (productRes.data || []).map(function (row) {
+        return normalizeFeaturedProduct(row, rfn);
+      });
+
+      if (featuredProducts.length > 0) {
+        out.push({
+          id: brand.id,
+          name: brand.name || "",
+          slug: brand.slug || "",
+          logo_url: brand.logo_url || "",
+          sort_order: brand.sort_order,
+          featured_products: featuredProducts,
+        });
+      }
+    }
+
+    return out;
   }
 
   function applyProductFilters(q, filters) {
@@ -316,6 +418,7 @@
   global.TLKVCatalogApi = {
     getSupabaseClient: getSupabaseClient,
     fetchBrandCatalogSections: fetchBrandCatalogSections,
+    fetchFeaturedBrandsWithProducts: fetchFeaturedBrandsWithProducts,
     fetchProductsPage: fetchProductsPage,
     fetchBrandsList: fetchBrandsList,
     fetchCategoriesList: fetchCategoriesList,
