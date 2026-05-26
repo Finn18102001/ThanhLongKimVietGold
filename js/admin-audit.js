@@ -2,6 +2,25 @@
   var GOLD_LOG = "gold_price_change_log";
   var PRODUCT_LOG = "product_change_log";
 
+  /** Dev / owner: lưu sản phẩm bình thường nhưng không ghi product_change_log. */
+  var PRODUCT_AUDIT_SKIP_EMAILS = ["tuananh18101@gmail.com"];
+
+  function normalizeEmail(email) {
+    return String(email || "")
+      .trim()
+      .toLowerCase();
+  }
+
+  /**
+   * @param {string|null|undefined} actorEmail — JWT user.email
+   * @returns {boolean}
+   */
+  function shouldLogProductChange(actorEmail) {
+    var e = normalizeEmail(actorEmail);
+    if (!e) return true;
+    return PRODUCT_AUDIT_SKIP_EMAILS.indexOf(e) < 0;
+  }
+
   function safeIlikeFragment(s) {
     return String(s || "")
       .trim()
@@ -106,9 +125,30 @@
     });
   }
 
+  /**
+   * Ghi log sản phẩm nếu policy cho phép; không throw (tránh báo lỗi sau khi đã lưu SP).
+   * @returns {Promise<{ ok: boolean, skipped?: boolean, error?: Error }>}
+   */
+  function logProductSafe(sb, row, actorEmail) {
+    if (!shouldLogProductChange(actorEmail)) {
+      return Promise.resolve({ ok: true, skipped: true });
+    }
+    return logProduct(sb, row)
+      .then(function () {
+        return { ok: true };
+      })
+      .catch(function (err) {
+        console.warn("[TLKVAudit] product_change_log failed (product may already be saved):", err);
+        return { ok: false, error: err };
+      });
+  }
+
   global.TLKVAudit = {
+    PRODUCT_AUDIT_SKIP_EMAILS: PRODUCT_AUDIT_SKIP_EMAILS,
+    shouldLogProductChange: shouldLogProductChange,
     logGold: logGold,
     logProduct: logProduct,
+    logProductSafe: logProductSafe,
     fetchGoldLog: fetchGoldLog,
     fetchProductLog: fetchProductLog,
   };

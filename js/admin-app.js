@@ -998,15 +998,21 @@ function showToast(message, type = 'success') {
                 return window.TLKVProducts.saveToStorage(d);
               })
               .then(function () {
-                if (sb && window.TLKVAudit && removed) {
-                  return window.TLKVAudit.logProduct(sb, {
-                    action: "product_delete",
-                    entity_name: removed.name || removed.id,
-                    entity_id: removed.id,
-                    summary: "Đã xóa sản phẩm",
-                    payload: removed,
-                  });
-                }
+                if (!sb || !window.TLKVAudit || !removed || !window.TLKVAudit.logProductSafe) return;
+                return sb.auth.getUser().then(function (u) {
+                  var actorEmail = (u.data && u.data.user && u.data.user.email) || "";
+                  return window.TLKVAudit.logProductSafe(
+                    sb,
+                    {
+                      action: "product_delete",
+                      entity_name: removed.name || removed.id,
+                      entity_id: removed.id,
+                      summary: "Đã xóa sản phẩm",
+                      payload: removed,
+                    },
+                    actorEmail
+                  );
+                });
               })
               .then(function () {
                 showAdminToast("Đã xóa sản phẩm.");
@@ -1383,15 +1389,21 @@ function showToast(message, type = 'success') {
           return window.TLKVProducts.saveToStorage(d);
         })
         .then(function () {
-          if (sb && window.TLKVAudit && savedItem) {
-            return window.TLKVAudit.logProduct(sb, {
-              action: isEdit ? "product_update" : "product_insert",
-              entity_name: savedItem.name || savedItem.id,
-              entity_id: savedItem.id,
-              summary: isEdit ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới",
-              payload: savedItem,
-            });
-          }
+          if (!sb || !window.TLKVAudit || !savedItem || !window.TLKVAudit.logProductSafe) return;
+          return sb.auth.getUser().then(function (u) {
+            var actorEmail = (u.data && u.data.user && u.data.user.email) || "";
+            return window.TLKVAudit.logProductSafe(
+              sb,
+              {
+                action: isEdit ? "product_update" : "product_insert",
+                entity_name: savedItem.name || savedItem.id,
+                entity_id: savedItem.id,
+                summary: isEdit ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới",
+                payload: savedItem,
+              },
+              actorEmail
+            );
+          });
         })
         .then(function () {
           showToast(isEdit ? "✅ Đã cập nhật sản phẩm." : "✅ Đã thêm sản phẩm mới.", "success");
@@ -1888,38 +1900,29 @@ let currentUploadFile = null;
 let supabaseClient = null;
 
 
-function initSupabaseClient() {
-  // Nếu đã có client, trả về luôn
+async function initSupabaseClient() {
   if (supabaseClient) return supabaseClient;
-
-  // Lấy config (đã được hardcode ở đầu file)
-  const url = window.TLKV_SUPABASE_URL;
-  const key = window.TLKV_SUPABASE_ANON_KEY;
-
-  console.log('🔍 Initializing Supabase client...');
-  console.log('URL exists:', !!url);
-  console.log('KEY exists:', !!key);
-
-  if (!url || !key) {
-    console.error('❌ Supabase config missing!');
-    console.error('URL:', url);
-    console.error('KEY:', key ? 'present' : 'missing');
+  if (window.TLKVSupabase && typeof window.TLKVSupabase.getSupabaseClient === "function") {
+    try {
+      supabaseClient = await window.TLKVSupabase.getSupabaseClient();
+      if (supabaseClient) return supabaseClient;
+    } catch (e) {
+      console.error("TLKVSupabase.getSupabaseClient failed:", e);
+    }
+  }
+  var url = window.TLKV_SUPABASE_URL;
+  var key = window.TLKV_SUPABASE_ANON_KEY;
+  if (!url || !key || !window.supabase || typeof window.supabase.createClient !== "function") {
     return null;
   }
-
-  if (!window.supabase) {
-    console.error('❌ Supabase library not loaded!');
-    return null;
-  }
-
-  try {
-    supabaseClient = window.supabase.createClient(url, key);
-    console.log('✅ Supabase client created successfully');
-    return supabaseClient;
-  } catch (err) {
-    console.error('❌ Failed to create Supabase client:', err);
-    return null;
-  }
+  supabaseClient = window.supabase.createClient(url, key, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: "tlkv-supabase-auth",
+    },
+  });
+  return supabaseClient;
 }
 
 // Format file size
@@ -2030,12 +2033,15 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
     return;
   }
 
+  supabaseClient = await initSupabaseClient();
   if (!supabaseClient) {
-    initSupabaseClient();
-    if (!supabaseClient) {
-      showToast('Chưa kết nối Supabase', 'error');
-      return;
-    }
+    showToast('Chưa kết nối Supabase', 'error');
+    return;
+  }
+  var uploadUser = await supabaseClient.auth.getUser();
+  if (!uploadUser.data || !uploadUser.data.user) {
+    showToast('Chưa đăng nhập Supabase — đăng nhập /admin trước khi upload ảnh', 'error');
+    return;
   }
 
   const statusDiv = document.getElementById('upload-status');

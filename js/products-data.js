@@ -136,8 +136,9 @@
   async function persistProductsToSupabase(sb, payload) {
     const fixed = normalizePayload(payload);
     if (!fixed) return;
+    const adminUser = await assertSupabaseAdminSession(sb);
     const { data: existing, error: eEx } = await sb.from("products").select("id");
-    if (eEx) throw eEx;
+    throwIfSupabaseWriteError(eEx, adminUser);
     const keep = new Set(
       fixed.items.map(function (p) {
         return p.id;
@@ -147,7 +148,7 @@
       const ex = existing[i];
       if (!keep.has(ex.id)) {
         const { error: eDel } = await sb.from("products").delete().eq("id", ex.id);
-        if (eDel) throw eDel;
+        throwIfSupabaseWriteError(eDel, adminUser);
       }
     }
     const upsertsWithOrder = fixed.items.map(function (p, idx) {
@@ -155,7 +156,7 @@
       return productAppToDb(p, so != null ? so : idx + 1);
     });
     const { error: eUp } = await sb.from("products").upsert(upsertsWithOrder, { onConflict: "id" });
-    if (eUp) throw eUp;
+    throwIfSupabaseWriteError(eUp, adminUser);
   }
 
   function basePath() {
@@ -272,6 +273,34 @@
     return productDbToApp(res.data);
   }
 
+  function getConfiguredAdminEmails() {
+    var raw =
+      (global.TLKV_ADMIN_EMAILS && global.TLKV_ADMIN_EMAILS.length && global.TLKV_ADMIN_EMAILS) ||
+      (global.__TLKV_SUPABASE__ && global.__TLKV_SUPABASE__.adminEmails) ||
+      [];
+    return (raw || [])
+      .map(function (e) {
+        return String(e || "")
+          .trim()
+          .toLowerCase();
+      })
+      .filter(Boolean);
+  }
+
+  function explainSupabaseRlsError(err, userEmail) {
+    var msg = String((err && err.message) || err || "");
+    if (!/row-level security|rls/i.test(msg)) return msg;
+    var who = userEmail ? "Email đăng nhập: " + userEmail + ". " : "";
+    var hint =
+      "Supabase từ chối ghi (RLS): chỉ email admin trong SQL mới được INSERT/UPDATE. " +
+      "Mở Supabase → SQL Editor → chạy file supabase/tlkv-admin-rls.sql và thêm email của bạn vào hàm tlkv_admin_emails().";
+    var configured = getConfiguredAdminEmails();
+    if (configured.length) {
+      hint += " (Gợi ý client: " + configured.join(", ") + ")";
+    }
+    return who + hint;
+  }
+
   async function assertSupabaseAdminSession(sb) {
     if (!sb || !sb.auth || typeof sb.auth.getUser !== "function") {
       throw new Error("Supabase chưa cấu hình.");
@@ -283,6 +312,24 @@
         "Chưa đăng nhập admin hoặc phiên đã hết hạn. Vào /admin, đăng nhập lại rồi thử lưu sản phẩm."
       );
     }
+    var email = String(data.user.email || "").trim().toLowerCase();
+    var allowed = getConfiguredAdminEmails();
+    if (allowed.length && email && allowed.indexOf(email) < 0) {
+      throw new Error(
+        "Email đăng nhập (" +
+          data.user.email +
+          ") chưa nằm trong TLKV_ADMIN_EMAILS. Cập nhật boot-supabase-env.js và policy SQL (tlkv_admin_emails)."
+      );
+    }
+    return data.user;
+  }
+
+  function throwIfSupabaseWriteError(err, user) {
+    if (!err) return;
+    var email = user && user.email ? user.email : "";
+    var wrapped = new Error(explainSupabaseRlsError(err, email));
+    wrapped.cause = err;
+    throw wrapped;
   }
 
   async function saveProduct(item, opts) {
@@ -303,12 +350,12 @@
     normalized.slug = await resolveSlugForSave(normalized, mode, opts.existingSlug || normalized.slug);
     const sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
-    await assertSupabaseAdminSession(sb);
+    const adminUser = await assertSupabaseAdminSession(sb);
     const sortOrder = await resolveSortOrderForSave(sb, normalized);
     normalized.sortOrder = sortOrder;
     const row = productAppToDb(normalized, sortOrder);
     const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
-    if (error) throw error;
+    throwIfSupabaseWriteError(error, adminUser);
     if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
       global.TLKVCatalogApi.invalidateHomeCache();
     }
@@ -321,9 +368,9 @@
     assertProductsAdminWrite();
     const sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
-    await assertSupabaseAdminSession(sb);
+    const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").update({ is_active: false, is_featured: false }).eq("id", id);
-    if (error) throw error;
+    throwIfSupabaseWriteError(error, adminUser);
     if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
       global.TLKVCatalogApi.invalidateHomeCache();
     }
@@ -335,9 +382,9 @@
     assertProductsAdminWrite();
     const sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
-    await assertSupabaseAdminSession(sb);
+    const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").delete().eq("id", id);
-    if (error) throw error;
+    throwIfSupabaseWriteError(error, adminUser);
     if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
       global.TLKVCatalogApi.invalidateHomeCache();
     }

@@ -49,7 +49,9 @@ Re-enable featured/active filters later in one place (`product-crud.js` + catalo
 ## RLS
 
 - Public: SELECT all rows (or active-only per policy).
-- Write: JWT admin email policy — same Supabase client as login (`TLKVSupabase`).
+- Write: `public.tlkv_is_admin()` — email phải có trong `tlkv_admin_emails()` (chạy `supabase/tlkv-admin-rls.sql`).
+- Đăng nhập `/admin` ≠ quyền ghi: mọi user Auth đều vào được UI; chỉ email trong SQL mới INSERT/UPDATE.
+- Cùng client `TLKVSupabase` (storageKey `tlkv-supabase-auth`) cho login + lưu sản phẩm + upload ảnh.
 
 ## Anti-patterns removed
 

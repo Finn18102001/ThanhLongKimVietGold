@@ -59,6 +59,11 @@
   border-radius: 10px;
 }
 
+.catalog-admin-filters--list {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
 /* —— Shared field system —— */
 .catalog-admin-label {
   display: block;

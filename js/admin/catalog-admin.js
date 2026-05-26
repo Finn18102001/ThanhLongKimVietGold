@@ -422,21 +422,30 @@
         })
         .then(function (result) {
           var saved = result.saved;
-          if (window.TLKVAudit) {
-            return getSb().then(function (client) {
-              if (!client) return saved;
-              return window.TLKVAudit.logProduct(client, {
+          if (!window.TLKVAudit || !window.TLKVAudit.logProductSafe) return saved;
+          return getSb().then(async function (client) {
+            if (!client) return saved;
+            var actorEmail = "";
+            try {
+              var u = await client.auth.getUser();
+              actorEmail = (u.data && u.data.user && u.data.user.email) || "";
+            } catch (_) {}
+            var audit = await window.TLKVAudit.logProductSafe(
+              client,
+              {
                 action: isEdit ? "product_update" : "product_insert",
                 entity_name: saved.name,
                 entity_id: saved.id,
                 summary: isEdit ? "Cập nhật sản phẩm (catalog)" : "Thêm sản phẩm (catalog)",
                 payload: saved,
-              }).then(function () {
-                return saved;
-              });
-            });
-          }
-          return saved;
+              },
+              actorEmail
+            );
+            if (!audit.ok && !audit.skipped) {
+              toast("Đã lưu sản phẩm nhưng không ghi được lịch sử.", "error");
+            }
+            return saved;
+          });
         })
         .then(function (saved) {
           toast(isEdit ? "Đã cập nhật." : "Đã thêm sản phẩm.", "success");
