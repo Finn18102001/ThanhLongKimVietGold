@@ -106,8 +106,6 @@
   color: var(--tlkv-gold-dark, #9a7b1a);
 }
 
-/* Homepage featured UI → css/products-home-featured.css */
-
 /* Step 9 — archive filters */
 .tlkv-catalog-toolbar {
   max-width: 1100px;

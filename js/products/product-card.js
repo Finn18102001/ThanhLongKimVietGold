@@ -90,22 +90,15 @@
 
       (global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc);
 
-    var variant = opts.cardVariant === "showcase"
-      ? "showcase"
-      : opts.cardVariant === "home-featured"
-        ? "home-featured"
-        : "catalog";
+    var variant = opts.cardVariant === "showcase" ? "showcase" : "catalog";
 
     var isShowcase = variant === "showcase";
-    var isHomeFeatured = variant === "home-featured";
 
     var card = document.createElement("article");
 
     card.className = isShowcase
       ? "tlkv-product-card tlkv-product-card--showcase"
-      : isHomeFeatured
-        ? "tlkv-product-card tlkv-product-card--home-featured"
-        : "tlkv-product-card";
+      : "tlkv-product-card";
 
     card.setAttribute("role", "listitem");
 
@@ -143,7 +136,7 @@
 
       nameEl.className = "tlkv-product-card__name";
 
-      if (!isShowcase && !isHomeFeatured && product.slug && product.categorySlug) {
+      if (!isShowcase && product.slug && product.categorySlug) {
 
         var nameLink = document.createElement("a");
 

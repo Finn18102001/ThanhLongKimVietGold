@@ -356,9 +356,6 @@
     const row = productAppToDb(normalized, sortOrder);
     const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
     throwIfSupabaseWriteError(error, adminUser);
-    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
-      global.TLKVCatalogApi.invalidateHomeCache();
-    }
     global.dispatchEvent(new CustomEvent("tlkv:products-changed", { detail: { item: normalized } }));
     return normalized;
   }
@@ -371,9 +368,6 @@
     const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").update({ is_active: false, is_featured: false }).eq("id", id);
     throwIfSupabaseWriteError(error, adminUser);
-    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
-      global.TLKVCatalogApi.invalidateHomeCache();
-    }
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
@@ -385,9 +379,6 @@
     const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").delete().eq("id", id);
     throwIfSupabaseWriteError(error, adminUser);
-    if (global.TLKVCatalogApi && global.TLKVCatalogApi.invalidateHomeCache) {
-      global.TLKVCatalogApi.invalidateHomeCache();
-    }
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 

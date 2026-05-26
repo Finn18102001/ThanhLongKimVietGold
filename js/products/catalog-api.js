@@ -17,8 +17,6 @@
     ")",
   ].join("\n");
 
-  // Homepage featured cache intentionally disabled to always reflect latest API data.
-
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
       return global.TLKVSupabase.getSupabaseClient();
@@ -113,37 +111,6 @@
     };
   }
 
-  function readHomeCache() {
-    return null;
-  }
-
-  function writeHomeCache(data) {
-    return data;
-  }
-
-  function invalidateHomeCache() {
-    return null;
-  }
-
-  /** Temporary homepage: all products, no is_active / is_featured filter. */
-  async function fetchAllProductsForHomepage() {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var rfn = resolveFn();
-    var res = await runProductsQuery(function (q) {
-      return q.order("sort_order", { ascending: true }).order("id", { ascending: true });
-    });
-    return (res.data || []).map(function (row) {
-      return normalizeProduct(row, rfn);
-    });
-  }
-
-  async function fetchFeaturedProducts(limit) {
-    var all = await fetchAllProductsForHomepage();
-    var cap = limit || 8;
-    return all.slice(0, cap);
-  }
-
   async function fetchBrandCatalogSections(productLimitPerBrand) {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
@@ -167,114 +134,6 @@
       .filter(function (s) {
         return s.products && s.products.length > 0;
       });
-  }
-
-  function getHomepageFeaturedLimit(override) {
-    if (global.TLKVHomepageBrandGrouping && global.TLKVHomepageBrandGrouping.resolvePerBrandLimit) {
-      return global.TLKVHomepageBrandGrouping.resolvePerBrandLimit(override);
-    }
-    if (override != null && override > 0) return Math.min(24, Math.floor(override));
-    return 6;
-  }
-
-  function getHomepageBrandDefinitions() {
-    var defs = Array.isArray(global.TLKV_HOMEPAGE_BRAND_SECTIONS)
-      ? global.TLKV_HOMEPAGE_BRAND_SECTIONS
-      : [];
-    return defs
-      .map(function (d) {
-        return d || {};
-      })
-      .filter(function (d) {
-        return !!String(d.slug || "").trim();
-      });
-  }
-
-  async function fetchAllBrandsForHomepage() {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var res = await sb
-      .from("brands")
-      .select("id, name, slug, description, logo_url, sort_order")
-      .order("sort_order", { ascending: true, nullsFirst: false })
-      .order("name", { ascending: true });
-    if (res.error) throw res.error;
-    return res.data || [];
-  }
-
-  /** Per-brand slice from full catalog (temporary — no featured/active filter). */
-  async function fetchFeaturedProductsForBrand(sb, brandId, limit, rfn) {
-    if (!brandId) return [];
-    var all = await fetchAllProductsForHomepage();
-    var Group = global.TLKVHomepageBrandGrouping;
-    var grouped = Group ? Group.groupByBrandId(all) : {};
-    var list = grouped[String(brandId)] || [];
-    var cap = getHomepageFeaturedLimit(limit);
-    return Group ? Group.takeFirst(list, cap) : list.slice(0, cap);
-  }
-
-  /**
-   * Homepage data flow:
-   * 1) get all brands
-   * 2) get all products
-   * 3) match config brand with API brand by slug/name
-   * 4) group products by brand_id
-   * 5) limit max 6 products per brand
-   * 6) render dynamic sections
-   */
-  async function fetchHomeFeaturedBrandSections(productLimitPerBrand) {
-    var perBrand = getHomepageFeaturedLimit(productLimitPerBrand);
-    var configBrands = getHomepageBrandDefinitions();
-    if (!configBrands.length) return [];
-
-    var apiBrands = [];
-    try {
-      apiBrands = await fetchAllBrandsForHomepage();
-    } catch (e) {
-      console.warn("[TLKVCatalog] homepage brands:", e);
-      apiBrands = [];
-    }
-
-    var allProducts = [];
-    try {
-      allProducts = await fetchAllProductsForHomepage();
-    } catch (e) {
-      console.warn("[TLKVCatalog] homepage products:", e);
-      allProducts = [];
-    }
-
-    if (
-      global.TLKVHomepageBrandGrouping &&
-      global.TLKVHomepageBrandGrouping.buildRenderableBrandSections
-    ) {
-      return global.TLKVHomepageBrandGrouping.buildRenderableBrandSections({
-        configBrands: configBrands,
-        apiBrands: apiBrands,
-        products: allProducts,
-        perBrandLimit: perBrand,
-      });
-    }
-
-    return [];
-  }
-
-  async function fetchHomepageCatalog(opts) {
-    opts = opts || {};
-    var brandLimit =
-      opts.brandProductLimit != null
-        ? opts.brandProductLimit
-        : getHomepageFeaturedLimit();
-
-    var brandSections = [];
-    try {
-      brandSections = await fetchHomeFeaturedBrandSections(brandLimit);
-    } catch (e) {
-      console.warn("[TLKVCatalog] homepage sections:", e);
-    }
-
-    var payload = { brandSections: brandSections };
-    writeHomeCache(payload);
-    return payload;
   }
 
   function applyProductFilters(q, filters) {
@@ -456,11 +315,7 @@
 
   global.TLKVCatalogApi = {
     getSupabaseClient: getSupabaseClient,
-    fetchFeaturedProducts: fetchFeaturedProducts,
-    fetchFeaturedProductsForBrand: fetchFeaturedProductsForBrand,
-    fetchHomeFeaturedBrandSections: fetchHomeFeaturedBrandSections,
     fetchBrandCatalogSections: fetchBrandCatalogSections,
-    fetchHomepageCatalog: fetchHomepageCatalog,
     fetchProductsPage: fetchProductsPage,
     fetchBrandsList: fetchBrandsList,
     fetchCategoriesList: fetchCategoriesList,
@@ -469,7 +324,6 @@
     fetchFlatLegacyProducts: fetchFlatLegacyProducts,
     normalizeProduct: normalizeProduct,
     normalizeBrand: normalizeBrand,
-    invalidateHomeCache: invalidateHomeCache,
     parsePriceNumeric:
       global.TLKVProducts && global.TLKVProducts.parsePriceNumeric
         ? global.TLKVProducts.parsePriceNumeric

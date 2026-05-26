@@ -6,15 +6,12 @@
 
   var ASPECT_CATALOG = { w: 320, h: 252, css: "4 / 5" };
   var ASPECT_SHOWCASE = { w: 1, h: 1, css: "1 / 1" };
-  /** Homepage featured only — compact luxury showcase */
-  var ASPECT_HOME_FEATURED = { w: 280, h: 200, css: "1 / 1" };
 
   var PLACEHOLDER_SVG =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='500' viewBox='0 0 400 500'%3E%3Crect width='400' height='500' fill='%23F5F3EE'/%3E%3Cpath d='M200 210c-22 0-40-18-40-40s18-40 40-40 40 18 40 40-18 40-40 40zm-72 118h144l24-72c6-18-6-36-24-36H128c-18 0-30 18-24 36l24 72z' fill='%23D4CFC4'/%3E%3C/svg%3E";
 
   function getAspectConfig(variant) {
     if (variant === "showcase") return ASPECT_SHOWCASE;
-    if (variant === "home-featured") return ASPECT_HOME_FEATURED;
     return ASPECT_CATALOG;
   }
 
@@ -22,8 +19,6 @@
     card.classList.add("tlkv-product-card--normalized");
     if (variant === "showcase") {
       card.classList.add("tlkv-product-card--ratio-1-1");
-    } else if (variant === "home-featured") {
-      card.classList.add("tlkv-product-card--ratio-home");
     } else {
       card.classList.add("tlkv-product-card--ratio-4-5");
     }

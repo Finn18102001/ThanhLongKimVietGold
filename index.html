@@ -83,8 +83,7 @@
   <link href="/css/world-gold-xau.css" rel="stylesheet">
   <link href="/css/gold-pricing.css" rel="stylesheet">
   <link href="/css/news.css" rel="stylesheet">
-  <link href="/css/products-catalog.css" rel="stylesheet" />
-  <link href="/css/products-home-featured.css" rel="stylesheet" />
+  <link href="/css/home-sections.css" rel="stylesheet" />
   <link href="/css/product-card-layout.css" rel="stylesheet" />
   <link href="/css/floating-contact.css" rel="stylesheet" />
 </head>
@@ -382,21 +381,6 @@
             </div>
           </section>
 
-          <!-- Sản phẩm nổi bật (sau bảng giá + biểu đồ) -->
-          <section class="tlkv-home-featured" aria-labelledby="tlkv-home-featured-heading">
-            <div class="tlkv-home-featured__inner container tlkv-container--wide">
-              <header class="tlkv-home-featured__head">
-                <span class="tlkv-home-featured__ornament" aria-hidden="true"></span>
-                <h2 id="tlkv-home-featured-heading" class="tlkv-home-featured__title">Sản phẩm nổi bật</h2>
-                <span class="tlkv-home-featured__ornament tlkv-home-featured__ornament--end" aria-hidden="true"></span>
-              </header>
-              <div id="homepage-products" class="tlkv-home-featured__catalog" aria-live="polite"></div>
-              <p class="tlkv-home-featured__footer-cta">
-                <a href="/sanpham" class="tlkv-home-featured__link-all">Xem tất cả sản phẩm</a>
-              </p>
-            </div>
-          </section>
-
           <section class="tlkv-value-strip" aria-labelledby="tlkv-value-strip-heading">
             <div class="container tlkv-container--wide">
               <h2 id="tlkv-value-strip-heading" class="visually-hidden">Giá trị và cam kết dịch vụ</h2>
@@ -522,7 +506,7 @@
               <div id="tlkv-home-news-host" class="tlkv-home-editorial-news__host" aria-live="polite"></div>
 
               <p class="tlkv-home-editorial-news__cta-wrap">
-                <a href="/tin-tuc/danh-sach" class="tlkv-home-editorial-news__cta">Xem tất cả</a>
+                <a href="/tin-tuc" class="tlkv-home-editorial-news__cta">Xem tất cả</a>
               </p>
             </div>
           </section>
@@ -590,8 +574,7 @@
               <li><a class="tlkv-global-footer__menu-link" href="/gioithieu">Giới thiệu</a></li>
               <li><a class="tlkv-global-footer__menu-link" href="/sanpham">Sản phẩm</a></li>
               <li><a class="tlkv-global-footer__menu-link" href="/sanpham/gia-vang">Bảng giá</a></li>
-              <li><a class="tlkv-global-footer__menu-link" href="/tin-tuc">Tin tức</a></li>
-              <li><a class="tlkv-global-footer__menu-link" href="/tin-tuc/danh-sach?cat=kien-thuc">Kiến thức</a></li>
+              <li><a class="tlkv-global-footer__menu-link" href="/tin-tuc">Tin tức và kiến thức</a></li>
             </ul>
           </nav>
         </div>
@@ -610,18 +593,6 @@
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/tlkv-supabase-client.js"></script>
-  <script src="/js/products/constants.js"></script>
-  <script src="/js/products/product-crud.js"></script>
-  <script src="/js/products-data.js"></script>
-  <script src="/js/products/homepage-brand-grouping.js"></script>
-  <script src="/js/products/product-card-layout.js"></script>
-  <script src="/js/products/product-card.js"></script>
-  <script src="/js/products/product-grid.js"></script>
-  <script src="/js/products/brand-section.js"></script>
-  <script src="/js/products/featured-carousel.js"></script>
-  <script src="/js/products/catalog-api.js"></script>
-  <script src="/js/products/section-registry.js"></script>
-  <script src="/js/products/homepage-catalog.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/gold-pricing-layout.js"></script>
   <script src="/js/world-gold-xau.js"></script>
@@ -632,12 +603,6 @@
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     TLKVGold.mountGoldTable("#gold-table-body");
-    if (window.TLKVHomepageCatalog) {
-      TLKVHomepageCatalog.mountHomepageCatalog("#homepage-products");
-      window.addEventListener("tlkv:products-changed", function () {
-        TLKVHomepageCatalog.scheduleRefresh("#homepage-products");
-      });
-    }
   </script>
   </body>
 
