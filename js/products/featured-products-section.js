@@ -124,6 +124,22 @@
     return row;
   }
 
+  function bindProductRailScroll(host) {
+    if (!host || host._tlkvFeaturedRailScrollBound) return;
+    host._tlkvFeaturedRailScrollBound = true;
+    host.addEventListener(
+      "wheel",
+      function (ev) {
+        var track = ev.target.closest(".tlkv-featured-brand-row__products");
+        if (!track || track.scrollWidth <= track.clientWidth + 1) return;
+        if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
+        ev.preventDefault();
+        track.scrollLeft += ev.deltaY;
+      },
+      { passive: false, capture: true }
+    );
+  }
+
   function renderRows(host, brands) {
     host.innerHTML = "";
     if (!brands || !brands.length) return;
@@ -132,6 +148,7 @@
       frag.appendChild(createBrandRow(brands[i]));
     }
     host.appendChild(frag);
+    bindProductRailScroll(host);
   }
 
   async function fetchFeaturedBrandsWithProducts(limit) {

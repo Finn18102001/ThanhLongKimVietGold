@@ -82,7 +82,13 @@
     img.decoding = "async";
     img.width = aspect.w;
     img.height = aspect.h;
-    img.setAttribute("sizes", "(max-width: 575px) 320px, (max-width: 991px) 320px, 320px");
+    var isShowcase = aspect.w === 1 && aspect.h === 1;
+    img.setAttribute(
+      "sizes",
+      isShowcase
+        ? "(max-width: 767px) 260px, (max-width: 1365px) 270px, 290px"
+        : "(max-width: 575px) 320px, (max-width: 991px) 320px, 320px"
+    );
 
     imgWrap.classList.add("is-loading");
 

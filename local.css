@@ -1191,41 +1191,46 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: var(--tlkv-text-inverse);
+  color: var(--tlkv-text);
   overflow: hidden;
   background:
-    linear-gradient(160deg, rgba(42, 38, 32, 0.92) 0%, rgba(26, 26, 26, 0.88) 45%, rgba(42, 38, 32, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1624365168968-f283d506c6b6?w=1600&q=80') center / cover no-repeat;
+    radial-gradient(circle at 18% 35%, rgba(214, 178, 94, 0.26) 0%, rgba(214, 178, 94, 0) 48%),
+    radial-gradient(circle at 82% 28%, rgba(201, 161, 74, 0.18) 0%, rgba(201, 161, 74, 0) 52%),
+    linear-gradient(180deg, #fdfcf8 0%, #f8f6f1 100%);
 }
 .about-hero-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 60%, rgba(201, 161, 74, 0.22) 0%, transparent 70%);
+  background:
+    linear-gradient(180deg, rgba(253, 252, 248, 0.25) 0%, rgba(253, 252, 248, 0.92) 62%, rgba(248, 246, 241, 1) 100%),
+    radial-gradient(ellipse at 50% 45%, rgba(201, 161, 74, 0.14) 0%, rgba(201, 161, 74, 0) 62%);
   pointer-events: none;
 }
 .about-hero-inner {
   position: relative;
   z-index: 1;
   padding: 64px 16px;
+  max-width: 920px;
 }
 .about-hero-logo {
   width: 90px;
   height: 90px;
   object-fit: contain;
   margin-bottom: 20px;
-  filter: drop-shadow(0 4px 16px rgba(0,0,0,.35));
+  filter: drop-shadow(0 10px 18px rgba(26, 26, 26, 0.18));
 }
 .about-hero-title {
   font-size: 2.4rem;
   font-weight: 800;
   letter-spacing: .04em;
   margin: 0 0 12px;
-  text-shadow: 0 2px 12px rgba(0,0,0,.3);
+  color: var(--tlkv-text);
+  text-shadow: 0 1px 0 rgba(253, 252, 248, 0.9);
 }
 .about-hero-slogan {
   font-size: 1.25rem;
   font-weight: var(--tlkv-weight-semibold);
-  color: var(--tlkv-gold-light);
+  color: var(--tlkv-gold-dark);
   letter-spacing: var(--tlkv-tracking-wider);
   margin: 0 0 var(--tlkv-space-4);
 }
@@ -1234,7 +1239,8 @@
   margin: 0 auto;
   font-size: 1rem;
   line-height: 1.7;
-  opacity: .92;
+  color: var(--tlkv-text-muted);
+  opacity: 1;
 }
 
 /* ----- Sections ----- */

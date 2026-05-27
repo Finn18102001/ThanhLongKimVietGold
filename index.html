@@ -386,15 +386,19 @@
             <div class="container tlkv-container--wide">
               <header class="tlkv-featured-products__head">
                 <p class="tlkv-featured-products__eyebrow">Tuyển chọn theo thương hiệu</p>
-                <h2 id="tlkv-featured-products-title" class="tlkv-featured-products__title">
-                  <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--left" aria-hidden="true">
-                    <span class="tlkv-featured-products__ornament-line"></span>
-                  </span>
-                  <span class="tlkv-featured-products__title-text">Sản phẩm nổi bật</span>
-                  <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--right" aria-hidden="true">
-                    <span class="tlkv-featured-products__ornament-line"></span>
-                  </span>
-                </h2>
+                <div class="tlkv-section-head">
+                  <span class="tlkv-section-head__spacer" aria-hidden="true"></span>
+                  <h2 id="tlkv-featured-products-title" class="tlkv-featured-products__title tlkv-section-title">
+                    <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--left" aria-hidden="true">
+                      <span class="tlkv-featured-products__ornament-line"></span>
+                    </span>
+                    <span class="tlkv-featured-products__title-text">Sản phẩm nổi bật</span>
+                    <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--right" aria-hidden="true">
+                      <span class="tlkv-featured-products__ornament-line"></span>
+                    </span>
+                  </h2>
+                  <a class="tlkv-section-viewall" href="/sanpham">Xem tất cả</a>
+                </div>
               </header>
               <div
                 id="tlkv-featured-products-root"
@@ -486,36 +490,17 @@
                   <a href="/gioithieu" class="tlkv-brand-intro__cta">Tìm hiểu thêm về thương hiệu</a>
                 </article>
 
-                <aside class="tlkv-brand-intro__gallery" aria-label="Không gian thương hiệu Thăng Long Kim Việt">
-                  <article class="tlkv-gallery-tile tlkv-gallery-tile--showroom">
-                    <p class="tlkv-gallery-tile__label">Không gian trưng bày sang trọng</p>
-                    <span class="tlkv-gallery-tile__seal" aria-hidden="true">
-                      <img src="/assets/logo-thang-long-kim-viet.png" alt="" loading="lazy" decoding="async" />
-                    </span>
-                  </article>
-                  <article class="tlkv-gallery-tile tlkv-gallery-tile--consult">
-                    <div class="tlkv-gallery-tile__icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" focusable="false">
-                        <path d="M4 19V9.6A2.6 2.6 0 0 1 6.6 7h10.8A2.6 2.6 0 0 1 20 9.6V19" />
-                        <path d="M9 7V5.8A3.1 3.1 0 0 1 12 3a3.1 3.1 0 0 1 3 2.8V7" />
-                        <path d="M8 13.5h8" />
-                        <path d="M8 17h5" />
-                      </svg>
-                    </div>
-                    <p class="tlkv-gallery-tile__label">Tư vấn cá nhân hóa 1:1</p>
-                  </article>
-                  <article class="tlkv-gallery-tile tlkv-gallery-tile--craft">
-                    <div class="tlkv-gallery-tile__icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" focusable="false">
-                        <path d="m4 14 8-8 8 8" />
-                        <path d="M12 6v12" />
-                        <path d="M6.5 16.5H17.5" />
-                        <path d="M8 20h8" />
-                      </svg>
-                    </div>
-                    <p class="tlkv-gallery-tile__label">Chế tác tinh xảo theo tiêu chuẩn cao cấp</p>
-                  </article>
-                </aside>
+                <figure class="tlkv-brand-intro__gallery">
+                  <img
+                    class="tlkv-brand-intro__gallery-img"
+                    src="/assets/home/brand-gallery-collage.jpg"
+                    alt="Không gian trưng bày sang trọng, tư vấn cá nhân hóa 1:1 và chế tác trang sức tinh xảo tại Thăng Long Kim Việt"
+                    width="1024"
+                    height="576"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </figure>
               </div>
             </div>
           </section>
@@ -524,14 +509,22 @@
             <div class="container tlkv-container--wide">
               <header class="tlkv-home-editorial-news__head">
                 <span class="tlkv-home-editorial-news__eyebrow">Bản tin thương hiệu</span>
-                <h2 id="tlkv-home-editorial-news-title" class="tlkv-home-editorial-news__title">Tin tức &amp; Kiến thức</h2>
+                <div class="tlkv-section-head">
+                  <span class="tlkv-section-head__spacer" aria-hidden="true"></span>
+                  <h2 id="tlkv-home-editorial-news-title" class="tlkv-featured-products__title tlkv-section-title">
+                    <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--left" aria-hidden="true">
+                      <span class="tlkv-featured-products__ornament-line"></span>
+                    </span>
+                    <span class="tlkv-featured-products__title-text">Tin tức &amp; Kiến thức</span>
+                    <span class="tlkv-featured-products__ornament tlkv-featured-products__ornament--right" aria-hidden="true">
+                      <span class="tlkv-featured-products__ornament-line"></span>
+                    </span>
+                  </h2>
+                  <a href="/tin-tuc" class="tlkv-section-viewall">Xem tất cả</a>
+                </div>
               </header>
 
               <div id="tlkv-home-news-host" class="tlkv-home-editorial-news__host" aria-live="polite"></div>
-
-              <p class="tlkv-home-editorial-news__cta-wrap">
-                <a href="/tin-tuc" class="tlkv-home-editorial-news__cta">Xem tất cả</a>
-              </p>
             </div>
           </section>
 
