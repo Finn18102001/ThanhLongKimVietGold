@@ -79,23 +79,51 @@
   }
 
   var __sb = null;
+  var newsAdminAuthed = false;
+
   function getSupabase() {
     if (__sb) return Promise.resolve(__sb);
+    if (global.TLKVSupabase && typeof global.TLKVSupabase.getSupabaseClient === "function") {
+      return global.TLKVSupabase.getSupabaseClient().then(function (client) {
+        if (!client) {
+          return Promise.reject(new Error("Thiếu cấu hình Supabase trong .env."));
+        }
+        __sb = client;
+        return client;
+      });
+    }
     var cfg = readSupabaseConfig();
     if (!cfg.url || !cfg.anonKey || !global.supabase || !global.supabase.createClient) {
       return Promise.reject(new Error("Thiếu cấu hình Supabase trong .env."));
     }
     __sb = global.supabase.createClient(cfg.url, cfg.anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: "tlkv-supabase-auth",
+      },
     });
     return Promise.resolve(__sb);
   }
 
   async function getSessionEmail() {
     var sb = await getSupabase();
-    var { data, error } = await sb.auth.getUser();
-    if (error || !data || !data.user) return null;
-    return data.user.email || null;
+    var sessionRes = await sb.auth.getSession();
+    var session = sessionRes.data && sessionRes.data.session;
+    if (!session || !session.user) return null;
+    var email = session.user.email || null;
+    if (email) return email;
+    try {
+      var userRes = await sb.auth.getUser();
+      if (userRes.data && userRes.data.user) return userRes.data.user.email || null;
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function setCurrentUser(email) {
+    var who = $("#na-current-user");
+    if (who) who.textContent = email || "—";
   }
 
   async function signIn(email, password) {
@@ -125,6 +153,12 @@
   // ---------------------------------------------------------------------------
   function parseHash() {
     var h = (location.hash || "").replace(/^#/, "");
+    // Normalize in case hosting adds trailing slash/query in fragment.
+    // Examples we want to treat the same: #new, #new/, #/new, #new?x=1
+    h = String(h || "").trim();
+    h = h.replace(/^\//, "");
+    h = h.replace(/[?#].*$/, "");
+    h = h.replace(/\/+$/, "");
     if (!h || h === "list") return { view: "list" };
     if (h === "new") return { view: "new" };
     var m = h.match(/^edit\/([0-9a-f-]{6,})$/i);
@@ -132,10 +166,24 @@
     return { view: "list" };
   }
 
-  function navigate(hash) { location.hash = hash; }
+  function navigate(hash) {
+    var next = String(hash || "list").replace(/^#/, "");
+    var cur = parseHash();
+    var curKey = cur.view === "edit" ? "edit/" + cur.id : cur.view;
+    if (curKey === next) {
+      if (newsAdminAuthed) render();
+      return;
+    }
+    location.hash = next;
+  }
+
+  function onHashChange() {
+    if (newsAdminAuthed) render();
+  }
 
   async function render() {
     var root = $("#news-admin-content");
+    if (!root) return;
     root.innerHTML = "";
     var route = parseHash();
     try {
@@ -165,7 +213,11 @@
       el("p", { class: "news-admin-bcrumb", style: "margin:4px 0 0" }, "Quản lý tin tức / bài viết")
     ]));
     hd.appendChild(el("div", { class: "news-admin-actions" }, [
-      el("a", { class: "news-admin-btn news-admin-btn--primary", href: "#new" }, "+ Bài viết mới")
+      el("button", {
+        class: "news-admin-btn news-admin-btn--primary",
+        type: "button",
+        onclick: function () { navigate("new"); },
+      }, "+ Bài viết mới"),
     ]));
     card.appendChild(hd);
 
@@ -253,7 +305,11 @@
         host.appendChild(el("div", { class: "news-admin-empty" }, [
           el("h3", null, "Chưa có bài viết nào"),
           el("p", null, "Bấm “Bài viết mới” để bắt đầu."),
-          el("a", { class: "news-admin-btn news-admin-btn--primary", href: "#new" }, "+ Bài viết mới"),
+          el("button", {
+            class: "news-admin-btn news-admin-btn--primary",
+            type: "button",
+            onclick: function () { navigate("new"); },
+          }, "+ Bài viết mới"),
         ]));
         return;
       }
@@ -294,7 +350,11 @@
         var updCell = el("td", null, fmtDate(item.updatedAt, true));
         var actionsCell = el("td", null, el("div", { class: "news-admin-row-actions" }, [
           el("a", { class: "news-admin-btn", href: "/tin-tuc/" + encodeURIComponent(item.slug), target: "_blank" }, "Xem"),
-          el("a", { class: "news-admin-btn", href: "#edit/" + item.id }, "Sửa"),
+          el("button", {
+            class: "news-admin-btn",
+            type: "button",
+            onclick: function () { navigate("edit/" + item.id); },
+          }, "Sửa"),
           item.status !== "published"
             ? el("button", { class: "news-admin-btn news-admin-btn--success", type: "button",
                   onclick: function () { onTogglePublish(item, true); } }, "Xuất bản")
@@ -438,7 +498,11 @@
           editId ? "ID: " + editId : "Bài viết mới sẽ được lưu dưới dạng nháp")
       ]),
       el("div", { class: "news-admin-actions" }, [
-        el("a", { class: "news-admin-btn", href: "#list" }, "← Danh sách"),
+        el("button", {
+          class: "news-admin-btn",
+          type: "button",
+          onclick: function () { navigate("list"); },
+        }, "← Danh sách"),
       ]),
     ]));
 
@@ -856,6 +920,13 @@
   // Bootstrap
   // ---------------------------------------------------------------------------
 
+  async function enterApp(email) {
+    newsAdminAuthed = true;
+    setCurrentUser(email);
+    showApp();
+    await render();
+  }
+
   function bindLogin() {
     var form = $("#news-admin-login-form");
     if (!form) return;
@@ -867,8 +938,7 @@
       if (btn) btn.disabled = true;
       try {
         await signIn(email, pass);
-        showApp();
-        render();
+        await enterApp(email);
       } catch (err) {
         toast("Đăng nhập thất bại: " + (err && err.message ? err.message : String(err)), "error");
       } finally {
@@ -878,23 +948,36 @@
     var logout = $("#na-logout");
     if (logout) logout.addEventListener("click", async function () {
       try { await signOut(); } catch (e) { /* ignore */ }
+      newsAdminAuthed = false;
       showLogin();
     });
   }
 
   async function boot() {
     bindLogin();
+    window.addEventListener("hashchange", onHashChange);
+
     var email = null;
     try { email = await getSessionEmail(); } catch (e) { /* ignore */ }
     if (!email) {
       showLogin();
       return;
     }
-    var who = $("#na-current-user");
-    if (who) who.textContent = email;
-    showApp();
-    render();
-    window.addEventListener("hashchange", render);
+    await enterApp(email);
+
+    try {
+      var sb = await getSupabase();
+      sb.auth.onAuthStateChange(function (event, session) {
+        if (event === "INITIAL_SESSION") return;
+        if (session && session.user) {
+          if (!newsAdminAuthed) enterApp(session.user.email || "");
+          else setCurrentUser(session.user.email || "");
+        } else {
+          newsAdminAuthed = false;
+          showLogin();
+        }
+      });
+    } catch (e) { /* ignore */ }
   }
 
   if (document.readyState !== "loading") boot();

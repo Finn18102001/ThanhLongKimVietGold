@@ -31,24 +31,7 @@
   }
 }
 
-/* -------------------------- Header + Nav -------------------------- */
-.tlkv-home .header-topbar {
-  font-family: var(--tlkv-home-font-sans);
-  font-size: calc(0.75rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .header .nav-link {
-  font-family: var(--tlkv-home-font-sans);
-  font-size: calc(0.8125rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .header-brand__line:first-child {
-  font-size: calc(0.9375rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .header-brand__line--accent {
-  font-size: calc(1.5rem + var(--tlkv-home-bump));
-}
+/* Header + footer typography: see chrome-typography.css (site-wide) */
 
 /* -------------------------- Promo strip -------------------------- */
 .tlkv-home .flashsale-item.flashsale-text p {
@@ -104,8 +87,7 @@
 /* -------------------------- Value strip + marketing blocks -------------------------- */
 .tlkv-home .tlkv-value-strip,
 .tlkv-home .tlkv-brand-intro,
-.tlkv-home .tlkv-news-container,
-.tlkv-home .tlkv-global-footer {
+.tlkv-home .tlkv-news-container {
   font-family: var(--tlkv-home-font-sans);
 }
 
@@ -132,25 +114,5 @@
 .tlkv-home .tlkv-news-container .tlkv-news-card__desc,
 .tlkv-home .tlkv-news-container .tlkv-news-card__meta {
   font-family: var(--tlkv-home-font-sans);
-}
-
-/* -------------------------- Footer -------------------------- */
-.tlkv-home .tlkv-global-footer__brand-line {
-  font-size: calc(0.95rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .tlkv-global-footer__brand-tagline,
-.tlkv-home .tlkv-global-footer__contact-list,
-.tlkv-home .tlkv-global-footer__menu-link,
-.tlkv-home .footer-credit h5 {
-  font-size: calc(0.875rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .tlkv-global-footer__contact-item a {
-  font-size: calc(0.84rem + var(--tlkv-home-bump));
-}
-
-.tlkv-home .tlkv-global-footer__title {
-  font-size: calc(1rem + var(--tlkv-home-bump));
 }
 

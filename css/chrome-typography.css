@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Site chrome typography (header + footer) — all public pages
+   Matches homepage scale bump from home-typography.css
+   ========================================================================== */
+
+:root {
+  --tlkv-chrome-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --tlkv-chrome-bump: 3px;
+  --tlkv-chrome-bump-sm: 2px;
+  --tlkv-chrome-bump-xs: 1px;
+}
+
+@media (max-width: 991.98px) {
+  :root {
+    --tlkv-chrome-bump: var(--tlkv-chrome-bump-sm);
+  }
+}
+
+@media (max-width: 575.98px) {
+  :root {
+    --tlkv-chrome-bump: var(--tlkv-chrome-bump-xs);
+  }
+}
+
+/* -------------------------- Header + Nav -------------------------- */
+.header-topbar {
+  font-family: var(--tlkv-chrome-font-sans);
+  font-size: calc(0.75rem + var(--tlkv-chrome-bump));
+}
+
+.header .nav-link {
+  font-family: var(--tlkv-chrome-font-sans);
+  font-size: calc(0.8125rem + var(--tlkv-chrome-bump));
+}
+
+.header-brand__line:first-child {
+  font-size: calc(0.9375rem + var(--tlkv-chrome-bump));
+}
+
+.header-brand__line--accent {
+  font-size: calc(1.5rem + var(--tlkv-chrome-bump));
+}
+
+/* -------------------------- Footer -------------------------- */
+.tlkv-global-footer {
+  font-family: var(--tlkv-chrome-font-sans);
+}
+
+.tlkv-global-footer__brand-line {
+  font-size: calc(0.95rem + var(--tlkv-chrome-bump));
+}
+
+.tlkv-global-footer__brand-tagline,
+.tlkv-global-footer__contact-list,
+.tlkv-global-footer__menu-link,
+.footer-credit h5 {
+  font-size: calc(0.875rem + var(--tlkv-chrome-bump));
+}
+
+.tlkv-global-footer__contact-item a {
+  font-size: calc(0.84rem + var(--tlkv-chrome-bump));
+}
+
+.tlkv-global-footer__title {
+  font-size: calc(1rem + var(--tlkv-chrome-bump));
+}
+
+@media (max-width: 575.98px) {
+  .tlkv-global-footer__title {
+    font-size: calc(1rem + var(--tlkv-chrome-bump));
+  }
+}
