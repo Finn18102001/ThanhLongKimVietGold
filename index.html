@@ -79,6 +79,7 @@
   <link href="/css/vendor/style.css" rel="stylesheet">
   <link href="/css/header.css" rel="stylesheet">
   <link href="/css/hero.css" rel="stylesheet">
+  <link href="/css/home-typography.css" rel="stylesheet">
   <link href="/local.css" rel="stylesheet">
   <link href="/css/world-gold-xau.css" rel="stylesheet">
   <link href="/css/gold-pricing.css" rel="stylesheet">
@@ -89,7 +90,7 @@
   <link href="/css/floating-contact.css" rel="stylesheet" />
 </head>
 
-<body>
+<body class="tlkv-home">
   <div id="app">
     <header class="header ">
       <div class="header-topbar">
@@ -243,80 +244,45 @@
       <div class="master-wrapper">
         <main>
           <!-- Hero -->
-          <section class="tlkv-hero home-banner" aria-labelledby="tlkv-hero-title">
-            <div class="tlkv-hero__inner container">
-              <div class="tlkv-hero__content">
-                <p class="tlkv-hero__eyebrow">THĂNG LONG KIM VIỆT</p>
-                <h1 id="tlkv-hero-title" class="tlkv-hero__title">Giữ trọn giá trị<br />theo thời gian</h1>
-                <p class="tlkv-hero__lead">
-                  Vàng chuẩn hàm lượng, giá minh bạch — uy tín và chất lượng cho mọi giao dịch của bạn.
-                </p>
-                <div class="tlkv-hero__actions">
-                  <a href="/sanpham/gia-vang" class="tlkv-hero__btn tlkv-hero__btn--primary">Xem bảng giá vàng</a>
-                  <a href="tel:0995682568" class="tlkv-hero__btn tlkv-hero__btn--outline">Tư vấn tích sản</a>
+          <section class="tlkv-hero home-banner" aria-label="Banner nổi bật">
+            <div class="tlkv-hero__carousel" aria-label="Banner nổi bật" data-tlkv-hero-carousel>
+              <div class="tlkv-hero__showcase">
+                <div class="tlkv-hero__carousel-stage" aria-live="polite">
+                  <figure class="tlkv-hero__slide is-active" data-tlkv-hero-slide style="--tlkv-hero-native-w: 2048px;">
+                    <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
+                    <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
+                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-manh-hai-3840w.png" srcset="/assets/home/hero-bao-tin-manh-hai.png 1024w, /assets/home/hero-bao-tin-manh-hai-3840w.png 2048w" sizes="100vw" alt="Banner Bảo Tín Mạnh Hải" width="2048" height="768" loading="eager" decoding="async" fetchpriority="high" />
+                  </figure>
+                  <figure class="tlkv-hero__slide" data-tlkv-hero-slide style="--tlkv-hero-native-w: 2048px;">
+                    <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
+                    <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
+                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-minh-chau-3840w.png" srcset="/assets/home/hero-bao-tin-minh-chau.png 1024w, /assets/home/hero-bao-tin-minh-chau-3840w.png 2048w" sizes="100vw" alt="Banner Bảo Tín Minh Châu" width="2048" height="768" loading="lazy" decoding="async" />
+                  </figure>
+                  <figure class="tlkv-hero__slide" data-tlkv-hero-slide style="--tlkv-hero-native-w: 1918px;">
+                    <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
+                    <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
+                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang-3840w.png" srcset="/assets/home/hero-tich-san-vang.png 1024w, /assets/home/hero-tich-san-vang-3840w.png 1918w" sizes="100vw" alt="Banner Tích sản vàng" width="1918" height="820" loading="lazy" decoding="async" />
+                  </figure>
                 </div>
-                <ul class="tlkv-hero__trust">
-                  <li class="tlkv-hero__trust-item">
-                    <svg class="tlkv-hero__trust-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.3L12 15.8 8.2 17.8l.9-5.3-3.9-3.8 5.4-.8L12 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                    </svg>
-                    <span><strong>Vàng chuẩn 999.9</strong> Hàm lượng rõ ràng, nguồn gốc uy tín</span>
-                  </li>
-                  <li class="tlkv-hero__trust-item">
-                    <svg class="tlkv-hero__trust-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M4 6h16v12H4V6zm2 2v8h12V8H6zm2 2h8v4H8v-4z" stroke="currentColor" stroke-width="1.4"/>
-                    </svg>
-                    <span><strong>Giá minh bạch</strong> Cập nhật theo thị trường, công khai từng chỉ</span>
-                  </li>
-                  <li class="tlkv-hero__trust-item">
-                    <svg class="tlkv-hero__trust-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M12 3l7 4v5c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V7l7-4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                    </svg>
-                    <span><strong>Giao dịch an tâm</strong> Quy trình chuẩn, tư vấn tận tâm</span>
-                  </li>
-                  <li class="tlkv-hero__trust-item">
-                    <svg class="tlkv-hero__trust-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.4"/>
-                      <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                    </svg>
-                    <span><strong>Thương hiệu bền vững</strong> Uy tín tại Hà Nội</span>
-                  </li>
-                </ul>
               </div>
-              <div class="tlkv-hero__media">
-                <div class="tlkv-hero__carousel" aria-label="Banner nổi bật" data-tlkv-hero-carousel>
-                  <div class="tlkv-hero__carousel-stage" aria-live="polite">
-                    <figure class="tlkv-hero__slide is-active" data-tlkv-hero-slide>
-                      <img class="tlkv-hero__slide-bg" src="/assets/home/hero-bao-tin-manh-hai.png" srcset="/assets/home/hero-bao-tin-manh-hai.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="" width="1024" height="409" aria-hidden="true" decoding="async" />
-                      <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-manh-hai.png" srcset="/assets/home/hero-bao-tin-manh-hai.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="Banner Bảo Tín Mạnh Hải" width="1024" height="409" loading="eager" decoding="async" fetchpriority="high" />
-                    </figure>
-                    <figure class="tlkv-hero__slide" data-tlkv-hero-slide>
-                      <img class="tlkv-hero__slide-bg" src="/assets/home/hero-bao-tin-minh-chau.png" srcset="/assets/home/hero-bao-tin-minh-chau.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="" width="1024" height="384" aria-hidden="true" loading="lazy" decoding="async" />
-                      <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-minh-chau.png" srcset="/assets/home/hero-bao-tin-minh-chau.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="Banner Bảo Tín Minh Châu" width="1024" height="384" loading="lazy" decoding="async" />
-                    </figure>
-                    <figure class="tlkv-hero__slide" data-tlkv-hero-slide>
-                      <img class="tlkv-hero__slide-bg" src="/assets/home/hero-tich-san-vang.png" srcset="/assets/home/hero-tich-san-vang.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="" width="1024" height="437" aria-hidden="true" loading="lazy" decoding="async" />
-                      <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang.png" srcset="/assets/home/hero-tich-san-vang.png 1024w" sizes="(min-width: 992px) 70vw, 100vw" alt="Banner Tích sản vàng" width="1024" height="437" loading="lazy" decoding="async" />
-                    </figure>
-                  </div>
 
-                  <div class="tlkv-hero__dots" role="tablist" aria-label="Vị trí banner" data-tlkv-hero-dots>
-                    <button class="tlkv-hero__dot is-active" type="button" role="tab" aria-selected="true" aria-label="Slide 1" data-tlkv-hero-dot="0"></button>
-                    <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 2" data-tlkv-hero-dot="1"></button>
-                    <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 3" data-tlkv-hero-dot="2"></button>
-                  </div>
+              <div class="tlkv-hero__nav">
+                <div class="tlkv-hero__dots" role="tablist" aria-label="Vị trí banner" data-tlkv-hero-dots>
+                  <button class="tlkv-hero__dot is-active" type="button" role="tab" aria-selected="true" aria-label="Slide 1" data-tlkv-hero-dot="0"></button>
+                  <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 2" data-tlkv-hero-dot="1"></button>
+                  <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 3" data-tlkv-hero-dot="2"></button>
+                </div>
 
-                  <div class="tlkv-hero__thumbs" role="tablist" aria-label="Chọn banner" data-tlkv-hero-thumbs>
-                    <button class="tlkv-hero__thumb is-active" type="button" role="tab" aria-selected="true" aria-label="Bảo Tín Mạnh Hải" data-tlkv-hero-thumb="0">
-                      <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-manh-hai.png" alt="" width="512" height="341" loading="lazy" decoding="async" />
-                    </button>
-                    <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Bảo Tín Minh Châu" data-tlkv-hero-thumb="1">
-                      <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-minh-chau.png" alt="" width="512" height="341" loading="lazy" decoding="async" />
-                    </button>
-                    <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Tích sản vàng" data-tlkv-hero-thumb="2">
-                      <img class="tlkv-hero__thumb-img" src="/assets/home/hero-tich-san-vang.png" alt="" width="512" height="173" loading="lazy" decoding="async" />
-                    </button>
-                  </div>
+                <div class="tlkv-hero__thumbs" role="tablist" aria-label="Chọn banner" data-tlkv-hero-thumbs>
+                  <button class="tlkv-hero__thumb is-active" type="button" role="tab" aria-selected="true" aria-label="Bảo Tín Mạnh Hải" data-tlkv-hero-thumb="0">
+                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-manh-hai.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
+                  </button>
+                  <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Bảo Tín Minh Châu" data-tlkv-hero-thumb="1">
+                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-minh-chau.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
+                  </button>
+                  <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Tích sản vàng" data-tlkv-hero-thumb="2">
+                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-tich-san-vang.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -516,7 +482,7 @@
                 <figure class="tlkv-brand-intro__gallery">
                   <img
                     class="tlkv-brand-intro__gallery-img"
-                    src="/assets/home/brand-gallery-collage.jpg"
+                    src="/assets/home/brand-gallery-collage.png"
                     alt="Không gian trưng bày sang trọng, tư vấn cá nhân hóa 1:1 và chế tác trang sức tinh xảo tại Thăng Long Kim Việt"
                     width="1024"
                     height="576"

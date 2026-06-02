@@ -22,6 +22,41 @@
 
     if (!slides.length) return;
 
+    function bindHeroMedia(slide) {
+      var img = slide.querySelector(".tlkv-hero__slide-img");
+      var fill = slide.querySelector("[data-tlkv-hero-fill]");
+      if (!img) return;
+
+      function apply() {
+        var url = img.currentSrc || img.src;
+        if (fill && url) {
+          fill.style.setProperty("--tlkv-hero-fill", "url(\"" + url + "\")");
+        }
+        if (img.naturalWidth > 0) {
+          slide.style.setProperty("--tlkv-hero-native-w", img.naturalWidth + "px");
+        }
+
+        var displayW = img.getBoundingClientRect().width;
+        var dpr = window.devicePixelRatio || 1;
+        var needPx = Math.ceil(displayW * dpr);
+        if (img.naturalWidth > 0 && img.naturalWidth < needPx) {
+          console.warn(
+            "[Hero] Banner bị upscale → mờ. File chỉ " +
+              img.naturalWidth +
+              "px nhưng cần ~" +
+              needPx +
+              "px. Thay file 3840×1440 tại: " +
+              url
+          );
+        }
+      }
+
+      if (img.complete) apply();
+      else img.addEventListener("load", apply, { once: true });
+    }
+
+    slides.forEach(bindHeroMedia);
+
     var reduceMotion = false;
     try {
       reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -78,6 +113,7 @@
 
       setDotsActive(active);
       setThumbActive(active);
+      bindHeroMedia(slides[active]);
     }
 
     function nextSlide() {

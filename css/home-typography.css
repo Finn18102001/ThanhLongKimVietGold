@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Homepage Typography System (scoped to .tlkv-home)
+   Goals:
+   - Premium sans stack for commerce content
+   - +2~3px scale bump (responsive)
+   - Never affect gold table numeric/cell text
+   ========================================================================== */
+
+.tlkv-home {
+  /* Premium sans stack (do not touch icon fonts) */
+  --tlkv-home-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+  /* Typography scale bump (desktop default) */
+  --tlkv-home-bump: 3px;
+  --tlkv-home-bump-sm: 2px;
+  --tlkv-home-bump-xs: 1px;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 991.98px) {
+  .tlkv-home {
+    --tlkv-home-bump: var(--tlkv-home-bump-sm);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tlkv-home {
+    --tlkv-home-bump: var(--tlkv-home-bump-xs);
+  }
+}
+
+/* -------------------------- Header + Nav -------------------------- */
+.tlkv-home .header-topbar {
+  font-family: var(--tlkv-home-font-sans);
+  font-size: calc(0.75rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .header .nav-link {
+  font-family: var(--tlkv-home-font-sans);
+  font-size: calc(0.8125rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .header-brand__line:first-child {
+  font-size: calc(0.9375rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .header-brand__line--accent {
+  font-size: calc(1.5rem + var(--tlkv-home-bump));
+}
+
+/* -------------------------- Promo strip -------------------------- */
+.tlkv-home .flashsale-item.flashsale-text p {
+  font-family: var(--tlkv-home-font-sans);
+  font-size: calc(var(--tlkv-text-sm) + var(--tlkv-home-bump));
+}
+
+/* -------------------------- Gold dashboard (exclude table) -------------------------- */
+.tlkv-home .tlkv-gold-panel__title {
+  font-size: calc(clamp(1.25rem, 1.85vw, 1.4375rem) + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-gold-panel__meta,
+.tlkv-home .tlkv-gold-dashboard .gold-table-meta {
+  font-size: calc(0.75rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-world-xau-title,
+.tlkv-home .tlkv-world-xau-sub,
+.tlkv-home .tlkv-world-xau-symbol {
+  font-family: var(--tlkv-home-font-sans);
+}
+
+/* IMPORTANT: never scale table cells / numeric values */
+.tlkv-home .gold-table-content,
+.tlkv-home .gold-table-content * {
+  font-size: inherit;
+}
+
+/* -------------------------- Featured products -------------------------- */
+.tlkv-home .tlkv-featured-products,
+.tlkv-home .tlkv-featured-products * {
+  font-family: var(--tlkv-home-font-sans);
+}
+
+.tlkv-home .tlkv-featured-products__eyebrow {
+  font-size: calc(0.875rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-featured-products__title,
+.tlkv-home .tlkv-section-title {
+  font-size: calc(var(--tlkv-text-2xl) + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name {
+  font-size: calc(0.9rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
+  font-size: calc(0.68rem + var(--tlkv-home-bump));
+}
+
+/* -------------------------- Value strip + marketing blocks -------------------------- */
+.tlkv-home .tlkv-value-strip,
+.tlkv-home .tlkv-brand-intro,
+.tlkv-home .tlkv-news-container,
+.tlkv-home .tlkv-global-footer {
+  font-family: var(--tlkv-home-font-sans);
+}
+
+.tlkv-home .tlkv-value-item__title {
+  font-size: calc(1.25rem + var(--tlkv-home-bump));
+  font-family: var(--tlkv-home-font-sans);
+  letter-spacing: 0.01em;
+}
+
+.tlkv-home .tlkv-value-item__desc {
+  font-size: calc(0.8125rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-brand-intro__eyebrow {
+  font-size: calc(0.72rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-brand-intro__desc {
+  font-size: calc(0.9rem + var(--tlkv-home-bump));
+}
+
+/* -------------------------- News section -------------------------- */
+.tlkv-home .tlkv-news-container .tlkv-news-card__title,
+.tlkv-home .tlkv-news-container .tlkv-news-card__desc,
+.tlkv-home .tlkv-news-container .tlkv-news-card__meta {
+  font-family: var(--tlkv-home-font-sans);
+}
+
+/* -------------------------- Footer -------------------------- */
+.tlkv-home .tlkv-global-footer__brand-line {
+  font-size: calc(0.95rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-global-footer__brand-tagline,
+.tlkv-home .tlkv-global-footer__contact-list,
+.tlkv-home .tlkv-global-footer__menu-link,
+.tlkv-home .footer-credit h5 {
+  font-size: calc(0.875rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-global-footer__contact-item a {
+  font-size: calc(0.84rem + var(--tlkv-home-bump));
+}
+
+.tlkv-home .tlkv-global-footer__title {
+  font-size: calc(1rem + var(--tlkv-home-bump));
+}
+
