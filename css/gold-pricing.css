@@ -7,9 +7,9 @@
   --tlkv-gp-bg: var(--tlkv-bg-cream, #f8f6f1);
   --tlkv-gp-card: var(--tlkv-bg-pearl, #fdfcf8);
   --tlkv-gp-border: #ebe6dc;
-  --tlkv-gp-gold: var(--tlkv-gold, #c9a14a);
-  --tlkv-gp-gold-soft: var(--tlkv-gold-light, #d6b25e);
-  --tlkv-gp-text: var(--tlkv-text, #1a1a1a);
+  --tlkv-gp-gold: var(--tlkv-gold, #d4af37);
+  --tlkv-gp-gold-soft: var(--tlkv-gold-light, #d4af37);
+  --tlkv-gp-text: var(--tlkv-text, #d4af37);
   --tlkv-gp-muted: var(--tlkv-text-muted, #666666);
   --tlkv-gp-row-h: 2.5rem;
   --tlkv-gp-head-h: 2.375rem;
@@ -54,25 +54,74 @@
 }
 
 .tlkv-gold-panel__head {
-  padding: 1.25rem 1.375rem 0.875rem;
+  padding: 1.5rem 1.375rem 1.125rem;
   border-bottom: 1px solid var(--tlkv-gp-border);
+  text-align: center;
 }
 
-.tlkv-gold-panel__title {
-  margin: 0 0 0.5rem;
+/* ===========================================================================
+   UNIFIED PREMIUM SECTION TITLES — shared by store + world panels.
+   Centered, uppercase, gradient gold with a soft luxury shadow + accent rule.
+   Centralized here (loads after world-gold-xau.css) so both titles match.
+   ========================================================================= */
+.tlkv-gp-title {
+  margin: 0 auto 0.5rem;
+  text-align: center;
   font-family: var(--tlkv-font-heading);
-  font-size: clamp(1.25rem, 1.85vw, 1.4375rem);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--tlkv-gp-text);
-  text-transform: none;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  line-height: 1.12;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  /* Premium gold gradient (fill). Solid fallback for engines without text-clip. */
+  color: #a87f1c;
+  background: linear-gradient(180deg, #e7c763 0%, #d4af37 40%, #a87f1c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Soft luxury shadow that works with clipped text */
+  -webkit-filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
+  filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
+}
+
+/* Refined centered gold divider beneath each title — connective branding */
+.tlkv-gp-title::after {
+  content: "";
+  display: block;
+  width: clamp(44px, 8vw, 64px);
+  height: 3px;
+  margin: 0.6rem auto 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0) 0%, #d4af37 50%, rgba(212, 175, 55, 0) 100%);
+  -webkit-text-fill-color: initial; /* divider is a box, not text */
+}
+
+/* Store title = primary focal point: two stacked lines, larger scale */
+.tlkv-gold-panel__title.tlkv-gp-title {
+  font-size: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
+}
+.tlkv-gp-title__line {
+  display: block;
+}
+.tlkv-gp-title__line--label {
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+.tlkv-gp-title__line--brand {
+  font-size: 1.1em;
+  font-weight: 800;
+}
+
+/* World title = same system, single line, a step smaller to keep hierarchy */
+.tlkv-world-xau-title.tlkv-gp-title {
+  font-size: clamp(1.2rem, 0.9rem + 1.4vw, 1.55rem);
+  letter-spacing: 1px;
 }
 
 .tlkv-gold-panel__meta,
 .tlkv-gold-dashboard .gold-table-meta {
   margin: 0;
-  text-align: left;
+  text-align: center;
   font-family: var(--tlkv-font-body);
   font-size: 0.75rem;
   line-height: 1.5;
@@ -555,35 +604,158 @@
 }
 
 @media (max-width: 768px) {
+  /* ===========================================================================
+     MOBILE TABLE — fit-to-viewport, full-text wrapping, vertical scroll.
+     Replaces the desktop "fixed-row-height / single-line ellipsis" trading grid
+     with a readable, fully-expanded data table. No horizontal scroll, no
+     truncation. Colors are inherited from the base rules — only layout/typography
+     is touched here.
+     ========================================================================= */
+
+  /* --- 1. SCROLL SHELL ------------------------------------------------------
+     Table fits the viewport width (no horizontal drag) and scrolls vertically
+     inside an 80vh box; the existing sticky <thead> stays pinned while scrolling.
+     overscroll-behavior:contain stops the scroll from locking the page. */
+  .tlkv-gold-dashboard .table-responsive.gold-table,
+  .tlkv-gold-dashboard .tlkv-gp-table-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 80vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    /* Clearance so the last rows never hide behind the fixed floating-contact widget */
+    padding-bottom: 16px;
+  }
+
+  /* --- 2. FIT-TO-WIDTH LAYOUT ----------------------------------------------- */
   .tlkv-gold-dashboard .gold-table-content.gold-table-extended {
-    width: max-content !important;
-    min-width: 100% !important;
-    table-layout: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important; /* was: max-content + auto */
   }
 
+  /* Proportional column widths (Σ = 100%); min-width:0 lets fixed layout shrink them */
   .tlkv-gold-dashboard .gold-table-content th:nth-child(1),
-  .tlkv-gold-dashboard .gold-table-content td:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(1) { width: 21% !important;   min-width: 0 !important; }
   .tlkv-gold-dashboard .gold-table-content th:nth-child(2),
-  .tlkv-gold-dashboard .gold-table-content td:nth-child(2),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(2) { width: 21% !important;   min-width: 0 !important; }
   .tlkv-gold-dashboard .gold-table-content th:nth-child(3),
-  .tlkv-gold-dashboard .gold-table-content td:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(3) { width: 15% !important;   min-width: 0 !important; }
   .tlkv-gold-dashboard .gold-table-content th:nth-child(4),
-  .tlkv-gold-dashboard .gold-table-content td:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(4) { width: 21.5% !important; min-width: 0 !important; }
   .tlkv-gold-dashboard .gold-table-content th:nth-child(5),
-  .tlkv-gold-dashboard .gold-table-content td:nth-child(5) {
-    width: auto !important;
+  .tlkv-gold-dashboard .gold-table-content td:nth-child(5) { width: 21.5% !important; min-width: 0 !important; }
+
+  /* --- 3. FULL-TEXT WRAPPING (kill the single-line ellipsis grid) -----------
+     Base rules pin cells to a fixed row height with white-space:nowrap +
+     text-overflow:ellipsis. Lift all of it so long Vietnamese names wrap and
+     rows grow to fit their content. */
+  .tlkv-gold-dashboard .gold-table-content thead th,
+  .tlkv-gold-dashboard .gold-table-content tbody td {
+    height: auto !important;
+    max-height: none !important;
+    line-height: 1.5 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    vertical-align: top !important;
+    /* --- 4. READABILITY: comfortable tap spacing + legible sizing --- */
+    padding: 10px 6px !important;
   }
 
-  .tlkv-gold-dashboard .gold-table-content td.price,
+  .tlkv-gold-dashboard .gold-table-content tbody td {
+    font-size: 13px !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* The JS wraps cell text in .tlkv-gp-cell__text with ellipsis — undo it here */
+  .tlkv-gold-dashboard .tlkv-gp-cell__text {
+    display: block;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Product name (left-aligned, wraps to as many lines as needed) */
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product,
+  .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product .tlkv-gp-cell__text {
+    text-align: left !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+  }
+
+  /* Prices: number + trend icon are ONE inline unit that never wraps.
+     (Overrides the earlier wrap rule — financial figures must read on a single line.)
+     Price headers (Mua/Bán labels) may still wrap. */
   .tlkv-gold-dashboard .gold-table-content thead th:nth-child(4),
   .tlkv-gold-dashboard .gold-table-content thead th:nth-child(5) {
+    white-space: normal !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content td.price {
     white-space: nowrap !important;
-    word-break: normal !important;
+    font-size: 13.5px !important;
+  }
+
+  /* price-wrapper: tight inline-flex, no wrap */
+  .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    gap: 2px !important;
+    height: auto !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+
+  /* price-value */
+  .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner .tv-price-text {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+  }
+
+  /* price-icon: slightly smaller than the number, never shrinks or wraps */
+  .tlkv-gold-dashboard td.price .gold-price-trend {
+    flex-shrink: 0 !important;
+    margin-left: 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+  .tlkv-gold-dashboard td.price .gold-price-trend svg {
+    width: 11px !important;
+    height: 11px !important;
   }
 
   .tlkv-gold-dashboard .gold-brand-cell {
-    white-space: nowrap !important;
+    white-space: normal !important;
+    min-width: 0 !important;
   }
+
+  /* Stacked variant (4 effective columns) — same fit-to-width approach */
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(1) { width: 22% !important; min-width: 0 !important; }
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(2),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(2) { width: calc(38% - 20px) !important; min-width: 0 !important; }
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(4) { width: calc(20% + 10px) !important; min-width: 0 !important; }
 }
 
 @media (max-width: 575.98px) {

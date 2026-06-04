@@ -41,7 +41,7 @@
 
 /* -------------------------- Gold dashboard (exclude table) -------------------------- */
 .tlkv-home .tlkv-gold-panel__title {
-  font-size: calc(clamp(1.25rem, 1.85vw, 1.4375rem) + var(--tlkv-home-bump));
+  font-size: calc(clamp(1.6rem, 2.1vw, 1.6875rem) + var(--tlkv-home-bump));
 }
 
 .tlkv-home .tlkv-gold-panel__meta,

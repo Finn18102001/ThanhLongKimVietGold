@@ -31,19 +31,19 @@
 
 .tlkv-world-xau-head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--tlkv-space-3) var(--tlkv-space-4);
-  padding: var(--tlkv-space-4) 18px var(--tlkv-space-3);
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--tlkv-space-2);
+  padding: var(--tlkv-space-5) 18px var(--tlkv-space-4);
   border-bottom: 1px solid var(--tlkv-border-light);
 }
 
 .tlkv-world-xau-title {
   font-family: var(--tlkv-font-heading);
   font-size: var(--tlkv-text-xl);
-  font-weight: var(--tlkv-weight-semibold);
-  color: var(--tlkv-text);
+  font-weight: 750;
+  color: #d4af37; /* premium gold */
   margin: 0 0 6px;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .tlkv-world-xau-spot {
-  text-align: right;
+  text-align: center;
 }
 
 .tlkv-world-xau-price {

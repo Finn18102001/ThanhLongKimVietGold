@@ -1230,29 +1230,28 @@
     return fetchGoldFromSupabase(sb);
   }
 
-  function applyMetaToDom(meta) {
-    if (!meta) return;
-    const m = normalizeMeta(meta);
-    const ht = m.headerTime || META_DEFAULTS.headerTime;
-    const ul = m.unitLine || META_DEFAULTS.unitLine;
-    const bi = m.brandItalic || META_DEFAULTS.brandItalic;
-    const fn = m.footerNote || META_DEFAULTS.footerNote;
+function applyMetaToDom(meta) {
+  if (!meta) return;
 
-    const unitEl = document.querySelector("[data-gold-meta-line]");
-    if (unitEl) {
-      unitEl.innerHTML =
-        "Cập nhật lúc: " +
-        escapeMetaHtml(ht) +
-        ' · <span class="gold-table-brand-italic">' +
-        escapeMetaHtml(bi) +
-        "</span> · " +
-        escapeMetaHtml(ul);
-    }
-    const noteEl = document.querySelector("[data-gold-footer-note]");
-    if (noteEl) {
-      noteEl.textContent = "(" + fn + ") (" + ul + ")";
-    }
+  const m = normalizeMeta(meta);
+  const ht = m.headerTime || META_DEFAULTS.headerTime;
+  const ul = m.unitLine || META_DEFAULTS.unitLine;
+  const fn = m.footerNote || META_DEFAULTS.footerNote;
+
+  const unitEl = document.querySelector("[data-gold-meta-line]");
+  if (unitEl) {
+    unitEl.innerHTML =
+      "Cập nhật lúc: " +
+      escapeMetaHtml(ht) +
+      " · " +
+      escapeMetaHtml(ul);
   }
+
+  const noteEl = document.querySelector("[data-gold-footer-note]");
+  if (noteEl) {
+    noteEl.textContent = "(" + fn + ") (" + ul + ")";
+  }
+}
 
   /** Bo góc dưới bảng: cột 1 thường là ô rowspan (Bạc), không nằm trên <tr> cuối. */
   function markGoldTableBottomCorners(tbody) {
