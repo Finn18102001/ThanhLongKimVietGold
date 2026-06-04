@@ -747,7 +747,6 @@
     min-width: 0 !important;
   }
 
-  /* Stacked variant (4 effective columns) — same fit-to-width approach */
   .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(1),
   .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(1) { width: 22% !important; min-width: 0 !important; }
   .tlkv-gold-dashboard .gold-table-content.gold-table--stacked th:nth-child(2),
