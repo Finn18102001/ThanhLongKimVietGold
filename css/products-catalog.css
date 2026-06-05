@@ -191,4 +191,95 @@
   .tlkv-product-detail {
     grid-template-columns: 1fr;
   }
+
+  .tlkv-catalog-root {
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .tlkv-brand-section {
+    padding: 0;
+  }
+
+  .tlkv-brand-section__header {
+    gap: 0.625rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .tlkv-brand-section__logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .tlkv-brand-section__title {
+    font-size: 1rem;
+  }
+
+  .tlkv-brand-section__desc {
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .tlkv-catalog-toolbar {
+    margin-bottom: 14px;
+    padding: 10px;
+  }
+
+  .tlkv-catalog-toolbar input[type="search"],
+  .tlkv-catalog-toolbar select {
+    min-width: 0;
+    flex: 1 1 calc(50% - 5px);
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+
+  .tlkv-catalog-toolbar__flags label {
+    font-size: 0.72rem;
+    margin-right: 8px;
+  }
+
+  .tlkv-catalog-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .tlkv-catalog-pagination {
+    margin-top: 14px;
+    gap: 10px;
+  }
+
+  .tlkv-page-shell {
+    padding: 20px 12px !important;
+    min-height: auto !important;
+  }
+
+  .tlkv-page-shell > .gold-title.bold,
+  .tlkv-page-shell #catalog-page-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 10px !important;
+  }
+
+  .tlkv-bestseller-title {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta {
+    min-width: 0;
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .tlkv-product-detail {
+    gap: 16px;
+  }
+
+  .tlkv-product-detail__media img {
+    max-height: 220px;
+  }
+
+  .tlkv-product-detail__price {
+    font-size: 1rem;
+  }
 }

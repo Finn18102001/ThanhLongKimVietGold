@@ -637,11 +637,11 @@
   }
 
   .tlkv-gold-dashboard .tlkv-gp-table-scroll {
-    max-height: 80vh;
+    max-height: min(52vh, 420px);
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: auto !important;
+    overscroll-behavior-y: auto;
     touch-action: pan-y;
     /* Clearance so the last rows never hide behind the fixed floating-contact widget */
     padding-bottom: 16px;

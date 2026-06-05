@@ -40,7 +40,7 @@
       type: "hotline",
       href: "tel:0995682568",
       ariaLabel: "Gọi tổng đài tư vấn miễn phí 099 568 2568",
-      label: "TỔNG ĐÀI VÀNG TƯ VẤN",
+      label: "TỔNG ĐÀI TƯ VẤN MIỄN PHÍ",
       phone: "099 568 2568",
     },
   ];

@@ -58,20 +58,38 @@
   }
 }
 
+/* Mobile brand lockup — Cormorant Garamond, đồng nhất Thăng Long + Kim Việt */
+@media (max-width: 768px) {
+  .header-brand--mb .header-brand__text,
+  .header-brand--mb .header-brand__line,
+  .header-brand--mb .header-brand__line:first-child,
+  .header-brand--mb .header-brand__line--accent {
+    font-family: "Cormorant Garamond", serif !important;
+    font-size: var(--tlkv-mb-brand-size, clamp(1.1625rem, 2.4vw + 0.81rem, 1.475rem)) !important;
+    font-weight: 600 !important;
+    font-style: normal !important;
+    line-height: 1 !important;
+    letter-spacing: 0.015em !important;
+    color: var(--tlkv-header-gold, #c9a14a) !important;
+    text-transform: uppercase;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+}
+
 /* -------------------------- Footer -------------------------- */
 .tlkv-global-footer {
   font-family: var(--tlkv-chrome-font-sans);
 }
 
 .tlkv-global-footer__brand-line {
-  font-size: calc(0.95rem + var(--tlkv-chrome-bump));
+  font-size: calc(1.2rem + var(--tlkv-chrome-bump));
 }
 
 .tlkv-global-footer__brand-tagline,
 .tlkv-global-footer__contact-list,
 .tlkv-global-footer__menu-link,
 .footer-credit h5 {
-  font-size: calc(0.875rem + var(--tlkv-chrome-bump));
+  font-size: calc(0.775rem + var(--tlkv-chrome-bump));
 }
 
 .tlkv-global-footer__contact-item a {
@@ -79,11 +97,26 @@
 }
 
 .tlkv-global-footer__title {
-  font-size: calc(1rem + var(--tlkv-chrome-bump));
+  font-size: calc(1.2rem + var(--tlkv-chrome-bump));
 }
 
-@media (max-width: 575.98px) {
+@media (max-width: 767.98px) {
+  .tlkv-global-footer__brand-line {
+    font-size: 1.2rem;
+  }
+
+  .tlkv-global-footer__brand-tagline,
+  .tlkv-global-footer__contact-list,
+  .tlkv-global-footer__menu-link,
+  .footer-credit h5 {
+    font-size: 0.62rem;
+  }
+
+  .tlkv-global-footer__contact-item a {
+    font-size: 0.72rem;
+  }
+
   .tlkv-global-footer__title {
-    font-size: calc(1rem + var(--tlkv-chrome-bump));
+    font-size: 0.95rem;
   }
 }

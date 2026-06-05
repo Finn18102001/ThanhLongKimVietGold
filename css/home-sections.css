@@ -212,75 +212,129 @@
     padding: 26px 0 28px;
   }
 
-  .tlkv-value-strip__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .tlkv-brand-intro__stats {
     max-width: 740px;
   }
-
 }
 
-@media (max-width: 575.98px) {
+@media (max-width: 767.98px) {
+  /* —— Cam kết chất lượng: 4 card / 1 dòng —— */
   .tlkv-value-strip {
-    padding: 22px 0 24px;
+    padding: 20px 0 22px;
   }
 
   .tlkv-value-strip__grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .tlkv-value-item {
     min-height: 0;
-    padding: 14px 14px 12px;
-    gap: 8px;
+    padding: 8px 4px 6px;
+    gap: 4px;
+    align-items: center;
+    text-align: center;
+    border-radius: 3px;
   }
 
   .tlkv-value-item__icon {
-    width: 27px;
-    height: 27px;
+    width: 18px;
+    height: 18px;
   }
 
   .tlkv-value-item__title {
-    font-size: 1.1rem;
+    font-size: clamp(0.48rem, 2.35vw, 0.58rem);
+    line-height: 1.15;
+    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
+  .tlkv-value-item__desc {
+    display: none;
+  }
+
+  /* —— Thương hiệu vàng bạc uy tín: thu nhỏ —— */
   .tlkv-brand-intro {
-    padding: 36px 0 46px;
+    padding: 24px 0 28px;
+  }
+
+  .tlkv-brand-intro__layout {
+    gap: 16px;
+  }
+
+  .tlkv-brand-intro__content {
+    padding: 0;
+  }
+
+  .tlkv-brand-intro__eyebrow {
+    margin-bottom: 6px;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+  }
+
+  .tlkv-brand-intro__title {
+    font-size: clamp(1.2rem, 5.2vw, 1.45rem);
   }
 
   .tlkv-brand-intro__headline {
-    margin-top: 6px;
+    margin-top: 4px;
+    font-size: clamp(0.82rem, 3.6vw, 0.95rem);
   }
 
   .tlkv-brand-intro__desc {
-    margin-top: 14px;
-    font-size: 0.845rem;
-    line-height: 1.68;
+    margin-top: 10px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .tlkv-brand-intro__stats {
-    margin-top: 18px;
-    grid-template-columns: 1fr;
-    gap: 10px;
+    margin-top: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    max-width: none;
   }
 
   .tlkv-trust-metric {
-    padding: 10px 10px 8px;
+    padding: 8px 4px 6px;
+  }
+
+  .tlkv-trust-metric__value {
+    font-size: clamp(0.82rem, 3.8vw, 0.95rem);
   }
 
   .tlkv-trust-metric__label {
-    font-size: 0.68rem;
+    margin-top: 3px;
+    font-size: 0.46rem;
+    letter-spacing: 0.05em;
+    line-height: 1.25;
   }
 
   .tlkv-brand-intro__cta {
-    margin-top: 18px;
+    margin-top: 12px;
+    min-height: 32px;
+    padding: 7px 12px;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
     width: 100%;
     justify-content: center;
   }
 
+  .tlkv-brand-intro__gallery {
+    max-height: 140px;
+  }
+
+  .tlkv-brand-intro__gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 /* ==========================================================================
@@ -288,6 +342,7 @@
    ========================================================================== */
 .tlkv-featured-products {
   --tlkv-featured-card-size: 290px;
+  --tlkv-featured-card-height: var(--tlkv-featured-card-size);
   --tlkv-featured-card-gap: 14px;
   --tlkv-featured-img-size: 160px;
   --tlkv-featured-media-pad: 10px;
@@ -463,7 +518,7 @@
 
 .tlkv-featured-brand-card {
   width: var(--tlkv-featured-card-size);
-  height: var(--tlkv-featured-card-size);
+  height: var(--tlkv-featured-card-height);
   border: 1px solid rgba(201, 161, 74, 0.24);
   background: linear-gradient(165deg, #fdfcf8 0%, #f6f2e9 100%);
   border-radius: 4px;
@@ -554,11 +609,11 @@
 .tlkv-featured-product-card {
   flex: 0 0 var(--tlkv-featured-card-size);
   width: var(--tlkv-featured-card-size);
-  height: var(--tlkv-featured-card-size);
+  height: var(--tlkv-featured-card-height);
   min-width: var(--tlkv-featured-card-size);
   max-width: var(--tlkv-featured-card-size);
-  min-height: var(--tlkv-featured-card-size);
-  max-height: var(--tlkv-featured-card-size);
+  min-height: var(--tlkv-featured-card-height);
+  max-height: var(--tlkv-featured-card-height);
   scroll-snap-align: start;
   scroll-snap-stop: always;
   border: 1px solid rgba(201, 161, 74, 0.22);
@@ -573,6 +628,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Ghi đè height:100% từ product-card-layout — khớp card thương hiệu */
+.tlkv-featured-products .tlkv-featured-product-card.tlkv-product-card--normalized.tlkv-product-card--ratio-1-1 {
+  height: var(--tlkv-featured-card-height);
+  min-height: var(--tlkv-featured-card-height);
+  max-height: var(--tlkv-featured-card-height);
 }
 
 .tlkv-featured-product-card:hover {
@@ -651,13 +713,13 @@
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__footer {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0;
-  padding: 0px 14px 12px;
-  min-height: 0;
+  margin-top: auto;
+  padding: 0 14px 10px;
+  min-height: 30px;
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
@@ -714,40 +776,36 @@
   .tlkv-featured-products {
     padding: 48px 0 54px;
   }
-
-  .tlkv-featured-brand-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
 }
 
 @media (max-width: 767.98px) {
   .tlkv-featured-products {
-    --tlkv-featured-card-size: 260px;
-    --tlkv-featured-card-gap: 12px;
-    --tlkv-featured-img-size: 148px;
-    --tlkv-featured-media-pad: 8px;
-    padding: 40px 0 46px;
+    /* 4 cards visible: 1 brand + 3 products */
+    --tlkv-featured-card-gap: 8px;
+    --tlkv-featured-card-size: clamp(80px, calc((100vw - 52px) / 4), 92px);
+    --tlkv-featured-card-height: calc(var(--tlkv-featured-card-size) * 1.28);
+    --tlkv-featured-img-size: calc(var(--tlkv-featured-card-size) * 0.36);
+    --tlkv-featured-media-pad: 2px;
+    padding: 28px 0 34px;
   }
 
   .tlkv-featured-products__head {
-    margin-bottom: 18px;
+    margin-bottom: 14px;
   }
 
   .tlkv-featured-products__title {
-    gap: 10px;
+    gap: 8px;
     max-width: 100%;
   }
 
   .tlkv-featured-products__title-text {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     white-space: normal;
   }
 
   .tlkv-section-head {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
     justify-items: center;
   }
 
@@ -757,11 +815,14 @@
 
   .tlkv-section-viewall {
     justify-self: center;
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 0.64rem;
   }
 
   .tlkv-featured-products__ornament {
-    min-width: 32px;
-    max-width: 56px;
+    min-width: 24px;
+    max-width: 40px;
   }
 
   .tlkv-featured-products__ornament-line::after {
@@ -770,30 +831,131 @@
   }
 
   .tlkv-featured-products__rows {
-    gap: 14px;
+    gap: 12px;
+  }
+
+  /* Giữ hàng ngang: thương hiệu | sản phẩm (không xếp chồng) */
+  .tlkv-featured-brand-row {
+    grid-template-columns: var(--tlkv-featured-card-size) minmax(0, 1fr);
+    gap: var(--tlkv-featured-card-gap);
+    align-items: stretch;
+  }
+
+  .tlkv-featured-brand-row__products {
+    display: flex;
+    align-items: stretch;
+    min-height: var(--tlkv-featured-card-height);
+  }
+
+  .tlkv-featured-product-carousel {
+    align-items: stretch;
+    min-height: var(--tlkv-featured-card-height);
+  }
+
+  .tlkv-featured-brand-card {
+    width: var(--tlkv-featured-card-size);
+    height: 100%;
+    min-height: var(--tlkv-featured-card-height);
+    padding: 6px 5px 5px;
+    border-radius: 3px;
+  }
+
+  .tlkv-featured-brand-card__logo-wrap {
+    width: 88%;
+    height: 58%;
+    flex: 1 1 auto;
   }
 
   .tlkv-featured-brand-card__name {
-    margin-top: 10px;
-    font-size: 1.18rem;
+    margin-top: 3px;
+    font-size: clamp(0.5rem, 2.6vw, 0.62rem);
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tlkv-featured-brand-row__products {
+    scroll-padding-inline: 0;
+  }
+
+  .tlkv-featured-product-carousel {
+    gap: var(--tlkv-featured-card-gap);
+    padding: 0 0 4px;
+  }
+
+  .tlkv-featured-product-card:hover {
+    transform: none;
+  }
+
+  .tlkv-featured-product-card,
+  .tlkv-featured-products .tlkv-featured-product-card.tlkv-product-card--normalized.tlkv-product-card--ratio-1-1 {
+    height: auto;
+    min-height: var(--tlkv-featured-card-height);
+    max-height: none;
   }
 
   .tlkv-featured-product-empty {
-    font-size: 0.86rem;
+    min-height: var(--tlkv-featured-card-height);
+    font-size: 0.72rem;
+    padding: 8px;
   }
 
   .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__content {
-    padding: 9px 12px 0;
+    padding: 3px 4px 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: visible;
   }
 
-  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name {
-    font-size: 0.84rem;
-    min-height: 2.45em;
-    max-height: 2.45em;
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name,
+  .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name {
+    display: block;
+    font-size: clamp(0.5rem, 2.5vw, 0.6rem);
+    line-height: 1.2;
+    min-height: 0;
+    max-height: none;
+    margin-bottom: 2px;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    word-break: break-word;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: unset;
+  }
+
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name-link {
+    display: block;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    word-break: break-word;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: unset;
+  }
+
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__price {
+    display: none;
   }
 
   .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__footer {
-    padding: 6px 12px 10px;
+    flex: 0 0 auto;
+    padding: 2px 4px 4px;
+    min-height: 18px;
+  }
+
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta,
+  .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
+    display: inline-flex !important;
+    visibility: visible !important;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 16px;
+    padding: 0 3px;
+    font-size: clamp(0.44rem, 1.9vw, 0.5rem);
+    letter-spacing: 0.04em;
   }
 }
 

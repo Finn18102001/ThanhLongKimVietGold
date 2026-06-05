@@ -84,6 +84,21 @@
   font-size: calc(0.68rem + var(--tlkv-home-bump));
 }
 
+@media (max-width: 767.98px) {
+  .tlkv-home .tlkv-featured-products__title,
+  .tlkv-home .tlkv-section-title {
+    font-size: 1.05rem;
+  }
+
+  .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name {
+    font-size: clamp(0.5rem, 2.5vw, 0.62rem);
+  }
+
+  .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
+    font-size: 0.46rem;
+  }
+}
+
 /* -------------------------- Value strip + marketing blocks -------------------------- */
 .tlkv-home .tlkv-value-strip,
 .tlkv-home .tlkv-brand-intro,
@@ -107,6 +122,25 @@
 
 .tlkv-home .tlkv-brand-intro__desc {
   font-size: calc(0.9rem + var(--tlkv-home-bump));
+}
+
+@media (max-width: 767.98px) {
+  .tlkv-home .tlkv-value-item__title {
+    font-size: clamp(0.48rem, 2.35vw, 0.58rem);
+    font-family: var(--tlkv-home-font-sans);
+  }
+
+  .tlkv-home .tlkv-value-item__desc {
+    font-size: clamp(0.42rem, 2vw, 0.5rem);
+  }
+
+  .tlkv-home .tlkv-brand-intro__eyebrow {
+    font-size: 0.58rem;
+  }
+
+  .tlkv-home .tlkv-brand-intro__desc {
+    font-size: 0.72rem;
+  }
 }
 
 /* -------------------------- News section -------------------------- */

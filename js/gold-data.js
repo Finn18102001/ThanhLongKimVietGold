@@ -1387,6 +1387,9 @@ function applyMetaToDom(meta) {
       const data = await getGoldTable();
       applyMetaToDom(data && data.meta);
       renderRowsIntoTbody(tbody, (data && data.rows) || []);
+      if (global.TLKVGoldTableScroll && typeof global.TLKVGoldTableScroll.refresh === "function") {
+        global.TLKVGoldTableScroll.refresh();
+      }
       const t1 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
       const ms = Math.max(0, Math.round(t1 - t0));
       console.log(

@@ -8,7 +8,7 @@
 
   var SCROLL_SEL = ".tlkv-gp-table-scroll";
   var SHELL_SEL = "[data-tlkv-gp-table-shell]";
-  var EDGE_EPS = 2;
+  var EDGE_EPS = 3;
 
   function isScrollable(el) {
     return el.scrollHeight > el.clientHeight + EDGE_EPS;
@@ -27,6 +27,7 @@
     var body = document.body;
     if (root) root.scrollTop += deltaY;
     if (body) body.scrollTop += deltaY;
+    global.scrollBy(0, deltaY);
   }
 
   function handleWheel(ev) {
@@ -45,15 +46,13 @@
   }
 
   function bindTouchChain(el) {
-    var startY = 0;
     var lastY = 0;
 
     el.addEventListener(
       "touchstart",
       function (ev) {
         if (!ev.touches || !ev.touches.length) return;
-        startY = ev.touches[0].clientY;
-        lastY = startY;
+        lastY = ev.touches[0].clientY;
       },
       { passive: true }
     );
@@ -62,7 +61,6 @@
       "touchmove",
       function (ev) {
         if (!ev.touches || !ev.touches.length) return;
-        if (!isScrollable(el)) return;
 
         var y = ev.touches[0].clientY;
         var dy = lastY - y;
@@ -70,14 +68,20 @@
 
         if (dy === 0) return;
 
-        var pullingDown = dy < 0;
-        var pullingUp = dy > 0;
+        if (!isScrollable(el)) {
+          scrollPageBy(dy);
+          return;
+        }
 
-        if ((pullingDown && atTop(el)) || (pullingUp && atBottom(el))) {
+        var scrollingDown = dy > 0;
+        var scrollingUp = dy < 0;
+
+        if ((scrollingUp && atTop(el)) || (scrollingDown && atBottom(el))) {
+          ev.preventDefault();
           scrollPageBy(dy);
         }
       },
-      { passive: true }
+      { passive: false }
     );
   }
 
@@ -94,10 +98,24 @@
     document.querySelectorAll(SHELL_SEL).forEach(bindScrollChain);
   }
 
+  function observeTableShells() {
+    if (!global.MutationObserver) return;
+    var observer = new MutationObserver(function () {
+      boot();
+    });
+    document.querySelectorAll(SHELL_SEL).forEach(function (shell) {
+      observer.observe(shell, { childList: true, subtree: true });
+    });
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
+    document.addEventListener("DOMContentLoaded", function () {
+      boot();
+      observeTableShells();
+    });
   } else {
     boot();
+    observeTableShells();
   }
 
   global.TLKVGoldTableScroll = { bind: bindScrollChain, refresh: boot };
