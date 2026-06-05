@@ -33,12 +33,29 @@
   font-size: calc(0.8125rem + var(--tlkv-chrome-bump));
 }
 
-.header-brand__line:first-child {
-  font-size: calc(0.9375rem + var(--tlkv-chrome-bump));
-}
+/* Desktop brand lockup — Cormorant Garamond (loads after header.css) */
+@media (min-width: 769px) {
+  .header-pc .header-brand__text,
+  .header-pc .header-brand__line,
+  .header-pc .header-brand__line--accent {
+    font-family: "Cormorant Garamond", serif !important;
+    font-style: normal !important;
+    letter-spacing: 1px !important;
+    line-height: 1 !important;
+    text-transform: uppercase;
+  }
 
-.header-brand__line--accent {
-  font-size: calc(1.5rem + var(--tlkv-chrome-bump));
+  .header-pc .header-brand__line:first-child {
+    font-size: 42px !important;
+    font-weight: 500 !important;
+    color: var(--tlkv-header-gold-soft, #d6b25e) !important;
+  }
+
+  .header-pc .header-brand__line--accent {
+    font-size: 58px !important;
+    font-weight: 600 !important;
+    color: var(--tlkv-header-gold, #c9a14a) !important;
+  }
 }
 
 /* -------------------------- Footer -------------------------- */

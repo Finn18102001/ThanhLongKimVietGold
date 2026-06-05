@@ -13,6 +13,9 @@
   --tlkv-gp-muted: var(--tlkv-text-muted, #666666);
   --tlkv-gp-row-h: 2.5rem;
   --tlkv-gp-head-h: 2.375rem;
+  --tlkv-gp-title-size: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
+  /* World panel — cùng scale với dòng brand "Thăng Long Kim Việt" (1.1em) */
+  --tlkv-gp-world-title-size: clamp(1.65rem, 1.1rem + 2.42vw, 2.475rem);
 
   padding: clamp(2.5rem, 5vw, 3.5rem) 0;
   background: var(--tlkv-gp-bg);
@@ -97,7 +100,7 @@
 
 /* Store title = primary focal point: two stacked lines, larger scale */
 .tlkv-gold-panel__title.tlkv-gp-title {
-  font-size: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
+  font-size: var(--tlkv-gp-title-size);
 }
 .tlkv-gp-title__line {
   display: block;
@@ -112,10 +115,12 @@
   font-weight: 800;
 }
 
-/* World title = same system, single line, a step smaller to keep hierarchy */
+/* World title — cùng font + scale với dòng brand store panel */
 .tlkv-world-xau-title.tlkv-gp-title {
-  font-size: clamp(1.2rem, 0.9rem + 1.4vw, 1.55rem);
-  letter-spacing: 1px;
+  font-family: var(--tlkv-font-heading);
+  font-weight: 800;
+  font-size: var(--tlkv-gp-world-title-size);
+  letter-spacing: 0.6px;
 }
 
 .tlkv-gold-panel__meta,
@@ -164,7 +169,8 @@
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
 }
 
 .tlkv-world-xau-meta {
@@ -416,7 +422,7 @@
   border-bottom: 1px solid var(--tlkv-gp-border);
 }
 
-.tlkv-gold-panel--world .tlkv-world-xau-title {
+.tlkv-gold-panel--world .tlkv-world-xau-title:not(.tlkv-gp-title) {
   font-family: var(--tlkv-font-heading);
   font-size: clamp(1.25rem, 1.85vw, 1.4375rem);
   font-weight: 600;
@@ -467,15 +473,21 @@
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
   background: var(--tlkv-gp-bg);
 }
 
+.tlkv-gold-panel--world .tlkv-world-xau-tv-wrap .tlkv-world-xau-tv-embed,
 .tlkv-gold-panel--world .tlkv-world-xau-tv-wrap iframe {
   display: block;
   width: 100%;
   height: 100%;
   min-height: 0;
   border: 0;
+}
+
+.tlkv-gold-panel--world .tlkv-world-xau-tv-wrap .tlkv-world-xau-tv-embed {
+  overflow: hidden;
 }
 
 @media (min-width: 992px) {
@@ -613,18 +625,24 @@
      ========================================================================= */
 
   /* --- 1. SCROLL SHELL ------------------------------------------------------
-     Table fits the viewport width (no horizontal drag) and scrolls vertically
-     inside an 80vh box; the existing sticky <thead> stays pinned while scrolling.
-     overscroll-behavior:contain stops the scroll from locking the page. */
+     Single scroll owner (.tlkv-gp-table-scroll) — shell stays overflow:hidden
+     so wheel/touch events chain to the page at scroll boundaries (no trap). */
   .tlkv-gold-dashboard .table-responsive.gold-table,
   .tlkv-gold-dashboard .tlkv-gp-table-shell {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 80vh !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    padding-bottom: 0;
+  }
+
+  .tlkv-gold-dashboard .tlkv-gp-table-scroll {
+    max-height: 80vh;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior: contain !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y;
     /* Clearance so the last rows never hide behind the fixed floating-contact widget */
     padding-bottom: 16px;
   }

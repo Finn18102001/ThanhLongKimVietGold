@@ -48,22 +48,48 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     return false;
   }
 
-  function tvIframeSrc() {
-    var q = new URLSearchParams({
-      autosize: "true",
+  function tvWidgetConfig() {
+    return {
+      autosize: true,
       symbol: "FOREXCOM:XAUUSD",
       interval: "D",
       timezone: "Asia/Ho_Chi_Minh",
       theme: "light",
       style: "1",
       locale: "vi_VN",
-      hide_top_toolbar: "false",
-      hide_legend: "false",
-      save_image: "false",
-      calendar: "false",
-      hotlist: "false",
-    });
-    return "https://www.tradingview.com/embed-widget/advanced-chart/?" + q.toString();
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_side_toolbar: true,
+      withdateranges: false,
+      allow_symbol_change: false,
+      enable_publishing: false,
+      save_image: false,
+      show_popup_button: false,
+      details: false,
+      calendar: false,
+      hotlist: false,
+      support_host: "https://www.tradingview.com",
+    };
+  }
+
+  function mountTradingViewWidget(tvWrap) {
+    var container = document.createElement("div");
+    container.className = "tradingview-widget-container tlkv-world-xau-tv-embed";
+    container.style.cssText = "height:100%;width:100%;";
+
+    var widgetHost = document.createElement("div");
+    widgetHost.className = "tradingview-widget-container__widget";
+    widgetHost.style.cssText = "height:100%;width:100%;";
+    container.appendChild(widgetHost);
+
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.async = true;
+    script.textContent = JSON.stringify(tvWidgetConfig());
+    container.appendChild(script);
+
+    tvWrap.appendChild(container);
   }
 
   function cellClass(positive) {
@@ -175,7 +201,12 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
     root.setAttribute("data-tlkv-xau-mounted", "1");
 
     var tvWrap = $(".tlkv-world-xau-tv-wrap", root);
-    if (tvWrap && !tvWrap.querySelector("iframe") && !tvWrap.querySelector(".tlkv-world-xau-tv-skip")) {
+    if (
+      tvWrap &&
+      !tvWrap.querySelector(".tlkv-world-xau-tv-embed") &&
+      !tvWrap.querySelector("iframe") &&
+      !tvWrap.querySelector(".tlkv-world-xau-tv-skip")
+    ) {
       if (shouldSkipTradingViewEmbed()) {
         var skip = document.createElement("div");
         skip.className = "tlkv-world-xau-tv-skip";
@@ -185,12 +216,7 @@ var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
           '<p class="tlkv-world-xau-tv-skip-link"><a href="https://www.tradingview.com/chart/?symbol=FOREXCOM%3AXAUUSD" rel="noopener noreferrer" target="_blank">Mở biểu đồ XAU/USD trên thiết bị khác</a></p>';
         tvWrap.appendChild(skip);
       } else {
-        var ifr = document.createElement("iframe");
-        ifr.setAttribute("title", "Biểu đồ XAU/USD — TradingView");
-        ifr.setAttribute("loading", "lazy");
-        ifr.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
-        ifr.src = tvIframeSrc();
-        tvWrap.appendChild(ifr);
+        mountTradingViewWidget(tvWrap);
       }
     }
 

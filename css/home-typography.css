@@ -49,7 +49,7 @@
   font-size: calc(0.75rem + var(--tlkv-home-bump));
 }
 
-.tlkv-home .tlkv-world-xau-title,
+/* World chart title dùng chung serif với .tlkv-gp-title — không override sans */
 .tlkv-home .tlkv-world-xau-sub,
 .tlkv-home .tlkv-world-xau-symbol {
   font-family: var(--tlkv-home-font-sans);

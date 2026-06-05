@@ -39,7 +39,7 @@
   border-bottom: 1px solid var(--tlkv-border-light);
 }
 
-.tlkv-world-xau-title {
+.tlkv-world-xau-title:not(.tlkv-gp-title) {
   font-family: var(--tlkv-font-heading);
   font-size: var(--tlkv-text-xl);
   font-weight: 750;
@@ -85,14 +85,22 @@
 
 .tlkv-world-xau-tv-wrap {
   min-height: 420px;
+  width: 100%;
+  overflow: hidden;
   background: var(--tlkv-bg-pearl);
 }
 
+.tlkv-world-xau-tv-wrap .tlkv-world-xau-tv-embed,
 .tlkv-world-xau-tv-wrap iframe {
   width: 100%;
+  max-width: 100%;
   height: 440px;
   border: 0;
   display: block;
+}
+
+.tlkv-world-xau-tv-wrap .tlkv-world-xau-tv-embed {
+  overflow: hidden;
 }
 
 /* TV / save-data: không nhúng TradingView (iframe quá nặng) */

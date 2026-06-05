@@ -39,8 +39,8 @@
       id: "hotline",
       type: "hotline",
       href: "tel:0995682568",
-      ariaLabel: "Gọi tổng đài vàng trang sức 099 568 2568",
-      label: "TỔNG ĐÀI VÀNG TRANG SỨC",
+      ariaLabel: "Gọi tổng đài tư vấn miễn phí 099 568 2568",
+      label: "TỔNG ĐÀI VÀNG TƯ VẤN",
       phone: "099 568 2568",
     },
   ];

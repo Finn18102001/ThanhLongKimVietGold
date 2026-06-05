@@ -78,7 +78,6 @@
   <link href="/css/design-system.css" rel="stylesheet" />
   <link href="/css/vendor/style.css" rel="stylesheet">
   <link href="/css/header.css" rel="stylesheet">
-  <link href="/css/chrome-typography.css" rel="stylesheet">
   <link href="/css/hero.css" rel="stylesheet">
   <link href="/css/home-typography.css" rel="stylesheet">
   <link href="/local.css" rel="stylesheet">
@@ -89,6 +88,7 @@
   <link href="/css/home-sections.css" rel="stylesheet" />
   <link href="/css/product-card-layout.css" rel="stylesheet" />
   <link href="/css/floating-contact.css" rel="stylesheet" />
+  <link href="/css/chrome-typography.css" rel="stylesheet">
 </head>
 
 <body class="tlkv-home">
@@ -100,7 +100,7 @@
             <p class="header-topbar__meta">
               <span class="header-topbar__item">322 Nguyễn Trãi, Phường Đại Mỗ, TP Hà Nội</span>
               <span class="header-topbar__sep" aria-hidden="true">·</span>
-              <span class="header-topbar__item">7:00 – 19:00</span>
+              <span class="header-topbar__item">9:00 – 19:00</span>
             </p>
             <div class="header-topbar__zalo">
               <a href="https://www.facebook.com/profile.php?id=61589525696826" class="header-topbar__zalo-link" target="_blank" rel="noopener noreferrer" title="Facebook" aria-label="Facebook Thăng Long Kim Việt">
@@ -125,7 +125,7 @@
               <div class="header-brand">
                 <a href="/" class="header-brand__link" title="Thăng Long Kim Việt">
                   <span class="header-brand__mark">
-                    <img class="img-fluid site-logo-img" src="/assets/logo-tv-modal.svg" alt="" />
+                    <img class="img-fluid site-logo-img" src="/assets/logo-thang-long-kim-viet.png" alt="" />
                   </span>
                   <span class="header-brand__text">
                     <span class="header-brand__line">Thăng Long</span>
@@ -158,6 +158,9 @@
                   </div>
                   <div class="header-gr-item">
                     <a href="/tin-tuc" class="nav-link link-no-ic">Tin tức thị trường</a>
+                  </div>
+                  <div class="header-gr-item">
+                    <a href="/gioithieu" class="nav-link link-no-ic">Liên hệ</a>
                   </div>
                 </div>
               </div>
@@ -249,7 +252,12 @@
             <div class="tlkv-hero__carousel" aria-label="Banner nổi bật" data-tlkv-hero-carousel>
               <div class="tlkv-hero__showcase">
                 <div class="tlkv-hero__carousel-stage" aria-live="polite">
-                   <figure class="tlkv-hero__slide is-active" data-tlkv-hero-slide style="--tlkv-hero-native-w: 2048px;">
+                  <figure class="tlkv-hero__slide is-active" data-tlkv-hero-slide style="--tlkv-hero-native-w: 1918px;">
+                    <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
+                    <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
+                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang-3840w.png" srcset="/assets/home/hero-tich-san-vang.png 1024w, /assets/home/hero-tich-san-vang-3840w.png 1918w" sizes="100vw" alt="Banner Tích sản vàng" width="1918" height="820" loading="lazy" decoding="async" />
+                  </figure>
+                   <figure class="tlkv-hero__slide " data-tlkv-hero-slide style="--tlkv-hero-native-w: 2048px;">
                     <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
                     <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
                     <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-minh-chau-3840w.png" srcset="/assets/home/hero-bao-tin-minh-chau.png 1024w, /assets/home/hero-bao-tin-minh-chau-3840w.png 2048w" sizes="100vw" alt="Banner Bảo Tín Minh Châu" width="2048" height="768" loading="lazy" decoding="async" />
@@ -259,50 +267,32 @@
                     <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
                     <img class="tlkv-hero__slide-img" src="/assets/home/hero-bao-tin-manh-hai-3840w.png" srcset="/assets/home/hero-bao-tin-manh-hai.png 1024w, /assets/home/hero-bao-tin-manh-hai-3840w.png 2048w" sizes="100vw" alt="Banner Bảo Tín Mạnh Hải" width="2048" height="768" loading="eager" decoding="async" fetchpriority="high" />
                   </figure>                 
-                  <figure class="tlkv-hero__slide" data-tlkv-hero-slide style="--tlkv-hero-native-w: 1918px;">
-                    <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
-                    <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
-                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang-3840w.png" srcset="/assets/home/hero-tich-san-vang.png 1024w, /assets/home/hero-tich-san-vang-3840w.png 1918w" sizes="100vw" alt="Banner Tích sản vàng" width="1918" height="820" loading="lazy" decoding="async" />
-                  </figure>
+                  
                 </div>
               </div>
 
               <div class="tlkv-hero__nav">
                 <div class="tlkv-hero__dots" role="tablist" aria-label="Vị trí banner" data-tlkv-hero-dots>
-                  <button class="tlkv-hero__dot is-active" type="button" role="tab" aria-selected="true" aria-label="Slide 1" data-tlkv-hero-dot="0"></button>
-                  <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 2" data-tlkv-hero-dot="1"></button>
+                  <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="true" aria-label="Slide 1" data-tlkv-hero-dot="0"></button>
+                  <button class="tlkv-hero__dot is-active" type="button" role="tab" aria-selected="false" aria-label="Slide 2" data-tlkv-hero-dot="1"></button>
                   <button class="tlkv-hero__dot" type="button" role="tab" aria-selected="false" aria-label="Slide 3" data-tlkv-hero-dot="2"></button>
                 </div>
 
                 <div class="tlkv-hero__thumbs" role="tablist" aria-label="Chọn banner" data-tlkv-hero-thumbs>
-                  <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Bảo Tín Minh Châu" data-tlkv-hero-thumb="0">
-                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-minh-chau.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
-                  </button>
-                  <button class="tlkv-hero__thumb is-active" type="button" role="tab" aria-selected="true" aria-label="Bảo Tín Mạnh Hải" data-tlkv-hero-thumb="1">
-                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-manh-hai.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
-                  </button>                  
-                  <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Tích sản vàng" data-tlkv-hero-thumb="2">
+                   <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="true" aria-label="Tích sản vàng" data-tlkv-hero-thumb="0">
                     <img class="tlkv-hero__thumb-img" src="/assets/home/hero-tich-san-vang.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
                   </button>
+                  <button class="tlkv-hero__thumb" type="button" role="tab" aria-selected="false" aria-label="Bảo Tín Minh Châu" data-tlkv-hero-thumb="1">
+                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-minh-chau.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
+                  </button>
+                  <button class="tlkv-hero__thumb is-active" type="button" role="tab" aria-selected="false" aria-label="Bảo Tín Mạnh Hải" data-tlkv-hero-thumb="2">
+                    <img class="tlkv-hero__thumb-img" src="/assets/home/hero-bao-tin-manh-hai.png" alt="" width="512" height="192" loading="lazy" decoding="async" />
+                  </button>                  
+                 
                 </div>
               </div>
             </div>
           </section>
-
-          <!-- Content: promo row -->
-          <div class="flashsale-row-container">
-            <div class="container">
-              <div class="flashsale-row d-flex align-items-center">
-                <div class="flashsale-item flashsale-text">
-                  <p>MUA ONLINE - <span>GIAO HÀNG NGAY</span></p>
-                </div>
-                <div class="flashsale-item flashsale-text">
-                  <p>CHUYÊN TRANG SỨC VÀNG TA - <span>MỚI NHẤT</span></p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Gold pricing dashboard -->
           <section class="tlkv-gold-dashboard home-chart gold-rate-component" aria-label="Thị trường vàng">
             <div class="container tlkv-container--wide">
@@ -438,7 +428,7 @@
                 <article class="tlkv-brand-intro__content">
                   <p class="tlkv-brand-intro__eyebrow">Thương hiệu vàng bạc uy tín</p>
                   <h2 id="tlkv-brand-intro-title" class="tlkv-brand-intro__title">Thăng Long Kim Việt</h2>
-                  <p class="tlkv-brand-intro__headline">Uy tín tạo nên giá trị</p>
+                  <p class="tlkv-brand-intro__headline">Giữ vàng, giữ phúc, giữ niềm tin</p>
                   <p class="tlkv-brand-intro__desc">
                     Với đội ngũ chuyên viên am hiểu vàng bạc và đá quý, Thăng Long Kim Việt mang đến giải pháp mua sắm
                     tinh gọn, minh bạch và chỉn chu trong từng trải nghiệm tư vấn.
@@ -510,7 +500,7 @@
             <a href="/" class="tlkv-global-footer__logo" title="Thăng Long Kim Việt">
               <img class="img-fluid site-logo-img site-logo-img--footer" src="/assets/logo-thang-long-kim-viet.png" alt="Thăng Long Kim Việt" />
             </a>
-            <p class="tlkv-global-footer__brand-line">Giữ trọn giá trị theo thời gian</p>
+            <p class="tlkv-global-footer__brand-line">Giữ vàng, giữ phúc, giữ niềm tin</p>
             <p class="tlkv-global-footer__brand-tagline">Thăng Long Kim Việt đồng hành cùng khách hàng bằng sản phẩm chuẩn mực, dịch vụ tận tâm và trải nghiệm mua sắm chỉn chu.</p>
             <ul class="tlkv-global-footer__social-list" aria-label="Mạng xã hội">
               <li>
@@ -582,6 +572,7 @@
   <script src="/js/tlkv-supabase-client.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/gold-pricing-layout.js"></script>
+  <script src="/js/gold-table-scroll.js"></script>
   <script src="/js/world-gold-xau.js"></script>
   <script src="/js/products/constants.js"></script>
   <script src="/js/products/product-card-layout.js"></script>

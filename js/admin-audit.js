@@ -80,13 +80,13 @@
       to = tmp;
     }
     if (from && to) {
-      return q.gte("created_at", from + "T00:00:00+07:00").lte("created_at", to + "T23:59:59.999+07:00");
+      return q.gte("created_at", from + "T00:00:00+09:00").lte("created_at", to + "T23:59:59.999+09:00");
     }
-    if (from) return q.gte("created_at", from + "T00:00:00+07:00");
-    if (to) return q.lte("created_at", to + "T23:59:59.999+07:00");
+    if (from) return q.gte("created_at", from + "T00:00:00+09:00");
+    if (to) return q.lte("created_at", to + "T23:59:59.999+09:00");
     var legacy = opts && opts.dateStr ? String(opts.dateStr).trim() : "";
     if (legacy) {
-      return q.gte("created_at", legacy + "T00:00:00+07:00").lte("created_at", legacy + "T23:59:59.999+07:00");
+      return q.gte("created_at", legacy + "T00:00:00+09:00").lte("created_at", legacy + "T23:59:59.999+09:00");
     }
     return q;
   }
