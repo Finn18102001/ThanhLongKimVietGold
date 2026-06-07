@@ -3,8 +3,6 @@
    Scoped to .header / .header-* — does not affect tv-model (.tv-*)
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700&display=swap");
-
 :root {
   --tlkv-header-cream: #f8f6f1;
   --tlkv-header-pearl: #fdfcf8;
@@ -15,14 +13,22 @@
   --tlkv-header-text: #1a1a1a;
   --tlkv-header-muted: #666666;
   --tlkv-header-border: #ebe6dc;
-  /* Brand lockup — logo height ≈ wordmark block height */
-  --tlkv-header-mark-size: 102px;
-  --tlkv-brand-lockup-h: 102px;
-  --tlkv-brand-line-1: 42px;
-  --tlkv-brand-line-2: 58px;
-  --tlkv-brand-font: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --tlkv-brand-gap: 1rem;
-  --tlkv-header-inner-min-h: 112px;
+  /* Brand lockup — icon height tracks stacked wordmark cap-height (not line-box) */
+  --tlkv-brand-line-1: 35px;
+  --tlkv-brand-line-2: 50px;
+  --tlkv-brand-track: 1.2px;
+  --tlkv-brand-track-1: 0.8px;
+  --tlkv-brand-track-2: 1.6px;
+  --tlkv-brand-line-gap: 0.3125rem;
+  --tlkv-brand-line-height: 1.08;
+  --tlkv-brand-font: "Bookman Old Style";
+  --tlkv-brand-gap: 0.875rem;
+  --tlkv-brand-wordmark-h: calc(
+    var(--tlkv-brand-line-1) + var(--tlkv-brand-line-gap) + var(--tlkv-brand-line-2)
+  );
+  --tlkv-brand-lockup-h: var(--tlkv-brand-wordmark-h);
+  --tlkv-header-mark-size: var(--tlkv-brand-lockup-h);
+  --tlkv-header-inner-min-h: 108px;
   --tlkv-header-nav-gap: 4px;
   --tlkv-header-nav-offset: 10%;
 }
@@ -170,37 +176,40 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.1875rem;
+  align-items: center;
+  gap: var(--tlkv-brand-line-gap);
   padding-top: 1px;
   min-width: 0;
+  text-align: center;
 }
 
 .header-brand__line {
   display: block;
   font-family: var(--tlkv-brand-font);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 1px;
+  font-weight: 700;
+  line-height: var(--tlkv-brand-line-height);
+  letter-spacing: var(--tlkv-brand-track-1);
   text-transform: uppercase;
   font-style: normal;
   font-feature-settings: "liga" 1, "kern" 1;
   color: var(--tlkv-header-gold);
   white-space: nowrap;
+  text-align: center;
 }
 
 /* Thăng Long — dòng trên */
 .header-brand__line:first-child {
-  font-weight: 500;
+  font-weight: 700;
   color: var(--tlkv-header-gold-soft);
 }
 
 /* Kim Việt — dòng dưới */
 .header-brand__line--accent {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--tlkv-header-gold);
 }
 
-/* Desktop — Cormorant Garamond, logo = wordmark height */
+/* Desktop — logo = wordmark height */
 .header-pc .header--inner {
   align-items: center;
 }
@@ -213,7 +222,7 @@
 }
 
 .header-pc .header-brand__link {
-  gap: 1rem;
+  gap: var(--tlkv-brand-gap);
   align-items: center;
 }
 
@@ -225,28 +234,30 @@
 .header-pc .header-brand__text {
   height: auto;
   justify-content: center;
-  gap: 2px;
+  align-items: center;
+  gap: var(--tlkv-brand-line-gap);
   padding-top: 0;
-  font-family: var(--tlkv-brand-font);
+  text-align: center;
 }
 
 .header-pc .header-brand__line,
 .header-pc .header-brand__line--accent {
-  font-family: var(--tlkv-brand-font);
-  letter-spacing: 1px;
-  line-height: 1;
+  line-height: var(--tlkv-brand-line-height);
   font-style: normal;
+  text-align: center;
 }
 
 .header-pc .header-brand__line:first-child {
   font-size: var(--tlkv-brand-line-1);
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: var(--tlkv-brand-track-1);
   color: var(--tlkv-header-gold-soft);
 }
 
 .header-pc .header-brand__line--accent {
   font-size: var(--tlkv-brand-line-2);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: var(--tlkv-brand-track-2);
   color: var(--tlkv-header-gold);
 }
 
@@ -261,7 +272,7 @@
   flex-shrink: 0;
   align-self: center;
   width: 1px;
-  height: 90px;
+  height: calc(var(--tlkv-brand-lockup-h) + 0.5rem);
   margin: 0 42px;
   background: linear-gradient(
     to bottom,
@@ -519,9 +530,8 @@
 .header-brand--mb .header-brand__line,
 .header-brand--mb .header-brand__line--accent,
 .header-brand--mb .header-brand__line:first-child {
-  font-family: var(--tlkv-brand-font);
   font-size: var(--tlkv-mb-brand-size, clamp(1.1625rem, 2.4vw + 0.81rem, 1.475rem));
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.015em;
   color: var(--tlkv-header-gold);
@@ -693,17 +703,16 @@
 /* ----- Responsive ----- */
 @media (max-width: 1199.98px) {
   :root {
-    --tlkv-header-mark-size: 88px;
-    --tlkv-brand-lockup-h: 88px;
-    --tlkv-brand-line-1: 36px;
-    --tlkv-brand-line-2: 50px;
-    --tlkv-brand-gap: 0.875rem;
+    --tlkv-brand-line-1: 33px;
+    --tlkv-brand-line-2: 46px;
+    --tlkv-brand-track-1: 0.75px;
+    --tlkv-brand-track-2: 1.45px;
+    --tlkv-brand-gap: 0.8125rem;
     --tlkv-header-nav-offset: 8%;
     --tlkv-header-inner-min-h: 96px;
   }
 
   .header-pc .header-gr.left-gr::before {
-    height: 78px;
     margin: 0 32px;
   }
 }
@@ -769,27 +778,6 @@
   .header-topbar__social-icon {
     width: 26px;
     height: 26px;
-  }
-}
-
-/* Desktop brand — final lock (Cormorant Garamond, không bị override) */
-@media (min-width: 769px) {
-  .header-pc .header-brand__line:first-child {
-    font-family: "Cormorant Garamond", serif !important;
-    font-size: 42px !important;
-    font-weight: 500 !important;
-    font-style: normal !important;
-    letter-spacing: 1px !important;
-    line-height: 1 !important;
-  }
-
-  .header-pc .header-brand__line--accent {
-    font-family: "Cormorant Garamond", serif !important;
-    font-size: 58px !important;
-    font-weight: 600 !important;
-    font-style: normal !important;
-    letter-spacing: 1px !important;
-    line-height: 1 !important;
   }
 }
 

@@ -124,19 +124,103 @@
     return row;
   }
 
-  function bindProductRailScroll(host) {
-    if (!host || host._tlkvFeaturedRailScrollBound) return;
-    host._tlkvFeaturedRailScrollBound = true;
+  function bindProductRailDrag(host) {
+    if (!host || host._tlkvFeaturedRailDragBound) return;
+    host._tlkvFeaturedRailDragBound = true;
+
+    var drag = null;
+    var inertiaId = null;
+
+    function canScroll(track) {
+      return track && track.scrollWidth > track.clientWidth + 1;
+    }
+
+    function stopInertia() {
+      if (inertiaId) {
+        cancelAnimationFrame(inertiaId);
+        inertiaId = null;
+      }
+    }
+
+    function runInertia(track, velocity) {
+      stopInertia();
+      var vx = velocity;
+      var step = function () {
+        if (Math.abs(vx) < 0.4) {
+          inertiaId = null;
+          return;
+        }
+        track.scrollLeft -= vx;
+        vx *= 0.92;
+        inertiaId = requestAnimationFrame(step);
+      };
+      inertiaId = requestAnimationFrame(step);
+    }
+
+    host.addEventListener("mousedown", function (ev) {
+      if (ev.button !== 0) return;
+      var track = ev.target.closest(".tlkv-featured-brand-row__products");
+      if (!canScroll(track)) return;
+      if (ev.target.closest("a, button, input, textarea, select, label")) return;
+
+      stopInertia();
+      drag = {
+        track: track,
+        startX: ev.clientX,
+        startScrollLeft: track.scrollLeft,
+        lastX: ev.clientX,
+        lastTime: Date.now(),
+        velocity: 0,
+        moved: false,
+      };
+      track.classList.add("is-dragging");
+      ev.preventDefault();
+    });
+
+    window.addEventListener("mousemove", function (ev) {
+      if (!drag) return;
+      var dx = ev.clientX - drag.startX;
+      if (Math.abs(dx) > 4) drag.moved = true;
+      drag.track.scrollLeft = drag.startScrollLeft - dx;
+
+      var now = Date.now();
+      var dt = now - drag.lastTime;
+      if (dt > 0) {
+        drag.velocity = ((ev.clientX - drag.lastX) / dt) * 16;
+      }
+      drag.lastX = ev.clientX;
+      drag.lastTime = now;
+      ev.preventDefault();
+    });
+
+    window.addEventListener("mouseup", function () {
+      if (!drag) return;
+      var track = drag.track;
+      var velocity = drag.velocity;
+      var moved = drag.moved;
+
+      track.classList.remove("is-dragging");
+      drag = null;
+
+      if (moved) {
+        track._tlkvSuppressClick = true;
+        window.setTimeout(function () {
+          track._tlkvSuppressClick = false;
+        }, 150);
+        if (Math.abs(velocity) > 0.5) runInertia(track, velocity);
+      }
+    });
+
     host.addEventListener(
-      "wheel",
+      "click",
       function (ev) {
         var track = ev.target.closest(".tlkv-featured-brand-row__products");
-        if (!track || track.scrollWidth <= track.clientWidth + 1) return;
-        if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
-        ev.preventDefault();
-        track.scrollLeft += ev.deltaY;
+        if (track && track._tlkvSuppressClick) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+        }
       },
-      { passive: false, capture: true }
+      true
     );
   }
 
@@ -148,7 +232,7 @@
       frag.appendChild(createBrandRow(brands[i]));
     }
     host.appendChild(frag);
-    bindProductRailScroll(host);
+    bindProductRailDrag(host);
   }
 
   async function fetchFeaturedBrandsWithProducts(limit) {

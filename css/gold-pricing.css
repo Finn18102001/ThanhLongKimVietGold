@@ -70,18 +70,16 @@
 .tlkv-gp-title {
   margin: 0 auto 0.5rem;
   text-align: center;
-  font-family: var(--tlkv-font-heading);
-  font-weight: 800;
+  font-family: "Bookman Old Style", "Bookman", "URW Bookman L", "Bookman ITC", Georgia, serif;
+  font-weight: 700;
   line-height: 1.12;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  /* Premium gold gradient (fill). Solid fallback for engines without text-clip. */
+  letter-spacing: 0.3px;
   color: #a87f1c;
   background: linear-gradient(180deg, #e7c763 0%, #d4af37 40%, #a87f1c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  /* Soft luxury shadow that works with clipped text */
   -webkit-filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
   filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
 }
@@ -111,16 +109,15 @@
   letter-spacing: 1.8px;
 }
 .tlkv-gp-title__line--brand {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 800;
 }
 
-/* World title — cùng font + scale với dòng brand store panel */
 .tlkv-world-xau-title.tlkv-gp-title {
-  font-family: var(--tlkv-font-heading);
-  font-weight: 800;
-  font-size: var(--tlkv-gp-world-title-size);
-  letter-spacing: 0.6px;
+  font-family: "Bookman Old Style";
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: 0;
 }
 
 .tlkv-gold-panel__meta,
@@ -625,26 +622,27 @@
      ========================================================================= */
 
   /* --- 1. SCROLL SHELL ------------------------------------------------------
-     Single scroll owner (.tlkv-gp-table-scroll) — shell stays overflow:hidden
-     so wheel/touch events chain to the page at scroll boundaries (no trap). */
+     Shell has no overflow of its own — the inner scroll wrapper is now also
+     static (no height cap, no overflow). Everything flows vertically and the
+     page owns the scroll axis on mobile. */
   .tlkv-gold-dashboard .table-responsive.gold-table,
   .tlkv-gold-dashboard .tlkv-gp-table-shell {
     width: 100% !important;
     max-width: 100% !important;
     max-height: none !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     padding-bottom: 0;
   }
 
+  /* No nested scroll on mobile — table grows naturally and the page scrolls.
+     All previous height-cap / overflow constraints are lifted here. */
   .tlkv-gold-dashboard .tlkv-gp-table-scroll {
-    max-height: min(52vh, 420px);
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
+    max-height: none !important;
+    overflow: visible !important;
+    -webkit-overflow-scrolling: auto !important;
     overscroll-behavior-y: auto;
-    touch-action: pan-y;
-    /* Clearance so the last rows never hide behind the fixed floating-contact widget */
-    padding-bottom: 16px;
+    touch-action: auto;
+    padding-bottom: 0;
   }
 
   /* --- 2. FIT-TO-WIDTH LAYOUT ----------------------------------------------- */
@@ -775,6 +773,12 @@
   .tlkv-gold-dashboard .gold-table-content.gold-table--stacked td:nth-child(4) { width: calc(20% + 10px) !important; min-width: 0 !important; }
 }
 
+@media (max-width: 767.98px) {
+  .tlkv-gold-dashboard .tlkv-world-xau-title.tlkv-gp-title {
+    font-size: 25px !important;
+  }
+}
+
 @media (max-width: 575.98px) {
   .tlkv-gold-dashboard__grid {
     grid-template-columns: 1fr;
@@ -797,5 +801,105 @@
   .tlkv-gold-panel--world .tlkv-world-xau-spot {
     text-align: left;
     width: 100%;
+  }
+}
+
+/* ===========================================================================
+   MOBILE THEME — gold table + world chart headers
+   Light mode: unchanged (original gold gradient + cream headers).
+   Dark mode: only when the OS reports prefers-color-scheme: dark.
+   Note: Chrome "Appearance → Theme: Light" is separate from OS color
+   scheme; prefers-color-scheme follows Windows/macOS system setting.
+   ========================================================================= */
+
+/* Light / default on mobile — explicitly preserve original styling */
+@media (max-width: 767.98px) and (not (prefers-color-scheme: dark)) {
+  .tlkv-gold-dashboard {
+    color-scheme: light;
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel--store .tlkv-gold-panel__head,
+  .tlkv-gold-dashboard .tlkv-gold-panel--world .tlkv-world-xau-head {
+    background: transparent;
+    border-bottom-color: var(--tlkv-gp-border);
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title__line,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-world-xau-title.tlkv-gp-title {
+    color: #a87f1c;
+    background: linear-gradient(180deg, #e7c763 0%, #d4af37 40%, #a87f1c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
+    filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title::after,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-gp-title::after {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0) 0%, #d4af37 50%, rgba(212, 175, 55, 0) 100%);
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gold-panel__meta,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-world-xau-sub {
+    color: var(--tlkv-gp-muted);
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th {
+    background: var(--tlkv-gp-bg) !important;
+    color: var(--tlkv-gp-muted) !important;
+    border-color: var(--tlkv-gp-border) !important;
+  }
+}
+
+/* Dark mode on mobile only — OS system dark preference */
+@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
+  .tlkv-gold-dashboard {
+    color-scheme: dark;
+    --tlkv-gp-dark-header-bg: rgba(155, 1, 1, 1);
+    --tlkv-gp-dark-header-text: rgba(250, 242, 243, 1);
+    --tlkv-gp-dark-header-border: rgba(250, 242, 243, 0.22);
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel--store .tlkv-gold-panel__head,
+  .tlkv-gold-dashboard .tlkv-gold-panel--world .tlkv-world-xau-head {
+    background: var(--tlkv-gp-dark-header-bg);
+    border-bottom-color: var(--tlkv-gp-dark-header-border);
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title__line,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-world-xau-title.tlkv-gp-title {
+    color: var(--tlkv-gp-dark-header-text) !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: var(--tlkv-gp-dark-header-text) !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gp-title::after,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-gp-title::after {
+    background: linear-gradient(
+      90deg,
+      rgba(250, 242, 243, 0) 0%,
+      rgba(250, 242, 243, 0.65) 50%,
+      rgba(250, 242, 243, 0) 100%
+    );
+  }
+
+  .tlkv-gold-dashboard .tlkv-gold-panel__head .tlkv-gold-panel__meta,
+  .tlkv-gold-dashboard .tlkv-world-xau-head .tlkv-world-xau-sub {
+    color: var(--tlkv-gp-dark-header-text);
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th {
+    background: var(--tlkv-gp-dark-header-bg) !important;
+    color: var(--tlkv-gp-dark-header-text) !important;
+    border-color: var(--tlkv-gp-dark-header-border) !important;
   }
 }

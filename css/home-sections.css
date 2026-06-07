@@ -571,9 +571,18 @@
   scroll-padding-inline: 2px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
   touch-action: pan-x;
+  cursor: grab;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.tlkv-featured-brand-row__products.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  user-select: none;
 }
 
 .tlkv-featured-brand-row__products::-webkit-scrollbar {
@@ -841,15 +850,21 @@
     align-items: stretch;
   }
 
+  /* Keep as block — overflow-x:auto (base rule) stays in effect.
+     display:flex was removed here because it caused the carousel child
+     to shrink via flex-shrink:1, collapsing the scrollable overflow. */
   .tlkv-featured-brand-row__products {
-    display: flex;
-    align-items: stretch;
     min-height: var(--tlkv-featured-card-height);
   }
 
+  /* Prevent flex-shrink from collapsing the carousel width inside any
+     flex ancestor. width:max-content is set in the base rule; this
+     ensures it is never compressed below its natural scroll width. */
   .tlkv-featured-product-carousel {
     align-items: stretch;
     min-height: var(--tlkv-featured-card-height);
+    flex-shrink: 0;
+    min-width: max-content;
   }
 
   .tlkv-featured-brand-card {

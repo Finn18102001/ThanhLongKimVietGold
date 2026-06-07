@@ -202,13 +202,63 @@
       });
     });
 
-    // Touch: pause while user interacts
-    hoverTarget.addEventListener("touchstart", function () {
+    // Touch swipe: detect horizontal direction, then advance or retreat
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var SWIPE_MIN_PX = 40;
+
+    hoverTarget.addEventListener("touchstart", function (e) {
       stop();
+      touchStartX = e.changedTouches[0].clientX;
+      touchStartY = e.changedTouches[0].clientY;
     }, { passive: true });
-    hoverTarget.addEventListener("touchend", function () {
+
+    hoverTarget.addEventListener("touchend", function (e) {
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      var dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) {
+          setSlideActive((active + 1) % slides.length);
+        } else {
+          setSlideActive((active - 1 + slides.length) % slides.length);
+        }
+      }
       start();
     }, { passive: true });
+
+    // Mouse drag: allow click-drag on desktop to swipe slides
+    var dragStartX = 0;
+    var dragging = false;
+    var DRAG_MIN_PX = 50;
+
+    if (stage) {
+      stage.addEventListener("mousedown", function (e) {
+        dragStartX = e.clientX;
+        dragging = true;
+        stop();
+        stage.style.cursor = "grabbing";
+        e.preventDefault();
+      });
+    }
+
+    window.addEventListener("mouseup", function (e) {
+      if (!dragging) return;
+      dragging = false;
+      if (stage) stage.style.cursor = "";
+      var dx = e.clientX - dragStartX;
+      if (Math.abs(dx) >= DRAG_MIN_PX) {
+        if (dx < 0) {
+          setSlideActive((active + 1) % slides.length);
+        } else {
+          setSlideActive((active - 1 + slides.length) % slides.length);
+        }
+      }
+      start();
+    });
+
+    window.addEventListener("mousemove", function (e) {
+      if (dragging) e.preventDefault();
+    });
   });
 })();
 
