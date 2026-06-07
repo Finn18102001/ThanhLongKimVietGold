@@ -1,3 +1,10 @@
+/* Light mode lock — prevents Samsung Internet forced dark mode */
+html { color-scheme: light !important; }
+*, *::before, *::after { forced-color-adjust: none; }
+@media (prefers-color-scheme: dark) {
+  html, body { color-scheme: light !important; }
+}
+
 .admin-body {
   font-family: system-ui, -apple-system, sans-serif;
   background: #f4f4f5;

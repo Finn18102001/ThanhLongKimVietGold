@@ -3,6 +3,27 @@
    Load before /css/vendor/style.css. Do not add business logic here.
    ========================================================================== */
 
+/* ---------------------------------------------------------------------------
+   LIGHT MODE LOCK — prevents browser/OS forced dark mode (Samsung Internet,
+   Chrome Android, etc.) from inverting or recolouring the site.
+   --------------------------------------------------------------------------- */
+:root,
+html,
+body {
+  color-scheme: light !important;
+}
+
+/* Block any @media (prefers-color-scheme: dark) that third-party CSS might
+   inject, and hard-stop the Samsung Internet "Apply dark mode to websites"
+   filter at the root level. */
+@media (prefers-color-scheme: dark) {
+  :root,
+  html,
+  body {
+    color-scheme: light !important;
+  }
+}
+
 :root {
   /* ----- Brand gold ----- */
   --tlkv-gold: #c9a14a;

@@ -1,5 +1,12 @@
 /* /tv-model — fullscreen shell, table grid, header/ticker tuning (table base in local.css) */
 
+/* Light mode lock — prevents Samsung Internet forced dark mode */
+html { color-scheme: light !important; }
+*, *::before, *::after { forced-color-adjust: none; }
+@media (prefers-color-scheme: dark) {
+  html, body { color-scheme: light !important; }
+}
+
 html.tlkv-tv-model-page {
   --tlkv-tv-greeting-board-bg: rgba(180, 0, 0);
   --tlkv-tv-label-yellow: #fff278;

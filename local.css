@@ -1,5 +1,41 @@
 /* Thăng Long Kim Việt – Local overrides (loaded after design-system + vendor style) */
 
+/* =============================================================================
+   FORCED LIGHT MODE — Samsung Internet "Apply dark mode to websites" fix
+   and general browser forced-dark-mode prevention.
+
+   Technique stack (in order of effectiveness):
+   1. color-scheme: light  — tells the browser this page only supports light.
+   2. forced-color-adjust: none — blocks browser color-forcing on each element.
+   3. -webkit-filter: none / filter: none — prevents Samsung's inversion filter.
+   4. @media (prefers-color-scheme: dark) override — cancels any residual dark
+      stylesheet that a UA might inject when color-scheme fails to propagate.
+   ============================================================================= */
+
+html {
+  color-scheme: light !important;
+  /* Samsung Internet ≥14: prevents forced dark inversion */
+  -webkit-filter: none !important;
+  filter: none !important;
+}
+
+/* Prevent browser UA from force-recolouring any element */
+*,
+*::before,
+*::after {
+  forced-color-adjust: none;
+}
+
+/* Hard-cancel any dark-mode rules injected by the browser UA stylesheet */
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    color-scheme: light !important;
+    background-color: revert;
+    color: revert;
+  }
+}
+
 /* Placeholder blocks replacing external images */
 .img-ph {
   display: inline-block;
