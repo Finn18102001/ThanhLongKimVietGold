@@ -13,26 +13,25 @@
    ============================================================================= */
 
 html {
-  color-scheme: light !important;
-  /* Samsung Internet ≥14: prevents forced dark inversion */
+  color-scheme: only light !important;
   -webkit-filter: none !important;
   filter: none !important;
 }
 
-/* Prevent browser UA from force-recolouring any element */
 *,
 *::before,
 *::after {
   forced-color-adjust: none;
 }
 
-/* Hard-cancel any dark-mode rules injected by the browser UA stylesheet */
 @media (prefers-color-scheme: dark) {
   html,
   body {
-    color-scheme: light !important;
-    background-color: revert;
-    color: revert;
+    color-scheme: only light !important;
+    background-color: #fdfcf8 !important;
+    color: #1a1a1a !important;
+    -webkit-filter: none !important;
+    filter: none !important;
   }
 }
 

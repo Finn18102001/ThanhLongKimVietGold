@@ -1,8 +1,14 @@
 /* Light mode lock — prevents Samsung Internet forced dark mode */
-html { color-scheme: light !important; }
+html { color-scheme: only light !important; -webkit-filter: none !important; filter: none !important; }
 *, *::before, *::after { forced-color-adjust: none; }
 @media (prefers-color-scheme: dark) {
-  html, body { color-scheme: light !important; }
+  html, body {
+    color-scheme: only light !important;
+    background-color: #fdfcf8 !important;
+    color: #1a1a1a !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
 }
 
 .admin-body {

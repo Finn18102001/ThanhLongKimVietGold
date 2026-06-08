@@ -825,3 +825,58 @@
   }
 }
 
+/* Samsung / Chrome forced-dark: re-assert dashboard colours when OS is dark */
+@media (prefers-color-scheme: dark) {
+  .tlkv-gold-dashboard {
+    background-color: #f8f6f1 !important;
+    color: #1a1a1a !important;
+  }
+
+  .tlkv-gold-panel {
+    background-color: #fdfcf8 !important;
+    border-color: #ebe6dc !important;
+  }
+
+  .tlkv-gold-panel__head,
+  .tlkv-gold-panel--world .tlkv-world-xau-head,
+  .tlkv-gold-dashboard .gold-table-content thead th {
+    background-color: rgba(155, 1, 2, 1) !important;
+    color: #ffffff !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .tlkv-gold-dashboard .tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-gold-panel__title.tlkv-gp-title,
+  .tlkv-gold-dashboard .tlkv-world-xau-title.tlkv-gp-title {
+    color: rgb(240, 244, 148) !important;
+    background: none !important;
+    -webkit-text-fill-color: rgb(240, 244, 148) !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .tlkv-gold-panel__meta,
+  .tlkv-gold-dashboard .gold-table-meta,
+  .tlkv-gold-panel--world .tlkv-world-xau-sub,
+  .tlkv-gold-panel--world .tlkv-world-xau-meta {
+    color: #ffffff !important;
+    opacity: 1 !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content,
+  .tlkv-gold-dashboard .gold-table-content tbody td {
+    background-color: #fdfcf8 !important;
+    color: #d4af37 !important;
+    border-color: #ebe6dc !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content thead th {
+    border-color: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  .tlkv-gold-panel--world .tlkv-world-xau-tv-wrap {
+    background-color: #f8f6f1 !important;
+  }
+}
+

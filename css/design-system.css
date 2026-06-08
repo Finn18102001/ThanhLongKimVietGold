@@ -6,21 +6,65 @@
 /* ---------------------------------------------------------------------------
    LIGHT MODE LOCK — prevents browser/OS forced dark mode (Samsung Internet,
    Chrome Android, etc.) from inverting or recolouring the site.
+
+   Stack (most → least effective on Samsung):
+   1. <meta name="color-scheme" content="light only"> in HTML <head>
+   2. color-scheme: only light — tells UA not to auto-darken
+   3. forced-color-adjust: none — blocks per-element recolouring
+   4. filter: none on html — blocks Samsung inversion filter when honoured
+   5. @media (prefers-color-scheme: dark) — re-assert light palette so Samsung
+      "Prefer Media Query Over Force Dark" uses our colours, not its algorithm
    --------------------------------------------------------------------------- */
 :root,
 html,
 body {
-  color-scheme: light !important;
+  color-scheme: only light !important;
+  background-color: var(--tlkv-bg-pearl, #fdfcf8);
+  color: var(--tlkv-text, #1a1a1a);
 }
 
-/* Block any @media (prefers-color-scheme: dark) that third-party CSS might
-   inject, and hard-stop the Samsung Internet "Apply dark mode to websites"
-   filter at the root level. */
+html {
+  -webkit-filter: none !important;
+  filter: none !important;
+}
+
+*,
+*::before,
+*::after {
+  forced-color-adjust: none;
+}
+
+/* When OS/browser is in dark mode, keep the intended light theme colours.
+   Samsung Internet reads these rules when "Prefer Media Query" is enabled. */
 @media (prefers-color-scheme: dark) {
   :root,
   html,
   body {
-    color-scheme: light !important;
+    color-scheme: only light !important;
+    background-color: #fdfcf8 !important;
+    color: #1a1a1a !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .header,
+  .header-topbar,
+  .master-wrapper,
+  main,
+  section {
+    background-color: inherit;
+    color: inherit;
+  }
+
+  .header {
+    background-color: #fdfcf8 !important;
+    color: #1a1a1a !important;
+    border-color: #f0ede6 !important;
+  }
+
+  .header-topbar {
+    background-color: #f8f6f1 !important;
+    color: #666666 !important;
   }
 }
 
