@@ -16,6 +16,11 @@
   --tlkv-gp-title-size: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
   /* World panel — cùng scale với dòng brand "Thăng Long Kim Việt" (1.1em) */
   --tlkv-gp-world-title-size: clamp(1.65rem, 1.1rem + 2.42vw, 2.475rem);
+  /* Unified table header chrome — deep red block, gold titles, white labels */
+  --tlkv-gp-header-bg: rgba(155, 1, 2, 1);
+  --tlkv-gp-header-gold: rgb(240, 244, 148);
+  --tlkv-gp-header-text: #ffffff;
+  --tlkv-gp-header-divider: rgba(255, 255, 255, 0.3);
 
   padding: clamp(2.5rem, 5vw, 3.5rem) 0;
   background: var(--tlkv-gp-bg);
@@ -57,15 +62,16 @@
 }
 
 .tlkv-gold-panel__head {
-  padding: 1.5rem 1.375rem 1.125rem;
-  border-bottom: 1px solid var(--tlkv-gp-border);
+  padding: 1.25rem 1.375rem 0.875rem;
+  border-bottom: none;
   text-align: center;
+  background: var(--tlkv-gp-header-bg);
+  color: var(--tlkv-gp-header-text);
 }
 
 /* ===========================================================================
    UNIFIED PREMIUM SECTION TITLES — shared by store + world panels.
-   Centered, uppercase, gradient gold with a soft luxury shadow + accent rule.
-   Centralized here (loads after world-gold-xau.css) so both titles match.
+   Centered, uppercase, gold on deep-red header chrome.
    ========================================================================= */
 .tlkv-gp-title {
   margin: 0 auto 0.5rem;
@@ -75,25 +81,18 @@
   line-height: 1.12;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #a87f1c;
-  background: linear-gradient(180deg, #e7c763 0%, #d4af37 40%, #a87f1c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
-  filter: drop-shadow(0 1px 1px rgba(120, 90, 20, 0.18));
+  color: var(--tlkv-gp-header-gold, #a87f1c);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: var(--tlkv-gp-header-gold, #a87f1c);
+  -webkit-filter: none;
+  filter: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
 }
 
-/* Refined centered gold divider beneath each title — connective branding */
 .tlkv-gp-title::after {
-  content: "";
-  display: block;
-  width: clamp(44px, 8vw, 64px);
-  height: 3px;
-  margin: 0.6rem auto 0;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0) 0%, #d4af37 50%, rgba(212, 175, 55, 0) 100%);
-  -webkit-text-fill-color: initial; /* divider is a box, not text */
+  display: none;
 }
 
 /* Store title = primary focal point: two stacked lines, larger scale */
@@ -116,8 +115,8 @@
 .tlkv-world-xau-title.tlkv-gp-title {
   font-family: "Bookman Old Style";
   font-weight: 700;
-  font-size: 34px;
-  letter-spacing: 0;
+  font-size: calc(var(--tlkv-gp-world-title-size) - 5px);
+  letter-spacing: 0.3px;
 }
 
 .tlkv-gold-panel__meta,
@@ -127,13 +126,14 @@
   font-family: var(--tlkv-font-body);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: var(--tlkv-gp-muted);
+  color: var(--tlkv-gp-header-text);
+  opacity: 0.95;
 }
 
 .tlkv-gold-dashboard .gold-table-brand-italic {
   font-style: normal;
   font-weight: 600;
-  color: var(--tlkv-gp-gold);
+  color: inherit;
 }
 
 .tlkv-gold-panel__body {
@@ -190,11 +190,16 @@
   border-collapse: collapse !important;
   border-spacing: 0 !important;
   border: 1px solid var(--tlkv-gp-border) !important;
+  border-top: none !important;
   border-radius: 0 !important;
   background: var(--tlkv-gp-card);
   box-shadow: none !important;
   font-size: 0.75rem;
   overflow: visible !important;
+}
+
+.tlkv-gold-panel--store .gold-table-content thead {
+  border-top: 1px solid var(--tlkv-gp-header-divider);
 }
 
 .tlkv-gold-dashboard .gold-table-content thead th,
@@ -209,12 +214,12 @@
   z-index: 3;
   height: var(--tlkv-gp-head-h);
   max-height: var(--tlkv-gp-head-h);
-  background: var(--tlkv-gp-bg);
-  color: var(--tlkv-gp-muted);
+  background: var(--tlkv-gp-header-bg);
+  color: var(--tlkv-gp-header-text);
   font-family: var(--tlkv-font-body);
-  font-size: 0.625rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 0 0.5rem !important;
   text-align: center;
@@ -222,12 +227,25 @@
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
-  box-shadow: 0 1px 0 var(--tlkv-gp-border);
+  border-color: var(--tlkv-gp-header-divider) !important;
+  box-shadow: none;
 }
 
 .tlkv-gold-dashboard .gold-table-content thead th:first-child,
 .tlkv-gold-dashboard .gold-table-content thead th:last-child {
   border-radius: 0;
+}
+
+.tlkv-gold-panel--store .gold-table-content thead th:first-child {
+  border-left: none !important;
+}
+
+.tlkv-gold-panel--store .gold-table-content thead th:last-child {
+  border-right: none !important;
+}
+
+.tlkv-gold-panel--store .gold-table-content thead th {
+  border-bottom-color: var(--tlkv-gp-border) !important;
 }
 
 .tlkv-gold-dashboard .gold-table-content tbody td {
@@ -416,7 +434,9 @@
 
 .tlkv-gold-panel--world .tlkv-world-xau-head {
   padding: 1.25rem 1.375rem 1rem;
-  border-bottom: 1px solid var(--tlkv-gp-border);
+  border-bottom: 1px solid var(--tlkv-gp-header-divider);
+  background: var(--tlkv-gp-header-bg);
+  color: var(--tlkv-gp-header-text);
 }
 
 .tlkv-gold-panel--world .tlkv-world-xau-title:not(.tlkv-gp-title) {
@@ -431,14 +451,15 @@
   font-family: var(--tlkv-font-body);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: var(--tlkv-gp-muted);
+  color: var(--tlkv-gp-header-text);
 }
 
 .tlkv-gold-panel--world .tlkv-world-xau-sub {
   margin: 0;
-  font-size: 0.6875rem;
-  letter-spacing: 0.04em;
-  color: var(--tlkv-gp-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--tlkv-gp-header-text);
+  opacity: 0.95;
 }
 
 .tlkv-gold-panel--world .tlkv-world-xau-spot {
@@ -450,7 +471,7 @@
   font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--tlkv-gp-text);
+  color: var(--tlkv-gp-header-gold);
 }
 
 .tlkv-gold-panel--world .tlkv-world-xau-change {
@@ -775,7 +796,7 @@
 
 @media (max-width: 767.98px) {
   .tlkv-gold-dashboard .tlkv-world-xau-title.tlkv-gp-title {
-    font-size: 25px !important;
+    font-size: 20px !important;
   }
 }
 
