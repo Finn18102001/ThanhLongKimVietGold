@@ -9,7 +9,7 @@
   --tlkv-gp-border: #ebe6dc;
   --tlkv-gp-gold: var(--tlkv-gold, #d4af37);
   --tlkv-gp-gold-soft: var(--tlkv-gold-light, #d4af37);
-  --tlkv-gp-text: var(--tlkv-text, #d4af37);
+  --tlkv-gp-text: #1a1a1a;
   --tlkv-gp-muted: var(--tlkv-text-muted, #666666);
   --tlkv-gp-row-h: 2.5rem;
   --tlkv-gp-head-h: 2.375rem;
@@ -867,7 +867,7 @@
   .tlkv-gold-dashboard .gold-table-content,
   .tlkv-gold-dashboard .gold-table-content tbody td {
     background-color: #fdfcf8 !important;
-    color: #d4af37 !important;
+    color: #1a1a1a !important;
     border-color: #ebe6dc !important;
   }
 
