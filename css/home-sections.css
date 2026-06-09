@@ -566,13 +566,12 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   scroll-padding-inline: 2px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
-  touch-action: pan-x;
   cursor: grab;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -624,7 +623,6 @@
   min-height: var(--tlkv-featured-card-height);
   max-height: var(--tlkv-featured-card-height);
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   border: 1px solid rgba(201, 161, 74, 0.22);
   border-radius: 4px;
   background: #fdfcf8;
