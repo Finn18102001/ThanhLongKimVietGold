@@ -55,7 +55,7 @@
   .header-brand--mb .header-brand__line--accent {
     font-size: var(--tlkv-mb-brand-size, clamp(1.1625rem, 2.4vw + 0.81rem, 1.475rem)) !important;
     font-weight: 700 !important;
-    color: var(--tlkv-header-gold, #c9a14a) !important;
+    color: var(--tlkv-header-gold-mb, #ffd47a) !important;
   }
 }
 

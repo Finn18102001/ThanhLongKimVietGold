@@ -700,7 +700,8 @@
     overflow-wrap: anywhere !important;
     text-overflow: clip !important;
     overflow: visible !important;
-    vertical-align: top !important;
+    vertical-align: middle !important;
+    text-align: center !important;
     /* --- 4. READABILITY: comfortable tap spacing + legible sizing --- */
     padding: 10px 6px !important;
   }
@@ -728,8 +729,33 @@
   .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product,
   .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product .tlkv-gp-cell__text {
     text-align: left !important;
+    vertical-align: top !important;
     white-space: normal !important;
     max-width: 100% !important;
+  }
+
+  /* Brand + price columns: centered in header and body */
+  .tlkv-gold-dashboard .gold-table-content thead th:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content tbody td:nth-child(1),
+  .tlkv-gold-dashboard .gold-table-content tbody td.gold-brand-cell,
+  .tlkv-gold-dashboard .gold-table-content thead th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content thead th:nth-child(5),
+  .tlkv-gold-dashboard .gold-table-content tbody td.price {
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  .tlkv-gold-dashboard .gold-table-content tbody td.gold-brand-cell .tlkv-gp-cell__text {
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  /* Stacked 4-column layout: buy/sell are columns 3–4 */
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked thead th:nth-child(3),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked thead th:nth-child(4),
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked tbody td.price {
+    text-align: center !important;
+    vertical-align: middle !important;
   }
 
   /* Prices: number + trend icon are ONE inline unit that never wraps.
@@ -745,13 +771,14 @@
     font-size: 13.5px !important;
   }
 
-  /* price-wrapper: tight inline-flex, no wrap */
+  /* price-wrapper: full-width flex row, centered as a unit */
   .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
-    display: inline-flex !important;
+    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     flex-wrap: nowrap !important;
     gap: 2px !important;
+    width: 100% !important;
     height: auto !important;
     max-width: 100% !important;
     white-space: nowrap !important;

@@ -8,6 +8,7 @@
   --tlkv-header-pearl: #fdfcf8;
   --tlkv-header-gold: #c9a14a;
   --tlkv-header-gold-soft: #d6b25e;
+  --tlkv-header-gold-mb: #ffd47a;
   --tlkv-header-red-deep: #6f1020;
   --tlkv-header-red-wine: #8b1e2d;
   --tlkv-header-text: #1a1a1a;
@@ -534,7 +535,7 @@
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.015em;
-  color: var(--tlkv-header-gold);
+  color: var(--tlkv-header-gold-mb);
 }
 
 .header-brand--mb .header-brand__line--accent::before {
