@@ -63,7 +63,9 @@
 
 /* -------------------------- Featured products -------------------------- */
 .tlkv-home .tlkv-featured-products,
-.tlkv-home .tlkv-featured-products * {
+.tlkv-home .tlkv-featured-products *,
+.tlkv-home .tlkv-home-editorial-news .tlkv-section-head,
+.tlkv-home .tlkv-home-editorial-news .tlkv-section-head * {
   font-family: var(--tlkv-home-font-sans);
 }
 
@@ -72,6 +74,7 @@
 }
 
 .tlkv-home .tlkv-featured-products__title,
+.tlkv-home .tlkv-home-editorial-news .tlkv-featured-products__title,
 .tlkv-home .tlkv-section-title {
   font-size: calc(var(--tlkv-text-2xl) + var(--tlkv-home-bump));
 }
@@ -81,11 +84,13 @@
 }
 
 .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
-  font-size: calc(0.68rem + var(--tlkv-home-bump));
+  font-size: 0.62rem;
+  font-weight: 500;
 }
 
 @media (max-width: 767.98px) {
   .tlkv-home .tlkv-featured-products__title,
+  .tlkv-home .tlkv-home-editorial-news .tlkv-featured-products__title,
   .tlkv-home .tlkv-section-title {
     font-size: 1.05rem;
   }
@@ -95,7 +100,8 @@
   }
 
   .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
-    font-size: 0.46rem;
+    font-size: clamp(0.44rem, 1.9vw, 0.5rem);
+    font-weight: 500;
   }
 }
 

@@ -15,14 +15,13 @@
   --tlkv-header-muted: #666666;
   --tlkv-header-border: #ebe6dc;
   /* Brand lockup — icon height tracks stacked wordmark cap-height (not line-box) */
-  --tlkv-brand-line-1: 35px;
-  --tlkv-brand-line-2: 50px;
+  --tlkv-brand-line-1: 30px;
+  --tlkv-brand-line-2: 45px;
   --tlkv-brand-track: 1.2px;
   --tlkv-brand-track-1: 0.8px;
   --tlkv-brand-track-2: 1.6px;
   --tlkv-brand-line-gap: 0.3125rem;
   --tlkv-brand-line-height: 1.08;
-  --tlkv-brand-font: "Bookman Old Style";
   --tlkv-brand-gap: 0.875rem;
   --tlkv-brand-wordmark-h: calc(
     var(--tlkv-brand-line-1) + var(--tlkv-brand-line-gap) + var(--tlkv-brand-line-2)
@@ -94,6 +93,16 @@
 .header-topbar__zalo-link:hover {
   opacity: 0.85;
   text-decoration: none;
+}
+
+.header-topbar__cta {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .header-topbar__cta {
+    display: none !important;
+  }
 }
 
 .header-topbar__zalo-icon {
@@ -186,28 +195,20 @@
 
 .header-brand__line {
   display: block;
-  font-family: var(--tlkv-brand-font);
+  font-family: var(--tlkv-font-body);
   font-weight: 700;
   line-height: var(--tlkv-brand-line-height);
   letter-spacing: var(--tlkv-brand-track-1);
   text-transform: uppercase;
   font-style: normal;
-  font-feature-settings: "liga" 1, "kern" 1;
-  color: var(--tlkv-header-gold);
+  color: #c9a14a;
   white-space: nowrap;
   text-align: center;
 }
 
-/* Thăng Long — dòng trên */
-.header-brand__line:first-child {
-  font-weight: 700;
-  color: var(--tlkv-header-gold-soft);
-}
-
-/* Kim Việt — dòng dưới */
 .header-brand__line--accent {
   font-weight: 700;
-  color: var(--tlkv-header-gold);
+  color: #c9a14a;
 }
 
 /* Desktop — logo = wordmark height */
@@ -252,14 +253,14 @@
   font-size: var(--tlkv-brand-line-1);
   font-weight: 700;
   letter-spacing: var(--tlkv-brand-track-1);
-  color: var(--tlkv-header-gold-soft);
+  color: #c9a14a;
 }
 
 .header-pc .header-brand__line--accent {
   font-size: var(--tlkv-brand-line-2);
   font-weight: 700;
   letter-spacing: var(--tlkv-brand-track-2);
-  color: var(--tlkv-header-gold);
+  color: #c9a14a;
 }
 
 .header-pc .header-brand__line--accent::before {
@@ -704,8 +705,8 @@
 /* ----- Responsive ----- */
 @media (max-width: 1199.98px) {
   :root {
-    --tlkv-brand-line-1: 33px;
-    --tlkv-brand-line-2: 46px;
+    --tlkv-brand-line-1: 28px;
+    --tlkv-brand-line-2: 41px;
     --tlkv-brand-track-1: 0.75px;
     --tlkv-brand-track-2: 1.45px;
     --tlkv-brand-gap: 0.8125rem;
@@ -741,6 +742,54 @@
 
   .header-mb {
     display: block;
+  }
+
+  .header-topbar__cta {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 2px;
+    padding-left: 8px;
+    border-left: 1px solid var(--tlkv-header-border);
+    text-decoration: none;
+    color: inherit;
+    flex-shrink: 0;
+  }
+
+  .header-topbar__cta:hover {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .header-topbar__cta .header-cta__icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .header-topbar__cta .header-cta__icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .header-topbar__cta .header-cta__copy {
+    line-height: 1.2;
+  }
+
+  .header-topbar__cta .header-cta__label {
+    display: block;
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0;
+  }
+
+  .header-topbar__cta .header-cta__phone {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--tlkv-header-text);
+  }
+
+  .header-mb-wrap > .header-cta {
+    display: none !important;
   }
 }
 

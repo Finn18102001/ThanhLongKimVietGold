@@ -228,9 +228,42 @@ ul { list-style: none; }
   letter-spacing: 0.01em;
 }
 
+.tlkv-global-footer__brand-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .tlkv-global-footer__logo {
   display: inline-block;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.tlkv-global-footer__brand-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tlkv-global-footer__brand-name-line {
+  display: block;
+  font-family: var(--tlkv-font-heading);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #c9a14a;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.tlkv-global-footer__brand-name-line:first-child {
+  font-size: 1rem;
+}
+
+.tlkv-global-footer__brand-name-line--accent {
+  font-size: 1.28rem;
 }
 
 .tlkv-global-footer__brand-line {
@@ -291,38 +324,77 @@ ul { list-style: none; }
 
 .tlkv-global-footer__contact-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
-.tlkv-global-footer__contact-item a {
-  display: inline-flex;
-  align-items: flex-start;
+.tlkv-global-footer__contact-item {
+  margin: 0;
+}
+
+.tlkv-global-footer__contact-card {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+  box-shadow: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.tlkv-global-footer__contact-card:hover {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-decoration: none;
+  color: inherit;
+  transform: translateX(1px);
+}
+
+.tlkv-global-footer__contact-card:hover .tlkv-global-footer__contact-card-label {
+  color: var(--tlkv-gold, #c9a14a);
+}
+
+.tlkv-global-footer__contact-card-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.tlkv-global-footer__contact-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tlkv-global-footer__contact-card-label {
   color: #666666;
-  font-size: 0.84rem;
-  line-height: 1.65;
+  font-size: 0.87rem;
+  font-weight: 400;
+  line-height: 1.55;
   transition: color 0.2s ease;
 }
 
-.tlkv-global-footer__contact-item a:hover {
-  color: #c9a14a;
+.tlkv-global-footer__contact-card-hint {
+  color: #8a8580;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
-.tlkv-global-footer__contact-icon {
-  color: #c9a14a;
-  flex: 0 0 auto;
-  margin-top: 0.15em;
-}
-
-.tlkv-global-footer__contact-icon svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.55;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.tlkv-global-footer__contact-card-arrow {
+  display: none;
 }
 
 .tlkv-global-footer__menu {
@@ -388,13 +460,22 @@ ul { list-style: none; }
     font-size: 0.95rem;
   }
 
-  .tlkv-global-footer__logo {
+  .tlkv-global-footer__brand-head {
     margin-bottom: 4px;
+    gap: 10px;
+  }
+
+  .tlkv-global-footer__brand-name-line:first-child {
+    font-size: 0.85rem;
+  }
+
+  .tlkv-global-footer__brand-name-line--accent {
+    font-size: 1.05rem;
   }
 
   .tlkv-global-footer__logo .site-logo-img--footer {
     max-height: 40px;
-    margin-bottom: 4px;
+    margin-bottom: 0;
   }
 
   .tlkv-global-footer__brand-line {
@@ -424,18 +505,25 @@ ul { list-style: none; }
   }
 
   .tlkv-global-footer__contact-list {
-    gap: 8px;
-  }
-
-  .tlkv-global-footer__contact-item a {
-    font-size: 0.72rem;
-    line-height: 1.45;
     gap: 6px;
   }
 
-  .tlkv-global-footer__contact-icon svg {
-    width: 12px;
-    height: 12px;
+  .tlkv-global-footer__contact-card {
+    gap: 6px;
+    padding: 0;
+  }
+
+  .tlkv-global-footer__contact-card-label {
+    font-size: 0.74rem;
+  }
+
+  .tlkv-global-footer__contact-card-hint {
+    font-size: 0.66rem;
+  }
+
+  .tlkv-global-footer__contact-card-icon {
+    width: 1rem;
+    font-size: 0.85rem;
   }
 
   .tlkv-global-footer__menu {

@@ -59,7 +59,7 @@
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.55;
-  color: #666666;
+  color: #000000;
   max-width: 26ch;
 }
 
@@ -113,7 +113,7 @@
   max-width: 56ch;
   font-size: 0.9rem;
   line-height: 1.78;
-  color: #666666;
+  color: #000000;
 }
 
 .tlkv-brand-intro__stats {
@@ -342,11 +342,11 @@
    ========================================================================== */
 .tlkv-featured-products {
   --tlkv-featured-card-size: 290px;
-  --tlkv-featured-card-height: var(--tlkv-featured-card-size);
   --tlkv-featured-card-gap: 14px;
-  --tlkv-featured-img-size: 160px;
+  --tlkv-featured-img-size: 200px;
   --tlkv-featured-media-pad: 10px;
   --tlkv-featured-media-h: calc(var(--tlkv-featured-img-size) + (var(--tlkv-featured-media-pad) * 2));
+  --tlkv-featured-card-height: calc(var(--tlkv-featured-media-h) + 108px);
   background: #fdfcf8;
   padding: 54px 0 62px;
   border-top: 1px solid rgba(201, 161, 74, 0.14);
@@ -420,13 +420,13 @@
 
 .tlkv-featured-products__title-text {
   flex: 0 0 auto;
-  font-family: var(--tlkv-font-heading, "Cormorant Garamond", serif);
+  font-family: var(--tlkv-font-body, "Inter", system-ui, sans-serif);
   font-size: clamp(1.55rem, 2.3vw, 2.05rem);
   font-weight: 600;
   line-height: 1.1;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #1a1a1a;
+  color: #9d221d;
   text-align: center;
   white-space: nowrap;
 }
@@ -668,6 +668,9 @@
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--tlkv-featured-media-pad);
   box-sizing: border-box;
   background: transparent;
@@ -676,6 +679,8 @@
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__img {
   width: var(--tlkv-featured-img-size);
   height: var(--tlkv-featured-img-size);
+  min-width: var(--tlkv-featured-img-size);
+  min-height: var(--tlkv-featured-img-size);
   max-width: var(--tlkv-featured-img-size);
   max-height: var(--tlkv-featured-img-size);
   flex: 0 0 auto;
@@ -694,16 +699,21 @@
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__content {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   text-align: center;
-  padding: 10px 14px 0;
+  padding: 14px 16px 0;
   min-height: 0;
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name {
-  margin: 0 0 4px;
+  margin: 0;
+  font-family: var(--tlkv-font-body, "Inter", system-ui, sans-serif);
   font-size: 0.9rem;
+  font-weight: 500;
   line-height: 1.34;
   min-height: 2.5em;
   max-height: 2.5em;
@@ -711,12 +721,9 @@
   color: #1a1a1a;
 }
 
-.tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__price {
-  margin: 0;
-  font-size: 0.96rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #c9a14a;
+.tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__price,
+.tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__price--placeholder {
+  display: none;
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__footer {
@@ -724,37 +731,47 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   margin-top: auto;
-  padding: 0 14px 10px;
-  min-height: 30px;
+  padding: 12px 16px 12px;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 104px;
-  min-height: 30px;
-  padding: 0 14px;
-  border: 1px solid rgba(201, 161, 74, 0.6);
+  flex: 0 0 auto;
+  width: 100px;
+  height: 35px;
+  min-width: 100px;
+  max-width: 100px;
+  min-height: 35px;
+  max-height: 35px;
+  padding: 0 8px;
+  border: 1px solid #c9a14a;
   border-radius: 999px;
-  background: rgba(253, 252, 248, 0.65);
+  background: transparent;
   color: #1a1a1a;
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-family: var(--tlkv-font-body, "Inter", system-ui, sans-serif);
+  font-size: 0.62rem;
+  font-weight: 500;
   line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-decoration: none;
   text-align: center;
+  white-space: nowrap;
   box-sizing: border-box;
-  transition: background-color 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+  transition: border-color 0.22s ease, color 0.22s ease;
 }
 
 .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta:hover {
-  background: rgba(201, 161, 74, 0.14);
-  border-color: rgba(201, 161, 74, 0.9);
-  transform: translateY(-1px);
+  background: transparent;
+  border-color: #b8923f;
+  color: #1a1a1a;
+  text-decoration: none;
 }
 
 .tlkv-featured-products__rows.is-loading,
@@ -774,8 +791,8 @@
 @media (max-width: 1365.98px) {
   .tlkv-featured-products {
     --tlkv-featured-card-size: 270px;
-    --tlkv-featured-img-size: 152px;
-    --tlkv-featured-media-pad: 9px;
+    --tlkv-featured-img-size: 200px;
+    --tlkv-featured-media-pad: 10px;
   }
 }
 
@@ -948,26 +965,32 @@
     -webkit-box-orient: unset;
   }
 
-  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__price {
-    display: none;
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__content {
+    padding: 4px 4px 0;
   }
 
   .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__footer {
     flex: 0 0 auto;
-    padding: 2px 4px 4px;
-    min-height: 18px;
+    padding: 6px 4px 4px;
+    min-height: 0;
   }
 
   .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta,
   .tlkv-home .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__cta {
     display: inline-flex !important;
     visibility: visible !important;
+    width: calc(100% - 4px);
+    height: auto;
     min-width: 0;
-    width: 100%;
     max-width: 100%;
-    min-height: 16px;
-    padding: 0 3px;
-    font-size: clamp(0.44rem, 1.9vw, 0.5rem);
+    min-height: 18px;
+    max-height: none;
+    padding: 2px 4px;
+    border: 1px solid #c9a14a;
+    border-radius: 999px;
+    background: transparent;
+    font-size: clamp(0.4rem, 1.8vw, 0.48rem);
+    font-weight: 500;
     letter-spacing: 0.04em;
   }
 }
