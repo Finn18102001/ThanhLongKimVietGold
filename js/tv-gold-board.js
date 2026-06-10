@@ -8,6 +8,8 @@
   var TLKV_TV_CUSTOM_STRIPE_BACKGROUND = "rgba(17, 31, 244)";
   /** Chỉ số dòng sản phẩm đã render (1-based), áp nền MUA VÀO / BÁN RA — cấu hình được từng trang */
   var TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS = [1, 3, 6, 8];
+  /** Website: chỉ 2 cột giá MUA VÀO / BÁN RA (dòng 1,3,6,8) */
+  var TLKV_WEB_PRICE_HIGHLIGHT_BACKGROUND = "#fdeeb3";
 
   function tvStripeHighlightBoxShadow() {
     return "inset 0 0 0 1px rgba(255, 255, 255, 0.28)";
@@ -76,6 +78,8 @@
    * @param {string} [opts.stripeHighlightBackground] default TLKV_TV_CUSTOM_STRIPE_BACKGROUND
    * @param {boolean} [opts.stripeUseInsetShadow] default true — false trên TV để bớt paint (inset box-shadow)
    * @param {number[]} [opts.highlightedPriceRowIndexes] chỉ số dòng 1-based: chỉ các `<tr>` có đủ 2 ô giá, không tính dòng bạc cuối (stripe xanh)
+   * @param {string} [opts.priceHighlightBackground] nền ô giá được highlight — website: #C9A227
+   * @param {boolean} [opts.priceHighlightFromRowClass] true → dùng `tr.row-highlight` (website); false → `highlightedPriceRowIndexes` (TV)
    * @param {(tbody: HTMLElement, err: unknown) => void} [opts.onRenderError]
    */
   function createGoldTvBoard(opts) {
@@ -105,6 +109,13 @@
           return Number.isFinite(n) && n >= 1;
         })
       : TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS.slice();
+    var priceHighlightBackground =
+      opts.priceHighlightBackground != null
+        ? String(opts.priceHighlightBackground)
+        : useColumnStripes
+          ? "rgba(226, 52, 52)"
+          : TLKV_WEB_PRICE_HIGHLIGHT_BACKGROUND;
+    var priceHighlightFromRowClass = opts.priceHighlightFromRowClass === true;
 
     var __tvGoldRenderGen = 0;
 
@@ -196,7 +207,7 @@
     }
 
     function highlightTVBrandColumn() {
-      if (!applyBrandGoldTint) return;
+      if (!useColumnStripes || !applyBrandGoldTint) return;
       var table = tableEl();
       if (!table) return;
       var lastSilverTr = getLastSilverTbodyTr(table);
@@ -213,6 +224,7 @@
     }
 
     function highlightProductRows() {
+      if (!useColumnStripes) return;
       var table = tableEl();
       if (!table) return;
       var lastSilverTr = getLastSilverTbodyTr(table);
@@ -236,6 +248,7 @@
     }
 
     function highlightPurityColumn() {
+      if (!useColumnStripes) return;
       var table = tableEl();
       if (!table) return;
       var lastSilverTr = getLastSilverTbodyTr(table);
@@ -264,18 +277,13 @@
           return;
         }
         displayRowIndex += 1;
-        if (!useColumnStripes) {
-          priceCells.forEach(function (cell) {
-            cell.style.removeProperty("background");
-            cell.style.removeProperty("box-shadow");
-          });
-          return;
-        }
-        var isHighlighted = highlightedPriceRowIndexes.indexOf(displayRowIndex) !== -1;
+        var isHighlighted = priceHighlightFromRowClass
+          ? row.classList.contains("row-highlight")
+          : highlightedPriceRowIndexes.indexOf(displayRowIndex) !== -1;
         priceCells.forEach(function (cell) {
           if (isHighlighted) {
-            cell.style.setProperty("background", "rgba(226, 52, 52)", "important");
-            if (stripeUseInsetShadow) {
+            cell.style.setProperty("background", priceHighlightBackground, "important");
+            if (useColumnStripes && stripeUseInsetShadow) {
               cell.style.setProperty("box-shadow", tvStripeHighlightBoxShadow(), "important");
             } else {
               cell.style.removeProperty("box-shadow");
@@ -589,5 +597,7 @@
     TV_CUSTOM_STRIPE_BACKGROUND: TLKV_TV_CUSTOM_STRIPE_BACKGROUND,
     /** Mặc định /tv-model: highlight nền đỏ MUA/BÁN ở các dòng 1,3,6,8 (1-based). */
     DEFAULT_HIGHLIGHTED_PRICE_ROWS: TLKV_TV_DEFAULT_HIGHLIGHTED_PRICE_ROWS,
+    /** Website: nền vàng chỉ 2 cột MUA VÀO / BÁN RA (`tr.row-highlight`). */
+    WEB_PRICE_HIGHLIGHT_BACKGROUND: TLKV_WEB_PRICE_HIGHLIGHT_BACKGROUND,
   };
 })(typeof window !== "undefined" ? window : globalThis);

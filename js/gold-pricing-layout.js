@@ -13,6 +13,9 @@
   var ROOT_SEL = ".tlkv-gold-dashboard";
   var TBODY_SEL = "#gold-table-body";
   var DEBOUNCE_MS = 80;
+  /** Đồng bộ tv-gold-board.js — chỉ số dòng 1-based (có đủ 2 ô giá, không tính dòng bạc cuối). */
+  var WEBSITE_PRICE_ROW_BANDS = [1, 3, 6, 8];
+  var PRICE_ROW_BAND_CLASS = "row-price-band";
 
   var ro = null;
   var mo = null;
@@ -121,6 +124,32 @@
     applyTableMetrics();
   }
 
+  /** Gắn class `row-price-band` cho dòng 1,3,6,8 — chỉ 2 cột giá (logic giống tv-gold-board). */
+  function applyWebsitePriceRowBands() {
+    var dash = getDashboard();
+    if (!dash) return;
+    var tbody = $(TBODY_SEL, dash);
+    if (!tbody) return;
+
+    var lastSilverTr = null;
+    var silverRows = tbody.querySelectorAll("tr.row-silver");
+    if (silverRows.length) {
+      lastSilverTr = silverRows[silverRows.length - 1];
+    }
+
+    var displayRowIndex = 0;
+    tbody.querySelectorAll("tr").forEach(function (row) {
+      row.classList.remove(PRICE_ROW_BAND_CLASS);
+      var priceCells = row.querySelectorAll("td.price");
+      if (priceCells.length < 2) return;
+      if (row === lastSilverTr) return;
+      displayRowIndex += 1;
+      if (WEBSITE_PRICE_ROW_BANDS.indexOf(displayRowIndex) !== -1) {
+        row.classList.add(PRICE_ROW_BAND_CLASS);
+      }
+    });
+  }
+
   /**
    * Grid stretch handles equal height; RO ensures iframe/chart fill after TV embed loads.
    */
@@ -147,6 +176,7 @@
   function scheduleLayout() {
     applyTableMetrics();
     normalizeTableCells();
+    applyWebsitePriceRowBands();
     syncPanelHeights();
   }
 
@@ -190,5 +220,7 @@
     refresh: scheduleLayout,
     normalizeTableCells: normalizeTableCells,
     applyTableMetrics: applyTableMetrics,
+    applyWebsitePriceRowBands: applyWebsitePriceRowBands,
+    WEBSITE_PRICE_ROW_BANDS: WEBSITE_PRICE_ROW_BANDS,
   };
 })(typeof window !== "undefined" ? window : globalThis);

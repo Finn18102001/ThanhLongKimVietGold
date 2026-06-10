@@ -312,6 +312,32 @@
   background: rgba(201, 161, 74, 0.04);
 }
 
+/* Bạc: nền xanh SP / hàm lượng / giá */
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver > td.col-product,
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver > td.col-purity,
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver > td.price {
+  background: #1a56a8 !important;
+  color: #fff !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver:hover > td.col-product,
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver:hover > td.col-purity,
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-silver:hover > td.price {
+  background: #1a56a8 !important;
+  color: #fff !important;
+}
+
+/* Website: dòng 1,3,6,8 — chỉ MUA VÀO / BÁN RA */
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-price-band > td.price {
+  background: #fdeeb3 !important;
+  color: var(--tlkv-gp-text, #1a1a1a) !important;
+}
+
+.tlkv-gold-dashboard .gold-table-content tbody tr.row-price-band:hover > td.price {
+  background: #fdeeb3 !important;
+  color: var(--tlkv-gp-text, #1a1a1a) !important;
+}
+
 .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.col-product {
   text-align: left !important;
   font-weight: 500 !important;

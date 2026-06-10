@@ -172,16 +172,20 @@ html {
   overflow: hidden;
 }
 
-/* Bạc (metal=silver): toàn bộ dòng SP / hàm lượng / giá nền xanh; vàng có thể bật highlight */
+/* Bạc (metal=silver): toàn bộ dòng SP / hàm lượng / giá nền xanh */
 .gold-table-content tr.row-silver > td.col-product,
 .gold-table-content tr.row-silver > td.col-purity,
-.gold-table-content tr.row-silver > td.price,
-.gold-table-content tr.row-highlight > td.col-product,
-.gold-table-content tr.row-highlight > td.col-purity,
-.gold-table-content tr.row-highlight > td.price {
+.gold-table-content tr.row-silver > td.price {
   background: #1a56a8 !important;
   color: #fff !important;
   font-weight: 400 !important;
+  font-synthesis: none;
+}
+
+/* Website: dòng 1,3,6,8 — chỉ MUA VÀO / BÁN RA */
+.gold-table-content tbody tr.row-price-band > td.price {
+  background: #fdeeb3 !important;
+  color: #1a1a1a !important;
   font-synthesis: none;
 }
 
