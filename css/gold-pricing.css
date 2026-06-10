@@ -597,6 +597,135 @@
   }
 }
 
+/* Desktop store gold table — responsive typography + wrap (preserve row density) */
+@media (min-width: 1024px) {
+  .tlkv-gold-panel--store .tlkv-gp-table-shell.table-responsive.gold-table,
+  .tlkv-gold-panel--store .tlkv-gp-table-scroll {
+    overflow-x: hidden !important;
+    max-width: 100%;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    height: auto;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody {
+    height: auto;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended thead tr {
+    height: auto;
+    min-height: var(--tlkv-gp-head-h);
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody tr {
+    height: auto;
+    min-height: var(--tlkv-gp-row-h);
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended th:nth-child(1),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td:nth-child(1),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended th:nth-child(2),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td:nth-child(2),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended th:nth-child(3),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td:nth-child(3),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended th:nth-child(4),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td:nth-child(4),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended th:nth-child(5),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td:nth-child(5),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody td.gold-brand-cell {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended thead th,
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody td {
+    height: auto !important;
+    min-height: inherit;
+    max-height: none !important;
+    vertical-align: middle !important;
+    font-size: clamp(13px, 0.75vw, 18px) !important;
+    line-height: 1.4 !important;
+    text-overflow: unset !important;
+    overflow: visible !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended thead th {
+    min-height: var(--tlkv-gp-head-h);
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody td {
+    min-height: var(--tlkv-gp-row-h);
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended tbody td.col-product {
+    text-align: left !important;
+    font-weight: 500 !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended .tlkv-gp-cell__text {
+    display: block;
+    max-width: 100% !important;
+    font-size: inherit !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td.price,
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended thead th:nth-child(4),
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended thead th:nth-child(5) {
+    font-variant-numeric: tabular-nums !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-weight: 600 !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td.price .tlkv-gp-cell__inner,
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td.price .tlkv-gp-cell__inner .tv-price-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0.25rem;
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: var(--tlkv-gp-row-h);
+    height: auto;
+    font-size: inherit !important;
+    line-height: 1.4 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .tlkv-gold-panel--store .gold-table-content.gold-table-extended td.price .gold-price-trend {
+    flex-shrink: 0 !important;
+  }
+}
+
 /* Legacy wrappers inside dashboard — neutralize old layout */
 .tlkv-gold-dashboard .chart-container-row {
   display: block;

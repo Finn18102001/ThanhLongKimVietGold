@@ -250,20 +250,20 @@ ul { list-style: none; }
 
 .tlkv-global-footer__brand-name-line {
   display: block;
-  font-family: var(--tlkv-font-heading);
-  font-weight: 600;
-  line-height: 1.1;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.08;
   color: #c9a14a;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .tlkv-global-footer__brand-name-line:first-child {
-  font-size: 1rem;
+  font-size: 25px;
 }
 
 .tlkv-global-footer__brand-name-line--accent {
-  font-size: 1.28rem;
+  font-size: 38px;
 }
 
 .tlkv-global-footer__brand-line {
@@ -466,11 +466,11 @@ ul { list-style: none; }
   }
 
   .tlkv-global-footer__brand-name-line:first-child {
-    font-size: 0.85rem;
+    font-size: 21px;
   }
 
   .tlkv-global-footer__brand-name-line--accent {
-    font-size: 1.05rem;
+    font-size: 34px;
   }
 
   .tlkv-global-footer__logo .site-logo-img--footer {
