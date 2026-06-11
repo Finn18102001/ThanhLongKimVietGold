@@ -19,13 +19,19 @@
           "data/**",
           "gioi-thieu/**",
           "san-pham/**",
+          "san-pham/vang-tich-luy.html",
           "tin-tuc/**",
+          "thuong-hieu/**",
           "local.css"
         ]
       }
     }
   ],
   "routes": [
+    { "src": "/sanpham/vang-tich-luy/?", "dest": "/server.js" },
+    { "src": "/sanpham/vang-trang-suc/?", "dest": "/server.js" },
+    { "src": "/sanpham/gia-vang/?", "dest": "/server.js" },
+    { "src": "/sanpham/?", "dest": "/server.js" },
     { "src": "/(.*)", "dest": "/server.js" }
   ]
 }
