@@ -1,0 +1,111 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "routes/admin.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 7,
+      "nonEmptyLines": 6,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "routes/index.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 73,
+      "nonEmptyLines": 68,
+      "functions": [
+        {
+          "name": "trimEnv",
+          "startLine": 4,
+          "endLine": 6,
+          "params": [
+            "v"
+          ]
+        },
+        {
+          "name": "supabasePublicFromProcessEnv",
+          "startLine": 12,
+          "endLine": 21,
+          "params": []
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "trimEnv",
+          "callee": "String(v || \"\").trim",
+          "lineNumber": 5
+        },
+        {
+          "caller": "trimEnv",
+          "callee": "String",
+          "lineNumber": 5
+        },
+        {
+          "caller": "supabasePublicFromProcessEnv",
+          "callee": "trimEnv",
+          "lineNumber": 14
+        },
+        {
+          "caller": "supabasePublicFromProcessEnv",
+          "callee": "trimEnv",
+          "lineNumber": 15
+        },
+        {
+          "caller": "supabasePublicFromProcessEnv",
+          "callee": "trimEnv",
+          "lineNumber": 17
+        },
+        {
+          "caller": "supabasePublicFromProcessEnv",
+          "callee": "trimEnv",
+          "lineNumber": 18
+        },
+        {
+          "caller": "supabasePublicFromProcessEnv",
+          "callee": "trimEnv",
+          "lineNumber": 19
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 0,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "routes/web.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 84,
+      "nonEmptyLines": 78,
+      "callGraph": [
+        {
+          "caller": "send",
+          "callee": "res.sendFile",
+          "lineNumber": 9
+        },
+        {
+          "caller": "send",
+          "callee": "path.join",
+          "lineNumber": 9
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    }
+  ]
+}

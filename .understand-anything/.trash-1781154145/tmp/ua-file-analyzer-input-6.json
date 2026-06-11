@@ -1,0 +1,28 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "san-pham/chi-tiet.html",
+      "language": "html",
+      "sizeLines": 118,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "san-pham/gia-vang.html",
+      "language": "html",
+      "sizeLines": 339,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "san-pham/index.html",
+      "language": "html",
+      "sizeLines": 311,
+      "fileCategory": "markup"
+    }
+  ],
+  "batchImportData": {
+    "san-pham/chi-tiet.html": [],
+    "san-pham/gia-vang.html": [],
+    "san-pham/index.html": []
+  }
+}

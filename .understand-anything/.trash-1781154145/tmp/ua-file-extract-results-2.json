@@ -1,0 +1,257 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 9,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": ".env.example",
+      "language": "config",
+      "fileCategory": "config",
+      "totalLines": 24,
+      "nonEmptyLines": 18,
+      "definitions": [
+        {
+          "name": "NEXT_PUBLIC_SUPABASE_URL",
+          "kind": "variable",
+          "fields": [],
+          "startLine": 5,
+          "endLine": 5
+        },
+        {
+          "name": "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+          "kind": "variable",
+          "fields": [],
+          "startLine": 6,
+          "endLine": 6
+        },
+        {
+          "name": "GOLDAPI_KEY",
+          "kind": "variable",
+          "fields": [],
+          "startLine": 21,
+          "endLine": 21
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 3
+      }
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 177,
+      "nonEmptyLines": 129,
+      "sections": [
+        {
+          "heading": "Thăng Long Kim Việt — demo site",
+          "level": 2,
+          "line": 1
+        },
+        {
+          "heading": "Chạy local (khuyến nghị)",
+          "level": 3,
+          "line": 3
+        },
+        {
+          "heading": "Deploy — biến môi trường",
+          "level": 3,
+          "line": 15
+        },
+        {
+          "heading": "Chỉ dùng `python3 -m http.server`",
+          "level": 3,
+          "line": 36
+        },
+        {
+          "heading": "Ghi chú",
+          "level": 3,
+          "line": 46
+        },
+        {
+          "heading": "News CMS (Tin tức)",
+          "level": 2,
+          "line": 53
+        },
+        {
+          "heading": "Cài đặt một lần",
+          "level": 3,
+          "line": 58
+        },
+        {
+          "heading": "Cấu trúc thư mục (CMS)",
+          "level": 3,
+          "line": 70
+        },
+        {
+          "heading": "Frontend routes",
+          "level": 3,
+          "line": 98
+        },
+        {
+          "heading": "Lưu nội dung dạng JSON khối",
+          "level": 3,
+          "line": 104
+        },
+        {
+          "heading": "Block renderer (mở rộng dễ)",
+          "level": 3,
+          "line": 124
+        },
+        {
+          "heading": "SEO",
+          "level": 3,
+          "line": 139
+        },
+        {
+          "heading": "Bảo mật",
+          "level": 3,
+          "line": 150
+        },
+        {
+          "heading": "Hiệu năng",
+          "level": 3,
+          "line": 158
+        },
+        {
+          "heading": "Audit log",
+          "level": 3,
+          "line": 167
+        },
+        {
+          "heading": "Mở rộng tương lai",
+          "level": 3,
+          "line": 173
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 16
+      }
+    },
+    {
+      "path": "gia-vang-hom-nay.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 24,
+      "nonEmptyLines": 24,
+      "metrics": {}
+    },
+    {
+      "path": "googlea755d9afb0a19369.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 1,
+      "nonEmptyLines": 1,
+      "metrics": {}
+    },
+    {
+      "path": "index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 607,
+      "nonEmptyLines": 573,
+      "metrics": {}
+    },
+    {
+      "path": "local.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1662,
+      "nonEmptyLines": 1500,
+      "metrics": {}
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 18,
+      "nonEmptyLines": 18,
+      "sections": [
+        {
+          "heading": "name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "private",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "description",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "scripts",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "engines",
+          "level": 1,
+          "line": 9
+        },
+        {
+          "heading": "dependencies",
+          "level": 1,
+          "line": 12
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 6
+      }
+    },
+    {
+      "path": "tv-model.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 117,
+      "nonEmptyLines": 111,
+      "metrics": {}
+    },
+    {
+      "path": "vercel.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 31,
+      "nonEmptyLines": 31,
+      "sections": [
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "builds",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "routes",
+          "level": 1,
+          "line": 28
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 3
+      }
+    }
+  ]
+}

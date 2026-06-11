@@ -1,0 +1,830 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "98e8bffc44350d33f934a4b775c2dadd0af063e3",
+  "generatedAt": "2026-06-11T05:02:20.093Z",
+  "files": {
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "14483e8a2bb77aaa5d7591a6ce429974091a5990ef28012f989295b4554faa79",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": false
+    },
+    ".vercelignore": {
+      "filePath": ".vercelignore",
+      "contentHash": "99c9e267af36407e2dbce67773eddc01ad843cef64075ca5d3f1a8a199fa4848",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    "js/admin-app.js": {
+      "filePath": "js/admin-app.js",
+      "contentHash": "45ed95c835a19f6246fab291dbf1d10bc2db88e541843bccad43a5e961d0307f",
+      "functions": [
+        {
+          "name": "showToast",
+          "params": [
+            "message"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "getCurrentGoldHistoryData",
+          "params": [],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "exportGoldHistoryToExcel",
+          "params": [],
+          "exported": false,
+          "lineCount": 84
+        },
+        {
+          "name": "exportGoldHistoryToPDF",
+          "params": [],
+          "exported": false,
+          "lineCount": 98
+        },
+        {
+          "name": "initSupabaseClient",
+          "params": [],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "formatFileSize",
+          "params": [
+            "bytes"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "showSelectedFileInfo",
+          "params": [
+            "file"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "hideSelectedFileInfo",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "clearProductForm",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2168,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin-audit.js": {
+      "filePath": "js/admin-audit.js",
+      "contentHash": "cfbd9b7590609785eca74e9ff33979b3fb5cc29935e86c0a0a6ebc6465de50a0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 156,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin/catalog-admin.js": {
+      "filePath": "js/admin/catalog-admin.js",
+      "contentHash": "2a7c2c3957ab368c64e3bbe97dabe908a0812b21670fbe8e1cf7814160d1b4dd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 531,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin/news-admin.js": {
+      "filePath": "js/admin/news-admin.js",
+      "contentHash": "257b86af592b0ec309fe74289bcddfd8320402a76c76f0457ee97e254e93ee34",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 986,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin/news-editor.js": {
+      "filePath": "js/admin/news-editor.js",
+      "contentHash": "954a36a4d1a2dd2123fcae0676868cdc0cfd6b850ac0ef921961470c019efc59",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 217,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin/news-storage.js": {
+      "filePath": "js/admin/news-storage.js",
+      "contentHash": "11cdc93251f7f810fe5bbe1eac3c487ae739c34fc005735033ce655f14f7b562",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 116,
+      "hasStructuralAnalysis": true
+    },
+    "js/admin/product-form-admin.js": {
+      "filePath": "js/admin/product-form-admin.js",
+      "contentHash": "f7e01e3e87f6ea1f7d38b01584b03c3d47623666dc89a8867fdfda6f3ee17ded",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 255,
+      "hasStructuralAnalysis": true
+    },
+    "js/boot-supabase-env.js": {
+      "filePath": "js/boot-supabase-env.js",
+      "contentHash": "016350d0546f1de392ed131c7239dd1c4cfe17d6ef9d070e83d69ca0411fe55b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "js/floating-contact.js": {
+      "filePath": "js/floating-contact.js",
+      "contentHash": "82120bcc8f57a91511aaf87a0b75dd7753e94f0cb1bdd25b74422cb98ceef83f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 170,
+      "hasStructuralAnalysis": true
+    },
+    "js/gold-data.js": {
+      "filePath": "js/gold-data.js",
+      "contentHash": "9ba31006d980da2240e1479a9ee094570d850bb4f2f99e012a30a4a931ab8f3b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1496,
+      "hasStructuralAnalysis": true
+    },
+    "js/gold-pricing-layout.js": {
+      "filePath": "js/gold-pricing-layout.js",
+      "contentHash": "bebd67d7f0b8630538c2feac99d50a66f745f7873b5a9c3a4fdb5621485e1dea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 227,
+      "hasStructuralAnalysis": true
+    },
+    "js/hero-slider.js": {
+      "filePath": "js/hero-slider.js",
+      "contentHash": "feca2095b31a0b0832141744aa10ef319c2794a0b0859979a510dc501c320bf0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 265,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-api.js": {
+      "filePath": "js/news/news-api.js",
+      "contentHash": "b9fb42c35a049f9c51eb532a61be892c310c3fdef0916096a440a7ff5dc478f4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 449,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-detail-page.js": {
+      "filePath": "js/news/news-detail-page.js",
+      "contentHash": "040fc84a1d1b1590209ca9af61e633882031bddf4cad3009476f8870a6dc277c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 367,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-home-preview.js": {
+      "filePath": "js/news/news-home-preview.js",
+      "contentHash": "7f9dcb526c0c69bd0e48cd00c71ad37763dac54de842c19c2a446df58fba8b76",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 144,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-list-page.js": {
+      "filePath": "js/news/news-list-page.js",
+      "contentHash": "49b77e31aefb0fecc6b882d755f87d11f5d901729607ce0b3440b72c5d862f44",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 580,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-renderer.js": {
+      "filePath": "js/news/news-renderer.js",
+      "contentHash": "c5109f9f1a3b6babc15023674faf4b6dd9361de32c96fd3f8f182b501d7d4cab",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 300,
+      "hasStructuralAnalysis": true
+    },
+    "js/news/news-sanitize.js": {
+      "filePath": "js/news/news-sanitize.js",
+      "contentHash": "72ea5bb652712cfad03e29c5f0869c7944c404ac5178fdc32d91117287343413",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 117,
+      "hasStructuralAnalysis": true
+    },
+    "js/products-data.js": {
+      "filePath": "js/products-data.js",
+      "contentHash": "c6600b1ce493c84122316ba1a1c6201e21693c76192cd0b26d13e5c02d82d13d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 663,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/brand-page.js": {
+      "filePath": "js/products/brand-page.js",
+      "contentHash": "cc916064583d508587fdc4a6cfc090578933540f787767e9be8a5b153a3b0715",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/brand-section.js": {
+      "filePath": "js/products/brand-section.js",
+      "contentHash": "998ebc59638dacac8248017968fc359756c8bf2c744e6485bfdd8301c448f7dd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 90,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/catalog-api.js": {
+      "filePath": "js/products/catalog-api.js",
+      "contentHash": "6cce1c1f674185ede84f2a7f1c6c084697789d280d44b62101a2f45c21f0c507",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 422,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/catalog-archive.js": {
+      "filePath": "js/products/catalog-archive.js",
+      "contentHash": "8c2321cb3af0d1687f49dddbf150e5bd80f3dc1f57add25d25177bd5d96b18c6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 204,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/catalog-filters.js": {
+      "filePath": "js/products/catalog-filters.js",
+      "contentHash": "48dc836b573c747924a3549f77e17fffd24fb070f3f13755fb9a29435e212b3f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 82,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/catalog-page.js": {
+      "filePath": "js/products/catalog-page.js",
+      "contentHash": "dd19dee38b69ca35f2972345ff75b6f14b86e55a1836e02f29c4eae6894ad266",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 90,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/constants.js": {
+      "filePath": "js/products/constants.js",
+      "contentHash": "24dc415b8d6f50f0b665d3f42e5a4afdf4134d7331281df06c9de1dbd9c9c1fc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/featured-products-section.js": {
+      "filePath": "js/products/featured-products-section.js",
+      "contentHash": "918412197ef1ed09689a8c67a9c220b536010198770a89b75b043353bd4fcf15",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 549,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-card-layout.js": {
+      "filePath": "js/products/product-card-layout.js",
+      "contentHash": "ba6b741e74cf51a8ddcd292e5e65e26e5744b964c5c8708da82edf263b80fbf4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 161,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-card.js": {
+      "filePath": "js/products/product-card.js",
+      "contentHash": "ec2fe3fc8d53cb0345688852d240c72acb4464b0023af64a721549e86984a825",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 326,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-crud.js": {
+      "filePath": "js/products/product-crud.js",
+      "contentHash": "676575d934f5f6503d86b7091f6b490aad07156f1bd4f1fe9cc970f55fc5fe46",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-detail-page.js": {
+      "filePath": "js/products/product-detail-page.js",
+      "contentHash": "54c8d13a4c9826c26f2419d0199960656dfadb706f9769c54aee0ed1e0b39b87",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-grid.js": {
+      "filePath": "js/products/product-grid.js",
+      "contentHash": "6f6f75e42b9f04a4b69162783c1b50ae3abc4b4406c52121a481ac7b770ac9c7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "js/products/product-price-engine.js": {
+      "filePath": "js/products/product-price-engine.js",
+      "contentHash": "0c4ee0e4b9b68fb7cc2d8689f4cfd2049ffbabf5fc31adff9f480c317463b806",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 187,
+      "hasStructuralAnalysis": true
+    },
+    "js/site-nav.js": {
+      "filePath": "js/site-nav.js",
+      "contentHash": "ed02e2b65e93c5c1f19f711b696be4331294b8b316c2c590c2758f997826f14d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": true
+    },
+    "js/supabaseClient.js": {
+      "filePath": "js/supabaseClient.js",
+      "contentHash": "012c1695d70e9c546809469a523889a97ba44afc4e62dfbda5a06dbf9515d27d",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "https://esm.sh/@supabase/supabase-js@2.103.0?target=es2022",
+          "specifiers": [
+            "createClient"
+          ]
+        }
+      ],
+      "exports": [
+        "supabaseUrl",
+        "supabaseAnonKey",
+        "supabase"
+      ],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "js/tlkv-supabase-client.js": {
+      "filePath": "js/tlkv-supabase-client.js",
+      "contentHash": "2c458fd01426dade3d2df028549fb7cc873c87825fefca2ff20123bb5eec3650",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 69,
+      "hasStructuralAnalysis": true
+    },
+    "js/tv-gold-board.js": {
+      "filePath": "js/tv-gold-board.js",
+      "contentHash": "35eedcdcbac0a865bce37c44f026e07896456cd0ea95a05c14ecb0730b455367",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 604,
+      "hasStructuralAnalysis": true
+    },
+    "js/world-gold-xau.js": {
+      "filePath": "js/world-gold-xau.js",
+      "contentHash": "0666eb7852e9f2b18f8b4db677545d5e59307854d44e5c566293c0e4919b8cbf",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 290,
+      "hasStructuralAnalysis": true
+    },
+    "lib/node-fetch-globals.js": {
+      "filePath": "lib/node-fetch-globals.js",
+      "contentHash": "50377d8db18ec673505d476707b098c55e3b6a07fb4dc02a02e1e57f704a004c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "routes/admin.js": {
+      "filePath": "routes/admin.js",
+      "contentHash": "53d9e62ec669b016df683bdb81824f9b6ecc5df34e19221411cd8b7e3b08eef4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "routes/api.js": {
+      "filePath": "routes/api.js",
+      "contentHash": "f975eac6b633026ece69db4b76e4d8bb5884742a72c45ddfe70e674cd82dba25",
+      "functions": [
+        {
+          "name": "trimEnv",
+          "params": [
+            "v"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "goldApiYmdFromDate",
+          "params": [
+            "d"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "goldApiDateDaysAgo",
+          "params": [
+            "days"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "goldApiDateMonthsAgo",
+          "params": [
+            "months"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "goldApiFriendlyError",
+          "params": [
+            "status",
+            "bodyText"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "goldApiFetch",
+          "params": [
+            "key",
+            "ymd"
+          ],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "goldApiSpotPrice",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "fmtUsdSigned2",
+          "params": [
+            "n"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "fmtPctSigned2",
+          "params": [
+            "n"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "supabaseRestEnv",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 366,
+      "hasStructuralAnalysis": true
+    },
+    "routes/gold-sse-hub.js": {
+      "filePath": "routes/gold-sse-hub.js",
+      "contentHash": "170ca6533dcc1a4c619c7292c2e21e6f60b76f6e8399fda681294688ef8809bc",
+      "functions": [
+        {
+          "name": "trimEnv",
+          "params": [
+            "v"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "supabasePublicEnv",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "sseLine",
+          "params": [
+            "eventName",
+            "dataObj"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "writeSafe",
+          "params": [
+            "res",
+            "chunk"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "broadcastGoldTableChanged",
+          "params": [
+            "info"
+          ],
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "sendHeartbeat",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "startHeartbeat",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "stopHeartbeat",
+          "params": [],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "stopHub",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "ensureHub",
+          "params": [],
+          "exported": false,
+          "lineCount": 40
+        },
+        {
+          "name": "addSseClient",
+          "params": [
+            "res"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "removeSseClient",
+          "params": [
+            "res"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "getDebugStatus",
+          "params": [],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "manualBroadcast",
+          "params": [
+            "reason"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 208,
+      "hasStructuralAnalysis": true
+    },
+    "routes/index.js": {
+      "filePath": "routes/index.js",
+      "contentHash": "0a4382691ab83057fcb63454b0bf9b3f86b9b010069ba77517fa48ddf16195a5",
+      "functions": [
+        {
+          "name": "trimEnv",
+          "params": [
+            "v"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "supabasePublicFromProcessEnv",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "routes/web.js": {
+      "filePath": "routes/web.js",
+      "contentHash": "e7b45c423cdc0d36541e3c5b125976c8b8961684a46863381b63cfe2a84af506",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "server.js": {
+      "filePath": "server.js",
+      "contentHash": "8c6063d8be66d0a7b4c3fa2439a3b9a70da0a614cfca3a3d5263526c99c5460c",
+      "functions": [
+        {
+          "name": "listenFrom",
+          "params": [
+            "port",
+            "triesLeft"
+          ],
+          "exported": false,
+          "lineCount": 25
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "upstream-home.js": {
+      "filePath": "upstream-home.js",
+      "contentHash": "ed738152ed9efe6ee17ab835f29c851b6da1d56730fe1227221a396474948c4c",
+      "functions": [
+        {
+          "name": "getGoldrateByTime",
+          "params": [
+            "type"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "getGolRateByType",
+          "params": [],
+          "exported": false,
+          "lineCount": 47
+        },
+        {
+          "name": "initChart",
+          "params": [
+            "data",
+            "xAsisOptions"
+          ],
+          "exported": false,
+          "lineCount": 93
+        },
+        {
+          "name": "updateChart",
+          "params": [
+            "chartType"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "login_function",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "login_form",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "register_form",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "submit_register_form",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "renderGoldRateComponent",
+          "params": [
+            "idElement"
+          ],
+          "exported": false,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 708,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

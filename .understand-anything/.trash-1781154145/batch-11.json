@@ -1,0 +1,388 @@
+{
+  "nodes": [
+    {
+      "id": "file:server.js",
+      "type": "file",
+      "name": "server.js",
+      "filePath": "server.js",
+      "summary": "Express application entry point that polyfills fetch globals, loads environment variables, creates the Express app, registers all routes via routes/index.js, and starts an HTTP server with automatic port-increment retry when the base port is busy.",
+      "tags": ["entry-point", "express", "server", "http", "routing"],
+      "complexity": "moderate",
+      "languageNotes": "Bootstraps with require('./lib/node-fetch-globals') before any Supabase client code and delegates route mounting to routes/index.js."
+    },
+    {
+      "id": "file:upstream-home.js",
+      "type": "file",
+      "name": "upstream-home.js",
+      "filePath": "upstream-home.js",
+      "summary": "Legacy upstream homepage client script (707 lines) that initializes Swiper carousels for banners and product sliders, AOS scroll animations, a Chart.js gold-rate line chart fed by /api/v1/exchangerate/goldRateChart, and jQuery-driven login/register modal flows with province/district/ward cascading dropdowns.",
+      "tags": ["javascript", "legacy", "homepage", "swiper", "chart", "auth"],
+      "complexity": "complex",
+      "languageNotes": "Global script with no module exports; functions are invoked from inline HTML handlers and jQuery window-load bindings rather than ES module imports."
+    },
+    {
+      "id": "file:thuong-hieu/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "thuong-hieu/index.html",
+      "summary": "Brand-scoped product catalog page shell served at /thuong-hieu/:brandSlug. Provides a back link to the full catalog, an empty header filled by site-nav.js, a #brand-catalog-root mount point hydrated by brand-page.js, global footer chrome, and Supabase-backed product scripts.",
+      "tags": ["html", "products", "brand-page", "catalog", "supabase"],
+      "complexity": "moderate",
+      "languageNotes": "Loads 8 stylesheets and 14 JavaScript modules; page title and meta are rewritten client-side after the brand slug is resolved."
+    },
+    {
+      "id": "function:server.js:listenFrom",
+      "type": "function",
+      "name": "listenFrom",
+      "filePath": "server.js",
+      "lineRange": [18, 42],
+      "summary": "Creates an HTTP server wrapping the Express app and listens on the given port. On EADDRINUSE, recursively retries the next port up to triesLeft attempts; otherwise logs startup URLs and exits on fatal errors.",
+      "tags": ["server", "port-binding", "error-handling", "startup"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:upstream-home.js:getGoldrateByTime",
+      "type": "function",
+      "name": "getGoldrateByTime",
+      "filePath": "upstream-home.js",
+      "lineRange": [330, 337],
+      "summary": "Async fetch wrapper that requests gold rate chart JSON from /api/v1/exchangerate/goldRateChart with gold_type, time_type, and init query parameters.",
+      "tags": ["api-client", "gold-pricing", "fetch", "chart-data"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:upstream-home.js:getGolRateByType",
+      "type": "function",
+      "name": "getGolRateByType",
+      "filePath": "upstream-home.js",
+      "lineRange": [339, 385],
+      "summary": "Loads gold rate time-series for a given gold type and time window (day/week/month/year), builds Chart.js time-axis options per granularity, stores the result in module-level json, and renders the chart via initChart.",
+      "tags": ["gold-pricing", "chart", "time-axis", "data-loader"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:upstream-home.js:initChart",
+      "type": "function",
+      "name": "initChart",
+      "filePath": "upstream-home.js",
+      "lineRange": [393, 485],
+      "summary": "Builds or replaces a Chart.js line chart on #myChart showing buy (rate) and sell datasets with time-scale x-axis, right-side y-axis, and brand-colored styling. Destroys any existing chart instance before re-rendering.",
+      "tags": ["chart", "chartjs", "visualization", "gold-pricing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:upstream-home.js:updateChart",
+      "type": "function",
+      "name": "updateChart",
+      "filePath": "upstream-home.js",
+      "lineRange": [487, 491],
+      "summary": "Chart refresh handler triggered by radio-button time-range changes; logs the selected chartType and re-invokes initChart (data variables are currently uninitialized in this stub path).",
+      "tags": ["chart", "event-handler", "gold-pricing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:upstream-home.js:login_function",
+      "type": "function",
+      "name": "login_function",
+      "filePath": "upstream-home.js",
+      "lineRange": [493, 502],
+      "summary": "Toggles the login/register modal overlay by adding or removing the active class on .function_login based on the modalResigter element display state.",
+      "tags": ["auth", "modal", "ui-toggle", "jquery"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:upstream-home.js:login_form",
+      "type": "function",
+      "name": "login_form",
+      "filePath": "upstream-home.js",
+      "lineRange": [504, 508],
+      "summary": "Switches the auth modal to login mode by hiding the register form, showing the login form, and updating the modal title text to Đăng nhập.",
+      "tags": ["auth", "modal", "form-switch", "jquery"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:upstream-home.js:register_form",
+      "type": "function",
+      "name": "register_form",
+      "filePath": "upstream-home.js",
+      "lineRange": [510, 514],
+      "summary": "Switches the auth modal to register mode by showing the register form, hiding the login form, and updating the modal title text to Đăng ký.",
+      "tags": ["auth", "modal", "form-switch", "jquery"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:upstream-home.js:submit_register_form",
+      "type": "function",
+      "name": "submit_register_form",
+      "filePath": "upstream-home.js",
+      "lineRange": [516, 532],
+      "summary": "POSTs serialized register form data to /auth/register via jQuery.ajax; reloads the page on success or renders per-field validation errors into #error_{key} elements on failure.",
+      "tags": ["auth", "registration", "ajax", "form-submit"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:upstream-home.js:renderGoldRateComponent",
+      "type": "function",
+      "name": "renderGoldRateComponent",
+      "filePath": "upstream-home.js",
+      "lineRange": [687, 707],
+      "summary": "Placeholder for server-side gold-rate component injection; the AJAX call to /gold-rate-render and subsequent chart initialization are fully commented out, leaving an empty stub.",
+      "tags": ["gold-pricing", "stub", "component-render"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:server.js",
+      "target": "function:server.js:listenFrom",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:server.js",
+      "target": "file:lib/node-fetch-globals.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:server.js",
+      "target": "file:routes/index.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:getGoldrateByTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:getGolRateByType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:initChart",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:updateChart",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:login_function",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:login_form",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:register_form",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:submit_register_form",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:upstream-home.js",
+      "target": "function:upstream-home.js:renderGoldRateComponent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/vendor/bootstrap.min.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/design-system.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/vendor/style.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/header.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/products-catalog.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/product-card-layout.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:css/floating-contact.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/constants.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/product-card-layout.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/product-card.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/product-grid.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/brand-section.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/catalog-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/catalog-filters.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/brand-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/site-nav.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:js/products/brand-page.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:thuong-hieu/index.html",
+      "target": "file:san-pham/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

@@ -1,0 +1,719 @@
+{
+  "nodes": [
+    {
+      "id": "schema:supabase/admin-change-history",
+      "type": "schema",
+      "name": "admin-change-history",
+      "filePath": "supabase/admin-change-history.sql",
+      "summary": "Audit-log schema for admin mutations on gold pricing and product catalog. Creates gold_price_change_log and product_change_log tables with public read and admin-only insert RLS, plus trigram indexes for entity search.",
+      "tags": ["supabase", "schema", "audit-log", "rls", "gold-pricing", "products"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:supabase/data-api-grants.sql",
+      "type": "file",
+      "name": "data-api-grants.sql",
+      "filePath": "supabase/data-api-grants.sql",
+      "summary": "Idempotent PostgREST GRANT script that grants anon/authenticated/service_role permissions on gold_meta, gold_price_rows, products, and related catalog tables so supabase-js clients can query them under RLS.",
+      "tags": ["supabase", "migration", "grants", "postgrest", "permissions"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/fix-all-policies.sql",
+      "type": "file",
+      "name": "fix-all-policies.sql",
+      "filePath": "supabase/fix-all-policies.sql",
+      "summary": "Bulk RLS reset for legacy gold tables: drops all existing policies on gold_meta, gold_price_rows, and products, then recreates clean public SELECT and admin write policies using a hard-coded admin email.",
+      "tags": ["supabase", "migration", "rls", "gold-pricing", "products"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:supabase/gold-price-rows-previous.sql",
+      "type": "file",
+      "name": "gold-price-rows-previous.sql",
+      "filePath": "supabase/gold-price-rows-previous.sql",
+      "summary": "Adds previous_buy, previous_sell, and previous_updated_at columns to gold_price_rows so the homepage and TV board can show price-change arrows by comparing current vs prior values.",
+      "tags": ["supabase", "migration", "gold-pricing", "gold_price_rows"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/gold-price-rows-vang-rong-split.sql",
+      "type": "file",
+      "name": "gold-price-rows-vang-rong-split.sql",
+      "filePath": "supabase/gold-price-rows-vang-rong-split.sql",
+      "summary": "Data migration that splits mis-grouped Vàng Rồng Thăng Long gold price rows into two product groups (0.5–3 chỉ vs 5–10 chỉ) to align with per-weight product pricing on the catalog.",
+      "tags": ["supabase", "migration", "gold-pricing", "data-fix", "vang-rong"],
+      "complexity": "simple"
+    },
+    {
+      "id": "schema:supabase/news-schema",
+      "type": "schema",
+      "name": "news-schema",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Full News CMS database foundation: extensions, slugify helpers, five core tables (categories, tags, articles, tag relations, change log), search indexes, updated_at triggers, published_at automation, RLS, and seed category.",
+      "tags": ["supabase", "schema", "news-cms", "rls", "editorjs"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:supabase/news-storage.sql",
+      "type": "file",
+      "name": "news-storage.sql",
+      "filePath": "supabase/news-storage.sql",
+      "summary": "Creates the public news-media Supabase Storage bucket with thumbnails/ and content/ folder layout, MIME limits, public read, and admin-only write policies for article cover and inline images.",
+      "tags": ["supabase", "migration", "storage", "news-cms"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "schema:supabase/products-catalog",
+      "type": "schema",
+      "name": "products-catalog-schema",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "summary": "Product catalog foundation (steps 1–4): brands, categories, extended products table with brand/category FKs and homepage flags, product_images multi-role gallery, indexes, triggers, RLS, and reference brand seed data.",
+      "tags": ["supabase", "schema", "products", "catalog", "rls"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:supabase/products-catalog-step8-12.sql",
+      "type": "file",
+      "name": "products-catalog-step8-12.sql",
+      "filePath": "supabase/products-catalog-step8-12.sql",
+      "summary": "Extends products with price_numeric and timestamp columns, adds a partial index for active priced products, and backfills price_numeric from legacy price_text digits.",
+      "tags": ["supabase", "migration", "products", "pricing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/products-featured-home-index.sql",
+      "type": "file",
+      "name": "products-featured-home-index.sql",
+      "filePath": "supabase/products-featured-home-index.sql",
+      "summary": "Adds partial indexes on products for homepage featured queries: brand_id + created_at for newest featured items and brand_id + is_featured + sort_order for brand carousels.",
+      "tags": ["supabase", "migration", "products", "indexes", "homepage"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/products-fix-select.sql",
+      "type": "file",
+      "name": "products-fix-select.sql",
+      "filePath": "supabase/products-fix-select.sql",
+      "summary": "Repairs products RLS so anonymous users can SELECT while admin write is split into separate INSERT/UPDATE/DELETE policies, fixing empty catalog API responses caused by a FOR ALL policy.",
+      "tags": ["supabase", "migration", "rls", "products", "bugfix"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:supabase/products-price-source.sql",
+      "type": "file",
+      "name": "products-price-source.sql",
+      "filePath": "supabase/products-price-source.sql",
+      "summary": "Adds weight and price_source_product columns to products for client-side derived pricing from gold_price_rows, with indexes enforcing one product per (source, weight) pair.",
+      "tags": ["supabase", "migration", "products", "derived-pricing", "gold-pricing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/products-rls-admin-write.sql",
+      "type": "file",
+      "name": "products-rls-admin-write.sql",
+      "filePath": "supabase/products-rls-admin-write.sql",
+      "summary": "Pointer stub redirecting operators to tlkv-admin-rls.sql for centralized admin email configuration instead of editing per-table product policies.",
+      "tags": ["supabase", "documentation", "rls", "products"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:supabase/products-storage.sql",
+      "type": "file",
+      "name": "products-storage.sql",
+      "filePath": "supabase/products-storage.sql",
+      "summary": "Creates the public product-media Storage bucket with brand logos and per-product thumbnail/main/gallery paths, plus public read and admin-only write RLS on storage.objects.",
+      "tags": ["supabase", "migration", "storage", "products", "catalog"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:supabase/rls-admin-email.sql",
+      "type": "file",
+      "name": "rls-admin-email.sql",
+      "filePath": "supabase/rls-admin-email.sql",
+      "summary": "Legacy per-table RLS for gold_meta, gold_price_rows, and products using a single hard-coded admin email: public SELECT plus admin FOR ALL write on gold tables and split read/write on products.",
+      "tags": ["supabase", "migration", "rls", "gold-pricing", "products"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:supabase/tlkv-admin-rls.sql",
+      "type": "file",
+      "name": "tlkv-admin-rls.sql",
+      "filePath": "supabase/tlkv-admin-rls.sql",
+      "summary": "Centralized admin RLS using tlkv_admin_emails() and tlkv_is_admin() helper functions. Replaces scattered email checks with one configurable email list for products and gold table write access.",
+      "tags": ["supabase", "migration", "rls", "admin", "products", "gold-pricing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:public.news_categories",
+      "type": "table",
+      "name": "news_categories",
+      "filePath": "supabase/news-schema.sql",
+      "lineRange": [69, 77],
+      "summary": "News article taxonomy table with name, unique slug, description, and sort_order for organizing published articles.",
+      "tags": ["table", "news-cms", "taxonomy"],
+      "complexity": "simple",
+      "fields": ["id", "name", "slug", "description", "sort_order", "created_at", "updated_at"]
+    },
+    {
+      "id": "table:public.news_tags",
+      "type": "table",
+      "name": "news_tags",
+      "filePath": "supabase/news-schema.sql",
+      "lineRange": [79, 84],
+      "summary": "Tag vocabulary for news articles with unique slugified names for filtering and many-to-many tagging.",
+      "tags": ["table", "news-cms", "taxonomy"],
+      "complexity": "simple",
+      "fields": ["id", "name", "slug", "created_at"]
+    },
+    {
+      "id": "table:public.news",
+      "type": "table",
+      "name": "news",
+      "filePath": "supabase/news-schema.sql",
+      "lineRange": [86, 111],
+      "summary": "Core news article table storing title, slug, Editor.js JSONB content, category FK, draft/published/archived status, featured flag, SEO fields, view count, and publish timestamps.",
+      "tags": ["table", "news-cms", "content", "editorjs"],
+      "complexity": "complex",
+      "fields": ["id", "title", "slug", "short_description", "thumbnail_url", "content", "category_id", "status", "featured", "view_count", "seo_title", "seo_description", "seo_keywords", "author_email", "published_at", "created_at", "updated_at"]
+    },
+    {
+      "id": "table:public.news_tag_relations",
+      "type": "table",
+      "name": "news_tag_relations",
+      "filePath": "supabase/news-schema.sql",
+      "lineRange": [113, 117],
+      "summary": "Junction table linking news articles to news_tags with composite primary key and cascade deletes.",
+      "tags": ["table", "news-cms", "junction"],
+      "complexity": "simple",
+      "fields": ["news_id", "tag_id"]
+    },
+    {
+      "id": "table:public.news_change_log",
+      "type": "table",
+      "name": "news_change_log",
+      "filePath": "supabase/news-schema.sql",
+      "lineRange": [120, 129],
+      "summary": "Append-only audit log for news CMS writes (insert/update/delete/publish) capturing actor email, entity snapshot, and JSONB before/after payloads.",
+      "tags": ["table", "news-cms", "audit-log"],
+      "complexity": "moderate",
+      "fields": ["id", "action", "entity_name", "entity_id", "summary", "payload", "actor_email", "created_at"]
+    },
+    {
+      "id": "table:public.brands",
+      "type": "table",
+      "name": "brands",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "lineRange": [41, 51],
+      "summary": "Product brand directory with slug, logo URL, active flag, and sort order for catalog navigation and featured brand rows on the homepage.",
+      "tags": ["table", "products", "catalog", "brands"],
+      "complexity": "simple",
+      "fields": ["id", "name", "slug", "description", "logo_url", "is_active", "sort_order", "created_at", "updated_at"]
+    },
+    {
+      "id": "table:public.categories",
+      "type": "table",
+      "name": "categories",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "lineRange": [64, 74],
+      "summary": "Flat product category taxonomy with optional parent_id for future hierarchy, active flag, and sort order for catalog filtering.",
+      "tags": ["table", "products", "catalog", "taxonomy"],
+      "complexity": "simple",
+      "fields": ["id", "name", "slug", "parent_id", "is_active", "sort_order", "created_at", "updated_at"]
+    },
+    {
+      "id": "table:public.products",
+      "type": "table",
+      "name": "products",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "lineRange": [91, 110],
+      "summary": "Central product catalog table: legacy text id/name/category/price_text/image columns extended with brand_id, category_id, slug, homepage flags, active state, and later migrations add price_numeric, weight, and price_source_product for derived gold pricing.",
+      "tags": ["table", "products", "catalog", "pricing"],
+      "complexity": "complex",
+      "fields": ["id", "name", "category", "price_text", "image", "sort_order", "brand_id", "category_id", "slug", "is_featured", "is_best_seller", "is_hot", "is_active", "created_at", "updated_at"]
+    },
+    {
+      "id": "table:public.product_images",
+      "type": "table",
+      "name": "product_images",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "lineRange": [129, 141],
+      "summary": "Multi-image gallery per product with role (thumbnail/main/gallery), storage path, public URL, alt text, dimensions, and unique constraints ensuring one thumbnail and one main image per product.",
+      "tags": ["table", "products", "catalog", "images"],
+      "complexity": "moderate",
+      "fields": ["id", "product_id", "role", "storage_path", "public_url", "alt_text", "sort_order", "width", "height", "created_at"]
+    },
+    {
+      "id": "table:public.gold_price_change_log",
+      "type": "table",
+      "name": "gold_price_change_log",
+      "filePath": "supabase/admin-change-history.sql",
+      "lineRange": [15, 23],
+      "summary": "Public-readable audit log for admin actions on gold_meta and gold_price_rows, storing action type, entity reference, summary, and JSONB payload.",
+      "tags": ["table", "audit-log", "gold-pricing"],
+      "complexity": "simple",
+      "fields": ["id", "created_at", "action", "entity_name", "entity_id", "summary", "payload"]
+    },
+    {
+      "id": "table:public.product_change_log",
+      "type": "table",
+      "name": "product_change_log",
+      "filePath": "supabase/admin-change-history.sql",
+      "lineRange": [31, 39],
+      "summary": "Public-readable audit log for admin CRUD on the products table, parallel in structure to gold_price_change_log.",
+      "tags": ["table", "audit-log", "products"],
+      "complexity": "simple",
+      "fields": ["id", "created_at", "action", "entity_name", "entity_id", "summary", "payload"]
+    }
+  ],
+  "edges": [
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "table:public.news_categories",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "table:public.news_tags",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "table:public.news",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "table:public.news_tag_relations",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "table:public.news_change_log",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "table:public.brands",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "table:public.categories",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "table:public.products",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "table:public.product_images",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/admin-change-history",
+      "target": "table:public.gold_price_change_log",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "schema:supabase/admin-change-history",
+      "target": "table:public.product_change_log",
+      "type": "defines_schema",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:supabase/news-storage.sql",
+      "target": "schema:supabase/news-schema",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:supabase/products-catalog-step8-12.sql",
+      "target": "schema:supabase/products-catalog",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:supabase/products-catalog-step8-12.sql",
+      "target": "table:public.products",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:supabase/products-featured-home-index.sql",
+      "target": "file:supabase/products-catalog-step8-12.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:supabase/products-featured-home-index.sql",
+      "target": "table:public.products",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:supabase/products-price-source.sql",
+      "target": "file:supabase/products-catalog-step8-12.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:supabase/products-price-source.sql",
+      "target": "table:public.products",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:supabase/products-storage.sql",
+      "target": "schema:supabase/products-catalog",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:supabase/gold-price-rows-vang-rong-split.sql",
+      "target": "file:supabase/gold-price-rows-previous.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:supabase/gold-price-rows-vang-rong-split.sql",
+      "target": "file:supabase/products-price-source.sql",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:supabase/products-rls-admin-write.sql",
+      "target": "file:supabase/tlkv-admin-rls.sql",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:supabase/tlkv-admin-rls.sql",
+      "target": "file:supabase/rls-admin-email.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:supabase/products-fix-select.sql",
+      "target": "file:supabase/rls-admin-email.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:supabase/fix-all-policies.sql",
+      "target": "file:supabase/rls-admin-email.sql",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:supabase/data-api-grants.sql",
+      "target": "schema:supabase/products-catalog",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:supabase/data-api-grants.sql",
+      "target": "schema:supabase/news-schema",
+      "type": "migrates",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-api.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-detail-page.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-list-page.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-renderer.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-home-preview.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "schema:supabase/news-schema",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:supabase/news-storage.sql",
+      "target": "file:js/news/news-api.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/catalog-api.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/product-crud.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/catalog-archive.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/catalog-page.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/catalog-filters.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/brand-page.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/brand-section.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/featured-products-section.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/product-card.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.75
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/product-detail-page.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/product-grid.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "schema:supabase/products-catalog",
+      "target": "file:js/products/product-card-layout.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:supabase/products-price-source.sql",
+      "target": "file:js/products/product-price-engine.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:supabase/products-price-source.sql",
+      "target": "file:js/products/featured-products-section.js",
+      "type": "serves",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "table:public.news",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "table:public.news_categories",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "table:public.products",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "table:public.brands",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "table:public.categories",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "table:public.product_images",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "file:js/products/product-crud.js",
+      "target": "table:public.products",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "table:public.products",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "table:public.brands",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "table:public.products",
+      "type": "queries",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "table:public.news",
+      "target": "table:public.news_categories",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "table:public.news_tag_relations",
+      "target": "table:public.news",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "table:public.news_tag_relations",
+      "target": "table:public.news_tags",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "table:public.products",
+      "target": "table:public.brands",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "table:public.products",
+      "target": "table:public.categories",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.85
+    },
+    {
+      "source": "table:public.product_images",
+      "target": "table:public.products",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.9
+    }
+  ]
+}

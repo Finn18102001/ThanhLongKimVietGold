@@ -1,0 +1,606 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 16,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "supabase/admin-change-history.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 109,
+      "nonEmptyLines": 93,
+      "definitions": [
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "created_at",
+            "action",
+            "entity_name",
+            "entity_id",
+            "summary",
+            "payload"
+          ],
+          "startLine": 15,
+          "endLine": 23
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "created_at",
+            "action",
+            "entity_name",
+            "entity_id",
+            "summary",
+            "payload"
+          ],
+          "startLine": 31,
+          "endLine": 39
+        },
+        {
+          "name": "gold_price_change_log_created_at_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 25,
+          "endLine": 25
+        },
+        {
+          "name": "product_change_log_created_at_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 41,
+          "endLine": 41
+        },
+        {
+          "name": "gold_price_change_log_entity_name_trgm",
+          "kind": "index",
+          "fields": [],
+          "startLine": 80,
+          "endLine": 80
+        },
+        {
+          "name": "product_change_log_entity_name_trgm",
+          "kind": "index",
+          "fields": [],
+          "startLine": 82,
+          "endLine": 82
+        },
+        {
+          "name": "gold_price_change_log_entity_created_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 92,
+          "endLine": 92
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 7
+      }
+    },
+    {
+      "path": "supabase/data-api-grants.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 46,
+      "nonEmptyLines": 41,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/fix-all-policies.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 100,
+      "nonEmptyLines": 85,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/gold-price-rows-previous.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 10,
+      "nonEmptyLines": 8,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/gold-price-rows-vang-rong-split.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 33,
+      "nonEmptyLines": 29,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/news-schema.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 307,
+      "nonEmptyLines": 258,
+      "definitions": [
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "sort_order",
+            "created_at",
+            "updated_at"
+          ],
+          "startLine": 69,
+          "endLine": 77
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "name",
+            "slug",
+            "created_at"
+          ],
+          "startLine": 79,
+          "endLine": 84
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "title",
+            "slug",
+            "short_description",
+            "thumbnail_url",
+            "version",
+            "category_id",
+            "status",
+            "featured",
+            "view_count",
+            "seo_title",
+            "seo_description",
+            "seo_keywords",
+            "author_email",
+            "updated_at"
+          ],
+          "startLine": 86,
+          "endLine": 111
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "news_id",
+            "tag_id"
+          ],
+          "startLine": 113,
+          "endLine": 117
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "action"
+          ],
+          "startLine": 120,
+          "endLine": 129
+        },
+        {
+          "name": "idx_news_status_published_at",
+          "kind": "index",
+          "fields": [],
+          "startLine": 133,
+          "endLine": 133
+        },
+        {
+          "name": "idx_news_featured_published_at",
+          "kind": "index",
+          "fields": [],
+          "startLine": 136,
+          "endLine": 136
+        },
+        {
+          "name": "idx_news_category_published_at",
+          "kind": "index",
+          "fields": [],
+          "startLine": 140,
+          "endLine": 140
+        },
+        {
+          "name": "idx_news_slug",
+          "kind": "index",
+          "fields": [],
+          "startLine": 144,
+          "endLine": 144
+        },
+        {
+          "name": "idx_news_title_trgm",
+          "kind": "index",
+          "fields": [],
+          "startLine": 148,
+          "endLine": 148
+        },
+        {
+          "name": "idx_news_short_desc_trgm",
+          "kind": "index",
+          "fields": [],
+          "startLine": 151,
+          "endLine": 151
+        },
+        {
+          "name": "idx_news_change_log_created_at",
+          "kind": "index",
+          "fields": [],
+          "startLine": 154,
+          "endLine": 154
+        },
+        {
+          "name": "idx_news_change_log_entity_name_trgm",
+          "kind": "index",
+          "fields": [],
+          "startLine": 157,
+          "endLine": 157
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 13
+      }
+    },
+    {
+      "path": "supabase/news-storage.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 80,
+      "nonEmptyLines": 73,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/products-catalog-schema.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 259,
+      "nonEmptyLines": 224,
+      "definitions": [
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "logo_url",
+            "is_active",
+            "sort_order",
+            "created_at",
+            "updated_at"
+          ],
+          "startLine": 41,
+          "endLine": 51
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "name",
+            "slug",
+            "parent_id",
+            "is_active",
+            "sort_order",
+            "created_at",
+            "updated_at"
+          ],
+          "startLine": 64,
+          "endLine": 74
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "name",
+            "category",
+            "price_text",
+            "image",
+            "sort_order",
+            "created_at",
+            "updated_at"
+          ],
+          "startLine": 91,
+          "endLine": 100
+        },
+        {
+          "name": "public",
+          "kind": "table",
+          "fields": [
+            "id",
+            "product_id",
+            "role",
+            "storage_path",
+            "public_url",
+            "alt_text",
+            "sort_order",
+            "width",
+            "height",
+            "created_at"
+          ],
+          "startLine": 129,
+          "endLine": 141
+        },
+        {
+          "name": "idx_brands_active_sort",
+          "kind": "index",
+          "fields": [],
+          "startLine": 58,
+          "endLine": 58
+        },
+        {
+          "name": "idx_categories_active_sort",
+          "kind": "index",
+          "fields": [],
+          "startLine": 81,
+          "endLine": 81
+        },
+        {
+          "name": "idx_categories_parent",
+          "kind": "index",
+          "fields": [],
+          "startLine": 84,
+          "endLine": 84
+        },
+        {
+          "name": "idx_products_slug_unique",
+          "kind": "index",
+          "fields": [],
+          "startLine": 112,
+          "endLine": 112
+        },
+        {
+          "name": "idx_products_brand_active_sort",
+          "kind": "index",
+          "fields": [],
+          "startLine": 116,
+          "endLine": 116
+        },
+        {
+          "name": "idx_products_category_active",
+          "kind": "index",
+          "fields": [],
+          "startLine": 119,
+          "endLine": 119
+        },
+        {
+          "name": "idx_products_flags_homepage",
+          "kind": "index",
+          "fields": [],
+          "startLine": 122,
+          "endLine": 122
+        },
+        {
+          "name": "idx_product_images_product_role_sort",
+          "kind": "index",
+          "fields": [],
+          "startLine": 143,
+          "endLine": 143
+        },
+        {
+          "name": "idx_product_images_one_thumbnail",
+          "kind": "index",
+          "fields": [],
+          "startLine": 146,
+          "endLine": 146
+        },
+        {
+          "name": "idx_product_images_one_main",
+          "kind": "index",
+          "fields": [],
+          "startLine": 150,
+          "endLine": 150
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 14
+      }
+    },
+    {
+      "path": "supabase/products-catalog-step8-12.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 15,
+      "nonEmptyLines": 13,
+      "definitions": [
+        {
+          "name": "idx_products_price_numeric",
+          "kind": "index",
+          "fields": [],
+          "startLine": 6,
+          "endLine": 6
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 1
+      }
+    },
+    {
+      "path": "supabase/products-featured-home-index.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 10,
+      "nonEmptyLines": 8,
+      "definitions": [
+        {
+          "name": "idx_products_home_featured",
+          "kind": "index",
+          "fields": [],
+          "startLine": 4,
+          "endLine": 4
+        },
+        {
+          "name": "idx_products_brand_featured_sort",
+          "kind": "index",
+          "fields": [],
+          "startLine": 8,
+          "endLine": 8
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 2
+      }
+    },
+    {
+      "path": "supabase/products-fix-select.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 39,
+      "nonEmptyLines": 32,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/products-price-source.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 19,
+      "nonEmptyLines": 14,
+      "definitions": [
+        {
+          "name": "idx_products_price_source_product",
+          "kind": "index",
+          "fields": [],
+          "startLine": 13,
+          "endLine": 13
+        },
+        {
+          "name": "idx_products_price_source_weight_unique",
+          "kind": "index",
+          "fields": [],
+          "startLine": 17,
+          "endLine": 17
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 2
+      }
+    },
+    {
+      "path": "supabase/products-rls-admin-write.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 2,
+      "nonEmptyLines": 2,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/products-storage.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 59,
+      "nonEmptyLines": 54,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/rls-admin-email.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 74,
+      "nonEmptyLines": 61,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "supabase/tlkv-admin-rls.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 95,
+      "nonEmptyLines": 84,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    }
+  ]
+}

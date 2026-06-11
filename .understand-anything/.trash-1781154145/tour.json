@@ -1,0 +1,62 @@
+[
+  {
+    "order": 1,
+    "title": "Project Overview",
+    "description": "Start with README.md to learn what Thăng Long Kim Việt is, how to run it locally with npm start, and which public routes exist. package.json lists the Express server scripts and dependencies that power the demo site.",
+    "nodeIds": ["document:README.md", "config:package.json"]
+  },
+  {
+    "order": 2,
+    "title": "Express Server Entry",
+    "description": "server.js creates the Express app, sets the port, and hands routing to registerRoutes in routes/index.js. That registrar mounts the API, admin, and web routers and injects Supabase public config for browser clients.",
+    "nodeIds": ["file:server.js", "file:routes/index.js"]
+  },
+  {
+    "order": 3,
+    "title": "Public Homepage",
+    "description": "index.html is the main marketing shell served at /. It loads the hero carousel, live gold pricing table, world XAU/USD widget, featured products grid, and news preview modules that tie the site's core features together.",
+    "nodeIds": ["file:index.html"]
+  },
+  {
+    "order": 4,
+    "title": "Gold Pricing Data",
+    "description": "js/gold-data.js fetches and renders the domestic gold table on the homepage and product pages. The canonical price rows live in data/gold-table.json, with admin overrides persisted in localStorage under tlkv_gold_table_v1.",
+    "nodeIds": ["file:js/gold-data.js", "file:data/gold-table.json"]
+  },
+  {
+    "order": 5,
+    "title": "Products Catalog",
+    "description": "js/products/catalog-api.js is the Supabase data layer for brands, categories, and product listings used across the catalog and homepage. It abstracts pagination, filters, and featured-product queries away from page controllers.",
+    "nodeIds": ["file:js/products/catalog-api.js"]
+  },
+  {
+    "order": 6,
+    "title": "Admin Dashboard",
+    "description": "admin/index.html is the back-office shell served at /admin for managing gold prices and products. js/admin-app.js wires authentication, tab navigation, localStorage sync, and reload-from-JSON actions for demo operators.",
+    "nodeIds": ["file:admin/index.html", "file:js/admin-app.js"]
+  },
+  {
+    "order": 7,
+    "title": "News CMS",
+    "description": "admin/news.html hosts the Editor.js-based news dashboard where admins draft and publish articles. js/news/news-api.js provides the shared Supabase queries for listing, detail, related posts, and view-count RPC used by both admin and public pages.",
+    "nodeIds": ["file:admin/news.html", "file:js/news/news-api.js"]
+  },
+  {
+    "order": 8,
+    "title": "Supabase News Schema",
+    "description": "supabase/news-schema.sql defines the News CMS tables, slug helpers, search indexes, updated_at triggers, and RLS policies. Run it once in the Supabase SQL Editor before using the news admin or public /tin-tuc routes.",
+    "nodeIds": ["schema:supabase/news-schema", "file:supabase/news-storage.sql"]
+  },
+  {
+    "order": 9,
+    "title": "Supabase Products Schema",
+    "description": "supabase/products-catalog-schema.sql creates the product catalog foundation with brands, categories, extended products, and gallery images plus RLS. Companion migrations such as products-storage.sql add the media bucket policies for product images.",
+    "nodeIds": ["schema:supabase/products-catalog", "file:supabase/products-storage.sql"]
+  },
+  {
+    "order": 10,
+    "title": "Routes and API Layer",
+    "description": "routes/web.js maps clean public HTML URLs—including legacy 301 redirects and news slug validation—to the correct page shells. routes/api.js exposes JSON endpoints such as /api/gold-table and /api/products that read from the data/ directory.",
+    "nodeIds": ["file:routes/web.js", "file:routes/api.js"]
+  }
+]

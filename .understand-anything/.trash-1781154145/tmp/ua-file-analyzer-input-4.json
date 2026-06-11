@@ -1,0 +1,112 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "css/admin-catalog.css",
+      "language": "css",
+      "sizeLines": 390,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/chrome-typography.css",
+      "language": "css",
+      "sizeLines": 133,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/design-system.css",
+      "language": "css",
+      "sizeLines": 392,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/floating-contact.css",
+      "language": "css",
+      "sizeLines": 215,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/gold-pricing.css",
+      "language": "css",
+      "sizeLines": 1064,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/header.css",
+      "language": "css",
+      "sizeLines": 944,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/hero.css",
+      "language": "css",
+      "sizeLines": 125,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/home-sections.css",
+      "language": "css",
+      "sizeLines": 1023,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/home-typography.css",
+      "language": "css",
+      "sizeLines": 150,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/news-admin.css",
+      "language": "css",
+      "sizeLines": 401,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/news.css",
+      "language": "css",
+      "sizeLines": 1222,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/product-card-layout.css",
+      "language": "css",
+      "sizeLines": 303,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/products-catalog.css",
+      "language": "css",
+      "sizeLines": 285,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/tv-model.css",
+      "language": "css",
+      "sizeLines": 587,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/world-gold-xau.css",
+      "language": "css",
+      "sizeLines": 215,
+      "fileCategory": "markup"
+    }
+  ],
+  "batchImportData": {
+    "css/admin-catalog.css": [],
+    "css/chrome-typography.css": [],
+    "css/design-system.css": [],
+    "css/floating-contact.css": [],
+    "css/gold-pricing.css": [],
+    "css/header.css": [],
+    "css/hero.css": [],
+    "css/home-sections.css": [],
+    "css/home-typography.css": [],
+    "css/news-admin.css": [],
+    "css/news.css": [],
+    "css/product-card-layout.css": [],
+    "css/products-catalog.css": [],
+    "css/tv-model.css": [],
+    "css/world-gold-xau.css": []
+  }
+}

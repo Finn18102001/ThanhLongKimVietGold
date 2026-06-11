@@ -1,0 +1,1398 @@
+{
+  "nodes": [
+    {
+      "id": "file:js/news/news-sanitize.js",
+      "type": "file",
+      "name": "news-sanitize.js",
+      "filePath": "js/news/news-sanitize.js",
+      "summary": "Dependency-free HTML sanitizer for Editor.js inline marks on news pages. Walks an allow-list of tags (b, strong, i, em, u, mark, code, a, br, span), validates href schemes, and rebuilds safe DOM fragments via TLKVNewsSanitize.",
+      "tags": [
+        "utility",
+        "sanitization",
+        "news",
+        "security",
+        "dom"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Deliberately avoids DOMPurify to keep the public site dependency-free with a short audited allow-list."
+    },
+    {
+      "id": "file:js/products-data.js",
+      "type": "file",
+      "name": "products-data.js",
+      "filePath": "js/products-data.js",
+      "summary": "Supabase-backed product persistence layer for admin CRUD: sessionStorage cache, realtime subscriptions on products/brands, slug generation, sort_order assignment, image upload to product_images bucket, and TLKVProducts global API.",
+      "tags": [
+        "data-model",
+        "supabase",
+        "crud",
+        "cache",
+        "admin"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/products/brand-page.js",
+      "type": "file",
+      "name": "brand-page.js",
+      "filePath": "js/products/brand-page.js",
+      "summary": "Brand landing page controller that parses /thuong-hieu/:slug from the URL, loads brand catalog data via TLKVCatalogApi.fetchBrandBySlug, updates SEO meta tags, and mounts a TLKVBrandSection into #brand-catalog-root.",
+      "tags": [
+        "component",
+        "brand",
+        "routing",
+        "seo",
+        "catalog"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/products/brand-section.js",
+      "type": "file",
+      "name": "brand-section.js",
+      "filePath": "js/products/brand-section.js",
+      "summary": "Renders a single brand catalog section with logo, linked title, optional description, and a TLKVProductGrid of products capped by TLKV_PRODUCTS_PER_BRAND_SECTION.",
+      "tags": [
+        "component",
+        "brand",
+        "catalog",
+        "dom",
+        "grid"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/catalog-api.js",
+      "type": "file",
+      "name": "catalog-api.js",
+      "filePath": "js/products/catalog-api.js",
+      "summary": "Public read API over Supabase for the product catalog: normalizes brands/products/featured rows with image resolution, paginated filtered queries with schema fallbacks, and exposes TLKVCatalogApi for homepage, archive, and detail pages.",
+      "tags": [
+        "service",
+        "supabase",
+        "catalog",
+        "api-handler",
+        "normalization"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/products/catalog-archive.js",
+      "type": "file",
+      "name": "catalog-archive.js",
+      "filePath": "js/products/catalog-archive.js",
+      "summary": "Full catalog archive UI for /sanpham: syncs filter state with URL query params, paginates via TLKVCatalogApi.fetchProductsPage, renders product grids and pagination controls, and mounts via TLKVCatalogArchive.",
+      "tags": [
+        "component",
+        "catalog",
+        "pagination",
+        "filters",
+        "archive"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/catalog-filters.js",
+      "type": "file",
+      "name": "catalog-filters.js",
+      "filePath": "js/products/catalog-filters.js",
+      "summary": "URL-driven catalog filter utilities: reads and writes brand/category/featured/hot/bestseller/sort/search params, resolves SEO path slugs for /sanpham/danh-muc and /thuong-hieu routes, and provides client-side query filtering.",
+      "tags": [
+        "utility",
+        "filters",
+        "routing",
+        "url-state",
+        "catalog"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/catalog-page.js",
+      "type": "file",
+      "name": "catalog-page.js",
+      "filePath": "js/products/catalog-page.js",
+      "summary": "Legacy catalog page mount helper that prefers brand-section grouping via fetchBrandCatalogSections with fallback to flat legacy product lists; deprecated in favor of TLKVCatalogArchive on the main catalog page.",
+      "tags": [
+        "component",
+        "catalog",
+        "legacy",
+        "homepage",
+        "mount"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/constants.js",
+      "type": "file",
+      "name": "constants.js",
+      "filePath": "js/products/constants.js",
+      "summary": "Site-wide product catalog constants: Zalo contact URL, products-per-brand section limit, and brand logo fallback map keyed by brand slug for featured and brand sections.",
+      "tags": [
+        "config",
+        "constants",
+        "catalog",
+        "branding",
+        "contact"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/products/featured-products-section.js",
+      "type": "file",
+      "name": "featured-products-section.js",
+      "filePath": "js/products/featured-products-section.js",
+      "summary": "Homepage featured-products block: loads featured brands with derived gold pricing, renders horizontal product carousels per brand, listens for tlkv:gold-rows-updated to patch prices in-place, and supports drag-scroll rails.",
+      "tags": [
+        "component",
+        "homepage",
+        "featured-products",
+        "pricing",
+        "realtime"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/products/product-card-layout.js",
+      "type": "file",
+      "name": "product-card-layout.js",
+      "filePath": "js/products/product-card-layout.js",
+      "summary": "Shared product card layout helpers enforcing fixed aspect ratios (4:5 catalog, 1:1 showcase), CLS-safe lazy image loading with skeleton placeholders, and normalized card shell CSS classes.",
+      "tags": [
+        "utility",
+        "layout",
+        "product-card",
+        "images",
+        "cls"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/product-card.js",
+      "type": "file",
+      "name": "product-card.js",
+      "filePath": "js/products/product-card.js",
+      "summary": "Factory for TLKV product cards with escaped HTML, price label formatting, Zalo CTA links, showcase/catalog variants via TLKVProductCardLayout, and detail-page links built from category/product slugs.",
+      "tags": [
+        "component",
+        "product-card",
+        "dom",
+        "pricing",
+        "cta"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/product-crud.js",
+      "type": "file",
+      "name": "product-crud.js",
+      "filePath": "js/products/product-crud.js",
+      "summary": "Domain validation layer for admin product saves: required name/brand/category checks, UUID resolution for create vs edit modes, and shared PRODUCT_PUBLIC_SELECT constant for Supabase queries.",
+      "tags": [
+        "validation",
+        "crud",
+        "domain",
+        "admin",
+        "products"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/products/product-detail-page.js",
+      "type": "file",
+      "name": "product-detail-page.js",
+      "filePath": "js/products/product-detail-page.js",
+      "summary": "Product detail page controller for /sanpham/:category/:slug: fetches product via TLKVCatalogApi, injects JSON-LD Product schema, updates meta tags, and renders detail markup with Zalo contact CTA.",
+      "tags": [
+        "component",
+        "detail-page",
+        "seo",
+        "catalog",
+        "json-ld"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/products/product-grid.js",
+      "type": "file",
+      "name": "product-grid.js",
+      "filePath": "js/products/product-grid.js",
+      "summary": "Thin wrapper that builds a role=list grid container and delegates card creation to TLKVProductCard.createProductCard for each product in a catalog section.",
+      "tags": [
+        "component",
+        "grid",
+        "product-card",
+        "catalog",
+        "dom"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/products/product-price-engine.js",
+      "type": "file",
+      "name": "product-price-engine.js",
+      "filePath": "js/products/product-price-engine.js",
+      "summary": "Derived product pricing engine using gold_price_rows as the single price source: builds O(1) lookup index, multiplies VND-per-chỉ by product weight, formats integer VND display, and mutates product rows in place.",
+      "tags": [
+        "service",
+        "pricing",
+        "gold-prices",
+        "calculation",
+        "realtime"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/site-nav.js",
+      "type": "file",
+      "name": "site-nav.js",
+      "filePath": "js/site-nav.js",
+      "summary": "Client-side mobile navigation controller: toggles #mb-menu overlay, locks body scroll, and handles nested submenu open/close interactions on hamburger and mega-menu links.",
+      "tags": [
+        "event-handler",
+        "navigation",
+        "mobile",
+        "dom",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/supabaseClient.js",
+      "type": "file",
+      "name": "supabaseClient.js",
+      "filePath": "js/supabaseClient.js",
+      "summary": "ES module browser Supabase client that reads __TLKV_SUPABASE__ boot config and exports supabase, supabaseUrl, and supabaseAnonKey via esm.sh @supabase/supabase-js for module-based pages.",
+      "tags": [
+        "singleton",
+        "supabase",
+        "configuration",
+        "es-module",
+        "client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/tlkv-supabase-client.js",
+      "type": "file",
+      "name": "tlkv-supabase-client.js",
+      "filePath": "js/tlkv-supabase-client.js",
+      "summary": "Shared singleton Supabase browser client factory (TLKVSupabase) with lazy promise-based initialization, auth session persistence, and config resolution from boot-supabase-env globals.",
+      "tags": [
+        "singleton",
+        "supabase",
+        "configuration",
+        "client",
+        "auth"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/tv-gold-board.js",
+      "type": "file",
+      "name": "tv-gold-board.js",
+      "filePath": "js/tv-gold-board.js",
+      "summary": "Shared TV-style gold price table rendering: column striping, row highlighting, logo placement, datetime formatting, and payload normalization helpers used by TV model pages and website gold dashboards.",
+      "tags": [
+        "component",
+        "gold-pricing",
+        "tv",
+        "rendering",
+        "tables"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/world-gold-xau.js",
+      "type": "file",
+      "name": "world-gold-xau.js",
+      "filePath": "js/world-gold-xau.js",
+      "summary": "Client widget for world XAU/USD spot and history panel: fetches /api/world-xau-usd with sessionStorage cache, renders TradingView embed when allowed, and skips heavy embeds on TV/save-data browsers.",
+      "tags": [
+        "component",
+        "xau",
+        "gold-pricing",
+        "tradingview",
+        "api-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:lib/node-fetch-globals.js",
+      "type": "file",
+      "name": "node-fetch-globals.js",
+      "filePath": "lib/node-fetch-globals.js",
+      "summary": "Node.js polyfill that assigns undici fetch, Headers, Request, and Response to globalThis when running below Node 18, required by @supabase/supabase-js on legacy Node versions.",
+      "tags": [
+        "utility",
+        "polyfill",
+        "node",
+        "fetch",
+        "supabase"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:routes/api.js",
+      "type": "file",
+      "name": "api.js",
+      "filePath": "routes/api.js",
+      "summary": "Express API router exposing gold-table SSE stream and notify endpoints via gold-sse-hub, Supabase health probe, disabled legacy JSON mocks, and cached GoldAPI world XAU/USD spot plus historical comparison rows.",
+      "tags": [
+        "api-handler",
+        "express",
+        "gold-pricing",
+        "sse",
+        "proxy"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:routes/gold-sse-hub.js",
+      "type": "file",
+      "name": "gold-sse-hub.js",
+      "filePath": "routes/gold-sse-hub.js",
+      "summary": "Server-side SSE hub that subscribes to Supabase Realtime on gold_meta and gold_price_rows, maintains connected browser clients, sends heartbeats, and broadcasts gold-table-changed events with manual notify support.",
+      "tags": [
+        "service",
+        "sse",
+        "realtime",
+        "supabase",
+        "broadcast"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/verify-hero-assets.sh",
+      "type": "file",
+      "name": "verify-hero-assets.sh",
+      "filePath": "scripts/verify-hero-assets.sh",
+      "summary": "Shell validation script that checks homepage hero banner PNGs in assets/home meet minimum 3000px width using macOS sips, failing CI or local builds when assets are too small for full-width Retina display.",
+      "tags": [
+        "validation",
+        "assets",
+        "ci-cd",
+        "homepage",
+        "shell"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:getSupabaseClient",
+      "type": "function",
+      "name": "getSupabaseClient",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        25,
+        29
+      ],
+      "summary": "Returns the shared TLKVSupabase browser client promise or null when Supabase is not configured.",
+      "tags": [
+        "utility",
+        "supabase",
+        "client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchBrandCatalogSections",
+      "type": "function",
+      "name": "fetchBrandCatalogSections",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        145,
+        168
+      ],
+      "summary": "Loads active brands with nested active products from Supabase, normalizes each into brand sections capped by product limit.",
+      "tags": [
+        "api-handler",
+        "catalog",
+        "supabase",
+        "brands"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchFeaturedBrandsWithProducts",
+      "type": "function",
+      "name": "fetchFeaturedBrandsWithProducts",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        176,
+        222
+      ],
+      "summary": "Homepage featured flow: iterates active brands and loads is_featured products with weight and price_source_product for derived pricing.",
+      "tags": [
+        "api-handler",
+        "featured-products",
+        "supabase",
+        "homepage"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchProductsPage",
+      "type": "function",
+      "name": "fetchProductsPage",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        312,
+        342
+      ],
+      "summary": "Paginated catalog query with brand/category slug resolution, filter flags, sort modes, and normalized product rows.",
+      "tags": [
+        "api-handler",
+        "pagination",
+        "catalog",
+        "filters"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchBrandsList",
+      "type": "function",
+      "name": "fetchBrandsList",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        344,
+        353
+      ],
+      "summary": "Returns all brands ordered by sort_order for filter dropdowns and default brand row normalization.",
+      "tags": [
+        "api-handler",
+        "brands",
+        "supabase"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchCategoriesList",
+      "type": "function",
+      "name": "fetchCategoriesList",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        355,
+        364
+      ],
+      "summary": "Returns all categories ordered by sort_order for catalog filter UI.",
+      "tags": [
+        "api-handler",
+        "categories",
+        "supabase"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchBrandBySlug",
+      "type": "function",
+      "name": "fetchBrandBySlug",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        366,
+        379
+      ],
+      "summary": "Loads a single active brand with all active products by slug for brand landing pages.",
+      "tags": [
+        "api-handler",
+        "brand",
+        "slug",
+        "supabase"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchProductBySlugs",
+      "type": "function",
+      "name": "fetchProductBySlugs",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        381,
+        391
+      ],
+      "summary": "Fetches one active product by slug with optional category slug validation for detail pages.",
+      "tags": [
+        "api-handler",
+        "product",
+        "slug",
+        "detail"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:fetchFlatLegacyProducts",
+      "type": "function",
+      "name": "fetchFlatLegacyProducts",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        393,
+        399
+      ],
+      "summary": "Fallback that delegates to TLKVProducts.getProducts for flat legacy product lists when brand sections are unavailable.",
+      "tags": [
+        "api-handler",
+        "legacy",
+        "fallback"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:normalizeProduct",
+      "type": "function",
+      "name": "normalizeProduct",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        68,
+        93
+      ],
+      "summary": "Maps a Supabase product row to app shape with resolved image URL, slug, brand/category names, and pricing fields.",
+      "tags": [
+        "normalization",
+        "product",
+        "mapping"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:normalizeBrand",
+      "type": "function",
+      "name": "normalizeBrand",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        121,
+        143
+      ],
+      "summary": "Maps a brand row with nested products into a section object with sorted active products and brand metadata.",
+      "tags": [
+        "normalization",
+        "brand",
+        "mapping"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/catalog-api.js:parsePriceNumeric",
+      "type": "function",
+      "name": "parsePriceNumeric",
+      "filePath": "js/products/catalog-api.js",
+      "lineRange": [
+        416,
+        419
+      ],
+      "summary": "Parses numeric VND from price text strings, delegating to TLKVProducts.parsePriceNumeric when available.",
+      "tags": [
+        "utility",
+        "pricing",
+        "parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:buildGoldPriceIndex",
+      "type": "function",
+      "name": "buildGoldPriceIndex",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        60,
+        79
+      ],
+      "summary": "Builds a Map from normalized gold_price_rows product keys to buy/sell integer VND-per-chỉ values for O(1) lookup.",
+      "tags": [
+        "index",
+        "gold-prices",
+        "pricing",
+        "map"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:multiplyVndByWeight",
+      "type": "function",
+      "name": "multiplyVndByWeight",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        81,
+        88
+      ],
+      "summary": "Multiplies base VND-per-chỉ price by product weight using integer math to avoid floating-point drift.",
+      "tags": [
+        "calculation",
+        "pricing",
+        "weight"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:formatVndInteger",
+      "type": "function",
+      "name": "formatVndInteger",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        90,
+        98
+      ],
+      "summary": "Formats integer VND amounts for display, preferring TLKVGold.formatPriceDisplay when loaded.",
+      "tags": [
+        "formatting",
+        "pricing",
+        "display"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:isPriceMappable",
+      "type": "function",
+      "name": "isPriceMappable",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        50,
+        58
+      ],
+      "summary": "Returns true when a product has both weight and price_source_product fields needed for derived pricing.",
+      "tags": [
+        "validation",
+        "pricing",
+        "mapping"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:deriveProductPrice",
+      "type": "function",
+      "name": "deriveProductPrice",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        105,
+        140
+      ],
+      "summary": "Computes derived VND price for one product from the gold price index using configurable buy/sell side.",
+      "tags": [
+        "calculation",
+        "pricing",
+        "derive"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:applyDerivedPrices",
+      "type": "function",
+      "name": "applyDerivedPrices",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        146,
+        164
+      ],
+      "summary": "Mutates an array of products in place setting priceText, priceNumeric, and derived-price flags.",
+      "tags": [
+        "mutation",
+        "pricing",
+        "batch"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:applyDerivedPricesToBrandRows",
+      "type": "function",
+      "name": "applyDerivedPricesToBrandRows",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        169,
+        174
+      ],
+      "summary": "Applies derived pricing to featured_products arrays nested inside brand row objects.",
+      "tags": [
+        "mutation",
+        "pricing",
+        "featured-products"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/product-price-engine.js:normalizeProductKey",
+      "type": "function",
+      "name": "normalizeProductKey",
+      "filePath": "js/products/product-price-engine.js",
+      "lineRange": [
+        31,
+        37
+      ],
+      "summary": "Normalizes gold_price_rows product label strings for index lookup matching price_source_product values.",
+      "tags": [
+        "utility",
+        "normalization",
+        "gold-prices"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:fetchFeaturedBrandsWithProducts",
+      "type": "function",
+      "name": "fetchFeaturedBrandsWithProducts",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        382,
+        387
+      ],
+      "summary": "Delegates to TLKVCatalogApi.fetchFeaturedBrandsWithProducts for homepage brand rows with featured products.",
+      "tags": [
+        "api-handler",
+        "featured-products",
+        "delegation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:mountFeaturedProductsSection",
+      "type": "function",
+      "name": "mountFeaturedProductsSection",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        477,
+        511
+      ],
+      "summary": "Mounts the homepage featured products section: loads brands, renders carousel rows, binds gold price listener, and finalizes derived prices.",
+      "tags": [
+        "component",
+        "homepage",
+        "mount",
+        "pricing"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:refreshIfChanged",
+      "type": "function",
+      "name": "refreshIfChanged",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        513,
+        536
+      ],
+      "summary": "Re-fetches featured brands and gold rows, re-renders DOM only when the content signature changes.",
+      "tags": [
+        "refresh",
+        "realtime",
+        "homepage"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:patchFeaturedPricesInDom",
+      "type": "function",
+      "name": "patchFeaturedPricesInDom",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        107,
+        131
+      ],
+      "summary": "Updates displayed prices on existing product cards in the DOM using the latest gold price index without full re-render.",
+      "tags": [
+        "dom",
+        "pricing",
+        "realtime",
+        "patch"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:finalizeFeaturedPrices",
+      "type": "function",
+      "name": "finalizeFeaturedPrices",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        133,
+        142
+      ],
+      "summary": "Applies derived prices to in-memory brand state then patches the mounted DOM when gold rows are available.",
+      "tags": [
+        "pricing",
+        "finalize",
+        "homepage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:createBrandRow",
+      "type": "function",
+      "name": "createBrandRow",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        251,
+        269
+      ],
+      "summary": "Builds one featured brand row article with brand card aside and horizontal product carousel or empty state.",
+      "tags": [
+        "component",
+        "dom",
+        "brand",
+        "carousel"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:createBrandCard",
+      "type": "function",
+      "name": "createBrandCard",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        195,
+        217
+      ],
+      "summary": "Creates the brand logo and name aside card used in each featured brand row.",
+      "tags": [
+        "component",
+        "dom",
+        "brand"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/products/featured-products-section.js:createProductCarousel",
+      "type": "function",
+      "name": "createProductCarousel",
+      "filePath": "js/products/featured-products-section.js",
+      "lineRange": [
+        219,
+        242
+      ],
+      "summary": "Builds a horizontal showcase-variant product card rail for featured products using TLKVProductCard.",
+      "tags": [
+        "component",
+        "dom",
+        "carousel",
+        "product-card"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:routes/api.js:apiRouter",
+      "type": "function",
+      "name": "apiRouter",
+      "filePath": "routes/api.js",
+      "lineRange": [
+        119,
+        365
+      ],
+      "summary": "Express router factory registering gold-table SSE stream, notify and debug endpoints, Supabase health check, disabled legacy mocks, and cached GoldAPI world XAU/USD route.",
+      "tags": [
+        "api-handler",
+        "express",
+        "routing",
+        "gold-pricing",
+        "sse"
+      ],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:getSupabaseClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:getSupabaseClient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandCatalogSections",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandCatalogSections",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchFeaturedBrandsWithProducts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchFeaturedBrandsWithProducts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchProductsPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchProductsPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandsList",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandsList",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchCategoriesList",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchCategoriesList",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandBySlug",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchBrandBySlug",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchProductBySlugs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchProductBySlugs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchFlatLegacyProducts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:fetchFlatLegacyProducts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:normalizeProduct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:normalizeProduct",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:normalizeBrand",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:normalizeBrand",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:parsePriceNumeric",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "function:js/products/catalog-api.js:parsePriceNumeric",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:buildGoldPriceIndex",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:buildGoldPriceIndex",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:multiplyVndByWeight",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:multiplyVndByWeight",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:formatVndInteger",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:formatVndInteger",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:isPriceMappable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:isPriceMappable",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:deriveProductPrice",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:deriveProductPrice",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:applyDerivedPrices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:applyDerivedPrices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:applyDerivedPricesToBrandRows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:applyDerivedPricesToBrandRows",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:normalizeProductKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/product-price-engine.js",
+      "target": "function:js/products/product-price-engine.js:normalizeProductKey",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:fetchFeaturedBrandsWithProducts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:fetchFeaturedBrandsWithProducts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:mountFeaturedProductsSection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:mountFeaturedProductsSection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:refreshIfChanged",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:refreshIfChanged",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:patchFeaturedPricesInDom",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:patchFeaturedPricesInDom",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:finalizeFeaturedPrices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:finalizeFeaturedPrices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createBrandRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createBrandRow",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createBrandCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createBrandCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createProductCarousel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "function:js/products/featured-products-section.js:createProductCarousel",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:routes/api.js",
+      "target": "function:routes/api.js:apiRouter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:routes/api.js",
+      "target": "function:routes/api.js:apiRouter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:routes/api.js",
+      "target": "file:routes/gold-sse-hub.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "file:js/products/catalog-api.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "file:js/products/product-price-engine.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/featured-products-section.js",
+      "target": "file:js/products/product-card.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/catalog-archive.js",
+      "target": "file:js/products/catalog-api.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/catalog-archive.js",
+      "target": "file:js/products/catalog-filters.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/brand-page.js",
+      "target": "file:js/products/catalog-api.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/brand-section.js",
+      "target": "file:js/products/product-grid.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/product-grid.js",
+      "target": "file:js/products/product-card.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/product-detail-page.js",
+      "target": "file:js/products/catalog-api.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "file:js/products-data.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/products/catalog-api.js",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:routes/api.js",
+      "target": "file:routes/gold-sse-hub.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/world-gold-xau.js",
+      "target": "file:routes/api.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/tv-gold-board.js",
+      "target": "file:js/products/constants.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "tin-tuc/chi-tiet.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 297,
+      "nonEmptyLines": 279,
+      "metrics": {}
+    },
+    {
+      "path": "tin-tuc/danh-sach.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 308,
+      "nonEmptyLines": 289,
+      "metrics": {}
+    },
+    {
+      "path": "tin-tuc/index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 293,
+      "nonEmptyLines": 275,
+      "metrics": {}
+    }
+  ]
+}

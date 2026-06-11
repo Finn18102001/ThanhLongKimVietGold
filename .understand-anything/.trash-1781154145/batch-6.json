@@ -1,0 +1,484 @@
+{
+  "nodes": [
+    {
+      "id": "file:san-pham/chi-tiet.html",
+      "type": "file",
+      "name": "chi-tiet.html",
+      "filePath": "san-pham/chi-tiet.html",
+      "summary": "Product detail page shell served at /sanpham/{category}/{slug}. Provides a back link to the catalog, an empty header filled by site-nav.js, a #product-detail-root mount point for dynamic rendering, global footer chrome, and Supabase-backed product detail scripts with JSON-LD injection.",
+      "tags": ["html", "products", "detail-page", "seo", "supabase"],
+      "complexity": "moderate",
+      "languageNotes": "Loads 8 stylesheets and 9 JavaScript modules; header markup is minimal and populated client-side."
+    },
+    {
+      "id": "file:san-pham/gia-vang.html",
+      "type": "file",
+      "name": "gia-vang.html",
+      "filePath": "san-pham/gia-vang.html",
+      "summary": "Today's gold price page at /sanpham/gia-vang with full site header, a two-panel gold dashboard (store buy/sell table and world XAU/USD chart), rich SEO and Open Graph metadata, and inline bootstrapping that mounts TLKVGold table rows and listens for tlkv:gold-table-changed events.",
+      "tags": ["html", "gold-pricing", "xau", "dashboard", "seo"],
+      "complexity": "complex",
+      "languageNotes": "Loads 9 stylesheets and 8 JavaScript modules including gold-data, gold-pricing-layout, and world-gold-xau."
+    },
+    {
+      "id": "file:san-pham/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "san-pham/index.html",
+      "summary": "Public product catalog listing page at /sanpham with filter toolbar (search, brand, category, sort, featured/hot/bestseller flags), paginated product grid (#product-list), full header and footer chrome, and boot logic that mounts TLKVCatalogArchive or falls back to TLKVProducts.mountProductList.",
+      "tags": ["html", "products", "catalog", "filters", "pagination"],
+      "complexity": "complex",
+      "languageNotes": "Loads 9 stylesheets and 15 JavaScript modules spanning catalog API, filters, archive, and product card rendering."
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/vendor/bootstrap.min.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/design-system.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/vendor/style.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/header.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/chrome-typography.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/products-catalog.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:css/floating-contact.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/products/constants.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/products-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/products/catalog-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/products/product-detail-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:js/site-nav.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/vendor/bootstrap.min.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/design-system.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/vendor/style.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/header.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/chrome-typography.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/world-gold-xau.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/gold-pricing.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:css/floating-contact.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/gold-pricing-layout.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/world-gold-xau.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:js/site-nav.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/vendor/bootstrap.min.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/design-system.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/vendor/style.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/header.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/chrome-typography.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/products-catalog.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/product-card-layout.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:css/floating-contact.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/constants.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/product-crud.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/product-card-layout.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/product-card.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/product-grid.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/brand-section.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/catalog-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/catalog-filters.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/products/catalog-archive.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:js/site-nav.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:san-pham/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:san-pham/chi-tiet.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:san-pham/index.html",
+      "target": "file:san-pham/gia-vang.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:san-pham/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:san-pham/chi-tiet.html",
+      "target": "file:san-pham/gia-vang.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:san-pham/gia-vang.html",
+      "target": "file:san-pham/chi-tiet.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

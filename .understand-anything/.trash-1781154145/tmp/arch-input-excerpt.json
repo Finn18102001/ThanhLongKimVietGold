@@ -1,0 +1,866 @@
+{
+  "fileNodes": [
+    {
+      "id": "file:routes/admin.js",
+      "type": "file",
+      "name": "admin.js",
+      "filePath": "routes/admin.js",
+      "summary": "Express router factory that serves the admin UI as static files from the /admin path under the project admin directory.",
+      "tags": [
+        "admin",
+        "express",
+        "middleware",
+        "static-files"
+      ]
+    },
+    {
+      "id": "file:routes/index.js",
+      "type": "file",
+      "name": "index.js",
+      "filePath": "routes/index.js",
+      "summary": "Central route registrar that mounts API, admin, and web routers, injects Supabase public config for the browser, and applies static file caching rules.",
+      "tags": [
+        "entry-point",
+        "routing",
+        "express",
+        "supabase",
+        "middleware"
+      ]
+    },
+    {
+      "id": "file:routes/web.js",
+      "type": "file",
+      "name": "web.js",
+      "filePath": "routes/web.js",
+      "summary": "Express router defining clean public HTML routes for homepage, products, news, and legacy URL redirects with slug validation for news detail pages.",
+      "tags": [
+        "routing",
+        "express",
+        "public-pages",
+        "seo"
+      ]
+    },
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Environment variable template for local and production setup, defining Supabase client credentials (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) and the server-only GOLDAPI_KEY for the world XAU/USD price API.",
+      "tags": [
+        "configuration",
+        "environment",
+        "supabase",
+        "secrets"
+      ]
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Primary project documentation covering local Express development (npm start), deployment environment variables, frontend route map, legacy URL redirects, and the Supabase-backed News CMS module with schema setup, block renderer, SEO, and security notes.",
+      "tags": [
+        "documentation",
+        "getting-started",
+        "routes",
+        "news-cms"
+      ]
+    },
+    {
+      "id": "file:gia-vang-hom-nay.html",
+      "type": "file",
+      "name": "gia-vang-hom-nay.html",
+      "filePath": "gia-vang-hom-nay.html",
+      "summary": "Legacy redirect page that immediately forwards visitors from the old 'gia-vang-hom-nay' URL to /sanpham/gia-vang via meta refresh and JavaScript location.replace, with minimal SEO meta and a fallback link.",
+      "tags": [
+        "html",
+        "redirect",
+        "legacy-url",
+        "seo"
+      ]
+    },
+    {
+      "id": "file:googlea755d9afb0a19369.html",
+      "type": "file",
+      "name": "googlea755d9afb0a19369.html",
+      "filePath": "googlea755d9afb0a19369.html",
+      "summary": "Google Search Console site verification file containing a single google-site-verification token used to prove domain ownership to Google.",
+      "tags": [
+        "html",
+        "seo",
+        "google-verification",
+        "static"
+      ]
+    },
+    {
+      "id": "file:index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "index.html",
+      "summary": "Main homepage and primary site entry point at /. Renders the full TLKV marketing shell with hero carousel, live gold pricing table, world XAU/USD widget, featured products grid, news preview, and rich SEO metadata including JSON-LD WebSite schema.",
+      "tags": [
+        "html",
+        "entry-point",
+        "homepage",
+        "gold-pricing",
+        "seo"
+      ]
+    },
+    {
+      "id": "file:local.css",
+      "type": "file",
+      "name": "local.css",
+      "filePath": "local.css",
+      "summary": "Site-wide CSS override layer loaded after the design system and vendor styles. Enforces light-mode rendering, styles gold pricing tables and TV display layouts, product card grids, modal overlays, and numerous TLKV-branded UI components.",
+      "tags": [
+        "css",
+        "styling",
+        "overrides",
+        "gold-table",
+        "tv-display"
+      ]
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Node.js project manifest for the thanh-long-kim-viet-gold demo site. Declares Express server entry via npm start, Node >=18.17 engine requirement, and dependencies on express, dotenv, @supabase/supabase-js, and undici.",
+      "tags": [
+        "configuration",
+        "npm",
+        "dependencies",
+        "express"
+      ]
+    },
+    {
+      "id": "file:tv-model.html",
+      "type": "file",
+      "name": "tv-model.html",
+      "filePath": "tv-model.html",
+      "summary": "Full-screen TV display page for in-store gold price boards. Shows a branded header, live gold rate table populated by tv-gold-board.js, a welcome marquee, and Supabase-backed real-time price polling with noindex robots directive.",
+      "tags": [
+        "html",
+        "tv-display",
+        "gold-pricing",
+        "realtime"
+      ]
+    },
+    {
+      "id": "config:vercel.json",
+      "type": "config",
+      "name": "vercel.json",
+      "filePath": "vercel.json",
+      "summary": "Vercel deployment configuration that builds server.js as a Node.js serverless function with a 60-second max duration, bundles static assets (HTML, CSS, JS, data, admin, tin-tuc), and routes all traffic through the Express server.",
+      "tags": [
+        "configuration",
+        "deployment",
+        "vercel",
+        "serverless"
+      ]
+    },
+    {
+      "id": "file:admin/admin.css",
+      "type": "file",
+      "name": "admin.css",
+      "filePath": "admin/admin.css",
+      "summary": "Shared admin stylesheet for the Th\u0103ng Long Kim Vi\u1ec7t back office, covering layout shells, data tables, tab navigation, gold-price inline editing, product forms, image upload controls, change-history panels, pagination, toast notifications, and the change-password modal.",
+      "tags": [
+        "admin",
+        "stylesheet",
+        "layout",
+        "data-tables",
+        "forms"
+      ]
+    },
+    {
+      "id": "file:admin/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "admin/index.html",
+      "summary": "Main admin dashboard shell with Supabase email login, tabbed panels for gold price CRUD and product catalog management (products, brands, categories), inline gold table editing with audit history and Excel export, and a password-change modal wired to client-side admin modules.",
+      "tags": [
+        "admin",
+        "dashboard",
+        "crud",
+        "gold-pricing",
+        "catalog"
+      ]
+    },
+    {
+      "id": "file:admin/news.html",
+      "type": "file",
+      "name": "news.html",
+      "filePath": "admin/news.html",
+      "summary": "Dedicated news CMS admin page with its own login gate, breadcrumb navigation back to the main dashboard, and script hooks for Editor.js plus news storage, rendering, and API modules that mount the editorial UI into a dynamic content root.",
+      "tags": [
+        "admin",
+        "news-cms",
+        "editor",
+        "content-management",
+        "supabase"
+      ]
+    },
+    {
+      "id": "file:css/admin-catalog.css",
+      "type": "file",
+      "name": "admin-catalog.css",
+      "filePath": "css/admin-catalog.css",
+      "summary": "Styles the admin catalog management panel for products, brands, and categories, including subtabs, filter grids, data tables, form fields, and action toolbars scoped under catalog-admin classes.",
+      "tags": [
+        "stylesheet",
+        "admin",
+        "catalog",
+        "ui",
+        "forms"
+      ]
+    },
+    {
+      "id": "file:css/chrome-typography.css",
+      "type": "file",
+      "name": "chrome-typography.css",
+      "filePath": "css/chrome-typography.css",
+      "summary": "Applies responsive typography scale bumps to site chrome elements (header topbar, navigation links, footer) across all public pages, complementing header.css layout with Inter-based font sizing.",
+      "tags": [
+        "stylesheet",
+        "typography",
+        "header",
+        "footer",
+        "chrome"
+      ]
+    },
+    {
+      "id": "file:css/design-system.css",
+      "type": "file",
+      "name": "design-system.css",
+      "filePath": "css/design-system.css",
+      "summary": "Foundation UI layer for Th\u0103ng Long Kim Vi\u1ec7t: global CSS custom properties (brand gold palette, spacing, typography, shadows), light-mode lock against forced dark mode, and shared utility classes loaded before vendor styles.",
+      "tags": [
+        "stylesheet",
+        "design-system",
+        "tokens",
+        "foundation",
+        "theme"
+      ]
+    },
+    {
+      "id": "file:css/floating-contact.css",
+      "type": "file",
+      "name": "floating-contact.css",
+      "filePath": "css/floating-contact.css",
+      "summary": "Styles a fixed left-side floating contact sidebar on public pages with stacked action buttons for phone, Zalo, and messenger links, including hover states and mobile-safe positioning.",
+      "tags": [
+        "stylesheet",
+        "contact",
+        "sidebar",
+        "public-ui",
+        "fixed-position"
+      ]
+    },
+    {
+      "id": "file:css/gold-pricing.css",
+      "type": "file",
+      "name": "gold-pricing.css",
+      "filePath": "css/gold-pricing.css",
+      "summary": "Comprehensive styles for the gold pricing dashboard (.tlkv-gold-dashboard): two-column Bloomberg-style panels, store price tables, brand headers, row hover states, and responsive grid layout scoped away from header and TV pages.",
+      "tags": [
+        "stylesheet",
+        "gold-pricing",
+        "dashboard",
+        "tables",
+        "homepage"
+      ]
+    },
+    {
+      "id": "file:css/header.css",
+      "type": "file",
+      "name": "header.css",
+      "filePath": "css/header.css",
+      "summary": "Styles the sticky site header and navbar including topbar, brand lockup wordmark, desktop and mobile navigation, dropdown menus, search affordances, and header-specific CSS variables scoped to .header classes.",
+      "tags": [
+        "stylesheet",
+        "header",
+        "navigation",
+        "navbar",
+        "brand"
+      ]
+    },
+    {
+      "id": "file:css/hero.css",
+      "type": "file",
+      "name": "hero.css",
+      "filePath": "css/hero.css",
+      "summary": "Styles the homepage full-width hero carousel (.tlkv-hero) with viewport-based aspect ratio, drag-enabled showcase stage, slide transitions, and sharp edge-to-edge presentation below the header.",
+      "tags": [
+        "stylesheet",
+        "hero",
+        "carousel",
+        "homepage",
+        "showcase"
+      ]
+    },
+    {
+      "id": "file:css/home-sections.css",
+      "type": "file",
+      "name": "home-sections.css",
+      "filePath": "css/home-sections.css",
+      "summary": "Styles homepage content sections below the gold pricing block: trust value strip, brand introduction, featured products grid, section headings with ornamental dividers, and responsive layout for commerce storytelling blocks.",
+      "tags": [
+        "stylesheet",
+        "homepage",
+        "sections",
+        "featured-products",
+        "trust-strip"
+      ]
+    },
+    {
+      "id": "file:css/home-typography.css",
+      "type": "file",
+      "name": "home-typography.css",
+      "filePath": "css/home-typography.css",
+      "summary": "Homepage typography system scoped to .tlkv-home that bumps Inter sans-serif scale for promo strips, gold panel titles, product cards, and section copy while explicitly excluding gold table numeric cells.",
+      "tags": [
+        "stylesheet",
+        "typography",
+        "homepage",
+        "inter",
+        "scale-bump"
+      ]
+    },
+    {
+      "id": "file:css/news-admin.css",
+      "type": "file",
+      "name": "news-admin.css",
+      "filePath": "css/news-admin.css",
+      "summary": "Dashboard styles for the news admin shell (.news-admin-shell) covering topbar, breadcrumbs, article editor forms, status badges, data tables, and card-based layout for managing TLKV news content.",
+      "tags": [
+        "stylesheet",
+        "admin",
+        "news",
+        "dashboard",
+        "editor"
+      ]
+    },
+    {
+      "id": "file:css/news.css",
+      "type": "file",
+      "name": "news.css",
+      "filePath": "css/news.css",
+      "summary": "Public news section styles for listing and detail pages (.tlkv-news-*): hero titles, article cards, pagination, skeleton loaders, rich article body typography, and sidebar widgets aliased to global design tokens.",
+      "tags": [
+        "stylesheet",
+        "news",
+        "articles",
+        "listing",
+        "public-ui"
+      ]
+    },
+    {
+      "id": "file:css/product-card-layout.css",
+      "type": "file",
+      "name": "product-card-layout.css",
+      "filePath": "css/product-card-layout.css",
+      "summary": "Normalizes product card dimensions and grid behavior for catalog pages: fixed 320\u00d7395px card footprint, CLS-safe lazy image media boxes, price and badge alignment, and responsive grid column sizing.",
+      "tags": [
+        "stylesheet",
+        "products",
+        "product-card",
+        "grid",
+        "catalog"
+      ]
+    },
+    {
+      "id": "file:css/products-catalog.css",
+      "type": "file",
+      "name": "products-catalog.css",
+      "filePath": "css/products-catalog.css",
+      "summary": "Styles the public product catalog page layout including brand sections with logos, category groupings, section headers, card grids, and spacing rhythm built on design-system tokens for the sanpham experience.",
+      "tags": [
+        "stylesheet",
+        "products",
+        "catalog",
+        "brand-section",
+        "grid"
+      ]
+    },
+    {
+      "id": "file:css/tv-model.css",
+      "type": "file",
+      "name": "tv-model.css",
+      "filePath": "css/tv-model.css",
+      "summary": "Fullscreen TV display mode styles for in-store gold price boards (/tv-model): shell padding, table column widths, ticker typography bumps, greeting board colors, and light-mode lock isolated from the main site header.",
+      "tags": [
+        "stylesheet",
+        "tv-display",
+        "gold-table",
+        "fullscreen",
+        "in-store"
+      ]
+    },
+    {
+      "id": "file:css/world-gold-xau.css",
+      "type": "file",
+      "name": "world-gold-xau.css",
+      "filePath": "css/world-gold-xau.css",
+      "summary": "Styles the world gold (XAU/USD) chart panel embedded below store pricing tables, including panel chrome, chart container sizing, title hierarchy, and integration overrides when nested inside the gold dashboard.",
+      "tags": [
+        "stylesheet",
+        "gold-pricing",
+        "xau",
+        "chart",
+        "world-market"
+      ]
+    },
+    {
+      "id": "document:docs/products-catalog-architecture.md",
+      "type": "document",
+      "name": "products-catalog-architecture.md",
+      "filePath": "docs/products-catalog-architecture.md",
+      "summary": "End-to-end architecture for the TLKV product catalog on Express, vanilla JS, and Supabase. Covers foundation steps 1\u20137 (brands, categories, product flags, product_images storage, ProductCard layout, section-based frontend with BrandSection \u2192 ProductGrid \u2192 ProductCard, and responsive brand sections) plus steps 8\u201312 (homepage mount, catalog filters/archive, admin catalog UI, sessionStorage cache, lazy images, and SEO routes). Documents schema tables, sort/index strategy, data flow through catalog-api normalization, admin migration implications, deploy checklist, and scalability without tv-model coupling.",
+      "tags": [
+        "documentation",
+        "catalog",
+        "architecture",
+        "supabase",
+        "homepage"
+      ]
+    },
+    {
+      "id": "document:docs/products-crud-architecture.md",
+      "type": "document",
+      "name": "products-crud-architecture.md",
+      "filePath": "docs/products-crud-architecture.md",
+      "summary": "Layered architecture for product CRUD and featured homepage display. Separates domain validation (product-crud.js), Supabase persistence (products-data.js), public reads (catalog-api.js), admin form/shell modules, and render-only brand/homepage sections. Documents CREATE/READ/UPDATE/DELETE flows with slug locking, sort_order auto-assignment, tlkv:products-changed cache invalidation, temporary all-products homepage grouping (max 6 per brand), RLS via tlkv_is_admin(), and anti-patterns removed (duplicate Supabase clients, invalid timestamp sorts, client-side featured slicing).",
+      "tags": [
+        "documentation",
+        "crud",
+        "admin",
+        "featured-products",
+        "rls"
+      ]
+    },
+    {
+      "id": "document:docs/products-derived-pricing.md",
+      "type": "document",
+      "name": "products-derived-pricing.md",
+      "filePath": "docs/products-derived-pricing.md",
+      "summary": "Homepage derived pricing design where gold_price_rows is the sole price source and products store only weight plus price_source_product mapping. Describes realtime flow from SSE through gold-data.js cache and tlkv:gold-rows-updated into featured-products-section.js, O(1) Map lookup in TLKVProductPriceEngine, integer VND-per-ch\u1ec9 math without float drift, direct DOM price patching without debounce, TLKV_PRODUCT_DERIVED_PRICE_SIDE config, and catalog-api loading of pricing fields.",
+      "tags": [
+        "documentation",
+        "pricing",
+        "realtime",
+        "gold-prices",
+        "homepage"
+      ]
+    },
+    {
+      "id": "file:san-pham/chi-tiet.html",
+      "type": "file",
+      "name": "chi-tiet.html",
+      "filePath": "san-pham/chi-tiet.html",
+      "summary": "Product detail page shell served at /sanpham/{category}/{slug}. Provides a back link to the catalog, an empty header filled by site-nav.js, a #product-detail-root mount point for dynamic rendering, global footer chrome, and Supabase-backed product detail scripts with JSON-LD injection.",
+      "tags": [
+        "html",
+        "products",
+        "detail-page",
+        "seo",
+        "supabase"
+      ]
+    },
+    {
+      "id": "file:san-pham/gia-vang.html",
+      "type": "file",
+      "name": "gia-vang.html",
+      "filePath": "san-pham/gia-vang.html",
+      "summary": "Today's gold price page at /sanpham/gia-vang with full site header, a two-panel gold dashboard (store buy/sell table and world XAU/USD chart), rich SEO and Open Graph metadata, and inline bootstrapping that mounts TLKVGold table rows and listens for tlkv:gold-table-changed events.",
+      "tags": [
+        "html",
+        "gold-pricing",
+        "xau",
+        "dashboard",
+        "seo"
+      ]
+    },
+    {
+      "id": "file:san-pham/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "san-pham/index.html",
+      "summary": "Public product catalog listing page at /sanpham with filter toolbar (search, brand, category, sort, featured/hot/bestseller flags), paginated product grid (#product-list), full header and footer chrome, and boot logic that mounts TLKVCatalogArchive or falls back to TLKVProducts.mountProductList.",
+      "tags": [
+        "html",
+        "products",
+        "catalog",
+        "filters",
+        "pagination"
+      ]
+    },
+    {
+      "id": "schema:supabase/admin-change-history",
+      "type": "schema",
+      "name": "admin-change-history",
+      "filePath": "supabase/admin-change-history.sql",
+      "summary": "Audit-log schema for admin mutations on gold pricing and product catalog. Creates gold_price_change_log and product_change_log tables with public read and admin-only insert RLS, plus trigram indexes for entity search.",
+      "tags": [
+        "supabase",
+        "schema",
+        "audit-log",
+        "rls",
+        "gold-pricing",
+        "products"
+      ]
+    },
+    {
+      "id": "file:supabase/data-api-grants.sql",
+      "type": "file",
+      "name": "data-api-grants.sql",
+      "filePath": "supabase/data-api-grants.sql",
+      "summary": "Idempotent PostgREST GRANT script that grants anon/authenticated/service_role permissions on gold_meta, gold_price_rows, products, and related catalog tables so supabase-js clients can query them under RLS.",
+      "tags": [
+        "supabase",
+        "migration",
+        "grants",
+        "postgrest",
+        "permissions"
+      ]
+    },
+    {
+      "id": "file:supabase/fix-all-policies.sql",
+      "type": "file",
+      "name": "fix-all-policies.sql",
+      "filePath": "supabase/fix-all-policies.sql",
+      "summary": "Bulk RLS reset for legacy gold tables: drops all existing policies on gold_meta, gold_price_rows, and products, then recreates clean public SELECT and admin write policies using a hard-coded admin email.",
+      "tags": [
+        "supabase",
+        "migration",
+        "rls",
+        "gold-pricing",
+        "products"
+      ]
+    },
+    {
+      "id": "file:supabase/gold-price-rows-previous.sql",
+      "type": "file",
+      "name": "gold-price-rows-previous.sql",
+      "filePath": "supabase/gold-price-rows-previous.sql",
+      "summary": "Adds previous_buy, previous_sell, and previous_updated_at columns to gold_price_rows so the homepage and TV board can show price-change arrows by comparing current vs prior values.",
+      "tags": [
+        "supabase",
+        "migration",
+        "gold-pricing",
+        "gold_price_rows"
+      ]
+    },
+    {
+      "id": "file:supabase/gold-price-rows-vang-rong-split.sql",
+      "type": "file",
+      "name": "gold-price-rows-vang-rong-split.sql",
+      "filePath": "supabase/gold-price-rows-vang-rong-split.sql",
+      "summary": "Data migration that splits mis-grouped V\u00e0ng R\u1ed3ng Th\u0103ng Long gold price rows into two product groups (0.5\u20133 ch\u1ec9 vs 5\u201310 ch\u1ec9) to align with per-weight product pricing on the catalog.",
+      "tags": [
+        "supabase",
+        "migration",
+        "gold-pricing",
+        "data-fix",
+        "vang-rong"
+      ]
+    },
+    {
+      "id": "schema:supabase/news-schema",
+      "type": "schema",
+      "name": "news-schema",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Full News CMS database foundation: extensions, slugify helpers, five core tables (categories, tags, articles, tag relations, change log), search indexes, updated_at triggers, published_at automation, RLS, and seed category.",
+      "tags": [
+        "supabase",
+        "schema",
+        "news-cms",
+        "rls",
+        "editorjs"
+      ]
+    },
+    {
+      "id": "file:supabase/news-storage.sql",
+      "type": "file",
+      "name": "news-storage.sql",
+      "filePath": "supabase/news-storage.sql",
+      "summary": "Creates the public news-media Supabase Storage bucket with thumbnails/ and content/ folder layout, MIME limits, public read, and admin-only write policies for article cover and inline images.",
+      "tags": [
+        "supabase",
+        "migration",
+        "storage",
+        "news-cms"
+      ]
+    },
+    {
+      "id": "schema:supabase/products-catalog",
+      "type": "schema",
+      "name": "products-catalog-schema",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "summary": "Product catalog foundation (steps 1\u20134): brands, categories, extended products table with brand/category FKs and homepage flags, product_images multi-role gallery, indexes, triggers, RLS, and reference brand seed data.",
+      "tags": [
+        "supabase",
+        "schema",
+        "products",
+        "catalog",
+        "rls"
+      ]
+    },
+    {
+      "id": "file:supabase/products-catalog-step8-12.sql",
+      "type": "file",
+      "name": "products-catalog-step8-12.sql",
+      "filePath": "supabase/products-catalog-step8-12.sql",
+      "summary": "Extends products with price_numeric and timestamp columns, adds a partial index for active priced products, and backfills price_numeric from legacy price_text digits.",
+      "tags": [
+        "supabase",
+        "migration",
+        "products",
+        "pricing"
+      ]
+    },
+    {
+      "id": "file:supabase/products-featured-home-index.sql",
+      "type": "file",
+      "name": "products-featured-home-index.sql",
+      "filePath": "supabase/products-featured-home-index.sql",
+      "summary": "Adds partial indexes on products for homepage featured queries: brand_id + created_at for newest featured items and brand_id + is_featured + sort_order for brand carousels.",
+      "tags": [
+        "supabase",
+        "migration",
+        "products",
+        "indexes",
+        "homepage"
+      ]
+    },
+    {
+      "id": "file:supabase/products-fix-select.sql",
+      "type": "file",
+      "name": "products-fix-select.sql",
+      "filePath": "supabase/products-fix-select.sql",
+      "summary": "Repairs products RLS so anonymous users can SELECT while admin write is split into separate INSERT/UPDATE/DELETE policies, fixing empty catalog API responses caused by a FOR ALL policy.",
+      "tags": [
+        "supabase",
+        "migration",
+        "rls",
+        "products",
+        "bugfix"
+      ]
+    },
+    {
+      "id": "file:supabase/products-price-source.sql",
+      "type": "file",
+      "name": "products-price-source.sql",
+      "filePath": "supabase/products-price-source.sql",
+      "summary": "Adds weight and price_source_product columns to products for client-side derived pricing from gold_price_rows, with indexes enforcing one product per (source, weight) pair.",
+      "tags": [
+        "supabase",
+        "migration",
+        "products",
+        "derived-pricing",
+        "gold-pricing"
+      ]
+    },
+    {
+      "id": "file:supabase/products-rls-admin-write.sql",
+      "type": "file",
+      "name": "products-rls-admin-write.sql",
+      "filePath": "supabase/products-rls-admin-write.sql",
+      "summary": "Pointer stub redirecting operators to tlkv-admin-rls.sql for centralized admin email configuration instead of editing per-table product policies.",
+      "tags": [
+        "supabase",
+        "documentation",
+        "rls",
+        "products"
+      ]
+    },
+    {
+      "id": "file:supabase/products-storage.sql",
+      "type": "file",
+      "name": "products-storage.sql",
+      "filePath": "supabase/products-storage.sql",
+      "summary": "Creates the public product-media Storage bucket with brand logos and per-product thumbnail/main/gallery paths, plus public read and admin-only write RLS on storage.objects.",
+      "tags": [
+        "supabase",
+        "migration",
+        "storage",
+        "products",
+        "catalog"
+      ]
+    },
+    {
+      "id": "file:supabase/rls-admin-email.sql",
+      "type": "file",
+      "name": "rls-admin-email.sql",
+      "filePath": "supabase/rls-admin-email.sql",
+      "summary": "Legacy per-table RLS for gold_meta, gold_price_rows, and products using a single hard-coded admin email: public SELECT plus admin FOR ALL write on gold tables and split read/write on products.",
+      "tags": [
+        "supabase",
+        "migration",
+        "rls",
+        "gold-pricing",
+        "products"
+      ]
+    },
+    {
+      "id": "file:supabase/tlkv-admin-rls.sql",
+      "type": "file",
+      "name": "tlkv-admin-rls.sql",
+      "filePath": "supabase/tlkv-admin-rls.sql",
+      "summary": "Centralized admin RLS using tlkv_admin_emails() and tlkv_is_admin() helper functions. Replaces scattered email checks with one configurable email list for products and gold table write access.",
+      "tags": [
+        "supabase",
+        "migration",
+        "rls",
+        "admin",
+        "products",
+        "gold-pricing"
+      ]
+    },
+    {
+      "id": "table:public.news_categories",
+      "type": "table",
+      "name": "news_categories",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "News article taxonomy table with name, unique slug, description, and sort_order for organizing published articles.",
+      "tags": [
+        "table",
+        "news-cms",
+        "taxonomy"
+      ]
+    },
+    {
+      "id": "table:public.news_tags",
+      "type": "table",
+      "name": "news_tags",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Tag vocabulary for news articles with unique slugified names for filtering and many-to-many tagging.",
+      "tags": [
+        "table",
+        "news-cms",
+        "taxonomy"
+      ]
+    },
+    {
+      "id": "table:public.news",
+      "type": "table",
+      "name": "news",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Core news article table storing title, slug, Editor.js JSONB content, category FK, draft/published/archived status, featured flag, SEO fields, view count, and publish timestamps.",
+      "tags": [
+        "table",
+        "news-cms",
+        "content",
+        "editorjs"
+      ]
+    },
+    {
+      "id": "table:public.news_tag_relations",
+      "type": "table",
+      "name": "news_tag_relations",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Junction table linking news articles to news_tags with composite primary key and cascade deletes.",
+      "tags": [
+        "table",
+        "news-cms",
+        "junction"
+      ]
+    },
+    {
+      "id": "table:public.news_change_log",
+      "type": "table",
+      "name": "news_change_log",
+      "filePath": "supabase/news-schema.sql",
+      "summary": "Append-only audit log for news CMS writes (insert/update/delete/publish) capturing actor email, entity snapshot, and JSONB before/after payloads.",
+      "tags": [
+        "table",
+        "news-cms",
+        "audit-log"
+      ]
+    },
+    {
+      "id": "table:public.brands",
+      "type": "table",
+      "name": "brands",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "summary": "Product brand directory with slug, logo URL, active flag, and sort order for catalog navigation and featured brand rows on the homepage.",
+      "tags": [
+        "table",
+        "products",
+        "catalog",
+        "brands"
+      ]
+    },
+    {
+      "id": "table:public.categories",
+      "type": "table",
+      "name": "categories",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "summary": "Flat product category taxonomy with optional parent_id for future hierarchy, active flag, and sort order for catalog filtering.",
+      "tags": [
+        "table",
+        "products",
+        "catalog",
+        "taxonomy"
+      ]
+    },
+    {
+      "id": "table:public.products",
+      "type": "table",
+      "name": "products",
+      "filePath": "supabase/products-catalog-schema.sql",
+      "summary": "Central product catalog table: legacy text id/name/category/price_text/image columns extended with brand_id, category_id, slug, homepage flags, active state, and later migrations add price_numeric, weight, and price_source_product for derived gold pricing.",
+      "tags": [
+        "table",
+        "products",
+        "catalog",
+        "pricing"
+      ]
+    }
+  ],
+  "importEdges": [
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/admin.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/api.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/web.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:routes/api.js",
+      "target": "file:routes/gold-sse-hub.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:server.js",
+      "target": "file:lib/node-fetch-globals.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:server.js",
+      "target": "file:routes/index.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ],
+  "totalFileNodes": 121
+}

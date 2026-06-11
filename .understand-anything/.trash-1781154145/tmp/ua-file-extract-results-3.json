@@ -1,0 +1,31 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "admin/admin.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1355,
+      "nonEmptyLines": 1236,
+      "metrics": {}
+    },
+    {
+      "path": "admin/index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 497,
+      "nonEmptyLines": 461,
+      "metrics": {}
+    },
+    {
+      "path": "admin/news.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 95,
+      "nonEmptyLines": 82,
+      "metrics": {}
+    }
+  ]
+}

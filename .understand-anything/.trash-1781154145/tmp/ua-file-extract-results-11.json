@@ -1,0 +1,361 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "server.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 44,
+      "nonEmptyLines": 35,
+      "functions": [
+        {
+          "name": "listenFrom",
+          "startLine": 18,
+          "endLine": 42,
+          "params": [
+            "port",
+            "triesLeft"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "listenFrom",
+          "callee": "http.createServer",
+          "lineNumber": 19
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "server.once",
+          "lineNumber": 21
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.warn",
+          "lineNumber": 23
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "listenFrom",
+          "lineNumber": 24
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.error",
+          "lineNumber": 27
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.error",
+          "lineNumber": 29
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.error",
+          "lineNumber": 30
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "process.exit",
+          "lineNumber": 32
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "server.listen",
+          "lineNumber": 35
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.log",
+          "lineNumber": 36
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.log",
+          "lineNumber": 37
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.log",
+          "lineNumber": 38
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.log",
+          "lineNumber": 39
+        },
+        {
+          "caller": "listenFrom",
+          "callee": "console.log",
+          "lineNumber": 40
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "thuong-hieu/index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 120,
+      "nonEmptyLines": 118,
+      "metrics": {}
+    },
+    {
+      "path": "upstream-home.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 707,
+      "nonEmptyLines": 658,
+      "functions": [
+        {
+          "name": "getGoldrateByTime",
+          "startLine": 330,
+          "endLine": 337,
+          "params": [
+            "type"
+          ]
+        },
+        {
+          "name": "getGolRateByType",
+          "startLine": 339,
+          "endLine": 385,
+          "params": []
+        },
+        {
+          "name": "initChart",
+          "startLine": 393,
+          "endLine": 485,
+          "params": [
+            "data",
+            "xAsisOptions"
+          ]
+        },
+        {
+          "name": "updateChart",
+          "startLine": 487,
+          "endLine": 491,
+          "params": [
+            "chartType"
+          ]
+        },
+        {
+          "name": "login_function",
+          "startLine": 493,
+          "endLine": 502,
+          "params": []
+        },
+        {
+          "name": "login_form",
+          "startLine": 504,
+          "endLine": 508,
+          "params": []
+        },
+        {
+          "name": "register_form",
+          "startLine": 510,
+          "endLine": 514,
+          "params": []
+        },
+        {
+          "name": "submit_register_form",
+          "startLine": 516,
+          "endLine": 532,
+          "params": []
+        },
+        {
+          "name": "renderGoldRateComponent",
+          "startLine": 687,
+          "endLine": 707,
+          "params": [
+            "idElement"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "getGoldrateByTime",
+          "callee": "await (await fetch(url)).json",
+          "lineNumber": 332
+        },
+        {
+          "caller": "getGoldrateByTime",
+          "callee": "await",
+          "lineNumber": 332
+        },
+        {
+          "caller": "getGoldrateByTime",
+          "callee": "fetch",
+          "lineNumber": 332
+        },
+        {
+          "caller": "getGolRateByType",
+          "callee": "getGoldrateByTime",
+          "lineNumber": 340
+        },
+        {
+          "caller": "getGolRateByType",
+          "callee": "initChart",
+          "lineNumber": 384
+        },
+        {
+          "caller": "initChart",
+          "callee": "myChart.destroy",
+          "lineNumber": 480
+        },
+        {
+          "caller": "initChart",
+          "callee": "document.getElementById",
+          "lineNumber": 482
+        },
+        {
+          "caller": "initChart",
+          "callee": "document.getElementById",
+          "lineNumber": 483
+        },
+        {
+          "caller": "updateChart",
+          "callee": "console.log",
+          "lineNumber": 488
+        },
+        {
+          "caller": "updateChart",
+          "callee": "initChart",
+          "lineNumber": 490
+        },
+        {
+          "caller": "login_function",
+          "callee": "document.getElementById",
+          "lineNumber": 494
+        },
+        {
+          "caller": "login_function",
+          "callee": "$('.function_login').addClass",
+          "lineNumber": 497
+        },
+        {
+          "caller": "login_function",
+          "callee": "$",
+          "lineNumber": 497
+        },
+        {
+          "caller": "login_function",
+          "callee": "$('.function_login').removeClass",
+          "lineNumber": 500
+        },
+        {
+          "caller": "login_function",
+          "callee": "$",
+          "lineNumber": 500
+        },
+        {
+          "caller": "login_form",
+          "callee": "$('.register_form').addClass",
+          "lineNumber": 505
+        },
+        {
+          "caller": "login_form",
+          "callee": "$",
+          "lineNumber": 505
+        },
+        {
+          "caller": "login_form",
+          "callee": "$('.login_form').removeClass",
+          "lineNumber": 506
+        },
+        {
+          "caller": "login_form",
+          "callee": "$",
+          "lineNumber": 506
+        },
+        {
+          "caller": "login_form",
+          "callee": "$('#text_login_reg').text",
+          "lineNumber": 507
+        },
+        {
+          "caller": "login_form",
+          "callee": "$",
+          "lineNumber": 507
+        },
+        {
+          "caller": "register_form",
+          "callee": "$('.register_form').removeClass",
+          "lineNumber": 511
+        },
+        {
+          "caller": "register_form",
+          "callee": "$",
+          "lineNumber": 511
+        },
+        {
+          "caller": "register_form",
+          "callee": "$('.login_form').addClass",
+          "lineNumber": 512
+        },
+        {
+          "caller": "register_form",
+          "callee": "$",
+          "lineNumber": 512
+        },
+        {
+          "caller": "register_form",
+          "callee": "$('#text_login_reg').text",
+          "lineNumber": 513
+        },
+        {
+          "caller": "register_form",
+          "callee": "$",
+          "lineNumber": 513
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$.ajax",
+          "lineNumber": 517
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$('#modalResigter #register_form').serialize",
+          "lineNumber": 520
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$",
+          "lineNumber": 520
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "window.location.reload",
+          "lineNumber": 524
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$.each",
+          "lineNumber": 527
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$('#error_' + key).html",
+          "lineNumber": 528
+        },
+        {
+          "caller": "submit_register_form",
+          "callee": "$",
+          "lineNumber": 528
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 9,
+        "classCount": 0
+      }
+    }
+  ]
+}

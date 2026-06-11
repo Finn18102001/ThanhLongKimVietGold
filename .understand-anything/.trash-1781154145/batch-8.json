@@ -1,0 +1,160 @@
+{
+  "nodes": [
+    {
+      "id": "file:tin-tuc/chi-tiet.html",
+      "type": "file",
+      "name": "chi-tiet.html",
+      "filePath": "tin-tuc/chi-tiet.html",
+      "summary": "Single-article news detail page shell served at /tin-tuc/chi-tiet/:slug. Ships placeholder SEO meta tags, Open Graph article fields, and JSON-LD that news-detail-page.js rewrites after fetching the post from Supabase, with skeleton loaders in the content host until the article body renders.",
+      "tags": ["html", "news", "detail-page", "seo", "article"],
+      "complexity": "moderate",
+      "languageNotes": "Head meta elements use data-tlkv-news-* attributes as hooks for runtime SEO injection by the detail controller."
+    },
+    {
+      "id": "file:tin-tuc/danh-sach.html",
+      "type": "file",
+      "name": "danh-sach.html",
+      "filePath": "tin-tuc/danh-sach.html",
+      "summary": "Full news archive page at /tin-tuc/danh-sach with breadcrumb navigation, search input, category/year/sort filter toolbar, and a paginated article grid. Runs in archive list mode (data-tlkv-news-list-mode=\"archive\") and hydrates content dynamically via the shared news list controller.",
+      "tags": ["html", "news", "archive", "listing", "filters"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:tin-tuc/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "tin-tuc/index.html",
+      "summary": "News landing page at /tin-tuc featuring a hero area for highlighted posts, a secondary paginated article grid, and a link to the full archive. Uses landing list mode (data-tlkv-news-list-mode=\"landing\") with static SEO metadata and Supabase-backed client scripts for live content.",
+      "tags": ["html", "news", "landing-page", "listing", "seo"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:css/news.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:js/news/news-detail-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:css/news.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:js/news/news-list-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:css/news.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:js/news/news-list-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tin-tuc/index.html",
+      "target": "file:tin-tuc/danh-sach.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:tin-tuc/danh-sach.html",
+      "target": "file:tin-tuc/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:tin-tuc/chi-tiet.html",
+      "target": "file:tin-tuc/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

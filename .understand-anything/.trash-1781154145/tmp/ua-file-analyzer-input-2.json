@@ -1,0 +1,70 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": ".env.example",
+      "language": "config",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 177,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "gia-vang-hom-nay.html",
+      "language": "html",
+      "sizeLines": 24,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "googlea755d9afb0a19369.html",
+      "language": "html",
+      "sizeLines": 0,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "index.html",
+      "language": "html",
+      "sizeLines": 606,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "local.css",
+      "language": "css",
+      "sizeLines": 1662,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "sizeLines": 18,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tv-model.html",
+      "language": "html",
+      "sizeLines": 117,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "vercel.json",
+      "language": "json",
+      "sizeLines": 31,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    ".env.example": [],
+    "README.md": [],
+    "gia-vang-hom-nay.html": [],
+    "googlea755d9afb0a19369.html": [],
+    "index.html": [],
+    "local.css": [],
+    "package.json": [],
+    "tv-model.html": [],
+    "vercel.json": []
+  }
+}

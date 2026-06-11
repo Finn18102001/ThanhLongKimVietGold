@@ -1,0 +1,28 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "admin/admin.css",
+      "language": "css",
+      "sizeLines": 1354,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "admin/index.html",
+      "language": "html",
+      "sizeLines": 496,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "admin/news.html",
+      "language": "html",
+      "sizeLines": 95,
+      "fileCategory": "markup"
+    }
+  ],
+  "batchImportData": {
+    "admin/admin.css": [],
+    "admin/index.html": [],
+    "admin/news.html": []
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "issues": [],
+  "warnings": [
+    "Node 'file:.understand-anything/.understandignore' has no edges (orphan)",
+    "Node 'file:.understand-anything/config.json' has no edges (orphan)",
+    "Node 'file:.vercelignore' has no edges (orphan)",
+    "Node 'file:data/gold-table.json' has no edges (orphan)",
+    "Node 'file:data/products.json' has no edges (orphan)",
+    "Node 'file:js/hero-slider.js' has no edges (orphan)",
+    "Node 'file:js/supabaseClient.js' has no edges (orphan)",
+    "Node 'file:scripts/verify-hero-assets.sh' has no edges (orphan)"
+  ],
+  "stats": {
+    "totalNodes": 217,
+    "totalEdges": 456,
+    "totalLayers": 7,
+    "tourSteps": 10,
+    "nodeTypes": {
+      "file": 98,
+      "function": 96,
+      "config": 5,
+      "document": 4,
+      "schema": 3,
+      "table": 11
+    },
+    "edgeTypes": {
+      "contains": 96,
+      "exports": 66,
+      "imports": 6,
+      "configures": 4,
+      "documents": 32,
+      "deploys": 4,
+      "depends_on": 134,
+      "related": 58,
+      "defines_schema": 11,
+      "migrates": 14,
+      "serves": 21,
+      "queries": 10
+    }
+  }
+}

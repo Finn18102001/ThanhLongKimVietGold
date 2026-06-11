@@ -1,0 +1,184 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "js/news/news-sanitize.js",
+      "language": "javascript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products-data.js",
+      "language": "javascript",
+      "sizeLines": 662,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/brand-page.js",
+      "language": "javascript",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/brand-section.js",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-api.js",
+      "language": "javascript",
+      "sizeLines": 421,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-archive.js",
+      "language": "javascript",
+      "sizeLines": 203,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-filters.js",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-page.js",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/constants.js",
+      "language": "javascript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/featured-products-section.js",
+      "language": "javascript",
+      "sizeLines": 548,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-card-layout.js",
+      "language": "javascript",
+      "sizeLines": 160,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-card.js",
+      "language": "javascript",
+      "sizeLines": 325,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-crud.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-detail-page.js",
+      "language": "javascript",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-grid.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-price-engine.js",
+      "language": "javascript",
+      "sizeLines": 186,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/site-nav.js",
+      "language": "javascript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/supabaseClient.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/tlkv-supabase-client.js",
+      "language": "javascript",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/tv-gold-board.js",
+      "language": "javascript",
+      "sizeLines": 603,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/world-gold-xau.js",
+      "language": "javascript",
+      "sizeLines": 289,
+      "fileCategory": "code"
+    },
+    {
+      "path": "lib/node-fetch-globals.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/api.js",
+      "language": "javascript",
+      "sizeLines": 365,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/gold-sse-hub.js",
+      "language": "javascript",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/verify-hero-assets.sh",
+      "language": "shell",
+      "sizeLines": 35,
+      "fileCategory": "script"
+    }
+  ],
+  "batchImportData": {
+    "js/news/news-sanitize.js": [],
+    "js/products-data.js": [],
+    "js/products/brand-page.js": [],
+    "js/products/brand-section.js": [],
+    "js/products/catalog-api.js": [],
+    "js/products/catalog-archive.js": [],
+    "js/products/catalog-filters.js": [],
+    "js/products/catalog-page.js": [],
+    "js/products/constants.js": [],
+    "js/products/featured-products-section.js": [],
+    "js/products/product-card-layout.js": [],
+    "js/products/product-card.js": [],
+    "js/products/product-crud.js": [],
+    "js/products/product-detail-page.js": [],
+    "js/products/product-grid.js": [],
+    "js/products/product-price-engine.js": [],
+    "js/site-nav.js": [],
+    "js/supabaseClient.js": [],
+    "js/tlkv-supabase-client.js": [],
+    "js/tv-gold-board.js": [],
+    "js/world-gold-xau.js": [],
+    "lib/node-fetch-globals.js": [],
+    "routes/api.js": [
+      "routes/gold-sse-hub.js"
+    ],
+    "routes/gold-sse-hub.js": [],
+    "scripts/verify-hero-assets.sh": []
+  }
+}

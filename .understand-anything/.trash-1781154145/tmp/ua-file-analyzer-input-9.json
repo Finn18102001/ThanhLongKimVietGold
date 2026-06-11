@@ -1,0 +1,182 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".vercelignore",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/gold-table.json",
+      "language": "json",
+      "sizeLines": 118,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/products.json",
+      "language": "json",
+      "sizeLines": 18,
+      "fileCategory": "config"
+    },
+    {
+      "path": "gioi-thieu/gia-vang.html",
+      "language": "html",
+      "sizeLines": 337,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "gioi-thieu/index.html",
+      "language": "html",
+      "sizeLines": 396,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "js/admin-app.js",
+      "language": "javascript",
+      "sizeLines": 2167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin-audit.js",
+      "language": "javascript",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/catalog-admin.js",
+      "language": "javascript",
+      "sizeLines": 530,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-admin.js",
+      "language": "javascript",
+      "sizeLines": 985,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-editor.js",
+      "language": "javascript",
+      "sizeLines": 216,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-storage.js",
+      "language": "javascript",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/product-form-admin.js",
+      "language": "javascript",
+      "sizeLines": 254,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/boot-supabase-env.js",
+      "language": "javascript",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/floating-contact.js",
+      "language": "javascript",
+      "sizeLines": 169,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/gold-data.js",
+      "language": "javascript",
+      "sizeLines": 1495,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/gold-pricing-layout.js",
+      "language": "javascript",
+      "sizeLines": 226,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/hero-slider.js",
+      "language": "javascript",
+      "sizeLines": 264,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/index.html",
+      "language": "html",
+      "sizeLines": 246,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "js/news/news-api.js",
+      "language": "javascript",
+      "sizeLines": 448,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-detail-page.js",
+      "language": "javascript",
+      "sizeLines": 366,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-home-preview.js",
+      "language": "javascript",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-list-page.js",
+      "language": "javascript",
+      "sizeLines": 579,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-renderer.js",
+      "language": "javascript",
+      "sizeLines": 299,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    ".understand-anything/.understandignore": [],
+    ".understand-anything/config.json": [],
+    ".vercelignore": [],
+    "data/gold-table.json": [],
+    "data/products.json": [],
+    "gioi-thieu/gia-vang.html": [],
+    "gioi-thieu/index.html": [],
+    "js/admin-app.js": [],
+    "js/admin-audit.js": [],
+    "js/admin/catalog-admin.js": [],
+    "js/admin/news-admin.js": [],
+    "js/admin/news-editor.js": [],
+    "js/admin/news-storage.js": [],
+    "js/admin/product-form-admin.js": [],
+    "js/boot-supabase-env.js": [],
+    "js/floating-contact.js": [],
+    "js/gold-data.js": [],
+    "js/gold-pricing-layout.js": [],
+    "js/hero-slider.js": [],
+    "js/index.html": [],
+    "js/news/news-api.js": [],
+    "js/news/news-detail-page.js": [],
+    "js/news/news-home-preview.js": [],
+    "js/news/news-list-page.js": [],
+    "js/news/news-renderer.js": []
+  }
+}

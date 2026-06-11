@@ -1,0 +1,32 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "routes/admin.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/index.js",
+      "language": "javascript",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/web.js",
+      "language": "javascript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "routes/admin.js": [],
+    "routes/index.js": [
+      "routes/admin.js",
+      "routes/api.js",
+      "routes/web.js"
+    ],
+    "routes/web.js": []
+  }
+}

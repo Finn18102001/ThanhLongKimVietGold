@@ -1,0 +1,197 @@
+{
+  "nodes": [
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Environment variable template for local and production setup, defining Supabase client credentials (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) and the server-only GOLDAPI_KEY for the world XAU/USD price API.",
+      "tags": ["configuration", "environment", "supabase", "secrets"],
+      "complexity": "simple",
+      "languageNotes": "Documents two naming conventions for Supabase keys and warns that real secrets must never be committed to Git."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Primary project documentation covering local Express development (npm start), deployment environment variables, frontend route map, legacy URL redirects, and the Supabase-backed News CMS module with schema setup, block renderer, SEO, and security notes.",
+      "tags": ["documentation", "getting-started", "routes", "news-cms"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:gia-vang-hom-nay.html",
+      "type": "file",
+      "name": "gia-vang-hom-nay.html",
+      "filePath": "gia-vang-hom-nay.html",
+      "summary": "Legacy redirect page that immediately forwards visitors from the old 'gia-vang-hom-nay' URL to /sanpham/gia-vang via meta refresh and JavaScript location.replace, with minimal SEO meta and a fallback link.",
+      "tags": ["html", "redirect", "legacy-url", "seo"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:googlea755d9afb0a19369.html",
+      "type": "file",
+      "name": "googlea755d9afb0a19369.html",
+      "filePath": "googlea755d9afb0a19369.html",
+      "summary": "Google Search Console site verification file containing a single google-site-verification token used to prove domain ownership to Google.",
+      "tags": ["html", "seo", "google-verification", "static"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "index.html",
+      "summary": "Main homepage and primary site entry point at /. Renders the full TLKV marketing shell with hero carousel, live gold pricing table, world XAU/USD widget, featured products grid, news preview, and rich SEO metadata including JSON-LD WebSite schema.",
+      "tags": ["html", "entry-point", "homepage", "gold-pricing", "seo"],
+      "complexity": "complex",
+      "languageNotes": "Loads 14 stylesheets and 17 JavaScript modules spanning gold data, product catalog, news preview, and site navigation."
+    },
+    {
+      "id": "file:local.css",
+      "type": "file",
+      "name": "local.css",
+      "filePath": "local.css",
+      "summary": "Site-wide CSS override layer loaded after the design system and vendor styles. Enforces light-mode rendering, styles gold pricing tables and TV display layouts, product card grids, modal overlays, and numerous TLKV-branded UI components.",
+      "tags": ["css", "styling", "overrides", "gold-table", "tv-display"],
+      "complexity": "complex",
+      "languageNotes": "Acts as a catch-all override file referenced by index.html, tv-model.html, and included in the Vercel serverless bundle."
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Node.js project manifest for the thanh-long-kim-viet-gold demo site. Declares Express server entry via npm start, Node >=18.17 engine requirement, and dependencies on express, dotenv, @supabase/supabase-js, and undici.",
+      "tags": ["configuration", "npm", "dependencies", "express"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tv-model.html",
+      "type": "file",
+      "name": "tv-model.html",
+      "filePath": "tv-model.html",
+      "summary": "Full-screen TV display page for in-store gold price boards. Shows a branded header, live gold rate table populated by tv-gold-board.js, a welcome marquee, and Supabase-backed real-time price polling with noindex robots directive.",
+      "tags": ["html", "tv-display", "gold-pricing", "realtime"],
+      "complexity": "moderate",
+      "languageNotes": "Configures lean gold push polling (15s interval) and initializes TLKVTvGoldBoard.initTvModelPage on load."
+    },
+    {
+      "id": "config:vercel.json",
+      "type": "config",
+      "name": "vercel.json",
+      "filePath": "vercel.json",
+      "summary": "Vercel deployment configuration that builds server.js as a Node.js serverless function with a 60-second max duration, bundles static assets (HTML, CSS, JS, data, admin, tin-tuc), and routes all traffic through the Express server.",
+      "tags": ["configuration", "deployment", "vercel", "serverless"],
+      "complexity": "simple",
+      "languageNotes": "Uses a catch-all route pattern directing every request to server.js for unified Express routing."
+    }
+  ],
+  "edges": [
+    {
+      "source": "config:package.json",
+      "target": "file:server.js",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:index.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:gia-vang-hom-nay.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:server.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:.env.example",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:vercel.json",
+      "target": "file:server.js",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:vercel.json",
+      "target": "file:index.html",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:vercel.json",
+      "target": "file:tv-model.html",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:vercel.json",
+      "target": "file:local.css",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:server.js",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:index.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:tv-model.html",
+      "target": "file:local.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gia-vang-hom-nay.html",
+      "target": "file:index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:googlea755d9afb0a19369.html",
+      "target": "file:index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

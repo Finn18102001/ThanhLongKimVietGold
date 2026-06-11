@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/products-catalog-architecture.md",
+      "type": "document",
+      "name": "products-catalog-architecture.md",
+      "filePath": "docs/products-catalog-architecture.md",
+      "summary": "End-to-end architecture for the TLKV product catalog on Express, vanilla JS, and Supabase. Covers foundation steps 1–7 (brands, categories, product flags, product_images storage, ProductCard layout, section-based frontend with BrandSection → ProductGrid → ProductCard, and responsive brand sections) plus steps 8–12 (homepage mount, catalog filters/archive, admin catalog UI, sessionStorage cache, lazy images, and SEO routes). Documents schema tables, sort/index strategy, data flow through catalog-api normalization, admin migration implications, deploy checklist, and scalability without tv-model coupling.",
+      "tags": ["documentation", "catalog", "architecture", "supabase", "homepage"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/products-crud-architecture.md",
+      "type": "document",
+      "name": "products-crud-architecture.md",
+      "filePath": "docs/products-crud-architecture.md",
+      "summary": "Layered architecture for product CRUD and featured homepage display. Separates domain validation (product-crud.js), Supabase persistence (products-data.js), public reads (catalog-api.js), admin form/shell modules, and render-only brand/homepage sections. Documents CREATE/READ/UPDATE/DELETE flows with slug locking, sort_order auto-assignment, tlkv:products-changed cache invalidation, temporary all-products homepage grouping (max 6 per brand), RLS via tlkv_is_admin(), and anti-patterns removed (duplicate Supabase clients, invalid timestamp sorts, client-side featured slicing).",
+      "tags": ["documentation", "crud", "admin", "featured-products", "rls"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/products-derived-pricing.md",
+      "type": "document",
+      "name": "products-derived-pricing.md",
+      "filePath": "docs/products-derived-pricing.md",
+      "summary": "Homepage derived pricing design where gold_price_rows is the sole price source and products store only weight plus price_source_product mapping. Describes realtime flow from SSE through gold-data.js cache and tlkv:gold-rows-updated into featured-products-section.js, O(1) Map lookup in TLKVProductPriceEngine, integer VND-per-chỉ math without float drift, direct DOM price patching without debounce, TLKV_PRODUCT_DERIVED_PRICE_SIDE config, and catalog-api loading of pricing fields.",
+      "tags": ["documentation", "pricing", "realtime", "gold-prices", "homepage"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/homepage-catalog.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/section-registry.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/catalog-filters.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/catalog-archive.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/brand-section.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/product-card.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/catalog-api.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/constants.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/catalog-page.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-catalog-architecture.md",
+      "target": "file:js/products/product-grid.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-crud-architecture.md",
+      "target": "file:js/products/product-crud.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-crud-architecture.md",
+      "target": "file:js/products/catalog-api.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-crud-architecture.md",
+      "target": "file:js/products/brand-section.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-crud-architecture.md",
+      "target": "file:js/products/homepage-catalog.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-derived-pricing.md",
+      "target": "file:js/products/product-price-engine.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-derived-pricing.md",
+      "target": "file:js/products/featured-products-section.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/products-derived-pricing.md",
+      "target": "file:js/products/catalog-api.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

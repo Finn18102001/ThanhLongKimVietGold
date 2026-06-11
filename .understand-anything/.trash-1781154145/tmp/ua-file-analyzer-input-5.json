@@ -1,0 +1,28 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "docs/products-catalog-architecture.md",
+      "language": "markdown",
+      "sizeLines": 227,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/products-crud-architecture.md",
+      "language": "markdown",
+      "sizeLines": 61,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/products-derived-pricing.md",
+      "language": "markdown",
+      "sizeLines": 73,
+      "fileCategory": "docs"
+    }
+  ],
+  "batchImportData": {
+    "docs/products-catalog-architecture.md": [],
+    "docs/products-crud-architecture.md": [],
+    "docs/products-derived-pricing.md": []
+  }
+}

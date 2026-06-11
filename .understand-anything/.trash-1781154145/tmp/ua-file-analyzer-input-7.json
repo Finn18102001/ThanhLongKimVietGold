@@ -1,0 +1,119 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "supabase/admin-change-history.sql",
+      "language": "sql",
+      "sizeLines": 109,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/data-api-grants.sql",
+      "language": "sql",
+      "sizeLines": 46,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/fix-all-policies.sql",
+      "language": "sql",
+      "sizeLines": 100,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/gold-price-rows-previous.sql",
+      "language": "sql",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/gold-price-rows-vang-rong-split.sql",
+      "language": "sql",
+      "sizeLines": 33,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/news-schema.sql",
+      "language": "sql",
+      "sizeLines": 307,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/news-storage.sql",
+      "language": "sql",
+      "sizeLines": 80,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-catalog-schema.sql",
+      "language": "sql",
+      "sizeLines": 259,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-catalog-step8-12.sql",
+      "language": "sql",
+      "sizeLines": 15,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-featured-home-index.sql",
+      "language": "sql",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-fix-select.sql",
+      "language": "sql",
+      "sizeLines": 39,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-price-source.sql",
+      "language": "sql",
+      "sizeLines": 19,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-rls-admin-write.sql",
+      "language": "sql",
+      "sizeLines": 2,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-storage.sql",
+      "language": "sql",
+      "sizeLines": 59,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/rls-admin-email.sql",
+      "language": "sql",
+      "sizeLines": 74,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/tlkv-admin-rls.sql",
+      "language": "sql",
+      "sizeLines": 95,
+      "fileCategory": "data"
+    }
+  ],
+  "batchImportData": {
+    "supabase/admin-change-history.sql": [],
+    "supabase/data-api-grants.sql": [],
+    "supabase/fix-all-policies.sql": [],
+    "supabase/gold-price-rows-previous.sql": [],
+    "supabase/gold-price-rows-vang-rong-split.sql": [],
+    "supabase/news-schema.sql": [],
+    "supabase/news-storage.sql": [],
+    "supabase/products-catalog-schema.sql": [],
+    "supabase/products-catalog-step8-12.sql": [],
+    "supabase/products-featured-home-index.sql": [],
+    "supabase/products-fix-select.sql": [],
+    "supabase/products-price-source.sql": [],
+    "supabase/products-rls-admin-write.sql": [],
+    "supabase/products-storage.sql": [],
+    "supabase/rls-admin-email.sql": [],
+    "supabase/tlkv-admin-rls.sql": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "server.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "thuong-hieu/index.html",
+      "language": "html",
+      "sizeLines": 120,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "upstream-home.js",
+      "language": "javascript",
+      "sizeLines": 707,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "server.js": [
+      "lib/node-fetch-globals.js",
+      "routes/index.js"
+    ],
+    "thuong-hieu/index.html": [],
+    "upstream-home.js": []
+  }
+}

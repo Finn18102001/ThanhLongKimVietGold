@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "file:routes/admin.js",
+      "type": "file",
+      "name": "admin.js",
+      "filePath": "routes/admin.js",
+      "summary": "Express router factory that serves the admin UI as static files from the /admin path under the project admin directory.",
+      "tags": ["admin", "express", "middleware", "static-files"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:routes/index.js",
+      "type": "file",
+      "name": "index.js",
+      "filePath": "routes/index.js",
+      "summary": "Central route registrar that mounts API, admin, and web routers, injects Supabase public config for the browser, and applies static file caching rules.",
+      "tags": ["entry-point", "routing", "express", "supabase", "middleware"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:routes/web.js",
+      "type": "file",
+      "name": "web.js",
+      "filePath": "routes/web.js",
+      "summary": "Express router defining clean public HTML routes for homepage, products, news, and legacy URL redirects with slug validation for news detail pages.",
+      "tags": ["routing", "express", "public-pages", "seo"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:routes/admin.js:adminRouter",
+      "type": "function",
+      "name": "adminRouter",
+      "filePath": "routes/admin.js",
+      "lineRange": [5, 7],
+      "summary": "Factory function that returns Express static middleware serving the admin folder with index.html as the default document.",
+      "tags": ["factory", "admin", "static-files", "middleware"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:routes/index.js:supabasePublicFromProcessEnv",
+      "type": "function",
+      "name": "supabasePublicFromProcessEnv",
+      "filePath": "routes/index.js",
+      "lineRange": [12, 21],
+      "summary": "Reads Supabase URL and anonymous key from process environment variables, supporting both classic and NEXT_PUBLIC_ naming conventions.",
+      "tags": ["utility", "configuration", "supabase", "environment"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:routes/index.js:registerRoutes",
+      "type": "function",
+      "name": "registerRoutes",
+      "filePath": "routes/index.js",
+      "lineRange": [27, 73],
+      "summary": "Registers all application routes on the Express app: vendor Supabase bundle, dynamic env bootstrap script, API/admin/web routers, and root static assets with JSON no-cache headers.",
+      "tags": ["api-handler", "routing", "middleware", "supabase"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:routes/web.js:webRouter",
+      "type": "function",
+      "name": "webRouter",
+      "filePath": "routes/web.js",
+      "lineRange": [7, 84],
+      "summary": "Builds the public-facing Express router with HTML page routes for home, products, brands, news archive and detail, favicon, and 301 redirects from legacy Vietnamese paths.",
+      "tags": ["api-handler", "routing", "public-pages", "seo"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:routes/admin.js",
+      "target": "function:routes/admin.js:adminRouter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:routes/admin.js",
+      "target": "function:routes/admin.js:adminRouter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "function:routes/index.js:supabasePublicFromProcessEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "function:routes/index.js:registerRoutes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "function:routes/index.js:registerRoutes",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:routes/web.js",
+      "target": "function:routes/web.js:webRouter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:routes/web.js",
+      "target": "function:routes/web.js:webRouter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/admin.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/api.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:routes/index.js",
+      "target": "file:routes/web.js",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "projectRoot": "/Users/eco0692_anhnt/Golds",
+  "batchFiles": [
+    {
+      "path": "tin-tuc/chi-tiet.html",
+      "language": "html",
+      "sizeLines": 297,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tin-tuc/danh-sach.html",
+      "language": "html",
+      "sizeLines": 308,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tin-tuc/index.html",
+      "language": "html",
+      "sizeLines": 293,
+      "fileCategory": "markup"
+    }
+  ],
+  "batchImportData": {
+    "tin-tuc/chi-tiet.html": [],
+    "tin-tuc/danh-sach.html": [],
+    "tin-tuc/index.html": []
+  }
+}

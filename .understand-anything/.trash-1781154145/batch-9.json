@@ -1,0 +1,2112 @@
+{
+  "nodes": [
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Understand-Anything scan ignore rules listing paths and globs excluded from knowledge-graph analysis (node_modules, build artifacts, vendor bundles).",
+      "tags": [
+        "config",
+        "understand-anything",
+        "ignore"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.understand-anything/config.json",
+      "type": "file",
+      "name": "config.json",
+      "filePath": ".understand-anything/config.json",
+      "summary": "Understand-Anything plugin configuration setting outputLanguage to English for generated graph summaries.",
+      "tags": [
+        "config",
+        "understand-anything"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.vercelignore",
+      "type": "file",
+      "name": ".vercelignore",
+      "filePath": ".vercelignore",
+      "summary": "Vercel deployment ignore file excluding local-only paths from the serverless bundle upload.",
+      "tags": [
+        "deployment",
+        "vercel",
+        "ignore"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:data/gold-table.json",
+      "type": "file",
+      "name": "gold-table.json",
+      "filePath": "data/gold-table.json",
+      "summary": "Static fallback gold price table JSON with meta header/footer fields and rows array of brand, product, purity, buy/sell prices used when Supabase is unavailable.",
+      "tags": [
+        "data",
+        "gold-pricing",
+        "fallback",
+        "json"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:data/products.json",
+      "type": "file",
+      "name": "products.json",
+      "filePath": "data/products.json",
+      "summary": "Legacy static product catalog JSON with a small items array of id, name, category, priceText, and image paths predating the Supabase products table.",
+      "tags": [
+        "data",
+        "products",
+        "legacy",
+        "json"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:gioi-thieu/gia-vang.html",
+      "type": "file",
+      "name": "gia-vang.html",
+      "filePath": "gioi-thieu/gia-vang.html",
+      "summary": "About-section gold price page at /gioi-thieu/gia-vang with full site chrome, two-panel gold dashboard, world XAU widget, and client scripts that mount TLKVGold table rows with live refresh.",
+      "tags": [
+        "html",
+        "about",
+        "gold-pricing",
+        "seo"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:gioi-thieu/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "gioi-thieu/index.html",
+      "summary": "Company introduction page at /gioi-thieu with brand story, trust content, full header/footer chrome, floating contact sidebar, and SEO metadata for Thăng Long Kim Việt.",
+      "tags": [
+        "html",
+        "about",
+        "company",
+        "seo"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/admin-app.js",
+      "type": "file",
+      "name": "admin-app.js",
+      "filePath": "js/admin-app.js",
+      "summary": "Main admin dashboard controller (~2100 lines) for Supabase email login, gold price CRUD with inline editing and audit logging, product management tabs, change-history panels, Excel/PDF export, and image upload helpers.",
+      "tags": [
+        "javascript",
+        "admin",
+        "gold-pricing",
+        "products",
+        "crud"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/admin-audit.js",
+      "type": "file",
+      "name": "admin-audit.js",
+      "filePath": "js/admin-audit.js",
+      "summary": "Shared audit-log client exposing TLKVAudit on window for writing and querying gold_price_change_log and product_change_log tables in Supabase with optional product audit skip list.",
+      "tags": [
+        "javascript",
+        "admin",
+        "audit-log",
+        "supabase"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/admin/catalog-admin.js",
+      "type": "file",
+      "name": "catalog-admin.js",
+      "filePath": "js/admin/catalog-admin.js",
+      "summary": "Admin catalog panel controller for brands, categories, and enhanced product listing with filter grids, taxonomy CRUD forms, and integration with TLKVCatalogApi.",
+      "tags": [
+        "javascript",
+        "admin",
+        "catalog",
+        "brands",
+        "categories"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/admin/news-admin.js",
+      "type": "file",
+      "name": "news-admin.js",
+      "filePath": "js/admin/news-admin.js",
+      "summary": "News CMS admin controller (~980 lines) for /admin/news.html with hash-routed list/create/edit views, Supabase auth gate, Editor.js mounting, and article lifecycle management via TLKVNewsAPI.",
+      "tags": [
+        "javascript",
+        "admin",
+        "news-cms",
+        "editor",
+        "routing"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/admin/news-editor.js",
+      "type": "file",
+      "name": "news-editor.js",
+      "filePath": "js/admin/news-editor.js",
+      "summary": "Editor.js wrapper module exposing TLKVNewsEditor.mount for mounting block editors with image upload via TLKVNewsStorage and allowed-URL validation.",
+      "tags": [
+        "javascript",
+        "admin",
+        "news-cms",
+        "editorjs"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/admin/news-storage.js",
+      "type": "file",
+      "name": "news-storage.js",
+      "filePath": "js/admin/news-storage.js",
+      "summary": "Supabase Storage client for the news-media bucket exposing TLKVNewsStorage.upload/remove with MIME and size limits for thumbnails and inline content images.",
+      "tags": [
+        "javascript",
+        "admin",
+        "news-cms",
+        "storage",
+        "supabase"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/admin/product-form-admin.js",
+      "type": "file",
+      "name": "product-form-admin.js",
+      "filePath": "js/admin/product-form-admin.js",
+      "summary": "Centralized product create/edit form state manager exposing TLKVProductFormAdmin for DOM read/write, slug preview, validation delegation, and reset-to-create mode.",
+      "tags": [
+        "javascript",
+        "admin",
+        "products",
+        "forms"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/boot-supabase-env.js",
+      "type": "file",
+      "name": "boot-supabase-env.js",
+      "filePath": "js/boot-supabase-env.js",
+      "summary": "Static-hosting bootstrap that sets window.TLKV_SUPABASE_URL, TLKV_SUPABASE_ANON_KEY, and __TLKV_SUPABASE__ before supabase-js client initialization.",
+      "tags": [
+        "javascript",
+        "supabase",
+        "bootstrap",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/floating-contact.js",
+      "type": "file",
+      "name": "floating-contact.js",
+      "filePath": "js/floating-contact.js",
+      "summary": "Data-driven fixed left-side floating contact sidebar with Facebook, Messenger, Zalo, and hotline buttons; skips admin and TV display pages.",
+      "tags": [
+        "javascript",
+        "contact",
+        "sidebar",
+        "public-ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/gold-data.js",
+      "type": "file",
+      "name": "gold-data.js",
+      "filePath": "js/gold-data.js",
+      "summary": "Core gold pricing data layer (~1500 lines) exposing TLKVGold: loads from Supabase/localStorage/JSON fallback, renders homepage table, manages SSE+Realtime push, and dispatches tlkv:gold-table-changed events.",
+      "tags": [
+        "javascript",
+        "gold-pricing",
+        "realtime",
+        "supabase",
+        "data-layer"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/gold-pricing-layout.js",
+      "type": "file",
+      "name": "gold-pricing-layout.js",
+      "filePath": "js/gold-pricing-layout.js",
+      "summary": "UI layout layer for .tlkv-gold-dashboard that normalizes table cell ellipsis, applies column CSS variables via canvas measurement, syncs panel heights with ResizeObserver, and highlights price row bands.",
+      "tags": [
+        "javascript",
+        "gold-pricing",
+        "layout",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/hero-slider.js",
+      "type": "file",
+      "name": "hero-slider.js",
+      "filePath": "js/hero-slider.js",
+      "summary": "Self-contained homepage hero carousel controller scoped to [data-tlkv-hero-carousel] with drag, autoplay, dot/thumbnail navigation, reduced-motion support, and banner upscale warnings.",
+      "tags": [
+        "javascript",
+        "hero",
+        "carousel",
+        "homepage"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "js/index.html",
+      "summary": "Legacy news listing HTML shell at /js/index.html (duplicate tin-tuc route content) with news list controller scripts and full site chrome for market news archive browsing.",
+      "tags": [
+        "html",
+        "news",
+        "legacy",
+        "listing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/news/news-api.js",
+      "type": "file",
+      "name": "news-api.js",
+      "filePath": "js/news/news-api.js",
+      "summary": "Supabase data layer for news exposing TLKVNewsAPI with public list/get/incrementView methods and admin CRUD, slug normalization, and stable row-to-detail mapping.",
+      "tags": [
+        "javascript",
+        "news",
+        "api",
+        "supabase",
+        "data-layer"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/news/news-detail-page.js",
+      "type": "file",
+      "name": "news-detail-page.js",
+      "filePath": "js/news/news-detail-page.js",
+      "summary": "Single-article news detail page controller that resolves slug from URL, fetches via TLKVNewsAPI, rewrites SEO meta/JSON-LD, renders Editor.js blocks, and loads related articles.",
+      "tags": [
+        "javascript",
+        "news",
+        "detail-page",
+        "seo"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:js/news/news-home-preview.js",
+      "type": "file",
+      "name": "news-home-preview.js",
+      "filePath": "js/news/news-home-preview.js",
+      "summary": "Homepage news preview widget that fetches latest published articles via TLKVNewsAPI and renders a compact card grid into the homepage news section mount point.",
+      "tags": [
+        "javascript",
+        "news",
+        "homepage",
+        "preview"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:js/news/news-list-page.js",
+      "type": "file",
+      "name": "news-list-page.js",
+      "filePath": "js/news/news-list-page.js",
+      "summary": "Shared news list/archive page controller supporting landing and archive modes with URL-driven filters (search, category, year, sort), pagination, hero layout, and skeleton loaders.",
+      "tags": [
+        "javascript",
+        "news",
+        "listing",
+        "pagination",
+        "filters"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:js/news/news-renderer.js",
+      "type": "file",
+      "name": "news-renderer.js",
+      "filePath": "js/news/news-renderer.js",
+      "summary": "Editor.js JSON-block to DOM renderer exposing TLKVNewsRenderer.renderArticle with a pluggable block registry, sanitized text output via TLKVNewsSanitize, and graceful unknown-block handling.",
+      "tags": [
+        "javascript",
+        "news",
+        "renderer",
+        "editorjs"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:data/gold-table.json",
+      "type": "config",
+      "name": "gold-table.json",
+      "filePath": "data/gold-table.json",
+      "summary": "Fallback gold price dataset with meta (headerTime, footerNote, unitLine, brandItalic) and rows containing brand, product, purity, buy/sell VND-per-chỉ strings, and metal type. Loaded by TLKVGold.fetchDefaultJson when Supabase and localStorage are empty.",
+      "tags": [
+        "configuration",
+        "gold-pricing",
+        "fallback",
+        "json"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "118-line static snapshot; superseded at runtime by Supabase gold_price_rows but retained for offline/dev bootstrap."
+    },
+    {
+      "id": "config:data/products.json",
+      "type": "config",
+      "name": "products.json",
+      "filePath": "data/products.json",
+      "summary": "Legacy static product list with two sample items (ring and necklace) each having id, name, category, priceText, and image path. Predates Supabase catalog; kept for backward-compatible demos.",
+      "tags": [
+        "configuration",
+        "products",
+        "legacy",
+        "json"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:showToast",
+      "type": "function",
+      "name": "showToast",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        7,
+        30
+      ],
+      "summary": "Displays a styled toast notification in #admin-toast-host or falls back to alert.",
+      "tags": [
+        "utility",
+        "ui",
+        "toast"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:getCurrentGoldHistoryData",
+      "type": "function",
+      "name": "getCurrentGoldHistoryData",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1683,
+        1702
+      ],
+      "summary": "Scrapes currently displayed gold change-history table rows into an array for Excel/PDF export.",
+      "tags": [
+        "utility",
+        "audit",
+        "export"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:exportGoldHistoryToExcel",
+      "type": "function",
+      "name": "exportGoldHistoryToExcel",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1707,
+        1790
+      ],
+      "summary": "Exports visible gold audit history rows to a downloadable CSV/Excel file.",
+      "tags": [
+        "export",
+        "audit",
+        "gold-pricing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-app.js:exportGoldHistoryToPDF",
+      "type": "function",
+      "name": "exportGoldHistoryToPDF",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1793,
+        1890
+      ],
+      "summary": "Generates a printable PDF of gold price change history from the visible audit table.",
+      "tags": [
+        "export",
+        "audit",
+        "gold-pricing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-app.js:initSupabaseClient",
+      "type": "function",
+      "name": "initSupabaseClient",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1903,
+        1926
+      ],
+      "summary": "Initializes the Supabase JS client for admin product image uploads using hardcoded or window config credentials.",
+      "tags": [
+        "supabase",
+        "initialization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:formatFileSize",
+      "type": "function",
+      "name": "formatFileSize",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1929,
+        1935
+      ],
+      "summary": "Formats byte count into human-readable KB/MB string for upload preview.",
+      "tags": [
+        "utility",
+        "upload"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:showSelectedFileInfo",
+      "type": "function",
+      "name": "showSelectedFileInfo",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1938,
+        1950
+      ],
+      "summary": "Shows selected image file name and size in the product upload UI.",
+      "tags": [
+        "utility",
+        "upload",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:hideSelectedFileInfo",
+      "type": "function",
+      "name": "hideSelectedFileInfo",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        1953,
+        1961
+      ],
+      "summary": "Clears the selected file info display in the product upload panel.",
+      "tags": [
+        "utility",
+        "upload",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-app.js:clearProductForm",
+      "type": "function",
+      "name": "clearProductForm",
+      "filePath": "js/admin-app.js",
+      "lineRange": [
+        2133,
+        2139
+      ],
+      "summary": "Top-level alias that delegates product form reset to TLKVProductFormAdmin.resetToCreateMode.",
+      "tags": [
+        "utility",
+        "products",
+        "forms"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/gold-data.js:isLeanGoldPushClient",
+      "type": "function",
+      "name": "isLeanGoldPushClient",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        59,
+        81
+      ],
+      "summary": "Detects TV/kiosk/save-data clients that should skip SSE and Realtime WebSocket for lightweight polling only.",
+      "tags": [
+        "utility",
+        "realtime",
+        "tv-display"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/gold-data.js:normalizePayload",
+      "type": "function",
+      "name": "normalizePayload",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1091,
+        1121
+      ],
+      "summary": "Validates and normalizes raw gold table JSON into canonical meta+rows shape with clamped display limits.",
+      "tags": [
+        "data",
+        "validation",
+        "gold-pricing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/gold-data.js:saveToStorage",
+      "type": "function",
+      "name": "saveToStorage",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1137,
+        1155
+      ],
+      "summary": "Persists gold table payload to localStorage and dispatches immediate tlkv:gold-table-changed event.",
+      "tags": [
+        "persistence",
+        "gold-pricing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/gold-data.js:fetchDefaultJson",
+      "type": "function",
+      "name": "fetchDefaultJson",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1227,
+        1229
+      ],
+      "summary": "Fetches fallback gold-table.json from the static data directory.",
+      "tags": [
+        "data",
+        "fallback"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/gold-data.js:getGoldTable",
+      "type": "function",
+      "name": "getGoldTable",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1231,
+        1255
+      ],
+      "summary": "Primary async loader merging Supabase, localStorage, and JSON fallback sources into ordered gold rows.",
+      "tags": [
+        "data",
+        "gold-pricing",
+        "supabase"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/gold-data.js:renderRowsIntoTbody",
+      "type": "function",
+      "name": "renderRowsIntoTbody",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1323,
+        1380
+      ],
+      "summary": "Renders normalized gold price rows into a table tbody with brand grouping and variant parent logic.",
+      "tags": [
+        "rendering",
+        "gold-pricing",
+        "dom"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/gold-data.js:mountGoldTable",
+      "type": "function",
+      "name": "mountGoldTable",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1382,
+        1449
+      ],
+      "summary": "Bootstraps gold table on a page: loads data, renders tbody, starts push subscription, and binds resize listeners.",
+      "tags": [
+        "entry-point",
+        "gold-pricing",
+        "homepage"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/gold-data.js:startGoldPush",
+      "type": "function",
+      "name": "startGoldPush",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1451,
+        1454
+      ],
+      "summary": "Starts SSE-then-Realtime gold price push pipeline after obtaining Supabase client.",
+      "tags": [
+        "realtime",
+        "gold-pricing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/gold-data.js:getLastGoldRows",
+      "type": "function",
+      "name": "getLastGoldRows",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        1456,
+        1459
+      ],
+      "summary": "Returns the last rendered gold rows cached on window.__TLKV_LAST_GOLD_ROWS.",
+      "tags": [
+        "utility",
+        "cache"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/gold-data.js:stampMetaWithVietnamNow",
+      "type": "function",
+      "name": "stampMetaWithVietnamNow",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        998,
+        1015
+      ],
+      "summary": "Stamps meta footerNote and headerTime with current Vietnam timezone formatted timestamp.",
+      "tags": [
+        "utility",
+        "meta",
+        "gold-pricing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/gold-data.js:notifyGoldTableChanged",
+      "type": "function",
+      "name": "notifyGoldTableChanged",
+      "filePath": "js/gold-data.js",
+      "lineRange": [
+        203,
+        210
+      ],
+      "summary": "POSTs to /api/gold-table/notify to trigger server-side SSE broadcast after admin saves.",
+      "tags": [
+        "realtime",
+        "api",
+        "gold-pricing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:getSupabase",
+      "type": "function",
+      "name": "getSupabase",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        84,
+        95
+      ],
+      "summary": "Obtains authenticated Supabase client via TLKVSupabase helper for news CMS operations.",
+      "tags": [
+        "supabase",
+        "auth"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:onHashChange",
+      "type": "function",
+      "name": "onHashChange",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        180,
+        206
+      ],
+      "summary": "Hash router switching between list, create (#new), and edit (#edit/id) views.",
+      "tags": [
+        "routing",
+        "spa"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:renderList",
+      "type": "function",
+      "name": "renderList",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        208,
+        455
+      ],
+      "summary": "Renders paginated news article list with search, status filters, and action buttons.",
+      "tags": [
+        "rendering",
+        "news-cms",
+        "list"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:renderForm",
+      "type": "function",
+      "name": "renderForm",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        457,
+        921
+      ],
+      "summary": "Renders create/edit article form with Editor.js, category picker, SEO fields, and publish controls.",
+      "tags": [
+        "rendering",
+        "news-cms",
+        "forms"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:enterApp",
+      "type": "function",
+      "name": "enterApp",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        923,
+        954
+      ],
+      "summary": "Post-login initialization: shows admin shell, loads taxonomies, and navigates to current hash view.",
+      "tags": [
+        "auth",
+        "initialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin/news-admin.js:boot",
+      "type": "function",
+      "name": "boot",
+      "filePath": "js/admin/news-admin.js",
+      "lineRange": [
+        956,
+        984
+      ],
+      "summary": "Entry point binding login handlers, hashchange listener, session check, and auth state subscription.",
+      "tags": [
+        "entry-point",
+        "initialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-audit.js:shouldLogProductChange",
+      "type": "function",
+      "name": "shouldLogProductChange",
+      "filePath": "js/admin-audit.js",
+      "lineRange": [
+        18,
+        22
+      ],
+      "summary": "Returns false for emails on the product audit skip list so routine owner saves skip change_log writes.",
+      "tags": [
+        "utility",
+        "audit"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin-audit.js:logGold",
+      "type": "function",
+      "name": "logGold",
+      "filePath": "js/admin-audit.js",
+      "lineRange": [
+        34,
+        50
+      ],
+      "summary": "Inserts a row into gold_price_change_log with action, entity, summary, and JSONB payload.",
+      "tags": [
+        "audit",
+        "gold-pricing",
+        "supabase"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-audit.js:logProduct",
+      "type": "function",
+      "name": "logProduct",
+      "filePath": "js/admin-audit.js",
+      "lineRange": [
+        56,
+        78
+      ],
+      "summary": "Inserts a row into product_change_log capturing product CRUD mutations.",
+      "tags": [
+        "audit",
+        "products",
+        "supabase"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-audit.js:fetchGoldLog",
+      "type": "function",
+      "name": "fetchGoldLog",
+      "filePath": "js/admin-audit.js",
+      "lineRange": [
+        98,
+        113
+      ],
+      "summary": "Queries gold_price_change_log with optional search filter and descending time order.",
+      "tags": [
+        "audit",
+        "gold-pricing",
+        "query"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin-audit.js:fetchProductLog",
+      "type": "function",
+      "name": "fetchProductLog",
+      "filePath": "js/admin-audit.js",
+      "lineRange": [
+        115,
+        130
+      ],
+      "summary": "Queries product_change_log with optional search filter for admin history panels.",
+      "tags": [
+        "audit",
+        "products",
+        "query"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-api.js:listPublished",
+      "type": "function",
+      "name": "listPublished",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        145,
+        221
+      ],
+      "summary": "Paginated public query of published news articles with category/year/search filters.",
+      "tags": [
+        "api",
+        "news",
+        "query"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/news/news-api.js:getBySlug",
+      "type": "function",
+      "name": "getBySlug",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        223,
+        260
+      ],
+      "summary": "Fetches a single published article by slug with category and tag relations.",
+      "tags": [
+        "api",
+        "news",
+        "query"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-api.js:adminList",
+      "type": "function",
+      "name": "adminList",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        328,
+        388
+      ],
+      "summary": "Admin query returning all article statuses with filters for the CMS list view.",
+      "tags": [
+        "api",
+        "news",
+        "admin"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-api.js:adminCreate",
+      "type": "function",
+      "name": "adminCreate",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        390,
+        398
+      ],
+      "summary": "Creates a new news article row with slug uniqueness enforcement.",
+      "tags": [
+        "api",
+        "news",
+        "admin",
+        "crud"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-api.js:adminUpdate",
+      "type": "function",
+      "name": "adminUpdate",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        400,
+        408
+      ],
+      "summary": "Updates an existing news article by id with normalized input fields.",
+      "tags": [
+        "api",
+        "news",
+        "admin",
+        "crud"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-api.js:adminDelete",
+      "type": "function",
+      "name": "adminDelete",
+      "filePath": "js/news/news-api.js",
+      "lineRange": [
+        410,
+        414
+      ],
+      "summary": "Hard-deletes a news article row by id.",
+      "tags": [
+        "api",
+        "news",
+        "admin",
+        "crud"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/news/news-renderer.js:renderArticle",
+      "type": "function",
+      "name": "renderArticle",
+      "filePath": "js/news/news-renderer.js",
+      "lineRange": [
+        261,
+        286
+      ],
+      "summary": "Converts Editor.js block document into a sanitized .tlkv-news-article DOM subtree.",
+      "tags": [
+        "rendering",
+        "news",
+        "editorjs"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/news/news-renderer.js:registerBlock",
+      "type": "function",
+      "name": "registerBlock",
+      "filePath": "js/news/news-renderer.js",
+      "lineRange": [
+        289,
+        292
+      ],
+      "summary": "Registers a custom block type renderer in the TLKVNewsRenderer registry.",
+      "tags": [
+        "extensibility",
+        "news",
+        "editorjs"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/news-storage.js:upload",
+      "type": "function",
+      "name": "upload",
+      "filePath": "js/admin/news-storage.js",
+      "lineRange": [
+        55,
+        88
+      ],
+      "summary": "Uploads an image file to news-media bucket under thumbnails/ or content/ prefix.",
+      "tags": [
+        "storage",
+        "news-cms",
+        "upload"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin/news-storage.js:remove",
+      "type": "function",
+      "name": "remove",
+      "filePath": "js/admin/news-storage.js",
+      "lineRange": [
+        90,
+        99
+      ],
+      "summary": "Removes a file from news-media bucket by storage path.",
+      "tags": [
+        "storage",
+        "news-cms"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/news-editor.js:mount",
+      "type": "function",
+      "name": "mount",
+      "filePath": "js/admin/news-editor.js",
+      "lineRange": [
+        27,
+        213
+      ],
+      "summary": "Mounts Editor.js instance with TLKV tool config, image upload handler, and save/setData API.",
+      "tags": [
+        "editor",
+        "news-cms",
+        "editorjs"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:js/admin/news-editor.js:isAllowedImageUrl",
+      "type": "function",
+      "name": "isAllowedImageUrl",
+      "filePath": "js/admin/news-editor.js",
+      "lineRange": [
+        17,
+        25
+      ],
+      "summary": "Validates image URLs against allowed Supabase storage and HTTPS host patterns.",
+      "tags": [
+        "validation",
+        "security",
+        "news-cms"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/product-form-admin.js:init",
+      "type": "function",
+      "name": "init",
+      "filePath": "js/admin/product-form-admin.js",
+      "lineRange": [
+        218,
+        235
+      ],
+      "summary": "Binds product form DOM event listeners and resets to create mode on load.",
+      "tags": [
+        "initialization",
+        "products",
+        "forms"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin/product-form-admin.js:buildPayload",
+      "type": "function",
+      "name": "buildPayload",
+      "filePath": "js/admin/product-form-admin.js",
+      "lineRange": [
+        155,
+        173
+      ],
+      "summary": "Reads form fields into a normalized product payload object for CRUD operations.",
+      "tags": [
+        "utility",
+        "products",
+        "forms"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/admin/product-form-admin.js:validateForm",
+      "type": "function",
+      "name": "validateForm",
+      "filePath": "js/admin/product-form-admin.js",
+      "lineRange": [
+        192,
+        205
+      ],
+      "summary": "Delegates product validation to TLKVProductCrud or TLKVProducts validators.",
+      "tags": [
+        "validation",
+        "products"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/product-form-admin.js:resetToCreateMode",
+      "type": "function",
+      "name": "resetToCreateMode",
+      "filePath": "js/admin/product-form-admin.js",
+      "lineRange": [
+        62,
+        88
+      ],
+      "summary": "Clears form fields and switches state to create mode with auto slug preview.",
+      "tags": [
+        "utility",
+        "products",
+        "forms"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/admin/product-form-admin.js:loadForEdit",
+      "type": "function",
+      "name": "loadForEdit",
+      "filePath": "js/admin/product-form-admin.js",
+      "lineRange": [
+        90,
+        120
+      ],
+      "summary": "Populates form fields from an existing product row for edit mode with locked slug.",
+      "tags": [
+        "utility",
+        "products",
+        "forms"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/gold-pricing-layout.js:refresh",
+      "type": "function",
+      "name": "refresh",
+      "filePath": "js/gold-pricing-layout.js",
+      "lineRange": [
+        176,
+        195
+      ],
+      "summary": "Debounced layout refresh exposed as TLKVGoldPricingLayout.refresh for post-render table normalization.",
+      "tags": [
+        "layout",
+        "gold-pricing",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:js/news/news-detail-page.js:load",
+      "type": "function",
+      "name": "load",
+      "filePath": "js/news/news-detail-page.js",
+      "lineRange": [
+        339,
+        364
+      ],
+      "summary": "Entry point fetching article by slug, applying SEO, rendering content, and loading related posts.",
+      "tags": [
+        "entry-point",
+        "news",
+        "detail-page"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-list-page.js:loadPage",
+      "type": "function",
+      "name": "loadPage",
+      "filePath": "js/news/news-list-page.js",
+      "lineRange": [
+        458,
+        465
+      ],
+      "summary": "Dispatches to landing or archive loader based on detected list mode.",
+      "tags": [
+        "entry-point",
+        "news",
+        "listing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-list-page.js:bind",
+      "type": "function",
+      "name": "bind",
+      "filePath": "js/news/news-list-page.js",
+      "lineRange": [
+        467,
+        539
+      ],
+      "summary": "Binds filter toolbar, search, pagination, and URL sync event handlers.",
+      "tags": [
+        "event-handling",
+        "news",
+        "filters"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:js/news/news-home-preview.js:load",
+      "type": "function",
+      "name": "load",
+      "filePath": "js/news/news-home-preview.js",
+      "lineRange": [
+        111,
+        141
+      ],
+      "summary": "Fetches latest news and renders homepage preview cards into the mount host.",
+      "tags": [
+        "entry-point",
+        "news",
+        "homepage"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:showToast",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:getCurrentGoldHistoryData",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:exportGoldHistoryToExcel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:exportGoldHistoryToPDF",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:initSupabaseClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:formatFileSize",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:showSelectedFileInfo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:hideSelectedFileInfo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "function:js/admin-app.js:clearProductForm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:isLeanGoldPushClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:isLeanGoldPushClient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:normalizePayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:normalizePayload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:saveToStorage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:saveToStorage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:fetchDefaultJson",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:fetchDefaultJson",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:getGoldTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:getGoldTable",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:renderRowsIntoTbody",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:renderRowsIntoTbody",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:mountGoldTable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:mountGoldTable",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:startGoldPush",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:startGoldPush",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:getLastGoldRows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:getLastGoldRows",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:stampMetaWithVietnamNow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:stampMetaWithVietnamNow",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:notifyGoldTableChanged",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-data.js",
+      "target": "function:js/gold-data.js:notifyGoldTableChanged",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:getSupabase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:onHashChange",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:renderList",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:renderForm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:enterApp",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "function:js/admin/news-admin.js:boot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:shouldLogProductChange",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:shouldLogProductChange",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:logGold",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:logGold",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:logProduct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:logProduct",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:fetchGoldLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:fetchGoldLog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:fetchProductLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin-audit.js",
+      "target": "function:js/admin-audit.js:fetchProductLog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:listPublished",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:listPublished",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:getBySlug",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:getBySlug",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminList",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminList",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminCreate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminCreate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminUpdate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminUpdate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminDelete",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-api.js",
+      "target": "function:js/news/news-api.js:adminDelete",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-renderer.js",
+      "target": "function:js/news/news-renderer.js:renderArticle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-renderer.js",
+      "target": "function:js/news/news-renderer.js:renderArticle",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-renderer.js",
+      "target": "function:js/news/news-renderer.js:registerBlock",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-renderer.js",
+      "target": "function:js/news/news-renderer.js:registerBlock",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/news-storage.js",
+      "target": "function:js/admin/news-storage.js:upload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-storage.js",
+      "target": "function:js/admin/news-storage.js:upload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/news-storage.js",
+      "target": "function:js/admin/news-storage.js:remove",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-storage.js",
+      "target": "function:js/admin/news-storage.js:remove",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/news-editor.js",
+      "target": "function:js/admin/news-editor.js:mount",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-editor.js",
+      "target": "function:js/admin/news-editor.js:mount",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/news-editor.js",
+      "target": "function:js/admin/news-editor.js:isAllowedImageUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/news-editor.js",
+      "target": "function:js/admin/news-editor.js:isAllowedImageUrl",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:init",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:init",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:buildPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:buildPayload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:validateForm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:validateForm",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:resetToCreateMode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:resetToCreateMode",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:loadForEdit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/admin/product-form-admin.js",
+      "target": "function:js/admin/product-form-admin.js:loadForEdit",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/gold-pricing-layout.js",
+      "target": "function:js/gold-pricing-layout.js:refresh",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/gold-pricing-layout.js",
+      "target": "function:js/gold-pricing-layout.js:refresh",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:js/news/news-detail-page.js",
+      "target": "function:js/news/news-detail-page.js:load",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-list-page.js",
+      "target": "function:js/news/news-list-page.js:loadPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-list-page.js",
+      "target": "function:js/news/news-list-page.js:bind",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:js/news/news-home-preview.js",
+      "target": "function:js/news/news-home-preview.js:load",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "config:data/gold-table.json",
+      "target": "file:js/gold-data.js",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:data/products.json",
+      "target": "file:js/admin-app.js",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:js/gold-pricing-layout.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/index.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/floating-contact.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/news/news-list-page.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "file:js/admin-audit.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "file:js/admin/product-form-admin.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin-app.js",
+      "target": "file:js/admin/catalog-admin.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "file:js/admin-audit.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "file:js/admin/news-editor.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "file:js/admin/news-storage.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin/news-admin.js",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/admin/news-editor.js",
+      "target": "file:js/admin/news-storage.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-detail-page.js",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-detail-page.js",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-list-page.js",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-list-page.js",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-home-preview.js",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/news/news-renderer.js",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:js/gold-pricing-layout.js",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:gioi-thieu/gia-vang.html",
+      "target": "file:gioi-thieu/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:gioi-thieu/index.html",
+      "target": "file:gioi-thieu/gia-vang.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:js/index.html",
+      "target": "file:js/news/news-list-page.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

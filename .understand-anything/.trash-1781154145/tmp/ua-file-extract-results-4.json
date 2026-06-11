@@ -1,0 +1,127 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 15,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "css/admin-catalog.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 390,
+      "nonEmptyLines": 332,
+      "metrics": {}
+    },
+    {
+      "path": "css/chrome-typography.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 133,
+      "nonEmptyLines": 110,
+      "metrics": {}
+    },
+    {
+      "path": "css/design-system.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 392,
+      "nonEmptyLines": 339,
+      "metrics": {}
+    },
+    {
+      "path": "css/floating-contact.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 215,
+      "nonEmptyLines": 189,
+      "metrics": {}
+    },
+    {
+      "path": "css/gold-pricing.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1064,
+      "nonEmptyLines": 919,
+      "metrics": {}
+    },
+    {
+      "path": "css/header.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 944,
+      "nonEmptyLines": 811,
+      "metrics": {}
+    },
+    {
+      "path": "css/hero.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 125,
+      "nonEmptyLines": 112,
+      "metrics": {}
+    },
+    {
+      "path": "css/home-sections.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1023,
+      "nonEmptyLines": 896,
+      "metrics": {}
+    },
+    {
+      "path": "css/home-typography.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 150,
+      "nonEmptyLines": 122,
+      "metrics": {}
+    },
+    {
+      "path": "css/news-admin.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 401,
+      "nonEmptyLines": 376,
+      "metrics": {}
+    },
+    {
+      "path": "css/news.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1222,
+      "nonEmptyLines": 1096,
+      "metrics": {}
+    },
+    {
+      "path": "css/product-card-layout.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 303,
+      "nonEmptyLines": 265,
+      "metrics": {}
+    },
+    {
+      "path": "css/products-catalog.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 285,
+      "nonEmptyLines": 253,
+      "metrics": {}
+    },
+    {
+      "path": "css/tv-model.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 587,
+      "nonEmptyLines": 515,
+      "metrics": {}
+    },
+    {
+      "path": "css/world-gold-xau.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 215,
+      "nonEmptyLines": 183,
+      "metrics": {}
+    }
+  ]
+}

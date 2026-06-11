@@ -1,0 +1,31 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "san-pham/chi-tiet.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 118,
+      "nonEmptyLines": 116,
+      "metrics": {}
+    },
+    {
+      "path": "san-pham/gia-vang.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 339,
+      "nonEmptyLines": 334,
+      "metrics": {}
+    },
+    {
+      "path": "san-pham/index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "totalLines": 311,
+      "nonEmptyLines": 305,
+      "metrics": {}
+    }
+  ]
+}

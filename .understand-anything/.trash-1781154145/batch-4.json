@@ -1,0 +1,260 @@
+{
+  "nodes": [
+    {
+      "id": "file:css/admin-catalog.css",
+      "type": "file",
+      "name": "admin-catalog.css",
+      "filePath": "css/admin-catalog.css",
+      "summary": "Styles the admin catalog management panel for products, brands, and categories, including subtabs, filter grids, data tables, form fields, and action toolbars scoped under catalog-admin classes.",
+      "tags": ["stylesheet", "admin", "catalog", "ui", "forms"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/chrome-typography.css",
+      "type": "file",
+      "name": "chrome-typography.css",
+      "filePath": "css/chrome-typography.css",
+      "summary": "Applies responsive typography scale bumps to site chrome elements (header topbar, navigation links, footer) across all public pages, complementing header.css layout with Inter-based font sizing.",
+      "tags": ["stylesheet", "typography", "header", "footer", "chrome"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:css/design-system.css",
+      "type": "file",
+      "name": "design-system.css",
+      "filePath": "css/design-system.css",
+      "summary": "Foundation UI layer for Thăng Long Kim Việt: global CSS custom properties (brand gold palette, spacing, typography, shadows), light-mode lock against forced dark mode, and shared utility classes loaded before vendor styles.",
+      "tags": ["stylesheet", "design-system", "tokens", "foundation", "theme"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/floating-contact.css",
+      "type": "file",
+      "name": "floating-contact.css",
+      "filePath": "css/floating-contact.css",
+      "summary": "Styles a fixed left-side floating contact sidebar on public pages with stacked action buttons for phone, Zalo, and messenger links, including hover states and mobile-safe positioning.",
+      "tags": ["stylesheet", "contact", "sidebar", "public-ui", "fixed-position"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:css/gold-pricing.css",
+      "type": "file",
+      "name": "gold-pricing.css",
+      "filePath": "css/gold-pricing.css",
+      "summary": "Comprehensive styles for the gold pricing dashboard (.tlkv-gold-dashboard): two-column Bloomberg-style panels, store price tables, brand headers, row hover states, and responsive grid layout scoped away from header and TV pages.",
+      "tags": ["stylesheet", "gold-pricing", "dashboard", "tables", "homepage"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:css/header.css",
+      "type": "file",
+      "name": "header.css",
+      "filePath": "css/header.css",
+      "summary": "Styles the sticky site header and navbar including topbar, brand lockup wordmark, desktop and mobile navigation, dropdown menus, search affordances, and header-specific CSS variables scoped to .header classes.",
+      "tags": ["stylesheet", "header", "navigation", "navbar", "brand"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:css/hero.css",
+      "type": "file",
+      "name": "hero.css",
+      "filePath": "css/hero.css",
+      "summary": "Styles the homepage full-width hero carousel (.tlkv-hero) with viewport-based aspect ratio, drag-enabled showcase stage, slide transitions, and sharp edge-to-edge presentation below the header.",
+      "tags": ["stylesheet", "hero", "carousel", "homepage", "showcase"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:css/home-sections.css",
+      "type": "file",
+      "name": "home-sections.css",
+      "filePath": "css/home-sections.css",
+      "summary": "Styles homepage content sections below the gold pricing block: trust value strip, brand introduction, featured products grid, section headings with ornamental dividers, and responsive layout for commerce storytelling blocks.",
+      "tags": ["stylesheet", "homepage", "sections", "featured-products", "trust-strip"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:css/home-typography.css",
+      "type": "file",
+      "name": "home-typography.css",
+      "filePath": "css/home-typography.css",
+      "summary": "Homepage typography system scoped to .tlkv-home that bumps Inter sans-serif scale for promo strips, gold panel titles, product cards, and section copy while explicitly excluding gold table numeric cells.",
+      "tags": ["stylesheet", "typography", "homepage", "inter", "scale-bump"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:css/news-admin.css",
+      "type": "file",
+      "name": "news-admin.css",
+      "filePath": "css/news-admin.css",
+      "summary": "Dashboard styles for the news admin shell (.news-admin-shell) covering topbar, breadcrumbs, article editor forms, status badges, data tables, and card-based layout for managing TLKV news content.",
+      "tags": ["stylesheet", "admin", "news", "dashboard", "editor"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/news.css",
+      "type": "file",
+      "name": "news.css",
+      "filePath": "css/news.css",
+      "summary": "Public news section styles for listing and detail pages (.tlkv-news-*): hero titles, article cards, pagination, skeleton loaders, rich article body typography, and sidebar widgets aliased to global design tokens.",
+      "tags": ["stylesheet", "news", "articles", "listing", "public-ui"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:css/product-card-layout.css",
+      "type": "file",
+      "name": "product-card-layout.css",
+      "filePath": "css/product-card-layout.css",
+      "summary": "Normalizes product card dimensions and grid behavior for catalog pages: fixed 320×395px card footprint, CLS-safe lazy image media boxes, price and badge alignment, and responsive grid column sizing.",
+      "tags": ["stylesheet", "products", "product-card", "grid", "catalog"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/products-catalog.css",
+      "type": "file",
+      "name": "products-catalog.css",
+      "filePath": "css/products-catalog.css",
+      "summary": "Styles the public product catalog page layout including brand sections with logos, category groupings, section headers, card grids, and spacing rhythm built on design-system tokens for the sanpham experience.",
+      "tags": ["stylesheet", "products", "catalog", "brand-section", "grid"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/tv-model.css",
+      "type": "file",
+      "name": "tv-model.css",
+      "filePath": "css/tv-model.css",
+      "summary": "Fullscreen TV display mode styles for in-store gold price boards (/tv-model): shell padding, table column widths, ticker typography bumps, greeting board colors, and light-mode lock isolated from the main site header.",
+      "tags": ["stylesheet", "tv-display", "gold-table", "fullscreen", "in-store"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:css/world-gold-xau.css",
+      "type": "file",
+      "name": "world-gold-xau.css",
+      "filePath": "css/world-gold-xau.css",
+      "summary": "Styles the world gold (XAU/USD) chart panel embedded below store pricing tables, including panel chrome, chart container sizing, title hierarchy, and integration overrides when nested inside the gold dashboard.",
+      "tags": ["stylesheet", "gold-pricing", "xau", "chart", "world-market"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/admin-catalog.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/chrome-typography.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/floating-contact.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/gold-pricing.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/header.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/hero.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/home-sections.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/home-typography.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/news-admin.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/news.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/product-card-layout.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/products-catalog.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/tv-model.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/design-system.css",
+      "target": "file:css/world-gold-xau.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/gold-pricing.css",
+      "target": "file:css/world-gold-xau.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/home-typography.css",
+      "target": "file:css/chrome-typography.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:css/products-catalog.css",
+      "target": "file:css/product-card-layout.css",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

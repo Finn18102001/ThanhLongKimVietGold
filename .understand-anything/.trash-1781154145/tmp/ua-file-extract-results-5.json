@@ -1,0 +1,215 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "docs/products-catalog-architecture.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 227,
+      "nonEmptyLines": 151,
+      "sections": [
+        {
+          "heading": "TLKV Product Catalog — Architecture (Steps 1–12)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Implemented modules (Steps 8–12)",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "TLKV Product Catalog — Foundation Architecture (Steps 1–7)",
+          "level": 1,
+          "line": 17
+        },
+        {
+          "heading": "Stack note",
+          "level": 2,
+          "line": 21
+        },
+        {
+          "heading": "Step 1 — Brand architecture",
+          "level": 2,
+          "line": 34
+        },
+        {
+          "heading": "Step 2 — Category architecture",
+          "level": 2,
+          "line": 58
+        },
+        {
+          "heading": "Step 3 — Product flags",
+          "level": 2,
+          "line": 70
+        },
+        {
+          "heading": "Step 4 — Image architecture",
+          "level": 2,
+          "line": 99
+        },
+        {
+          "heading": "Step 5 — Product card system",
+          "level": 2,
+          "line": 128
+        },
+        {
+          "heading": "Step 6 — Section-based frontend",
+          "level": 2,
+          "line": 142
+        },
+        {
+          "heading": "Step 7 — Brand section structure",
+          "level": 2,
+          "line": 178
+        },
+        {
+          "heading": "Admin implications (foundation only)",
+          "level": 2,
+          "line": 196
+        },
+        {
+          "heading": "Deploy checklist",
+          "level": 2,
+          "line": 209
+        },
+        {
+          "heading": "Scalability summary",
+          "level": 2,
+          "line": 219
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 14
+      }
+    },
+    {
+      "path": "docs/products-crud-architecture.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 61,
+      "nonEmptyLines": 43,
+      "sections": [
+        {
+          "heading": "Product CRUD & Featured Products — Architecture",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Layering",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "CREATE",
+          "level": 2,
+          "line": 14
+        },
+        {
+          "heading": "READ",
+          "level": 2,
+          "line": 24
+        },
+        {
+          "heading": "UPDATE",
+          "level": 2,
+          "line": 30
+        },
+        {
+          "heading": "DELETE",
+          "level": 2,
+          "line": 35
+        },
+        {
+          "heading": "Homepage brand sections (temporary)",
+          "level": 2,
+          "line": 41
+        },
+        {
+          "heading": "RLS",
+          "level": 2,
+          "line": 49
+        },
+        {
+          "heading": "Anti-patterns removed",
+          "level": 2,
+          "line": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    },
+    {
+      "path": "docs/products-derived-pricing.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 73,
+      "nonEmptyLines": 53,
+      "sections": [
+        {
+          "heading": "Derived product pricing (homepage)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Source of truth",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Data flow",
+          "level": 2,
+          "line": 8
+        },
+        {
+          "heading": "Realtime flow",
+          "level": 2,
+          "line": 26
+        },
+        {
+          "heading": "Lookup",
+          "level": 2,
+          "line": 42
+        },
+        {
+          "heading": "Money",
+          "level": 2,
+          "line": 48
+        },
+        {
+          "heading": "Debounce",
+          "level": 2,
+          "line": 54
+        },
+        {
+          "heading": "Config",
+          "level": 2,
+          "line": 60
+        },
+        {
+          "heading": "Modules",
+          "level": 2,
+          "line": 66
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    }
+  ]
+}

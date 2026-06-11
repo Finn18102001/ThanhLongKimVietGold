@@ -1,0 +1,678 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": ".env.example",
+      "language": "config",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".vercelignore",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "admin/admin.css",
+      "language": "css",
+      "sizeLines": 1354,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "admin/index.html",
+      "language": "html",
+      "sizeLines": 496,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "admin/news.html",
+      "language": "html",
+      "sizeLines": 95,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/admin-catalog.css",
+      "language": "css",
+      "sizeLines": 390,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/chrome-typography.css",
+      "language": "css",
+      "sizeLines": 133,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/design-system.css",
+      "language": "css",
+      "sizeLines": 392,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/floating-contact.css",
+      "language": "css",
+      "sizeLines": 215,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/gold-pricing.css",
+      "language": "css",
+      "sizeLines": 1064,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/header.css",
+      "language": "css",
+      "sizeLines": 944,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/hero.css",
+      "language": "css",
+      "sizeLines": 125,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/home-sections.css",
+      "language": "css",
+      "sizeLines": 1023,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/home-typography.css",
+      "language": "css",
+      "sizeLines": 150,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/news-admin.css",
+      "language": "css",
+      "sizeLines": 401,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/news.css",
+      "language": "css",
+      "sizeLines": 1222,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/product-card-layout.css",
+      "language": "css",
+      "sizeLines": 303,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/products-catalog.css",
+      "language": "css",
+      "sizeLines": 285,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/tv-model.css",
+      "language": "css",
+      "sizeLines": 587,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "css/world-gold-xau.css",
+      "language": "css",
+      "sizeLines": 215,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "data/gold-table.json",
+      "language": "json",
+      "sizeLines": 118,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/products.json",
+      "language": "json",
+      "sizeLines": 18,
+      "fileCategory": "config"
+    },
+    {
+      "path": "docs/products-catalog-architecture.md",
+      "language": "markdown",
+      "sizeLines": 227,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/products-crud-architecture.md",
+      "language": "markdown",
+      "sizeLines": 61,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/products-derived-pricing.md",
+      "language": "markdown",
+      "sizeLines": 73,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "gia-vang-hom-nay.html",
+      "language": "html",
+      "sizeLines": 24,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "gioi-thieu/gia-vang.html",
+      "language": "html",
+      "sizeLines": 337,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "gioi-thieu/index.html",
+      "language": "html",
+      "sizeLines": 396,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "googlea755d9afb0a19369.html",
+      "language": "html",
+      "sizeLines": 0,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "index.html",
+      "language": "html",
+      "sizeLines": 606,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "js/admin-app.js",
+      "language": "javascript",
+      "sizeLines": 2167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin-audit.js",
+      "language": "javascript",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/catalog-admin.js",
+      "language": "javascript",
+      "sizeLines": 530,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-admin.js",
+      "language": "javascript",
+      "sizeLines": 985,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-editor.js",
+      "language": "javascript",
+      "sizeLines": 216,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/news-storage.js",
+      "language": "javascript",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/admin/product-form-admin.js",
+      "language": "javascript",
+      "sizeLines": 254,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/boot-supabase-env.js",
+      "language": "javascript",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/floating-contact.js",
+      "language": "javascript",
+      "sizeLines": 169,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/gold-data.js",
+      "language": "javascript",
+      "sizeLines": 1495,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/gold-pricing-layout.js",
+      "language": "javascript",
+      "sizeLines": 226,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/hero-slider.js",
+      "language": "javascript",
+      "sizeLines": 264,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/index.html",
+      "language": "html",
+      "sizeLines": 246,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "js/news/news-api.js",
+      "language": "javascript",
+      "sizeLines": 448,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-detail-page.js",
+      "language": "javascript",
+      "sizeLines": 366,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-home-preview.js",
+      "language": "javascript",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-list-page.js",
+      "language": "javascript",
+      "sizeLines": 579,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-renderer.js",
+      "language": "javascript",
+      "sizeLines": 299,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/news/news-sanitize.js",
+      "language": "javascript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products-data.js",
+      "language": "javascript",
+      "sizeLines": 662,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/brand-page.js",
+      "language": "javascript",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/brand-section.js",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-api.js",
+      "language": "javascript",
+      "sizeLines": 421,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-archive.js",
+      "language": "javascript",
+      "sizeLines": 203,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-filters.js",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/catalog-page.js",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/constants.js",
+      "language": "javascript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/featured-products-section.js",
+      "language": "javascript",
+      "sizeLines": 548,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-card-layout.js",
+      "language": "javascript",
+      "sizeLines": 160,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-card.js",
+      "language": "javascript",
+      "sizeLines": 325,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-crud.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-detail-page.js",
+      "language": "javascript",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-grid.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/products/product-price-engine.js",
+      "language": "javascript",
+      "sizeLines": 186,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/site-nav.js",
+      "language": "javascript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/supabaseClient.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/tlkv-supabase-client.js",
+      "language": "javascript",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/tv-gold-board.js",
+      "language": "javascript",
+      "sizeLines": 603,
+      "fileCategory": "code"
+    },
+    {
+      "path": "js/world-gold-xau.js",
+      "language": "javascript",
+      "sizeLines": 289,
+      "fileCategory": "code"
+    },
+    {
+      "path": "lib/node-fetch-globals.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "local.css",
+      "language": "css",
+      "sizeLines": 1662,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "sizeLines": 18,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 177,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "routes/admin.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/api.js",
+      "language": "javascript",
+      "sizeLines": 365,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/gold-sse-hub.js",
+      "language": "javascript",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/index.js",
+      "language": "javascript",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "routes/web.js",
+      "language": "javascript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "san-pham/chi-tiet.html",
+      "language": "html",
+      "sizeLines": 118,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "san-pham/gia-vang.html",
+      "language": "html",
+      "sizeLines": 339,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "san-pham/index.html",
+      "language": "html",
+      "sizeLines": 311,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "scripts/verify-hero-assets.sh",
+      "language": "shell",
+      "sizeLines": 35,
+      "fileCategory": "script"
+    },
+    {
+      "path": "server.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "supabase/admin-change-history.sql",
+      "language": "sql",
+      "sizeLines": 109,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/data-api-grants.sql",
+      "language": "sql",
+      "sizeLines": 46,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/fix-all-policies.sql",
+      "language": "sql",
+      "sizeLines": 100,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/gold-price-rows-previous.sql",
+      "language": "sql",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/gold-price-rows-vang-rong-split.sql",
+      "language": "sql",
+      "sizeLines": 33,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/news-schema.sql",
+      "language": "sql",
+      "sizeLines": 307,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/news-storage.sql",
+      "language": "sql",
+      "sizeLines": 80,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-catalog-schema.sql",
+      "language": "sql",
+      "sizeLines": 259,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-catalog-step8-12.sql",
+      "language": "sql",
+      "sizeLines": 15,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-featured-home-index.sql",
+      "language": "sql",
+      "sizeLines": 10,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-fix-select.sql",
+      "language": "sql",
+      "sizeLines": 39,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-price-source.sql",
+      "language": "sql",
+      "sizeLines": 19,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-rls-admin-write.sql",
+      "language": "sql",
+      "sizeLines": 2,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/products-storage.sql",
+      "language": "sql",
+      "sizeLines": 59,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/rls-admin-email.sql",
+      "language": "sql",
+      "sizeLines": 74,
+      "fileCategory": "data"
+    },
+    {
+      "path": "supabase/tlkv-admin-rls.sql",
+      "language": "sql",
+      "sizeLines": 95,
+      "fileCategory": "data"
+    },
+    {
+      "path": "thuong-hieu/index.html",
+      "language": "html",
+      "sizeLines": 120,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tin-tuc/chi-tiet.html",
+      "language": "html",
+      "sizeLines": 297,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tin-tuc/danh-sach.html",
+      "language": "html",
+      "sizeLines": 308,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tin-tuc/index.html",
+      "language": "html",
+      "sizeLines": 293,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "tv-model.html",
+      "language": "html",
+      "sizeLines": 117,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "upstream-home.js",
+      "language": "javascript",
+      "sizeLines": 707,
+      "fileCategory": "code"
+    },
+    {
+      "path": "vercel.json",
+      "language": "json",
+      "sizeLines": 31,
+      "fileCategory": "config"
+    }
+  ],
+  "totalFiles": 108,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "moderate",
+  "stats": {
+    "filesScanned": 108,
+    "byCategory": {
+      "config": 6,
+      "code": 48,
+      "markup": 33,
+      "docs": 4,
+      "script": 1,
+      "data": 16
+    },
+    "byLanguage": {
+      "config": 1,
+      "unknown": 2,
+      "json": 5,
+      "css": 17,
+      "html": 16,
+      "markdown": 4,
+      "javascript": 46,
+      "shell": 1,
+      "sql": 16
+    }
+  }
+}

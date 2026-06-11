@@ -1,0 +1,321 @@
+{
+  "nodes": [
+    {
+      "id": "file:admin/admin.css",
+      "type": "file",
+      "name": "admin.css",
+      "filePath": "admin/admin.css",
+      "summary": "Shared admin stylesheet for the Thăng Long Kim Việt back office, covering layout shells, data tables, tab navigation, gold-price inline editing, product forms, image upload controls, change-history panels, pagination, toast notifications, and the change-password modal.",
+      "tags": ["admin", "stylesheet", "layout", "data-tables", "forms"],
+      "complexity": "complex",
+      "languageNotes": "Forces light color scheme to prevent Samsung Internet dark-mode inversion on admin pages."
+    },
+    {
+      "id": "file:admin/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "admin/index.html",
+      "summary": "Main admin dashboard shell with Supabase email login, tabbed panels for gold price CRUD and product catalog management (products, brands, categories), inline gold table editing with audit history and Excel export, and a password-change modal wired to client-side admin modules.",
+      "tags": ["admin", "dashboard", "crud", "gold-pricing", "catalog"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:admin/news.html",
+      "type": "file",
+      "name": "news.html",
+      "filePath": "admin/news.html",
+      "summary": "Dedicated news CMS admin page with its own login gate, breadcrumb navigation back to the main dashboard, and script hooks for Editor.js plus news storage, rendering, and API modules that mount the editorial UI into a dynamic content root.",
+      "tags": ["admin", "news-cms", "editor", "content-management", "supabase"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:admin/index.html",
+      "target": "file:admin/admin.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:admin/admin.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:css/news-admin.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:css/admin-catalog.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:admin/news.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:admin/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/admin.css",
+      "target": "file:admin/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/admin.css",
+      "target": "file:admin/news.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/gold-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/products/constants.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/products/product-crud.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/products-data.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/products/catalog-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin-audit.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin-app.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin/product-form-admin.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin/catalog-admin.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin-app.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin/catalog-admin.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin/product-form-admin.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/gold-data.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/admin-audit.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/index.html",
+      "target": "file:js/products/catalog-api.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/boot-supabase-env.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/tlkv-supabase-client.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/vendor/supabase.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-api.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-storage.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-editor.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-admin.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-admin.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-editor.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/admin/news-storage.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-api.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-renderer.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:admin/news.html",
+      "target": "file:js/news/news-sanitize.js",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}
