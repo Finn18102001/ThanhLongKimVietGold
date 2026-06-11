@@ -1,37 +1,28 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60,
-        "includeFiles": [
-          "index.html",
-          "tv-model.html",
-          "homepage.html",
-          "gia-vang-hom-nay.html",
-          "googlea0e5d99f07f9bb75.html",
-          "admin/**",
-          "assets/**",
-          "css/**",
-          "js/**",
-          "data/**",
-          "gioi-thieu/**",
-          "san-pham/**",
-          "san-pham/vang-tich-luy.html",
-          "tin-tuc/**",
-          "thuong-hieu/**",
-          "local.css"
-        ]
-      }
+  "functions": {
+    "server.js": {
+      "maxDuration": 60,
+      "includeFiles": [
+        "index.html",
+        "tv-model.html",
+        "homepage.html",
+        "gia-vang-hom-nay.html",
+        "googlea0e5d99f07f9bb75.html",
+        "admin/**",
+        "assets/**",
+        "css/**",
+        "js/**",
+        "data/**",
+        "gioi-thieu/**",
+        "san-pham/**",
+        "tin-tuc/**",
+        "thuong-hieu/**",
+        "local.css"
+      ]
     }
-  ],
-  "routes": [
-    { "src": "/sanpham/vang-tich-luy/?", "dest": "/server.js" },
-    { "src": "/sanpham/vang-trang-suc/?", "dest": "/server.js" },
-    { "src": "/sanpham/gia-vang/?", "dest": "/server.js" },
-    { "src": "/sanpham/?", "dest": "/server.js" },
-    { "src": "/(.*)", "dest": "/server.js" }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/server.js" }
   ]
 }

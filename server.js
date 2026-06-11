@@ -41,4 +41,8 @@ function listenFrom(port, triesLeft) {
   });
 }
 
-listenFrom(BASE_PORT, MAX_TRIES);
+if (require.main === module) {
+  listenFrom(BASE_PORT, MAX_TRIES);
+}
+
+module.exports = app;
