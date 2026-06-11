@@ -126,9 +126,9 @@ html {
   --tlkv-header-text-muted: var(--tlkv-text-muted);
   --tlkv-header-shadow: 0 1px 0 var(--tlkv-border-light), 0 4px 24px rgba(26, 26, 26, 0.04);
   --tlkv-topbar-bg: var(--tlkv-bg-cream);
-  --tlkv-footer-bg: var(--tlkv-bg-cream);
-  --tlkv-footer-text: var(--tlkv-text-muted);
-  --tlkv-footer-heading: var(--tlkv-text);
+  --tlkv-footer-bg: #9b0102;
+  --tlkv-footer-text: #ffffff;
+  --tlkv-footer-heading: rgb(240, 229, 87);
 
   /* ----- Typography ----- */
   --tlkv-font-heading: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;

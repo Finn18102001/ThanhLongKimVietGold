@@ -20,6 +20,14 @@
     return m ? decodeURIComponent(m[1]) : "";
   }
 
+  /** Catalog page kind from URL */
+  function catalogPageKind() {
+    var p = normPath();
+    if (p === "/sanpham/vang-tich-luy") return "accumulation";
+    if (p === "/sanpham/vang-trang-suc") return "jewelry";
+    return "all";
+  }
+
   function readUrlState() {
     var u = new URL(window.location.href);
     var sortRaw = String(u.searchParams.get("sort") || "").trim().toLowerCase();
@@ -76,6 +84,7 @@
     writeUrlState: writeUrlState,
     categorySlugFromPath: categorySlugFromPath,
     brandSlugFromPath: brandSlugFromPath,
+    catalogPageKind: catalogPageKind,
     clientFilterByQuery: clientFilterByQuery,
   };
 })(typeof window !== "undefined" ? window : globalThis);

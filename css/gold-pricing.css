@@ -18,7 +18,7 @@
   --tlkv-gp-world-title-size: clamp(1.65rem, 1.1rem + 2.42vw, 2.475rem);
   /* Unified table header chrome — deep red block, gold titles, white labels */
   --tlkv-gp-header-bg: rgba(155, 1, 2, 1);
-  --tlkv-gp-header-gold: rgb(240, 244, 148);
+  --tlkv-gp-header-gold: rgb(240, 229, 87);
   --tlkv-gp-header-text: #ffffff;
   --tlkv-gp-header-divider: rgba(255, 255, 255, 0.3);
 
@@ -1031,9 +1031,9 @@
   .tlkv-gold-dashboard .tlkv-gp-title,
   .tlkv-gold-dashboard .tlkv-gold-panel__title.tlkv-gp-title,
   .tlkv-gold-dashboard .tlkv-world-xau-title.tlkv-gp-title {
-    color: rgb(240, 244, 148) !important;
+    color: rgb(240, 229, 87) !important;
     background: none !important;
-    -webkit-text-fill-color: rgb(240, 244, 148) !important;
+    -webkit-text-fill-color: rgb(240, 229, 87) !important;
     -webkit-filter: none !important;
     filter: none !important;
   }

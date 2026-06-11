@@ -3,10 +3,13 @@
 
   /** Chỉ cột có trên bảng products thực tế (legacy có thể thiếu created_at). */
   var PRODUCT_SELECT =
-    "id, name, slug, price_text, price_numeric, image, sort_order, " +
+    "id, name, slug, price_text, price_numeric, image, sort_order, weight, price_source_product, " +
     "is_featured, is_best_seller, is_hot, is_active, brand_id, category_id, " +
     "brands ( id, name, slug ), categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";
+
+  var ACCUMULATION_CATEGORY_SLUGS = ["vang-mieng", "nhan-tron"];
+  var JEWELRY_CATEGORY_SLUGS = ["trang-suc", "bac"];
 
   var BRAND_SELECT = [
     "id, name, slug, description, logo_url, sort_order",
@@ -19,7 +22,9 @@
   var FEATURED_BRAND_SELECT = "id, name, slug, logo_url, sort_order";
   var FEATURED_PRODUCT_SELECT = "id, name, slug, image, price_text, sort_order";
   var FEATURED_FALLBACK_PRODUCT_SELECT =
-    "id, name, slug, image, price_text, sort_order, weight, price_source_product, " +
+    "id, name, slug, image, price_text, price_numeric, sort_order, weight, price_source_product, " +
+    "is_featured, is_best_seller, is_hot, " +
+    "categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";
 
   function getSupabaseClient() {
@@ -88,12 +93,18 @@
       categoryId: row.category_id || (cat && cat.id) || null,
       categoryName: cat && cat.name ? cat.name : "",
       categorySlug: cat && cat.slug ? cat.slug : "",
+      weight: row.weight != null ? Number(row.weight) : null,
+      priceSourceProduct:
+        row.price_source_product != null
+          ? String(row.price_source_product).trim().replace(/\s+/g, " ")
+          : null,
       createdAt: row.created_at || null,
     };
   }
 
   function normalizeFeaturedProduct(row, rfn) {
     rfn = rfn || resolveFn();
+    var cat = row.categories || null;
     var weight = row.weight != null ? Number(row.weight) : null;
     if (weight != null && !Number.isFinite(weight)) weight = null;
     var priceSourceProduct =
@@ -108,13 +119,20 @@
       image: row.image || "",
       thumbnailUrl: pickImageUrl(row, rfn),
       priceText: "",
-      priceNumeric: null,
+      priceNumeric: row.price_numeric != null ? Number(row.price_numeric) : null,
       weight: weight,
       priceSourceProduct: priceSourceProduct || null,
       isPriceMappable: isPriceMappable,
       isPriceDerived: false,
       showPrice: false,
       sortOrder: row.sort_order,
+      isFeatured: row.is_featured !== false,
+      isBestSeller: !!row.is_best_seller,
+      isHot: !!row.is_hot,
+      categoryId: cat && cat.id ? cat.id : null,
+      categoryName: cat && cat.name ? cat.name : "",
+      categorySlug: cat && cat.slug ? cat.slug : "",
+      brandName: "",
     };
   }
 
@@ -177,7 +195,8 @@
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
     var rfn = resolveFn();
-    var limit = productLimitPerBrand != null ? productLimitPerBrand : 7;
+    /** undefined → 7 (homepage); 0 or null → không giới hạn */
+    var limit = productLimitPerBrand === undefined ? 7 : productLimitPerBrand;
 
     var brandRes = await sb
       .from("brands")
@@ -191,14 +210,15 @@
 
     for (var i = 0; i < brands.length; i += 1) {
       var brand = brands[i];
-      var productRes = await sb
+      var productQuery = sb
         .from("products")
         .select(FEATURED_FALLBACK_PRODUCT_SELECT)
         .eq("brand_id", brand.id)
         .eq("is_featured", true)
         .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .limit(limit);
+        .order("sort_order", { ascending: true });
+      if (limit > 0) productQuery = productQuery.limit(limit);
+      var productRes = await productQuery;
 
       if (productRes.error) throw productRes.error;
 
@@ -225,6 +245,9 @@
     filters = filters || {};
     if (filters.brandId) q = q.eq("brand_id", filters.brandId);
     if (filters.categoryId) q = q.eq("category_id", filters.categoryId);
+    else if (filters.includeCategoryIds && filters.includeCategoryIds.length) {
+      q = q.in("category_id", filters.includeCategoryIds);
+    }
     if (filters.featured) q = q.eq("is_featured", true);
     if (filters.hot) q = q.eq("is_hot", true);
     if (filters.bestSeller) q = q.eq("is_best_seller", true);
@@ -289,6 +312,15 @@
     return res;
   }
 
+  async function resolveCategoryIds(sb, slugs) {
+    if (!slugs || !slugs.length) return [];
+    var res = await sb.from("categories").select("id, slug").in("slug", slugs);
+    if (res.error) throw res.error;
+    return (res.data || []).map(function (row) {
+      return row.id;
+    });
+  }
+
   async function resolveFilterIds(sb, filters) {
     var out = {
       brandId: filters.brandId || null,
@@ -297,6 +329,7 @@
       hot: !!filters.hot,
       bestSeller: !!filters.bestSeller,
       sort: filters.sort || "sort",
+      catalogGroup: filters.catalogGroup || "",
     };
     if (filters.brandSlug && !out.brandId) {
       var br = await sb.from("brands").select("id").eq("slug", filters.brandSlug).maybeSingle();
@@ -305,6 +338,9 @@
     if (filters.categorySlug && !out.categoryId) {
       var ct = await sb.from("categories").select("id").eq("slug", filters.categorySlug).maybeSingle();
       if (ct.data) out.categoryId = ct.data.id;
+    }
+    if (!out.categoryId && out.catalogGroup === "accumulation") {
+      out.includeCategoryIds = await resolveCategoryIds(sb, ACCUMULATION_CATEGORY_SLUGS);
     }
     return out;
   }
@@ -398,6 +434,79 @@
     return (data && data.items) || [];
   }
 
+  var DEFAULT_BRAND_SLUGS = ["thang-long-kim-viet", "bao-tin-minh-chau", "bao-tin-manh-hai"];
+
+  var BRAND_DESCRIPTION_FALLBACKS = {
+    "thang-long-kim-viet":
+      "Thương hiệu kim hoàn tinh xảo, Nhẫn Vàng Kim Việt thể hiện tôn vinh truyền thống và bản sắc văn hóa Việt Nam.",
+    "bao-tin-minh-chau":
+      "Vàng Rồng Thăng Long, biểu tượng khởi đầu và thịnh vượng trong văn hóa Việt.",
+    "bao-tin-manh-hai":
+      "Bông sen vàng cùng Kim Gia Bảo — tích lũy tinh tế, gần gũi phong cách Việt.",
+  };
+
+  /**
+   * Vàng tích lũy — products grouped by brand (vang-mieng, nhan-tron).
+   */
+  async function fetchAccumulationByBrands() {
+    var sb = await getSupabaseClient();
+    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    var rfn = resolveFn();
+    var categoryIds = await resolveCategoryIds(sb, ACCUMULATION_CATEGORY_SLUGS);
+    if (!categoryIds.length) return [];
+
+    var brandRes = await sb
+      .from("brands")
+      .select("id, name, slug, description, logo_url, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (brandRes.error) throw brandRes.error;
+
+    var brandsBySlug = {};
+    (brandRes.data || []).forEach(function (b) {
+      brandsBySlug[b.slug] = b;
+    });
+
+    var orderedBrands = DEFAULT_BRAND_SLUGS.map(function (slug, idx) {
+      var b = brandsBySlug[slug];
+      return {
+        id: b && b.id ? b.id : "default-" + slug,
+        name: b && b.name ? b.name : slug,
+        slug: slug,
+        description:
+          (b && b.description) ||
+          BRAND_DESCRIPTION_FALLBACKS[slug] ||
+          "",
+        logo_url: b && b.logo_url ? b.logo_url : "",
+        sort_order: b && b.sort_order != null ? b.sort_order : idx + 1,
+      };
+    });
+
+    var out = [];
+    for (var i = 0; i < orderedBrands.length; i += 1) {
+      var brand = orderedBrands[i];
+      if (!brand.id || String(brand.id).indexOf("default-") === 0) {
+        out.push({ brand: brand, products: [] });
+        continue;
+      }
+      var productRes = await sb
+        .from("products")
+        .select(PRODUCT_SELECT)
+        .eq("brand_id", brand.id)
+        .eq("is_active", true)
+        .in("category_id", categoryIds)
+        .order("sort_order", { ascending: true });
+      if (productRes.error) throw productRes.error;
+      out.push({
+        brand: brand,
+        products: (productRes.data || []).map(function (row) {
+          return normalizeProduct(row, rfn);
+        }),
+      });
+    }
+    return out;
+  }
+
   global.TLKVCatalogApi = {
     getSupabaseClient: getSupabaseClient,
     fetchBrandCatalogSections: fetchBrandCatalogSections,
@@ -408,6 +517,9 @@
     fetchBrandBySlug: fetchBrandBySlug,
     fetchProductBySlugs: fetchProductBySlugs,
     fetchFlatLegacyProducts: fetchFlatLegacyProducts,
+    fetchAccumulationByBrands: fetchAccumulationByBrands,
+    ACCUMULATION_CATEGORY_SLUGS: ACCUMULATION_CATEGORY_SLUGS,
+    JEWELRY_CATEGORY_SLUGS: JEWELRY_CATEGORY_SLUGS,
     normalizeProduct: normalizeProduct,
     normalizeBrand: normalizeBrand,
     parsePriceNumeric:

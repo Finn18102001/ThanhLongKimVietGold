@@ -17,14 +17,25 @@ module.exports = function webRouter(ROOT) {
 
   router.get("/", send("index.html"));
   router.get("/gioithieu", send("gioi-thieu/index.html"));
-  router.get("/sanpham", send("san-pham/index.html"));
+  router.get("/sanpham", function (req, res) {
+    res.redirect(301, "/sanpham/vang-tich-luy");
+  });
+  router.get("/sanpham/vang-trang-suc", send("san-pham/index.html"));
+  router.get("/sanpham/vang-tich-luy", send("san-pham/vang-tich-luy.html"));
   router.get("/sanpham/gia-vang", send("san-pham/gia-vang.html"));
   router.get("/sanpham/danh-muc/:categorySlug", send("san-pham/index.html"));
   router.get("/thuong-hieu/:brandSlug", send("thuong-hieu/index.html"));
-  /** Product detail: /sanpham/:categorySlug/:productSlug (not danh-muc, gia-vang) */
+  /** Product detail: /sanpham/:categorySlug/:productSlug (reserved segments excluded) */
   router.get("/sanpham/:categorySlug/:productSlug", function (req, res, next) {
     var cat = String(req.params.categorySlug || "").toLowerCase();
-    if (cat === "danh-muc" || cat === "gia-vang") return next();
+    if (
+      cat === "danh-muc" ||
+      cat === "gia-vang" ||
+      cat === "vang-trang-suc" ||
+      cat === "vang-tich-luy"
+    ) {
+      return next();
+    }
     res.sendFile(path.join(ROOT, "san-pham", "chi-tiet.html"));
   });
   router.get("/tv-model", send("tv-model.html"));
@@ -65,16 +76,16 @@ module.exports = function webRouter(ROOT) {
     res.redirect(301, "/gioithieu");
   });
   router.get("/san-pham", function (req, res) {
-    res.redirect(301, "/sanpham");
+    res.redirect(301, "/sanpham/vang-tich-luy");
   });
   router.get("/san-pham/", function (req, res) {
-    res.redirect(301, "/sanpham");
+    res.redirect(301, "/sanpham/vang-tich-luy");
   });
   router.get("/san-pham/gia-vang.html", function (req, res) {
     res.redirect(301, "/sanpham/gia-vang");
   });
   router.get("/san-pham/index.html", function (req, res) {
-    res.redirect(301, "/sanpham");
+    res.redirect(301, "/sanpham/vang-tich-luy");
   });
   router.get("/gioi-thieu/index.html", function (req, res) {
     res.redirect(301, "/gioithieu");

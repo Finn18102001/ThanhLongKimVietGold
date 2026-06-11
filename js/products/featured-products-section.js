@@ -566,8 +566,20 @@
       });
   }
 
+  async function refreshDerivedPrices() {
+    var rows = await resolveGoldRowsForPricing();
+    applyDerivedPricesToStateBrands(rows);
+    state.signature = buildSignature(state.brands);
+    return state.brands;
+  }
+
   global.TLKVFeaturedProductsSection = {
     fetchFeaturedBrandsWithProducts: fetchFeaturedBrandsWithProducts,
+    loadFeaturedBrands: loadFeaturedBrands,
+    getBrandRows: function () {
+      return state.brands;
+    },
+    refreshDerivedPrices: refreshDerivedPrices,
     mountFeaturedProductsSection: mountFeaturedProductsSection,
     refreshIfChanged: refreshIfChanged,
     patchFeaturedPricesInDom: patchFeaturedPricesInDom,

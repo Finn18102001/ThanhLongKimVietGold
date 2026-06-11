@@ -133,6 +133,7 @@
 
     try {
       var pageSize = global.TLKVCatalogFilters.ARCHIVE_PAGE_SIZE;
+      var catalogGroup = global.TLKVCatalogFilters.catalogPageKind();
       var result = await global.TLKVCatalogApi.fetchProductsPage(
         {
           brandSlug: STATE.brandSlug,
@@ -141,6 +142,7 @@
           hot: STATE.hot,
           bestSeller: STATE.bestSeller,
           sort: STATE.sort,
+          catalogGroup: catalogGroup === "all" ? "" : catalogGroup,
         },
         STATE.page,
         pageSize
@@ -152,7 +154,8 @@
 
       var titleEl = $("#catalog-page-title");
       if (titleEl) {
-        var parts = ["Sản phẩm"];
+        var pageKind = global.TLKVCatalogFilters.catalogPageKind();
+        var parts = [pageKind === "jewelry" ? "Vàng trang sức" : "Sản phẩm"];
         if (STATE.categorySlug) parts.push(STATE.categorySlug.replace(/-/g, " "));
         if (STATE.brandSlug) parts.push("— " + STATE.brandSlug.replace(/-/g, " "));
         titleEl.textContent = parts.join(" ");

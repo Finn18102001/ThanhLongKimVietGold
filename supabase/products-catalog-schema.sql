@@ -156,7 +156,7 @@ create unique index if not exists idx_product_images_one_main
 -- ---------------------------------------------------------------------------
 insert into public.brands (name, slug, description, sort_order, is_active)
 values
-  ('Thăng Long Kim Việt', 'thang-long-kim-viet', 'Thương hiệu vàng bạc Thăng Long Kim Việt', 10, true),
+  ('Thăng Long Kim Việt', 'thang-long-kim-viet', null, 10, true),
   ('Bảo Tín Minh Châu', 'bao-tin-minh-chau', null, 20, true),
   ('Bảo Tín Mạnh Hải', 'bao-tin-manh-hai', null, 30, true)
 on conflict (slug) do update
