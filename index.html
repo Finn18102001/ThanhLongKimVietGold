@@ -549,6 +549,7 @@
 
   <script>
     window.TLKV_BASE = "/";
+    window.TLKV_PRODUCT_DERIVED_PRICE_SIDE = "sell";
   </script>
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/boot-supabase-env.js"></script>
@@ -560,6 +561,7 @@
   <script src="/js/products/product-card-layout.js"></script>
   <script src="/js/products/product-card.js"></script>
   <script src="/js/products/catalog-api.js"></script>
+  <script src="/js/products/product-price-engine.js"></script>
   <script src="/js/products/featured-products-section.js"></script>
   <script src="/js/news/news-api.js"></script>
   <script src="/js/news/news-home-preview.js"></script>
@@ -568,28 +570,38 @@
 <script src="/js/site-nav.js"></script>
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-    TLKVGold.mountGoldTable("#gold-table-body");
+
+    var featuredRoot = "#tlkv-featured-products-root";
+    var featuredLimit =
+      typeof TLKV_PRODUCTS_PER_BRAND_SECTION === "number" ? TLKV_PRODUCTS_PER_BRAND_SECTION : 7;
+
+    function mountFeaturedSection() {
+      if (!window.TLKVFeaturedProductsSection) return Promise.resolve();
+      return TLKVFeaturedProductsSection.mountFeaturedProductsSection(featuredRoot, { limit: featuredLimit });
+    }
+
+    TLKVGold.mountGoldTable("#gold-table-body").then(function () {
+      return mountFeaturedSection();
+    });
+
     window.addEventListener("tlkv:gold-table-changed", function () {
       TLKVGold.mountGoldTable("#gold-table-body");
     });
 
-    if (window.TLKVFeaturedProductsSection) {
-      TLKVFeaturedProductsSection.mountFeaturedProductsSection("#tlkv-featured-products-root", { limit: 6 });
+    window.addEventListener("tlkv:gold-rows-updated", function () {
+      if (window.TLKVFeaturedProductsSection && typeof window.TLKVFeaturedProductsSection.finalizeFeaturedPrices === "function") {
+        var root = document.querySelector(featuredRoot);
+        if (!root) return;
+        var host = root.querySelector("[data-featured-products-host]") || root;
+        window.TLKVFeaturedProductsSection.finalizeFeaturedPrices(host);
+      }
+    });
 
-      var featuredRefreshTimer = null;
-      var scheduleFeaturedRefresh = function () {
-        if (featuredRefreshTimer) {
-          clearTimeout(featuredRefreshTimer);
-        }
-        featuredRefreshTimer = setTimeout(function () {
-          featuredRefreshTimer = null;
-          TLKVFeaturedProductsSection.refreshIfChanged("#tlkv-featured-products-root", { limit: 6 });
-        }, 250);
-      };
-
-      window.addEventListener("tlkv:gold-table-changed", scheduleFeaturedRefresh);
-      window.addEventListener("tlkv:products-changed", scheduleFeaturedRefresh);
-    }
+    window.addEventListener("tlkv:products-changed", function () {
+      if (window.TLKVFeaturedProductsSection) {
+        TLKVFeaturedProductsSection.refreshIfChanged(featuredRoot, { limit: featuredLimit });
+      }
+    });
   </script>
   </body>
 

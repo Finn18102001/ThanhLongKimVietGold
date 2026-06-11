@@ -183,7 +183,7 @@
 .tlkv-product-card--normalized .tlkv-product-card__name {
   width: 100%;
   margin: 0 0 8px;
-  font-size: var(--tlkv-text-base, 0.9375rem);
+  font-size: var(--tlkv-text-md, 1rem);
   font-weight: var(--tlkv-weight-medium, 500);
   line-height: 1.35;
   color: var(--tlkv-text, #1a1a1a);
@@ -197,7 +197,7 @@
 }
 
 .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__name {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   margin: 0 0 4px;
   min-height: 2.45em;
   max-height: 2.45em;
@@ -272,7 +272,7 @@
   }
 
   .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__name {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     min-height: 2.2em;
     max-height: 2.2em;
   }

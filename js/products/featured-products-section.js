@@ -4,14 +4,159 @@
   var MAX_PRODUCTS_PER_BRAND =
     typeof global.TLKV_PRODUCTS_PER_BRAND_SECTION === "number"
       ? global.TLKV_PRODUCTS_PER_BRAND_SECTION
-      : 6;
+      : 7;
   var DEFAULT_BRAND_SLUGS = ["thang-long-kim-viet", "bao-tin-manh-hai", "bao-tin-minh-chau"];
+  var BTMH_BRAND_SLUG = "bao-tin-manh-hai";
 
   var state = {
     signature: "",
     brands: [],
     inFlight: null,
+    mountedRoot: null,
+    goldListenerBound: false,
+    productMetaById: Object.create(null),
   };
+
+  function getPriceEngine() {
+    return global.TLKVProductPriceEngine || null;
+  }
+
+  async function resolveGoldRowsForPricing() {
+    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
+      var cached = global.TLKVGold.getLastGoldRows();
+      if (cached && cached.length) return cached;
+    }
+    if (global.TLKVGold && typeof global.TLKVGold.getGoldTable === "function") {
+      var data = await global.TLKVGold.getGoldTable();
+      return (data && data.rows) || [];
+    }
+    return [];
+  }
+
+  function buildGoldIndexFromRows(rows) {
+    var engine = getPriceEngine();
+    if (!engine || typeof engine.buildGoldPriceIndex !== "function") return new Map();
+    return engine.buildGoldPriceIndex(rows);
+  }
+
+  function applyDerivedPricesToStateBrands(rows) {
+    var engine = getPriceEngine();
+    if (!engine || typeof engine.applyDerivedPricesToBrandRows !== "function") return;
+    var index = buildGoldIndexFromRows(rows);
+    engine.applyDerivedPricesToBrandRows(state.brands, index);
+    rebuildProductMetaIndex();
+  }
+
+  function rebuildProductMetaIndex() {
+    state.productMetaById = Object.create(null);
+    (state.brands || []).forEach(function (brand) {
+      (brand.featured_products || []).forEach(function (p) {
+        if (!p || !p.id) return;
+        state.productMetaById[String(p.id)] = p;
+      });
+    });
+  }
+
+  function formatPriceLabel(priceText) {
+    var t = String(priceText || "").trim();
+    if (!t) return null;
+    if (/^li[eê]n\s*h[eệ]$/i.test(t)) return null;
+    if (/^contact$/i.test(t)) return null;
+    return t;
+  }
+
+  function syncCardPriceDisplay(card, product) {
+    if (!card || !product) return;
+    var footer = card.querySelector(".tlkv-product-card__footer");
+    var priceEl = footer
+      ? footer.querySelector(".tlkv-product-card__price--derived")
+      : card.querySelector(".tlkv-product-card__price--derived");
+
+    card.querySelectorAll(".tlkv-product-card__content .tlkv-product-card__price").forEach(function (el) {
+      el.remove();
+    });
+
+    if (product.showPrice !== true) {
+      if (priceEl) priceEl.remove();
+      card.classList.remove("tlkv-product-card--has-price");
+      return;
+    }
+
+    var label = formatPriceLabel(product.priceText);
+    if (!label) {
+      if (priceEl) priceEl.remove();
+      card.classList.remove("tlkv-product-card--has-price");
+      return;
+    }
+
+    if (!priceEl) {
+      if (!footer) return;
+      var cta = footer.querySelector(".tlkv-product-card__cta");
+      priceEl = document.createElement("p");
+      priceEl.className = "tlkv-product-card__price tlkv-product-card__price--derived";
+      if (cta) {
+        footer.insertBefore(priceEl, cta);
+      } else {
+        footer.appendChild(priceEl);
+      }
+    }
+
+    priceEl.textContent = label;
+    card.classList.add("tlkv-product-card--has-price");
+  }
+
+  function patchFeaturedPricesInDom(host) {
+    if (!host) return;
+    var engine = getPriceEngine();
+    if (!engine) return;
+    var rows =
+      global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function"
+        ? global.TLKVGold.getLastGoldRows()
+        : null;
+    if (!rows || !rows.length) return;
+    var index = buildGoldIndexFromRows(rows);
+    var cards = host.querySelectorAll("[data-tlkv-product-id]");
+    for (var i = 0; i < cards.length; i += 1) {
+      var card = cards[i];
+      var id = card.getAttribute("data-tlkv-product-id");
+      var product = id ? state.productMetaById[id] : null;
+      if (!product) continue;
+      var derived = engine.deriveProductPrice(product, index);
+      product.isPriceDerived = derived.isDerived;
+      product.showPrice = derived.showPrice === true;
+      product.priceNumeric = derived.amountVnd;
+      product.priceText = derived.showPrice ? derived.priceText : "";
+      syncCardPriceDisplay(card, product);
+    }
+    state.signature = buildSignature(state.brands);
+  }
+
+  function finalizeFeaturedPrices(host) {
+    if (!host) return;
+    var rows = null;
+    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
+      rows = global.TLKVGold.getLastGoldRows();
+    }
+    if (!rows || !rows.length) return;
+    applyDerivedPricesToStateBrands(rows);
+    patchFeaturedPricesInDom(host);
+  }
+
+  function bindGoldPriceListener() {
+    if (state.goldListenerBound) return;
+    state.goldListenerBound = true;
+    global.addEventListener("tlkv:gold-rows-updated", function (ev) {
+      if (!state.mountedRoot) return;
+      var rows = ev && ev.detail && ev.detail.rows ? ev.detail.rows : [];
+      if (!rows.length && global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
+        rows = global.TLKVGold.getLastGoldRows() || [];
+      }
+      if (!rows.length) return;
+      var host = state.mountedRoot.querySelector("[data-featured-products-host]") || state.mountedRoot;
+      applyDerivedPricesToStateBrands(rows);
+      patchFeaturedPricesInDom(host);
+    });
+  }
 
   function resolveImageSrc(image) {
     if (global.TLKVProducts && typeof global.TLKVProducts.resolveProductImageSrc === "function") {
@@ -41,7 +186,7 @@
           count: (brand.featured_products || []).length,
           order: brand.sort_order,
           products: (brand.featured_products || []).map(function (p) {
-            return [p.id, p.sortOrder, p.priceText];
+            return [p.id, p.sortOrder, p.showPrice, p.priceText, p.weight, p.priceSourceProduct];
           }),
         };
       })
@@ -88,6 +233,7 @@
     (products || []).forEach(function (product) {
       var card = createCard(product, {
         cardVariant: "showcase",
+        hideCta: true,
         resolveImage: resolveImageSrc,
       });
       card.classList.add("tlkv-featured-product-card");
@@ -271,6 +417,35 @@
     });
   }
 
+  function isBongSenVangProduct(product) {
+    var name = String((product && product.name) || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    return name.indexOf("bong sen vang") >= 0;
+  }
+
+  function prioritizeBongSenVangForBtmh(brandRows) {
+    (brandRows || []).forEach(function (brand) {
+      if (!brand || brand.slug !== BTMH_BRAND_SLUG) return;
+      var products = brand.featured_products;
+      if (!products || products.length < 2) return;
+      var idx = -1;
+      for (var i = 0; i < products.length; i += 1) {
+        if (isBongSenVangProduct(products[i])) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx <= 0) return;
+      var next = products.slice();
+      var featured = next.splice(idx, 1)[0];
+      next.unshift(featured);
+      brand.featured_products = next;
+    });
+    return brandRows;
+  }
+
   function ensureDefaultBrandRows(featuredBrands, allBrands) {
     var defaults = normalizeDefaultBrands(allBrands);
     var bySlug = {};
@@ -307,18 +482,26 @@
 
   async function loadFeaturedBrands(limit) {
     if (state.inFlight) return state.inFlight;
-    state.inFlight = Promise.all([fetchFeaturedBrandsWithProducts(limit), fetchBrandsList()]).then(function (res) {
-      var brands = res[0] || [];
-      var allBrands = res[1] || [];
-      var rows = ensureDefaultBrandRows(brands, allBrands);
-      state.inFlight = null;
-      state.brands = rows;
-      state.signature = buildSignature(state.brands);
-      return state.brands;
-    }).catch(function (err) {
-      state.inFlight = null;
-      throw err;
-    });
+    state.inFlight = Promise.all([
+      fetchFeaturedBrandsWithProducts(limit),
+      fetchBrandsList(),
+      resolveGoldRowsForPricing(),
+    ])
+      .then(function (res) {
+        var brands = res[0] || [];
+        var allBrands = res[1] || [];
+        var goldRows = res[2] || [];
+        var rows = prioritizeBongSenVangForBtmh(ensureDefaultBrandRows(brands, allBrands));
+        state.inFlight = null;
+        state.brands = rows;
+        applyDerivedPricesToStateBrands(goldRows);
+        state.signature = buildSignature(state.brands);
+        return state.brands;
+      })
+      .catch(function (err) {
+        state.inFlight = null;
+        throw err;
+      });
     return state.inFlight;
   }
 
@@ -335,6 +518,8 @@
     host.classList.add("is-loading");
 
     try {
+      state.mountedRoot = root;
+      bindGoldPriceListener();
       var brands = await loadFeaturedBrands(limit);
       host.classList.remove("is-loading");
 
@@ -344,12 +529,13 @@
       }
 
       renderRows(host, brands);
+      finalizeFeaturedPrices(host);
       return brands;
     } catch (err) {
       host.classList.remove("is-loading");
       host.classList.add("is-error");
       host.textContent =
-        "Không tải được sản phẩm nổi bật. Vui lòng kiểm tra dữ liệu brands và nguồn sản phẩm (gold_meta/products).";
+        "Không tải được sản phẩm nổi bật. Vui lòng kiểm tra brands, products (weight, price_source_product) và bảng giá vàng.";
       console.error("[TLKVFeaturedProductsSection]", err);
       return null;
     }
@@ -358,19 +544,21 @@
   function refreshIfChanged(containerSelector, opts) {
     opts = opts || {};
     var limit = opts.limit != null ? opts.limit : MAX_PRODUCTS_PER_BRAND;
-    return Promise.all([fetchFeaturedBrandsWithProducts(limit), fetchBrandsList()])
+    return Promise.all([fetchFeaturedBrandsWithProducts(limit), fetchBrandsList(), resolveGoldRowsForPricing()])
       .then(function (res) {
         var next = ensureDefaultBrandRows(res[0] || [], res[1] || []);
-        var nextSig = buildSignature(next);
-        if (nextSig === state.signature) return next;
         state.brands = next;
+        applyDerivedPricesToStateBrands(res[2] || []);
+        var nextSig = buildSignature(state.brands);
+        if (nextSig === state.signature) return state.brands;
         state.signature = nextSig;
         var root =
           typeof containerSelector === "string" ? document.querySelector(containerSelector) : containerSelector;
         if (!root) return next;
         var host = root.querySelector("[data-featured-products-host]") || root;
-        renderRows(host, next);
-        return next;
+        renderRows(host, state.brands);
+        finalizeFeaturedPrices(host);
+        return state.brands;
       })
       .catch(function (err) {
         console.warn("[TLKVFeaturedProductsSection] refresh skipped:", err);
@@ -382,6 +570,8 @@
     fetchFeaturedBrandsWithProducts: fetchFeaturedBrandsWithProducts,
     mountFeaturedProductsSection: mountFeaturedProductsSection,
     refreshIfChanged: refreshIfChanged,
+    patchFeaturedPricesInDom: patchFeaturedPricesInDom,
+    finalizeFeaturedPrices: finalizeFeaturedPrices,
     createBrandRow: createBrandRow,
     createBrandCard: createBrandCard,
     createProductCarousel: createProductCarousel,

@@ -81,6 +81,14 @@
     }
   }
 
+  function formatWeightCell(p) {
+    if (window.TLKVProducts && window.TLKVProducts.formatProductWeightDisplay) {
+      return window.TLKVProducts.formatProductWeightDisplay(p && p.weight);
+    }
+    if (p && p.weight != null && Number.isFinite(Number(p.weight))) return String(Number(p.weight));
+    return "—";
+  }
+
   function flagBadges(p) {
     var parts = [];
     if (p.isFeatured) parts.push('<span class="tlkv-admin-badge tlkv-admin-badge--featured">Nổi bật</span>');
@@ -95,7 +103,7 @@
     if (!tb) return;
     tb.innerHTML = "";
     if (!items.length) {
-      tb.innerHTML = '<tr><td colspan="8" class="admin-empty-hint">0 sản phẩm.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="9" class="admin-empty-hint">0 sản phẩm.</td></tr>';
       return;
     }
     items.forEach(function (p) {
@@ -120,6 +128,9 @@
         "</td>" +
         "<td>" +
         escapeHtml(p.priceText) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(formatWeightCell(p)) +
         "</td>" +
         "<td>" +
         flagBadges(p) +

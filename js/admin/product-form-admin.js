@@ -21,6 +21,7 @@
     categoryId: "",
     category: "",
     priceText: "",
+    weight: null,
     image: "",
     isFeatured: false,
     isBestSeller: false,
@@ -82,6 +83,19 @@
     }
   }
 
+  function parseWeightInput(raw) {
+    var s = String(raw != null ? raw : "").trim();
+    if (!s) return null;
+    var n = Number(s);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round(n * 10) / 10;
+  }
+
+  function formatWeightInputValue(w) {
+    if (w == null || w === "" || !Number.isFinite(Number(w))) return "";
+    return String(Number(w));
+  }
+
   function setCheckboxes(flags) {
     flags = flags || DEFAULTS;
     if ($("pf-is-featured")) $("pf-is-featured").checked = !!flags.isFeatured;
@@ -98,6 +112,7 @@
     if ($("pf-category-id")) $("pf-category-id").value = data.categoryId || "";
     if ($("pf-category")) $("pf-category").value = data.category || "";
     if ($("pf-priceText")) $("pf-priceText").value = data.priceText || "";
+    if ($("pf-weight")) $("pf-weight").value = formatWeightInputValue(data.weight);
     if ($("pf-image")) $("pf-image").value = data.image || "";
     setCheckboxes(data);
     updateSlugPreview(data.name || "");
@@ -116,6 +131,7 @@
       categoryId: categoryId,
       category: catRow ? catRow.name : ($("pf-category") && $("pf-category").value.trim()) || "",
       priceText: ($("pf-priceText") && $("pf-priceText").value.trim()) || "",
+      weight: parseWeightInput($("pf-weight") && $("pf-weight").value),
       image: ($("pf-image") && $("pf-image").value.trim()) || "",
       sortOrder: null,
       isFeatured: !!($("pf-is-featured") && $("pf-is-featured").checked),
@@ -164,6 +180,7 @@
       categoryId: item.categoryId || "",
       category: item.category || "",
       priceText: item.priceText || "",
+      weight: item.weight != null ? item.weight : null,
       image: item.image || "",
       isFeatured: !!item.isFeatured,
       isBestSeller: !!item.isBestSeller,

@@ -19,7 +19,8 @@
   var FEATURED_BRAND_SELECT = "id, name, slug, logo_url, sort_order";
   var FEATURED_PRODUCT_SELECT = "id, name, slug, image, price_text, sort_order";
   var FEATURED_FALLBACK_PRODUCT_SELECT =
-    "id, name, slug, image, price_text, sort_order, product_images ( role, public_url, sort_order )";
+    "id, name, slug, image, price_text, sort_order, weight, price_source_product, " +
+    "product_images ( role, public_url, sort_order )";
 
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
@@ -93,13 +94,26 @@
 
   function normalizeFeaturedProduct(row, rfn) {
     rfn = rfn || resolveFn();
+    var weight = row.weight != null ? Number(row.weight) : null;
+    if (weight != null && !Number.isFinite(weight)) weight = null;
+    var priceSourceProduct =
+      row.price_source_product != null
+        ? String(row.price_source_product).trim().replace(/\s+/g, " ")
+        : "";
+    var isPriceMappable = !!(priceSourceProduct && weight != null && weight > 0);
     return {
       id: row.id,
       name: row.name || "",
       slug: row.slug || "",
       image: row.image || "",
       thumbnailUrl: pickImageUrl(row, rfn),
-      priceText: row.price_text || "",
+      priceText: "",
+      priceNumeric: null,
+      weight: weight,
+      priceSourceProduct: priceSourceProduct || null,
+      isPriceMappable: isPriceMappable,
+      isPriceDerived: false,
+      showPrice: false,
       sortOrder: row.sort_order,
     };
   }
@@ -131,7 +145,7 @@
   async function fetchBrandCatalogSections(productLimitPerBrand) {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var limit = productLimitPerBrand != null ? productLimitPerBrand : 6;
+    var limit = productLimitPerBrand != null ? productLimitPerBrand : 7;
     var rfn = resolveFn();
 
     var res = await sb
@@ -156,14 +170,14 @@
   /**
    * Homepage featured flow:
    * 1) load active brands ordered by sort_order
-   * 2) per brand, load active + featured products from gold_meta
+   * 2) per brand, load featured products (weight + price_source_product for derived pricing)
    * 3) attach to featured_products and drop empty brands
    */
   async function fetchFeaturedBrandsWithProducts(productLimitPerBrand) {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
     var rfn = resolveFn();
-    var limit = productLimitPerBrand != null ? productLimitPerBrand : 6;
+    var limit = productLimitPerBrand != null ? productLimitPerBrand : 7;
 
     var brandRes = await sb
       .from("brands")
@@ -174,48 +188,17 @@
 
     var brands = brandRes.data || [];
     var out = [];
-    var featuredSource = "gold_meta";
-
-    async function queryFeaturedProductsFromGoldMeta(brandId) {
-      return sb
-        .from("gold_meta")
-        .select(FEATURED_PRODUCT_SELECT)
-        .eq("brand_id", brandId)
-        .eq("is_featured", true)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .limit(limit);
-    }
-
-    async function queryFeaturedProductsFromProducts(brandId) {
-      return sb
-        .from("products")
-        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
-        .eq("brand_id", brandId)
-        .eq("is_featured", true)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .limit(limit);
-    }
 
     for (var i = 0; i < brands.length; i += 1) {
       var brand = brands[i];
-      var productRes =
-        featuredSource === "gold_meta"
-          ? await queryFeaturedProductsFromGoldMeta(brand.id)
-          : await queryFeaturedProductsFromProducts(brand.id);
-
-      if (productRes.error && featuredSource === "gold_meta") {
-        var msg = String((productRes.error && productRes.error.message) || "").toLowerCase();
-        var shouldFallback =
-          msg.indexOf("does not exist") >= 0 ||
-          msg.indexOf("column") >= 0 ||
-          msg.indexOf("schema cache") >= 0;
-        if (shouldFallback) {
-          featuredSource = "products";
-          productRes = await queryFeaturedProductsFromProducts(brand.id);
-        }
-      }
+      var productRes = await sb
+        .from("products")
+        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
+        .eq("brand_id", brand.id)
+        .eq("is_featured", true)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(limit);
 
       if (productRes.error) throw productRes.error;
 

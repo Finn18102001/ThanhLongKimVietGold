@@ -130,6 +130,15 @@
     } catch (_) {}
   }
 
+  /** Sau khi __TLKV_LAST_GOLD_ROWS đã cập nhật — derived product pricing lắng nghe event này. */
+  function dispatchGoldRowsUpdated(rows) {
+    try {
+      global.dispatchEvent(
+        new CustomEvent("tlkv:gold-rows-updated", { detail: { rows: Array.isArray(rows) ? rows : [] } })
+      );
+    } catch (_) {}
+  }
+
   /**
    * Một subscription Realtime cho bảng giá; gọi stopGoldTableRealtime khi không cần (SPA unmount / pagehide đã gắn sẵn).
    */
@@ -1307,6 +1316,7 @@ function applyMetaToDom(meta) {
     });
     global.__TLKV_LAST_GOLD_ROWS = ordered;
     markGoldTableBottomCorners(tbody);
+    dispatchGoldRowsUpdated(ordered);
     return true;
   }
 
@@ -1385,8 +1395,10 @@ function applyMetaToDom(meta) {
     __goldMountInFlight = (async function () {
       try {
       const data = await getGoldTable();
+      const rows = (data && data.rows) || [];
       applyMetaToDom(data && data.meta);
-      renderRowsIntoTbody(tbody, (data && data.rows) || []);
+      renderRowsIntoTbody(tbody, rows);
+      dispatchGoldRowsUpdated(rows);
       if (global.TLKVGoldTableScroll && typeof global.TLKVGoldTableScroll.refresh === "function") {
         global.TLKVGoldTableScroll.refresh();
       }
@@ -1441,10 +1453,18 @@ function applyMetaToDom(meta) {
     startGoldTableSseThenRealtime(sb);
   }
 
+  function getLastGoldRows() {
+    const rows = global.__TLKV_LAST_GOLD_ROWS;
+    return Array.isArray(rows) ? rows : null;
+  }
+
   global.TLKVGold = {
     STORAGE_KEY,
     isLeanGoldPushClient,
     getGoldTable,
+    getLastGoldRows,
+    parseGoldMoneyToInt,
+    formatPriceDisplay,
     fetchDefaultJson,
     loadFromStorage,
     saveToStorage,

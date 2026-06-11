@@ -385,7 +385,7 @@ html {
   flex-direction: column;
 }
 .tlkv-product-card__name {
-  font-size: var(--tlkv-text-base);
+  font-size: var(--tlkv-text-md);
   font-weight: var(--tlkv-weight-normal);
   line-height: var(--tlkv-leading-snug);
   color: var(--tlkv-text);

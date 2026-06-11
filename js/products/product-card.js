@@ -94,6 +94,8 @@
 
     var isShowcase = variant === "showcase";
 
+    var hideCta = opts.hideCta === true;
+
     var card = document.createElement("article");
 
     card.className = isShowcase
@@ -102,7 +104,9 @@
 
     card.setAttribute("role", "listitem");
 
-
+    if (product.id != null && String(product.id) !== "") {
+      card.setAttribute("data-tlkv-product-id", String(product.id));
+    }
 
     if (Layout) {
 
@@ -164,25 +168,34 @@
 
       regions.content.appendChild(nameEl);
 
-      Layout.appendPriceSlot(regions.content, formatPriceLabel(product.priceText));
+      if (isShowcase && product.showPrice === true) {
+        var showcasePrice = formatPriceLabel(product.priceText);
+        if (showcasePrice) {
+          var derivedPriceEl = document.createElement("p");
+          derivedPriceEl.className = "tlkv-product-card__price tlkv-product-card__price--derived";
+          derivedPriceEl.textContent = showcasePrice;
+          regions.footer.appendChild(derivedPriceEl);
+          card.classList.add("tlkv-product-card--has-price");
+        }
+      }
 
+      if (!hideCta) {
+        var cta = document.createElement("a");
 
+        cta.className = "tlkv-product-card__cta";
 
-      var cta = document.createElement("a");
+        cta.href = ZALO_URL;
 
-      cta.className = "tlkv-product-card__cta";
+        cta.target = "_blank";
 
-      cta.href = ZALO_URL;
+        cta.rel = "noopener noreferrer";
 
-      cta.target = "_blank";
+        cta.textContent = "Liên hệ";
 
-      cta.rel = "noopener noreferrer";
+        cta.setAttribute("aria-label", "Liên hệ qua Zalo — " + (product.name || "sản phẩm"));
 
-      cta.textContent = "Liên hệ";
-
-      cta.setAttribute("aria-label", "Liên hệ qua Zalo — " + (product.name || "sản phẩm"));
-
-      regions.footer.appendChild(cta);
+        regions.footer.appendChild(cta);
+      }
 
 
 
@@ -196,13 +209,13 @@
 
     /* Fallback if layout script missing */
 
-    return createProductCardLegacy(product, opts, resolveFn, isShowcase);
+    return createProductCardLegacy(product, opts, resolveFn, isShowcase, hideCta);
 
   }
 
 
 
-  function createProductCardLegacy(product, opts, resolveFn, isShowcase) {
+  function createProductCardLegacy(product, opts, resolveFn, isShowcase, hideCta) {
 
     var card = document.createElement("article");
 
@@ -270,33 +283,31 @@
 
     body.appendChild(nameEl);
 
-    var priceLabel = formatPriceLabel(product.priceText);
-
-    if (priceLabel) {
-
-      var priceEl = document.createElement("p");
-
-      priceEl.className = "tlkv-product-card__price";
-
-      priceEl.textContent = priceLabel;
-
-      body.appendChild(priceEl);
-
+    if (product.showPrice === true) {
+      var priceLabel = formatPriceLabel(product.priceText);
+      if (priceLabel) {
+        var priceEl = document.createElement("p");
+        priceEl.className = "tlkv-product-card__price";
+        priceEl.textContent = priceLabel;
+        body.appendChild(priceEl);
+      }
     }
 
-    var cta = document.createElement("a");
+    if (!hideCta) {
+      var cta = document.createElement("a");
 
-    cta.className = "tlkv-product-card__cta";
+      cta.className = "tlkv-product-card__cta";
 
-    cta.href = ZALO_URL;
+      cta.href = ZALO_URL;
 
-    cta.target = "_blank";
+      cta.target = "_blank";
 
-    cta.rel = "noopener noreferrer";
+      cta.rel = "noopener noreferrer";
 
-    cta.textContent = "Liên hệ";
+      cta.textContent = "Liên hệ";
 
-    body.appendChild(cta);
+      body.appendChild(cta);
+    }
 
     card.appendChild(body);
 

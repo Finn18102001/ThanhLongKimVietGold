@@ -38,6 +38,20 @@
       .replace(/^-+|-+$/g, "");
   }
 
+  /** Khối lượng vàng (chỉ) — numeric(5,1); null nếu trống hoặc không hợp lệ. */
+  function parseProductWeight(value) {
+    if (value == null || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round(n * 10) / 10;
+  }
+
+  function formatProductWeightDisplay(value) {
+    const w = parseProductWeight(value);
+    if (w == null) return "—";
+    return String(w);
+  }
+
   /** Số nguyên >= 0; null nếu không có giá trị hợp lệ (ô trống / NaN). */
   function coerceSortOrder(value) {
     if (value == null || value === "") return null;
@@ -85,6 +99,7 @@
       brandSlug: (brand && brand.slug) || "",
       priceText: priceRaw,
       priceNumeric: r.price_numeric != null ? Number(r.price_numeric) : parsePriceNumeric(priceRaw),
+      weight: parseProductWeight(r.weight),
       image: r.image ?? "",
       sortOrder: r.sort_order,
       isFeatured: !!r.is_featured,
@@ -204,6 +219,7 @@
       brandSlug: String(p.brandSlug ?? ""),
       priceText: String(p.priceText ?? ""),
       priceNumeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
+      weight: parseProductWeight(p.weight),
       image: String(p.image ?? "").trim(),
       sortOrder: coerceSortOrder(p.sortOrder),
       isFeatured: !!p.isFeatured,
@@ -224,6 +240,7 @@
       category: p.category || "",
       price_text: p.priceText || "",
       price_numeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
+      weight: parseProductWeight(p.weight),
       image: p.image || "",
       sort_order: sortOrder != null ? sortOrder : 0,
       brand_id: p.brandId || null,
@@ -651,6 +668,8 @@
     normalizeItem,
     productAppToDb,
     parsePriceNumeric,
+    parseProductWeight,
+    formatProductWeightDisplay,
     slugifySimple,
     coerceSortOrder,
     mountProductList,

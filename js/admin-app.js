@@ -1042,6 +1042,7 @@ function showToast(message, type = 'success') {
               $("pf-name").value = row.name;
               $("pf-category").value = row.category;
               $("pf-priceText").value = row.priceText;
+              if ($("pf-weight")) $("pf-weight").value = row.weight != null ? String(row.weight) : "";
               if ($("pf-image")) $("pf-image").value = row.image || "";
               $("product-form-title").textContent = "Sửa sản phẩm";
             });
