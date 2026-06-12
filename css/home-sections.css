@@ -1200,3 +1200,53 @@
     scroll-behavior: auto;
   }
 }
+
+/* ==========================================================================
+   Homepage address banner (above global footer)
+   Full-bleed width, natural height from image aspect ratio.
+   ========================================================================== */
+.tlkv-home-address-banner {
+  --tlkv-address-banner-ratio: 1024 / 341;
+
+  position: relative;
+  width: 100vw;
+  max-width: 100vw;
+  height: auto;
+  margin: 0;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 0;
+  overflow: hidden;
+  line-height: 0;
+  background: #f5f2eb;
+}
+
+.tlkv-home-address-banner__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  aspect-ratio: var(--tlkv-address-banner-ratio);
+  object-fit: contain;
+  object-position: center center;
+  image-rendering: auto;
+}
+
+@media (min-width: 768px) {
+  .tlkv-home-address-banner + .footer {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  body.tlkv-home .tlkv-home-editorial-news {
+    padding-bottom: 12px;
+  }
+
+  .tlkv-home-address-banner {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
