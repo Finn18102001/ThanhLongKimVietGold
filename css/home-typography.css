@@ -117,11 +117,11 @@
   }
 
   .tlkv-home .tlkv-brand-intro__eyebrow {
-    font-size: 0.58rem;
+    font-size: clamp(0.62rem, 2.75vw, 0.68rem);
   }
 
   .tlkv-home .tlkv-brand-intro__desc {
-    font-size: 0.72rem;
+    font-size: clamp(0.78rem, 3.35vw, 0.84rem);
   }
 }
 

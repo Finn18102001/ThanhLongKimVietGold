@@ -256,84 +256,113 @@
     display: none;
   }
 
-  /* —— Thương hiệu vàng bạc uy tín: thu nhỏ —— */
+  /* —— Thương hiệu vàng bạc uy tín: mobile typography + rhythm —— */
   .tlkv-brand-intro {
-    padding: 24px 0 18px;
+    padding: 28px 0 10px;
   }
 
   .tlkv-brand-intro__layout {
-    gap: 16px;
+    gap: 20px;
+    width: 100%;
   }
 
   .tlkv-brand-intro__content {
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .tlkv-brand-intro__eyebrow {
-    margin-bottom: 6px;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    margin: 0 0 8px;
+    font-size: clamp(0.62rem, 2.75vw, 0.68rem);
+    letter-spacing: 0.11em;
+    line-height: 1.35;
   }
 
   .tlkv-brand-intro__title {
-    font-size: clamp(1.2rem, 5.2vw, 1.45rem);
+    font-size: clamp(1.35rem, 6.2vw, 1.65rem);
+    line-height: 1.12;
   }
 
   .tlkv-brand-intro__headline {
-    margin-top: 4px;
-    font-size: clamp(0.82rem, 3.6vw, 0.95rem);
+    margin: 8px 0 0;
+    font-size: clamp(0.92rem, 4vw, 1.05rem);
+    line-height: 1.28;
   }
 
   .tlkv-brand-intro__desc {
-    margin-top: 10px;
-    font-size: 0.72rem;
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    margin: 12px 0 0;
+    font-size: clamp(0.78rem, 3.35vw, 0.84rem);
+    line-height: 1.55;
+    max-width: none;
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
   }
 
   .tlkv-brand-intro__stats {
-    margin-top: 12px;
+    margin-top: 16px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
     max-width: none;
   }
 
   .tlkv-trust-metric {
-    padding: 8px 4px 6px;
+    padding: 10px 6px 8px;
   }
 
   .tlkv-trust-metric__value {
-    font-size: clamp(0.82rem, 3.8vw, 0.95rem);
+    font-size: clamp(0.95rem, 4.1vw, 1.08rem);
+    line-height: 1.1;
   }
 
   .tlkv-trust-metric__label {
-    margin-top: 3px;
-    font-size: 0.46rem;
-    letter-spacing: 0.05em;
-    line-height: 1.25;
+    margin-top: 4px;
+    font-size: clamp(0.52rem, 2.15vw, 0.58rem);
+    letter-spacing: 0.06em;
+    line-height: 1.32;
   }
 
   .tlkv-brand-intro__cta {
-    margin-top: 12px;
-    min-height: 32px;
-    padding: 7px 12px;
-    font-size: 0.58rem;
-    letter-spacing: 0.06em;
+    margin-top: 16px;
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: clamp(0.62rem, 2.55vw, 0.68rem);
+    letter-spacing: 0.07em;
     width: 100%;
     justify-content: center;
   }
 
   .tlkv-brand-intro__gallery {
-    max-height: 140px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    align-self: stretch;
+    max-height: none;
+    aspect-ratio: auto;
+    border: 1px solid rgba(201, 161, 74, 0.2);
+    border-radius: var(--tlkv-radius-sm, 4px);
   }
 
   .tlkv-brand-intro__gallery-img {
+    display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    object-fit: unset;
+    object-position: unset;
+    border-radius: inherit;
+  }
+
+  /* Gallery + banner: cùng inset ngang, sát nhau */
+  body.tlkv-home .tlkv-brand-intro > .container.tlkv-container--wide {
+    padding-left: var(--tlkv-container-pad, 16px);
+    padding-right: var(--tlkv-container-pad, 16px);
+  }
+
+  .tlkv-brand-intro + .tlkv-home-address-banner {
+    padding: 10px var(--tlkv-container-pad, 16px) 18px;
+    margin-top: 0;
   }
 }
 
@@ -1293,35 +1322,36 @@
 
 @media (max-width: 767.98px) {
   .tlkv-home-address-banner {
-    padding-left: var(--tlkv-container-pad, 16px);
-    padding-right: var(--tlkv-container-pad, 16px);
+    line-height: normal;
     background: transparent;
   }
 
   .tlkv-home-address-banner__stage {
     position: relative;
-    aspect-ratio: 1583 / 300;
+    height: auto;
     border-radius: var(--tlkv-radius-sm, 4px);
     overflow: hidden;
     background: var(--tlkv-address-banner-bg);
   }
 
   .tlkv-home-address-banner__picture {
-    position: absolute;
-    inset: 0;
+    position: static;
+    display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
   }
 
   .tlkv-home-address-banner__img {
+    display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    aspect-ratio: 1583 / 326;
+    object-fit: contain;
     object-position: center center;
   }
 
   .tlkv-home-address-banner + .tlkv-home-editorial-news {
-    padding-top: 14px;
+    padding-top: 20px;
   }
 }
 
