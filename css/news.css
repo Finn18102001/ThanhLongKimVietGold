@@ -781,12 +781,16 @@
  * ========================================================================== */
 .tlkv-home-editorial-news {
   background: #fdfcf8;
-  border-top: 1px solid rgba(201, 161, 74, 0.14);
-  padding: 54px 0 70px;
+  border-top: 1px solid rgba(201, 161, 74, 0.12);
+  padding: 40px 0 56px;
 }
 
 .tlkv-home-editorial-news__head {
-  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 20px;
+  align-items: center;
   text-align: center;
 }
 
@@ -946,7 +950,7 @@
 
 @media (max-width: 991.98px) {
   .tlkv-home-editorial-news {
-    padding: 44px 0 56px;
+    padding: 36px 0 48px;
   }
 }
 
@@ -1165,11 +1169,12 @@
 @media (max-width: 767.98px) {
   /* Tin tức & Kiến thức: 4 card / 1 dòng */
   .tlkv-home-editorial-news {
-    padding: 28px 0 34px;
+    padding: 20px 0 24px;
   }
 
   .tlkv-home-editorial-news__head {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+    gap: 8px;
   }
 
   .tlkv-home-editorial-news__host {
