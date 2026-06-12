@@ -530,21 +530,37 @@ ul { list-style: none; }
     font-size: 0.95rem;
   }
 
+  /* Brand lockup — same logic as desktop navbar: logo height = line1 + gap + line2 */
   .tlkv-global-footer__brand-head {
+    --tlkv-footer-mb-lockup-h: 40px;
+    --tlkv-footer-mb-line-1: calc(var(--tlkv-footer-mb-lockup-h) * 28 / 73);
+    --tlkv-footer-mb-line-2: calc(var(--tlkv-footer-mb-lockup-h) * 40 / 73);
+    --tlkv-footer-mb-line-gap: calc(var(--tlkv-footer-mb-lockup-h) * 5 / 73);
     margin-bottom: 4px;
     gap: 10px;
   }
 
+  .tlkv-global-footer__brand-name {
+    gap: var(--tlkv-footer-mb-line-gap);
+    justify-content: center;
+  }
+
+  .tlkv-global-footer__brand-name-line {
+    line-height: var(--tlkv-brand-line-height, 1.08);
+  }
+
   .tlkv-global-footer__brand-name-line:first-child {
-    font-size: 21px;
+    font-size: var(--tlkv-footer-mb-line-1);
   }
 
   .tlkv-global-footer__brand-name-line--accent {
-    font-size: 34px;
+    font-size: var(--tlkv-footer-mb-line-2);
   }
 
   .tlkv-global-footer__logo .site-logo-img--footer {
-    max-height: 40px;
+    width: auto;
+    height: var(--tlkv-footer-mb-lockup-h);
+    max-height: var(--tlkv-footer-mb-lockup-h);
     margin-bottom: 0;
   }
 
