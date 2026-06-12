@@ -4,9 +4,12 @@
 
 .tlkv-float-contact {
   position: fixed;
+  inset-block-start: 58%;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
+  top: 58%;
   right: 0;
   left: auto;
-  top: 58%;
   z-index: 1050;
   margin: 0;
   padding: 0;
@@ -167,17 +170,31 @@
   white-space: nowrap;
 }
 
+/* Tablet / laptop / desktop — luôn dính mép phải viewport */
+@media (min-width: 769px) {
+  .tlkv-float-contact {
+    display: block !important;
+    inset-inline-end: 0 !important;
+    inset-inline-start: auto !important;
+    right: 0 !important;
+    left: auto !important;
+    margin-inline-start: 0 !important;
+    margin-inline-end: 0 !important;
+  }
+
+  .tlkv-float-contact__list {
+    align-items: flex-end;
+  }
+}
+
 @media (max-width: 768px) {
   .tlkv-float-contact {
     display: none !important;
   }
 }
 
-@media (max-width: 991.98px) {
+@media (min-width: 769px) and (max-width: 991.98px) {
   .tlkv-float-contact {
-    right: 0;
-    left: auto;
-    gap: 0.4rem;
     transform: translate3d(0, -50%, 0) scale(0.92);
   }
 
@@ -193,20 +210,6 @@
 
   .tlkv-float-contact__hotline-label {
     font-size: 0.4375rem;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .tlkv-float-contact {
-    top: auto;
-    bottom: 4.75rem;
-    transform: translate3d(0, 0, 0) scale(0.88);
-  }
-
-  @media (hover: hover) {
-    .tlkv-float-contact__btn:hover {
-      transform: translate3d(-2px, 0, 0) scale(1.02);
-    }
   }
 }
 
