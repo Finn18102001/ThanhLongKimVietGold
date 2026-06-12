@@ -525,8 +525,8 @@
 .header-mb {
   display: none;
   position: relative;
-  background: var(--tlkv-header-pearl);
-  border-bottom: 1px solid var(--tlkv-header-border);
+  background: var(--tlkv-header-brand-red);
+  border-bottom: 1px solid rgba(240, 229, 87, 0.18);
 }
 
 .header-mb > .container {
@@ -607,14 +607,14 @@
 }
 
 .mb-ham:hover {
-  background: rgba(201, 161, 74, 0.08);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .mb-ham span {
   display: block;
   width: 20px;
   height: 1.5px;
-  background: var(--tlkv-header-text);
+  background: #ffffff;
   border-radius: 1px;
 }
 
