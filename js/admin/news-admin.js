@@ -79,7 +79,11 @@
   }
 
   var __sb = null;
-  var newsAdminAuthed = false;
+  var Access = global.TLKVAdminAccess;
+
+  function canPerformNews() {
+    return Access && typeof Access.guardAction === "function" && Access.guardAction("news");
+  }
 
   function getSupabase() {
     if (__sb) return Promise.resolve(__sb);
@@ -108,17 +112,28 @@
   }
 
   async function getSessionEmail() {
+    if (Access && typeof Access.getCurrentAccess === "function") {
+      var cached = Access.getCurrentAccess();
+      if (cached && cached.email) return cached.email;
+    }
+    if (Access && typeof Access.resolveFromSupabase === "function") {
+      var sb = await getSupabase();
+      var access = await Access.resolveFromSupabase(sb);
+      return access.email;
+    }
     var sb = await getSupabase();
     var sessionRes = await sb.auth.getSession();
     var session = sessionRes.data && sessionRes.data.session;
     if (!session || !session.user) return null;
-    var email = session.user.email || null;
-    if (email) return email;
     try {
       var userRes = await sb.auth.getUser();
       if (userRes.data && userRes.data.user) return userRes.data.user.email || null;
     } catch (e) { /* ignore */ }
-    return null;
+    return session.user.email || null;
+  }
+
+  function setBodyAuthState(state) {
+    if (document.body) document.body.setAttribute("data-auth-state", state);
   }
 
   function setCurrentUser(email) {
@@ -139,13 +154,23 @@
   }
 
   function showLogin() {
+    setBodyAuthState("anonymous");
     $("#news-admin-login").hidden = false;
     $("#news-admin-root").hidden = true;
   }
 
   function showApp() {
+    setBodyAuthState("authenticated");
     $("#news-admin-login").hidden = true;
     $("#news-admin-root").hidden = false;
+  }
+
+  async function resolveAccess() {
+    if (!Access || typeof Access.resolveFromSupabase !== "function") {
+      return null;
+    }
+    var sb = await getSupabase();
+    return Access.resolveFromSupabase(sb);
   }
 
   // ---------------------------------------------------------------------------
@@ -167,21 +192,23 @@
   }
 
   function navigate(hash) {
+    if (!canPerformNews()) return;
     var next = String(hash || "list").replace(/^#/, "");
     var cur = parseHash();
     var curKey = cur.view === "edit" ? "edit/" + cur.id : cur.view;
     if (curKey === next) {
-      if (newsAdminAuthed) render();
+      render();
       return;
     }
     location.hash = next;
   }
 
   function onHashChange() {
-    if (newsAdminAuthed) render();
+    if (canPerformNews()) render();
   }
 
   async function render() {
+    if (!canPerformNews()) return;
     var root = $("#news-admin-content");
     if (!root) return;
     root.innerHTML = "";
@@ -206,6 +233,7 @@
   var LIST_SEARCH_TIMER = null;
 
   async function renderList(root) {
+    if (!canPerformNews()) return;
     var card = el("div", { class: "news-admin-card" });
     var hd = el("div", { class: "news-admin-card__header" });
     hd.appendChild(el("div", null, [
@@ -398,6 +426,7 @@
   }
 
   async function onTogglePublish(item, publish) {
+    if (!canPerformNews()) return;
     var ok = await confirmModal({
       title: publish ? "Xuất bản bài viết" : "Gỡ xuất bản",
       message: publish
@@ -416,6 +445,7 @@
   }
 
   async function onDelete(item) {
+    if (!canPerformNews()) return;
     var ok = await confirmModal({
       title: "Xoá bài viết",
       message: 'Bài viết "' + (item.title || "") + '" sẽ bị xoá vĩnh viễn. Tiếp tục?',
@@ -455,6 +485,7 @@
   var EDITOR_INSTANCE = null;
 
   async function renderForm(root, editId) {
+    if (!canPerformNews()) return;
     // Tear down previous editor (if any) before mounting new one
     if (EDITOR_INSTANCE) { try { await EDITOR_INSTANCE.destroy(); } catch (e) {} EDITOR_INSTANCE = null; }
 
@@ -843,6 +874,7 @@
   }
 
   async function onSave(targetStatus) {
+    if (!canPerformNews()) return;
     if (!FORM_STATE) return;
     if (!FORM_STATE.title.trim()) {
       toast("Vui lòng nhập tiêu đề.", "warn");
@@ -921,8 +953,19 @@
   // ---------------------------------------------------------------------------
 
   async function enterApp(email) {
-    newsAdminAuthed = true;
-    setCurrentUser(email);
+    var access = await resolveAccess();
+    if (!access || !access.email) {
+      if (Access) Access.clearCurrentAccess();
+      showLogin();
+      return;
+    }
+    if (!Access.canAccessModule(access, "news")) {
+      if (Access) Access.clearCurrentAccess();
+      Access.guardNewsPageAccess(access);
+      return;
+    }
+    if (Access) Access.setCurrentAccess(access);
+    setCurrentUser(email || access.email);
     showApp();
     await render();
   }
@@ -938,7 +981,18 @@
       if (btn) btn.disabled = true;
       try {
         await signIn(email, pass);
-        await enterApp(email);
+        var access = await resolveAccess();
+        if (!access || !access.email) {
+          await signOut();
+          toast("Phiên đăng nhập không hợp lệ.", "error");
+          return;
+        }
+        if (!Access.canAccessModule(access, "news")) {
+          await signOut();
+          toast("Tài khoản này không có quyền truy cập quản lý tin tức.", "error");
+          return;
+        }
+        await enterApp(access.email);
       } catch (err) {
         toast("Đăng nhập thất bại: " + (err && err.message ? err.message : String(err)), "error");
       } finally {
@@ -948,7 +1002,7 @@
     var logout = $("#na-logout");
     if (logout) logout.addEventListener("click", async function () {
       try { await signOut(); } catch (e) { /* ignore */ }
-      newsAdminAuthed = false;
+      if (Access) Access.clearCurrentAccess();
       showLogin();
     });
   }
@@ -956,28 +1010,51 @@
   async function boot() {
     bindLogin();
     window.addEventListener("hashchange", onHashChange);
-
-    var email = null;
-    try { email = await getSessionEmail(); } catch (e) { /* ignore */ }
-    if (!email) {
-      showLogin();
-      return;
-    }
-    await enterApp(email);
+    setBodyAuthState("pending");
+    /* Do NOT call showLogin() here — CSS already hides both panels during "pending".
+       Calling showLogin() would immediately set state to "anonymous" and make the
+       login form visible for the entire auth-resolution window (~50-300ms). */
 
     try {
+      var access = await resolveAccess();
+      if (!access || !access.email) {
+        showLogin();
+      } else if (!Access.canAccessModule(access, "news")) {
+        Access.guardNewsPageAccess(access);
+        return;
+      } else {
+        await enterApp(access.email);
+      }
+
       var sb = await getSupabase();
-      sb.auth.onAuthStateChange(function (event, session) {
+      sb.auth.onAuthStateChange(async function (event, session) {
         if (event === "INITIAL_SESSION") return;
+        /* TOKEN_REFRESHED only rotates the JWT — skip to avoid a redundant getUser() round-trip. */
+        if (event === "TOKEN_REFRESHED" && canPerformNews()) return;
         if (session && session.user) {
-          if (!newsAdminAuthed) enterApp(session.user.email || "");
-          else setCurrentUser(session.user.email || "");
+          var nextAccess = await resolveAccess();
+          if (!nextAccess || !nextAccess.email) {
+            if (Access) Access.clearCurrentAccess();
+            showLogin();
+            return;
+          }
+          if (!Access.canAccessModule(nextAccess, "news")) {
+            if (Access) Access.clearCurrentAccess();
+            Access.guardNewsPageAccess(nextAccess);
+            return;
+          }
+          if (Access) Access.setCurrentAccess(nextAccess);
+          var rootEl = $("#news-admin-root");
+          if (!rootEl || rootEl.hidden) await enterApp(nextAccess.email);
+          else setCurrentUser(nextAccess.email);
         } else {
-          newsAdminAuthed = false;
+          if (Access) Access.clearCurrentAccess();
           showLogin();
         }
       });
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      showLogin();
+    }
   }
 
   if (document.readyState !== "loading") boot();

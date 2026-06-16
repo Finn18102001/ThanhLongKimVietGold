@@ -17,6 +17,24 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   margin: 0;
   min-height: 100vh;
 }
+/*
+ * Auth-state visibility matrix (applied before first paint — stylesheet is render-blocking).
+ *
+ *  pending       → hide BOTH panels: nothing painted until auth resolves.
+ *  anonymous     → show login only (no CSS needed; JS sets hidden=false on login, hidden=true on admin).
+ *  authenticated → hide login, show admin (JS sets hidden=false on admin).
+ *
+ * Using :not([data-auth-state="anonymous"]) covers both pending and authenticated with one rule,
+ * so login is suppressed in every state except when we explicitly decide to show it.
+ */
+.admin-body:not([data-auth-state="anonymous"]) #login-panel,
+.news-admin-shell:not([data-auth-state="anonymous"]) #news-admin-login {
+  display: none !important;
+}
+.admin-body[data-auth-state="pending"] #admin-panel,
+.news-admin-shell[data-auth-state="pending"] #news-admin-root {
+  display: none !important;
+}
 .admin-wrap {
   max-width: 1100px;
   margin: 0 auto;
