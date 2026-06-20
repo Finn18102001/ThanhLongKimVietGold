@@ -5,14 +5,16 @@
  *   - Folder strategy:  thumbnails/<YYYY>/<MM>/   |   content/<YYYY>/<MM>/
  *   - Name convention:  <uuid>-<sanitized-basename>.<ext>
  *
- *   Server-side validation lives in RLS / bucket policies; client validation
- *   here is to fail fast and give a nice error message before we waste bytes.
+ *   Large local images are compressed in-browser before upload so admins can
+ *   select phone/camera photos without hitting Storage limits.
  */
 (function (global) {
   "use strict";
 
   var BUCKET = "news-media";
-  var MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+  var MAX_BYTES = 10 * 1024 * 1024; // hard ceiling after compression
+  var TARGET_BYTES = 2.5 * 1024 * 1024;
+  var MAX_DIMENSION = 1920;
   var ALLOWED_MIME = {
     "image/jpeg": "jpg",
     "image/png":  "png",
@@ -50,14 +52,85 @@
     return Promise.resolve(null);
   }
 
-  function validateFile(file) {
+  function validateFileType(file) {
     if (!file) throw new Error("Không có tệp.");
     if (!ALLOWED_MIME[file.type]) {
       throw new Error("Định dạng không hỗ trợ: " + (file.type || "?") + " (chấp nhận JPG, PNG, WEBP, GIF, SVG).");
     }
+  }
+
+  function validateFileSize(file) {
     if (file.size > MAX_BYTES) {
       throw new Error("Ảnh quá lớn (" + (file.size / 1024 / 1024).toFixed(2) + " MB) — tối đa 10 MB.");
     }
+  }
+
+  function canCompress(file) {
+    return file && /image\/(jpeg|png|webp)/i.test(file.type || "");
+  }
+
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise(function (resolve) {
+      canvas.toBlob(resolve, type, quality);
+    });
+  }
+
+  function loadImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = global.URL && global.URL.createObjectURL ? global.URL.createObjectURL(file) : "";
+      var img = new Image();
+      img.onload = function () {
+        if (url) global.URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = function () {
+        if (url) global.URL.revokeObjectURL(url);
+        reject(new Error("Không đọc được ảnh để nén."));
+      };
+      img.src = url;
+    });
+  }
+
+  async function compressImageIfNeeded(file) {
+    validateFileType(file);
+    if (!canCompress(file)) {
+      validateFileSize(file);
+      return file;
+    }
+    if (file.size <= TARGET_BYTES) return file;
+
+    var img = await loadImage(file);
+    var scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+    var width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+    var height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+    var canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) {
+      validateFileSize(file);
+      return file;
+    }
+    ctx.drawImage(img, 0, 0, width, height);
+
+    var qualities = [0.82, 0.72, 0.62, 0.52, 0.42];
+    var blob = null;
+    for (var i = 0; i < qualities.length; i++) {
+      blob = await canvasToBlob(canvas, "image/jpeg", qualities[i]);
+      if (blob && blob.size <= TARGET_BYTES) break;
+    }
+    if (!blob) {
+      validateFileSize(file);
+      return file;
+    }
+
+    var name = String(file.name || "image").replace(/\.[a-z0-9]+$/i, "") + ".jpg";
+    var compressed = typeof File !== "undefined"
+      ? new File([blob], name, { type: "image/jpeg", lastModified: Date.now() })
+      : blob;
+    compressed.name = compressed.name || name;
+    validateFileSize(compressed);
+    return compressed;
   }
 
   function buildPath(folder, file) {
@@ -74,7 +147,7 @@
     if (folder !== "thumbnails" && folder !== "content") {
       throw new Error("Folder không hợp lệ: " + folder);
     }
-    validateFile(file);
+    file = await compressImageIfNeeded(file);
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
 

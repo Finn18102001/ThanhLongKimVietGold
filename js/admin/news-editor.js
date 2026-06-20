@@ -29,6 +29,102 @@
     return false;
   }
 
+  function textValue(v) {
+    return String(v == null ? "" : v);
+  }
+
+  function hasText(v) {
+    return textValue(v).replace(/<br\s*\/?>/gi, "").trim() !== "";
+  }
+
+  function normalizeListItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map(function (item) {
+      if (typeof item === "string") return { content: item, items: [] };
+      return {
+        content: textValue(item && item.content),
+        items: normalizeListItems(item && item.items),
+      };
+    }).filter(function (item) {
+      return hasText(item.content) || (item.items && item.items.length > 0);
+    });
+  }
+
+  function normalizeBlock(block) {
+    if (!block || typeof block !== "object") return null;
+    var type = String(block.type || "").trim();
+    if (!type) return null;
+    var data = block.data && typeof block.data === "object" ? block.data : {};
+
+    if (type === "paragraph" || type === "text") {
+      var paragraphText = textValue(data.text != null ? data.text : data.content);
+      if (!hasText(paragraphText)) return null;
+      return { type: "paragraph", data: { text: paragraphText } };
+    }
+
+    if (type === "header" || type === "heading") {
+      var headerText = textValue(data.text != null ? data.text : data.content);
+      if (!hasText(headerText)) return null;
+      return {
+        type: "header",
+        data: {
+          text: headerText,
+          level: Math.min(4, Math.max(1, Number(data.level) || 2)),
+        },
+      };
+    }
+
+    if (type === "list" || type === "nestedlist") {
+      var items = normalizeListItems(data.items);
+      if (!items.length) return null;
+      return {
+        type: "list",
+        data: {
+          style: data.style === "ordered" ? "ordered" : "unordered",
+          items: items,
+        },
+      };
+    }
+
+    if (type === "quote") {
+      return {
+        type: "quote",
+        data: {
+          text: textValue(data.text),
+          caption: textValue(data.caption),
+          alignment: data.alignment === "center" ? "center" : "left",
+        },
+      };
+    }
+
+    if (type === "image") {
+      var url = (data.file && data.file.url) || data.url || "";
+      if (!isAllowedImageUrl(url)) return null;
+      return {
+        type: "image",
+        data: {
+          file: { url: String(url).trim() },
+          caption: textValue(data.caption),
+          withBorder: data.withBorder === true,
+          withBackground: data.withBackground === true,
+          stretched: data.stretched === true,
+        },
+      };
+    }
+
+    return { type: type, data: data };
+  }
+
+  function normalizeEditorData(raw) {
+    var blocks = raw && Array.isArray(raw.blocks) ? raw.blocks : [];
+    var normalized = blocks.map(normalizeBlock).filter(Boolean);
+    return {
+      time: raw && raw.time,
+      blocks: normalized,
+      version: raw && raw.version,
+    };
+  }
+
   function buildTools() {
     var Paragraph  = pick(["Paragraph"]);
     var Header     = pick(["Header"]);
@@ -145,7 +241,7 @@
     }
     if (!holderEl) throw new Error("Không tìm thấy phần tử cho editor.");
 
-    var data = opts && opts.data && typeof opts.data === "object" ? opts.data : { blocks: [] };
+    var data = normalizeEditorData(opts && opts.data && typeof opts.data === "object" ? opts.data : { blocks: [] });
     var tools = buildTools();
 
     var editor = new global.EditorJS({
@@ -176,7 +272,7 @@
     function setData(next) {
       // The simplest cross-version path: clear + render again.
       return editor.isReady.then(function () {
-        return editor.blocks.render(next && typeof next === "object" ? next : { blocks: [] });
+        return editor.blocks.render(normalizeEditorData(next && typeof next === "object" ? next : { blocks: [] }));
       });
     }
 
@@ -212,5 +308,9 @@
     };
   }
 
-  global.TLKVNewsEditor = { mount: mount, isAllowedImageUrl: isAllowedImageUrl };
+  global.TLKVNewsEditor = {
+    mount: mount,
+    isAllowedImageUrl: isAllowedImageUrl,
+    normalizeEditorData: normalizeEditorData,
+  };
 })(typeof window !== "undefined" ? window : globalThis);

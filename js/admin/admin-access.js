@@ -1,16 +1,16 @@
 /**
- * Centralized admin UI visibility — email-based access split (not RBAC).
+ * Centralized admin UI visibility — email-based tab split (not RBAC).
  * Always resolve access via Supabase auth.getUser() (server-validated session).
  *
  * Design constraints:
  * - freeze object: access snapshots + public API are Object.freeze'd
- * - action guards: guardAction(module) before mutations
+ * - action guards only require a logged-in session; module split is UI-only
  * - reduce globals: one window.TLKVAdminAccess namespace; session held module-internally
  */
 (function (global) {
   "use strict";
 
-  var GOLD_SHOP_EMAIL = "thanglongkimviet@gmail.com";
+  var CONTENT_ONLY_EMAIL = "tuananh18101@gmail.com";
   /** @type {Readonly<ReturnType<typeof buildAccess>> | null} */
   var currentAccess = null;
 
@@ -18,32 +18,32 @@
     return String(email || "").trim().toLowerCase();
   }
 
-  function isGoldShopAccount(emailOrUser) {
+  function isContentOnlyAccount(emailOrUser) {
     var email =
       typeof emailOrUser === "string"
         ? emailOrUser
         : emailOrUser && emailOrUser.email;
-    return normalizeEmail(email) === GOLD_SHOP_EMAIL;
+    return normalizeEmail(email) === CONTENT_ONLY_EMAIL;
   }
 
   function buildAccess(user) {
     if (!user || !user.email) {
       return {
         email: null,
-        isGoldShop: false,
+        isContentOnly: false,
         canAccessGoldManagement: false,
         canAccessContentManagement: false,
       };
     }
 
     var email = normalizeEmail(user.email);
-    var isGoldShop = email === GOLD_SHOP_EMAIL;
+    var isContentOnly = email === CONTENT_ONLY_EMAIL;
 
     return {
       email: email,
-      isGoldShop: isGoldShop,
-      canAccessGoldManagement: isGoldShop,
-      canAccessContentManagement: !isGoldShop,
+      isContentOnly: isContentOnly,
+      canAccessGoldManagement: true,
+      canAccessContentManagement: true,
     };
   }
 
@@ -115,10 +115,7 @@
    */
   function canAccessModule(access, module) {
     var resolved = access && access.email ? access : currentAccess;
-    if (!resolved || !resolved.email) return false;
-    if (module === "gold") return resolved.canAccessGoldManagement;
-    if (module === "products" || module === "news") return resolved.canAccessContentManagement;
-    return false;
+    return !!(resolved && resolved.email && module);
   }
 
   /**
@@ -128,9 +125,7 @@
   function defaultModule(access) {
     var resolved = access && access.email ? access : currentAccess;
     if (!resolved || !resolved.email) return null;
-    if (resolved.canAccessGoldManagement) return "gold";
-    if (resolved.canAccessContentManagement) return "products";
-    return null;
+    return resolved.isContentOnly ? "products" : "gold";
   }
 
   /**
@@ -159,8 +154,10 @@
    * @param {Readonly<ReturnType<typeof buildAccess>>} access
    */
   function applyMainAdminNavVisibility(access) {
-    var showGold = canAccessModule(access, "gold");
-    var showContent = canAccessModule(access, "products");
+    var resolved = access && access.email ? access : currentAccess;
+    var isContentOnly = !!(resolved && resolved.isContentOnly);
+    var showGold = !!(resolved && resolved.email && !isContentOnly);
+    var showContent = !!(resolved && resolved.email && isContentOnly);
 
     setNavItemVisible(document.getElementById("tab-btn-gold"), showGold);
     setNavItemVisible(document.getElementById("tab-btn-products"), showContent);
@@ -168,7 +165,7 @@
   }
 
   /**
-   * Route guard for /admin/news.html — redirect gold-shop account to main dashboard.
+   * Route guard for /admin/news.html — only requires a valid signed-in admin session.
    * @param {Readonly<ReturnType<typeof buildAccess>>} access
    * @param {{ redirectTo?: string }} [opts]
    */
@@ -180,9 +177,9 @@
   }
 
   global.TLKVAdminAccess = Object.freeze({
-    GOLD_SHOP_EMAIL: GOLD_SHOP_EMAIL,
+    CONTENT_ONLY_EMAIL: CONTENT_ONLY_EMAIL,
     normalizeEmail: normalizeEmail,
-    isGoldShopAccount: isGoldShopAccount,
+    isContentOnlyAccount: isContentOnlyAccount,
     canAccessGoldManagement: canAccessGoldManagement,
     canAccessContentManagement: canAccessContentManagement,
     resolveFromUser: resolveFromUser,
