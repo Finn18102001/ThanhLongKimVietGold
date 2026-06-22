@@ -129,6 +129,7 @@ html {
   --tlkv-footer-bg: #9b0102;
   --tlkv-footer-text: #ffffff;
   --tlkv-footer-heading: rgb(240, 229, 87);
+  --tlkv-brand-logo-plate: #8c0003;
 
   /* ----- Typography ----- */
   --tlkv-font-heading: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;

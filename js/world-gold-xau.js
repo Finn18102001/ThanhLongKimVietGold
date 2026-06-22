@@ -1,7 +1,7 @@
 var CACHE_KEY = "TLKV_XAU_CACHE";
 var CACHE_TTL = 1000 * 60 * 60 * 8; // 8 tiếng
 /** Set false to hide all XAU/USD widgets and skip /api/world-xau-usd. */
-var WORLD_XAU_API_ENABLED = false;
+var WORLD_XAU_API_ENABLED = true;
 
 (function (global) {
   function $(sel, root) {

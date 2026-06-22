@@ -384,6 +384,7 @@
   --tlkv-featured-card-border: rgba(201, 161, 74, 0.16);
   --tlkv-featured-card-shadow: 0 4px 18px rgba(26, 26, 26, 0.045);
   --tlkv-featured-card-shadow-hover: 0 10px 28px rgba(26, 26, 26, 0.08);
+  --tlkv-featured-brand-plate-size: 160px;
   background: linear-gradient(180deg, #fdfcf8 0%, #faf8f3 100%);
   padding: 40px 0 46px;
   border-top: 1px solid rgba(201, 161, 74, 0.1);
@@ -555,6 +556,10 @@
 .tlkv-featured-brand-card {
   width: var(--tlkv-featured-card-size);
   height: var(--tlkv-featured-card-height);
+  --tlkv-featured-brand-logo-square: min(
+    var(--tlkv-featured-brand-plate-size, 160px),
+    calc(var(--tlkv-featured-card-size) - 2rem)
+  );
   border: 1px solid var(--tlkv-featured-card-border);
   background: #fff;
   border-radius: var(--tlkv-featured-card-radius);
@@ -575,6 +580,37 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
+}
+
+.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+  width: var(--tlkv-featured-brand-logo-square);
+  height: var(--tlkv-featured-brand-logo-square);
+  min-width: var(--tlkv-featured-brand-logo-square);
+  min-height: var(--tlkv-featured-brand-logo-square);
+  max-width: var(--tlkv-featured-brand-logo-square);
+  max-height: var(--tlkv-featured-brand-logo-square);
+  flex: 0 0 var(--tlkv-featured-brand-logo-square);
+  aspect-ratio: 1;
+  padding: 5px;
+  border-radius: 0;
+  box-sizing: border-box;
+  background: var(--tlkv-brand-logo-plate, #8c0003);
+}
+
+.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: unset;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
+  object-fit: contain;
 }
 
 .tlkv-featured-brand-card__logo {
@@ -856,6 +892,8 @@
     /* 4 cards visible: 1 brand + 3 products */
     --tlkv-featured-card-gap: 6px;
     --tlkv-featured-card-size: clamp(78px, calc((100vw - 48px) / 4), 90px);
+    /* TLKV red plate: fixed 65×65px including background */
+    --tlkv-featured-brand-plate-size: 65px;
     --tlkv-featured-media-pad: 2px;
     --tlkv-featured-media-ratio: 0.56;
     --tlkv-featured-media-h: calc(var(--tlkv-featured-card-size) * var(--tlkv-featured-media-ratio));
@@ -945,6 +983,7 @@
   .tlkv-featured-brand-card {
     padding: 5px 4px 4px;
     border-radius: var(--tlkv-featured-card-radius);
+    --tlkv-featured-brand-logo-square: var(--tlkv-featured-brand-plate-size);
   }
 
   .tlkv-featured-brand-card__logo-wrap {
@@ -954,8 +993,24 @@
     min-height: 0;
   }
 
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+    width: var(--tlkv-featured-brand-logo-square);
+    height: var(--tlkv-featured-brand-logo-square);
+    min-width: var(--tlkv-featured-brand-logo-square);
+    min-height: var(--tlkv-featured-brand-logo-square);
+    max-width: var(--tlkv-featured-brand-logo-square);
+    max-height: var(--tlkv-featured-brand-logo-square);
+    flex: 0 0 var(--tlkv-featured-brand-logo-square);
+    padding: 4px;
+  }
+
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo {
+    width: 100%;
+    height: 100%;
+  }
+
   .tlkv-featured-brand-card__name {
-    margin-top: 2px;
+    margin-top: 6px;
     padding-bottom: 0;
     font-size: clamp(0.45rem, 2vw, 0.52rem);
     line-height: 1.12;
@@ -1112,6 +1167,10 @@
   .tlkv-featured-brand-card__logo-wrap {
     width: min(168px, 72%);
     height: min(132px, 54%);
+  }
+
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+    padding: 5px;
   }
 
   .tlkv-featured-brand-card__name {

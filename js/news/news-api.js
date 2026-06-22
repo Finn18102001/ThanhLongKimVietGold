@@ -341,6 +341,20 @@
     return base;
   }
 
+  /** Newest-first using published_at, then updated_at, then created_at. */
+  function compareNewsByRecency(a, b) {
+    function ts(item) {
+      var raw = item && (item.publishedAt || item.updatedAt || item.createdAt);
+      var n = raw ? Date.parse(raw) : NaN;
+      return Number.isFinite(n) ? n : 0;
+    }
+    return ts(b) - ts(a);
+  }
+
+  function sortNewsByRecency(items) {
+    return (items || []).slice().sort(compareNewsByRecency);
+  }
+
   // ---------------------------------------------------------------------------
   // Sanitizers — defense in depth against bad input (UI also sanitizes).
   // ---------------------------------------------------------------------------
@@ -415,43 +429,26 @@
     };
   }
 
-  /** Featured + recent split — used by the homepage hero block. */
+  /** Landing hero split — newest article is always the large featured card. */
   async function listForLandingHero(opts) {
     var sb = await requireSupabase();
     var limitFeatured = Math.max(1, Number((opts || {}).limitFeatured) || 1);
     var limitSecondary = Math.max(1, Number((opts || {}).limitSecondary) || 4);
-    var [{ data: featured, error: e1 }, { data: recent, error: e2 }] = await Promise.all([
-      sb
-        .from("news")
-        .select(SELECT_LIST)
-        .eq("status", "published")
-        .eq("featured", true)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limitFeatured),
-      sb
-        .from("news")
-        .select(SELECT_LIST)
-        .eq("status", "published")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limitSecondary + limitFeatured),
-    ]);
-    if (e1) throw e1;
-    if (e2) throw e2;
+    var total = limitFeatured + limitSecondary;
 
-    var featuredItems = (featured || []).map(rowToListItem);
-    var recentItems = (recent || []).map(rowToListItem);
+    var { data, error } = await sb
+      .from("news")
+      .select(SELECT_LIST)
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(total);
+    if (error) throw error;
 
-    if (featuredItems.length === 0 && recentItems.length > 0) {
-      // Promote the latest as hero if no `featured=true` row exists.
-      featuredItems = [recentItems[0]];
-      recentItems = recentItems.slice(1);
-    } else {
-      var heroIds = new Set(featuredItems.map(function (x) { return x.id; }));
-      recentItems = recentItems.filter(function (x) { return !heroIds.has(x.id); });
-    }
+    var items = sortNewsByRecency((data || []).map(rowToListItem));
     return {
-      featured: featuredItems.slice(0, limitFeatured),
-      secondary: recentItems.slice(0, limitSecondary),
+      featured: items.slice(0, limitFeatured),
+      secondary: items.slice(limitFeatured, limitFeatured + limitSecondary),
     };
   }
 

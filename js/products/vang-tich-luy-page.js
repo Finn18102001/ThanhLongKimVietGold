@@ -49,7 +49,7 @@
   function getBrandLogoUrl(brand) {
     if (brand && brand.logo_url) return brand.logo_url;
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[brand.slug] || "/assets/logo-thang-long-kim-viet.png";
+    return map[brand.slug] || global.TLKV_SITE_LOGO_URL || "/assets/new-logo/tlkv-new-logo-1.png";
   }
 
   function formatWeightLabel(weight) {
@@ -316,6 +316,14 @@
     return card;
   }
 
+  function needsLogoPlate(brand) {
+    var slug = String((brand && brand.slug) || "");
+    if (global.TLKV_BRAND_NEEDS_LOGO_PLATE) {
+      return global.TLKV_BRAND_NEEDS_LOGO_PLATE(slug);
+    }
+    return slug === "thang-long-kim-viet";
+  }
+
   function renderBrandHead(brand) {
     var headEl = $("#vtl-brand-head");
     if (!headEl) return;
@@ -325,6 +333,9 @@
 
     var logo = document.createElement("img");
     logo.className = "vtl-brand-view__logo";
+    if (needsLogoPlate(brand)) {
+      logo.classList.add("tlkv-brand-logo-plate");
+    }
     logo.src = getBrandLogoUrl(brand);
     logo.alt = brand.name || "";
     logo.loading = "lazy";
@@ -432,6 +443,9 @@
 
       var logo = document.createElement("img");
       logo.className = "vtl-brand-tab__logo";
+      if (needsLogoPlate(section.brand)) {
+        logo.classList.add("tlkv-brand-logo-plate");
+      }
       logo.src = getBrandLogoUrl(section.brand);
       logo.alt = "";
       logo.loading = "lazy";

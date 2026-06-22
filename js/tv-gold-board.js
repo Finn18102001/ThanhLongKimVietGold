@@ -18,13 +18,13 @@
   /** URL tuyệt đối logo TV — luôn resolve theo `location` (tránh path sai trên TV/browser). */
   function tvLogoAbsUrl() {
     try {
-      return new URL("/assets/logo-thang-long-kim-viet.png", global.location.href).href;
+      return new URL("/assets/new-logo/tlkv-new-logo-1.png", global.location.href).href;
     } catch (e) {
       try {
         var origin = global.location && global.location.origin ? global.location.origin : "";
-        return origin + "/assets/logo-thang-long-kim-viet.png";
+        return origin + "/assets/new-logo/tlkv-new-logo-1.png";
       } catch (e2) {
-        return "/assets/logo-thang-long-kim-viet.png";
+        return "/assets/new-logo/tlkv-new-logo-1.png";
       }
     }
   }
