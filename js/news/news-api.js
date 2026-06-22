@@ -35,6 +35,202 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  function apiLog() {
+    var args = Array.prototype.slice.call(arguments);
+    console.log.apply(console, ["[NEWS-API]"].concat(args));
+  }
+
+  var API_WRITE_TIMEOUT_MS = 20000;
+
+  function withApiTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise(function (_, reject) {
+        setTimeout(function () {
+          reject(new Error(
+            (label || "Thao tác") + " quá thời gian (" + Math.round(ms / 1000) + "s). " +
+              "Kiểm tra mạng hoặc tải lại trang."
+          ));
+        }, ms);
+      }),
+    ]);
+  }
+
+  function newRowId() {
+    if (global.crypto && typeof global.crypto.randomUUID === "function") {
+      return global.crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  function formatDbError(error) {
+    if (!error) return new Error("Không lưu được bài viết.");
+    if (error instanceof Error && !error.code) return error;
+    var msg = String(error.message || error.details || error.hint || "");
+    var code = String(error.code || "");
+    if (code === "42501" || msg.toLowerCase().indexOf("policy") !== -1 || msg.toLowerCase().indexOf("row-level security") !== -1) {
+      return new Error("Không có quyền ghi bài viết — kiểm tra tài khoản đăng nhập.");
+    }
+    if (code === "23503") {
+      return new Error("Chuyên mục không hợp lệ — chọn lại hoặc để trống.");
+    }
+    if (error instanceof Error) return error;
+    return new Error(msg || "Không lưu được bài viết.");
+  }
+
+  function getRestConfig() {
+    if (global.TLKVSupabase && global.TLKVSupabase.readSupabaseConfig) {
+      return global.TLKVSupabase.readSupabaseConfig();
+    }
+    return { url: "", anonKey: "" };
+  }
+
+  /** JWT from localStorage (fast) — same path as image upload; avoids hung getSession(). */
+  async function getAuthJwt() {
+    if (global.TLKVNewsStorage && typeof global.TLKVNewsStorage.getAccessToken === "function") {
+      var token = await global.TLKVNewsStorage.getAccessToken();
+      if (token) return token;
+    }
+    throw new Error("Chưa đăng nhập hoặc phiên đã hết hạn — tải lại trang.");
+  }
+
+  /**
+   * Direct PostgREST write — bypasses supabase-js client auth lock that hangs getSession().
+   */
+  async function restRequest(method, resourcePath, body, opts) {
+    var cfg = getRestConfig();
+    if (!cfg.url || !cfg.anonKey) {
+      throw new Error("Thiếu cấu hình Supabase.");
+    }
+    var jwt = await getAuthJwt();
+    var headers = {
+      apikey: cfg.anonKey,
+      Authorization: "Bearer " + jwt,
+      "Content-Type": "application/json",
+    };
+    if (opts && opts.prefer) headers.Prefer = opts.prefer;
+
+    var init = { method: method, headers: headers };
+    if (body !== undefined) init.body = JSON.stringify(body);
+
+    var baseUrl = String(cfg.url).replace(/\/$/, "");
+    var res = await withApiTimeout(
+      fetch(baseUrl + "/rest/v1/" + resourcePath, init),
+      API_WRITE_TIMEOUT_MS,
+      (opts && opts.label) || "Lưu bài viết"
+    );
+
+    if (res.ok) return { ok: true };
+
+    var errBody = null;
+    try {
+      errBody = await res.json();
+    } catch (e) {
+      errBody = { message: "HTTP " + res.status };
+    }
+    return { ok: false, error: errBody };
+  }
+
+  /** GET via PostgREST — same JWT path as writes (no getSession hang). */
+  async function restFetch(resourcePath, opts) {
+    var cfg = getRestConfig();
+    if (!cfg.url || !cfg.anonKey) {
+      throw new Error("Thiếu cấu hình Supabase.");
+    }
+    var jwt = await getAuthJwt();
+    var headers = {
+      apikey: cfg.anonKey,
+      Authorization: "Bearer " + jwt,
+      Accept: "application/json",
+    };
+    if (opts && opts.prefer) headers.Prefer = opts.prefer;
+    var baseUrl = String(cfg.url).replace(/\/$/, "");
+    var res = await withApiTimeout(
+      fetch(baseUrl + "/rest/v1/" + resourcePath, { method: "GET", headers: headers }),
+      (opts && opts.timeoutMs) || 15000,
+      (opts && opts.label) || "Tải dữ liệu"
+    );
+    if (!res.ok) {
+      var errBody = null;
+      try {
+        errBody = await res.json();
+      } catch (e) {
+        errBody = { message: "HTTP " + res.status };
+      }
+      throw formatDbError(errBody);
+    }
+    return res.json();
+  }
+
+  /** GET with exact row count (Content-Range) — for admin pagination. */
+  async function restFetchWithCount(resourcePath, opts) {
+    var cfg = getRestConfig();
+    if (!cfg.url || !cfg.anonKey) {
+      throw new Error("Thiếu cấu hình Supabase.");
+    }
+    var jwt = await getAuthJwt();
+    var headers = {
+      apikey: cfg.anonKey,
+      Authorization: "Bearer " + jwt,
+      Accept: "application/json",
+      Prefer: "count=exact",
+    };
+    var baseUrl = String(cfg.url).replace(/\/$/, "");
+    var res = await withApiTimeout(
+      fetch(baseUrl + "/rest/v1/" + resourcePath, { method: "GET", headers: headers }),
+      (opts && opts.timeoutMs) || 15000,
+      (opts && opts.label) || "Tải dữ liệu"
+    );
+    if (!res.ok) {
+      var errBody = null;
+      try {
+        errBody = await res.json();
+      } catch (e) {
+        errBody = { message: "HTTP " + res.status };
+      }
+      throw formatDbError(errBody);
+    }
+    var total = null;
+    var range = res.headers.get("Content-Range") || res.headers.get("content-range");
+    if (range) {
+      var m = String(range).match(/\/(\d+)\s*$/);
+      if (m) total = parseInt(m[1], 10);
+    }
+    var data = await res.json();
+    return { data: data, total: total };
+  }
+
+  /** Build admin response from the row we just wrote — avoids SELECT round-trip of full content. */
+  function detailFromWritable(id, row, slug) {
+    return {
+      id: String(id),
+      title: row.title,
+      slug: slug,
+      shortDescription: row.short_description,
+      thumbnailUrl: row.thumbnail_url,
+      content: normalizeContent(row.content),
+      status: row.status,
+      featured: row.featured === true,
+      viewCount: 0,
+      seoTitle: row.seo_title,
+      seoDescription: row.seo_description,
+      seoKeywords: row.seo_keywords,
+      authorEmail: row.author_email,
+      publishedAt: null,
+      createdAt: null,
+      updatedAt: new Date().toISOString(),
+      category: null,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Normalization — DB row → app-friendly shape.
   // Keeping the public shape stable insulates UI from schema renames.
   // ---------------------------------------------------------------------------
@@ -73,6 +269,46 @@
     return { blocks: [] };
   }
 
+  /** Strip invalid/huge Editor.js blocks before DB write — prevents hang on large paste. */
+  function sanitizeContentForDb(raw) {
+    var base = normalizeContent(raw);
+    if (global.TLKVNewsEditor && typeof global.TLKVNewsEditor.normalizeEditorData === "function") {
+      base = global.TLKVNewsEditor.normalizeEditorData(base);
+    }
+    var blocks = (base.blocks || []).slice(0, 400).map(function (b) {
+      if (!b || !b.type || typeof b.data !== "object") return null;
+      var data = Object.assign({}, b.data);
+      ["text", "caption", "content"].forEach(function (k) {
+        if (typeof data[k] === "string" && data[k].length > 60000) {
+          data[k] = data[k].slice(0, 60000);
+        }
+      });
+      return { type: String(b.type).slice(0, 32), data: data };
+    }).filter(Boolean);
+    return {
+      time: base.time || Date.now(),
+      blocks: blocks,
+      version: base.version || "2.30.7",
+    };
+  }
+
+  function cloneRow(row) {
+    return {
+      title: row.title,
+      slug: row.slug,
+      short_description: row.short_description,
+      thumbnail_url: row.thumbnail_url,
+      content: sanitizeContentForDb(row.content),
+      category_id: row.category_id,
+      status: row.status,
+      featured: row.featured,
+      seo_title: row.seo_title,
+      seo_description: row.seo_description,
+      seo_keywords: row.seo_keywords,
+      author_email: row.author_email,
+    };
+  }
+
   function rowToListItem(r) {
     if (!r) return null;
     var cat = r.news_categories || r.category || null; // PostgREST joined relation
@@ -103,6 +339,20 @@
     base.seoKeywords = String(r.seo_keywords || "");
     base.authorEmail = String(r.author_email || "");
     return base;
+  }
+
+  /** Newest-first using published_at, then updated_at, then created_at. */
+  function compareNewsByRecency(a, b) {
+    function ts(item) {
+      var raw = item && (item.publishedAt || item.updatedAt || item.createdAt);
+      var n = raw ? Date.parse(raw) : NaN;
+      return Number.isFinite(n) ? n : 0;
+    }
+    return ts(b) - ts(a);
+  }
+
+  function sortNewsByRecency(items) {
+    return (items || []).slice().sort(compareNewsByRecency);
   }
 
   // ---------------------------------------------------------------------------
@@ -179,43 +429,26 @@
     };
   }
 
-  /** Featured + recent split — used by the homepage hero block. */
+  /** Landing hero split — newest article is always the large featured card. */
   async function listForLandingHero(opts) {
     var sb = await requireSupabase();
     var limitFeatured = Math.max(1, Number((opts || {}).limitFeatured) || 1);
     var limitSecondary = Math.max(1, Number((opts || {}).limitSecondary) || 4);
-    var [{ data: featured, error: e1 }, { data: recent, error: e2 }] = await Promise.all([
-      sb
-        .from("news")
-        .select(SELECT_LIST)
-        .eq("status", "published")
-        .eq("featured", true)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limitFeatured),
-      sb
-        .from("news")
-        .select(SELECT_LIST)
-        .eq("status", "published")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limitSecondary + limitFeatured),
-    ]);
-    if (e1) throw e1;
-    if (e2) throw e2;
+    var total = limitFeatured + limitSecondary;
 
-    var featuredItems = (featured || []).map(rowToListItem);
-    var recentItems = (recent || []).map(rowToListItem);
+    var { data, error } = await sb
+      .from("news")
+      .select(SELECT_LIST)
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(total);
+    if (error) throw error;
 
-    if (featuredItems.length === 0 && recentItems.length > 0) {
-      // Promote the latest as hero if no `featured=true` row exists.
-      featuredItems = [recentItems[0]];
-      recentItems = recentItems.slice(1);
-    } else {
-      var heroIds = new Set(featuredItems.map(function (x) { return x.id; }));
-      recentItems = recentItems.filter(function (x) { return !heroIds.has(x.id); });
-    }
+    var items = sortNewsByRecency((data || []).map(rowToListItem));
     return {
-      featured: featuredItems.slice(0, limitFeatured),
-      secondary: recentItems.slice(0, limitSecondary),
+      featured: items.slice(0, limitFeatured),
+      secondary: items.slice(limitFeatured, limitFeatured + limitSecondary),
     };
   }
 
@@ -305,106 +538,149 @@
       .replace(/^-+|-+$/g, "");
   }
 
-  /** Make sure the slug is unique by appending `-2`, `-3`, … if needed. */
-  async function ensureUniqueSlug(slug, excludeId) {
-    var sb = await requireSupabase();
-    var base = buildSlug(slug);
-    if (!base) base = "tin-tuc";
-    var candidate = base;
-    var i = 2;
-    while (true) {
-      var q = sb.from("news").select("id,slug").eq("slug", candidate).limit(1);
-      var { data, error } = await q;
-      if (error) throw error;
-      var taken = (data || []).find(function (r) { return r.id !== excludeId; });
-      if (!taken) return candidate;
-      candidate = base + "-" + i;
-      i += 1;
-      if (i > 200) return base + "-" + Date.now();
+  function isUniqueViolation(error) {
+    if (!error) return false;
+    if (error.code === "23505") return true;
+    var msg = String(error.message || error.details || "").toLowerCase();
+    return msg.indexOf("duplicate") !== -1 || msg.indexOf("unique") !== -1;
+  }
+
+  function resolveSlug(input) {
+    var base = buildSlug(input && (input.slug || input.title) ? (input.slug || input.title) : "");
+    return base || "tin-tuc";
+  }
+
+  /** Insert via PostgREST REST (no supabase-js — avoids getSession hang). */
+  async function insertWithSlugRetry(row, slug) {
+    var candidate = slug;
+    var attempt = 0;
+    while (attempt < 3) {
+      var payload = cloneRow(row);
+      payload.slug = candidate;
+      payload.id = newRowId();
+      var bytes = JSON.stringify(payload).length;
+      apiLog("insert attempt", { slug: candidate, attempt: attempt + 1, bytes: bytes, id: payload.id, via: "rest" });
+      if (bytes > 2 * 1024 * 1024) {
+        throw new Error(
+          "Nội dung bài viết quá lớn (" + Math.round(bytes / 1024) + " KB). Hãy rút gọn nội dung editor."
+        );
+      }
+      var result = await restRequest("POST", "news", payload, {
+        prefer: "return=minimal",
+        label: "Lưu bài viết",
+      });
+      if (result.ok) return { id: payload.id, slug: candidate };
+      if (isUniqueViolation(result.error) && attempt < 2) {
+        candidate = slug + "-" + Date.now();
+        attempt += 1;
+        continue;
+      }
+      throw formatDbError(result.error);
     }
+    throw new Error("Không tạo được bài viết.");
   }
 
   /** Admin: list with all statuses + filters + pagination. */
   async function adminList(opts) {
-    var sb = await requireSupabase();
     opts = opts || {};
     var page = Math.max(1, Number(opts.page) || 1);
     var pageSize = Math.min(50, Math.max(1, Number(opts.pageSize) || 10));
-    var from = (page - 1) * pageSize;
-    var to = from + pageSize - 1;
+    var offset = (page - 1) * pageSize;
 
-    var q = sb
-      .from("news")
-      .select(SELECT_LIST, { count: "exact" })
-      .order("updated_at", { ascending: false })
-      .range(from, to);
-
+    var parts = [
+      "select=" + encodeURIComponent(SELECT_LIST),
+      "order=updated_at.desc",
+      "offset=" + offset,
+      "limit=" + pageSize,
+    ];
     if (opts.status && ["draft", "published", "archived"].indexOf(opts.status) !== -1) {
-      q = q.eq("status", opts.status);
+      parts.push("status=eq." + encodeURIComponent(opts.status));
     }
-    if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
+    if (opts.categoryId) {
+      parts.push("category_id=eq." + encodeURIComponent(String(opts.categoryId)));
+    }
     var search = sanitizeIlike(opts.search);
     if (search) {
-      q = q.or("title.ilike.%" + search + "%,slug.ilike.%" + search + "%");
+      parts.push("or=" + encodeURIComponent("(title.ilike.%" + search + "%,slug.ilike.%" + search + "%)"));
     }
 
-    var res = await q;
-    if (res.error) throw res.error;
+    apiLog("adminList", { page: page, pageSize: pageSize, via: "rest" });
+    var result = await restFetchWithCount("news?" + parts.join("&"), {
+      label: "Tải danh sách bài viết",
+      timeoutMs: 20000,
+    });
     return {
-      items: (res.data || []).map(rowToListItem),
-      total: typeof res.count === "number" ? res.count : null,
+      items: (result.data || []).map(rowToListItem),
+      total: typeof result.total === "number" ? result.total : null,
       page: page,
       pageSize: pageSize,
     };
   }
 
   async function adminGetById(id) {
-    var sb = await requireSupabase();
-    var { data, error } = await sb
-      .from("news")
-      .select(SELECT_DETAIL)
-      .eq("id", id)
-      .maybeSingle();
-    if (error) throw error;
-    return data ? rowToDetail(data) : null;
+    var safeId = String(id || "").trim();
+    if (!safeId) return null;
+    apiLog("adminGetById", { id: safeId, via: "rest" });
+    var rows = await restFetch(
+      "news?id=eq." + encodeURIComponent(safeId) + "&select=" + encodeURIComponent(SELECT_DETAIL),
+      { label: "Tải bài viết", timeoutMs: 15000 }
+    );
+    var row = Array.isArray(rows) && rows.length ? rows[0] : null;
+    return row ? rowToDetail(row) : null;
   }
 
   function pickWritable(input, opts) {
+    // Temporary: admin SEO inputs are kept in the form only — not persisted to DB.
     var allowed = {
       title: String(input.title || "").slice(0, 500),
       slug: String(input.slug || "").slice(0, 500),
       short_description: String(input.shortDescription || "").slice(0, 2000),
       thumbnail_url: String(input.thumbnailUrl || "").slice(0, 2000),
-      content: input.content && typeof input.content === "object" ? input.content : { blocks: [] },
-      category_id: input.categoryId || null,
+      content: sanitizeContentForDb(input.content),
+      category_id: input.categoryId && String(input.categoryId).trim() ? input.categoryId : null,
       status: ["draft", "published", "archived"].indexOf(input.status) !== -1 ? input.status : "draft",
       featured: input.featured === true,
-      seo_title: String(input.seoTitle || "").slice(0, 500),
-      seo_description: String(input.seoDescription || "").slice(0, 1000),
-      seo_keywords: String(input.seoKeywords || "").slice(0, 500),
+      seo_title: "",
+      seo_description: "",
+      seo_keywords: "",
       author_email: String((opts && opts.actorEmail) || "").slice(0, 320),
     };
     return allowed;
   }
 
   async function adminCreate(input, ctx) {
-    var sb = await requireSupabase();
+    apiLog("adminCreate:start");
     var actor = (ctx && ctx.actorEmail) || "";
-    var slug = await ensureUniqueSlug(input.slug || input.title || "", null);
+    var slug = resolveSlug(input);
     var row = pickWritable(Object.assign({}, input, { slug: slug }), { actorEmail: actor });
-    var { data, error } = await sb.from("news").insert(row).select(SELECT_DETAIL).single();
-    if (error) throw error;
-    return rowToDetail(data);
+    apiLog("adminCreate:insert", { title: row.title, status: row.status });
+    var inserted = await insertWithSlugRetry(row, slug);
+    apiLog("adminCreate:done", { id: inserted.id });
+    return detailFromWritable(inserted.id, row, inserted.slug);
   }
 
   async function adminUpdate(id, input, ctx) {
-    var sb = await requireSupabase();
+    apiLog("adminUpdate:start", { id: id });
     var actor = (ctx && ctx.actorEmail) || "";
-    var slug = await ensureUniqueSlug(input.slug || input.title || "", id);
+    var slug = resolveSlug(input);
+    apiLog("adminUpdate:slug", slug);
     var row = pickWritable(Object.assign({}, input, { slug: slug }), { actorEmail: actor });
-    var { data, error } = await sb.from("news").update(row).eq("id", id).select(SELECT_DETAIL).single();
-    if (error) throw error;
-    return rowToDetail(data);
+    apiLog("adminUpdate:patch", { id: id, status: row.status, bytes: JSON.stringify(row).length, via: "rest" });
+    var result = await restRequest(
+      "PATCH",
+      "news?id=eq." + encodeURIComponent(String(id)),
+      cloneRow(row),
+      { prefer: "return=minimal", label: "Cập nhật bài viết" }
+    );
+    if (!result.ok) {
+      if (isUniqueViolation(result.error)) {
+        throw new Error('Đường dẫn (slug) "' + slug + '" đã được dùng. Vui lòng chọn slug khác.');
+      }
+      apiLog("adminUpdate:error", result.error && result.error.message ? result.error.message : result.error);
+      throw formatDbError(result.error);
+    }
+    apiLog("adminUpdate:done", { id: id });
+    return detailFromWritable(id, row, slug);
   }
 
   async function adminDelete(id) {
@@ -439,7 +715,6 @@
     adminUpdate: adminUpdate,
     adminDelete: adminDelete,
     adminSetStatus: adminSetStatus,
-    ensureUniqueSlug: ensureUniqueSlug,
 
     // helpers
     buildSlug: buildSlug,

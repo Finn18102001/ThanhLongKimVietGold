@@ -71,7 +71,7 @@
       article.seoDescription ||
       article.shortDescription ||
       "Tin tức thị trường từ " + siteName;
-    var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-256.png");
+    var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-256.png?v=20260623");
 
     document.title = title;
     document.querySelector("[data-tlkv-news-title]") &&
@@ -104,7 +104,7 @@
         "name": siteName,
         "logo": {
           "@type": "ImageObject",
-          "url": siteOrigin + "/assets/og-logo-256.png",
+          "url": siteOrigin + "/assets/og-logo-256.png?v=20260623",
           "width": 256,
           "height": 256
         }
@@ -273,19 +273,7 @@
       main.appendChild(lead);
     }
 
-    if (article.thumbnailUrl) {
-      var heroFig = document.createElement("figure");
-      heroFig.className = "tlkv-news-block tlkv-news-image";
-      var img = document.createElement("img");
-      img.src = article.thumbnailUrl;
-      img.alt = article.title || "";
-      img.loading = "eager";
-      img.decoding = "async";
-      heroFig.appendChild(img);
-      main.appendChild(heroFig);
-    }
-
-    // Body (block renderer)
+    // Body only — Editor.js blocks (text + user-inserted images). Thumbnail is list/OG only.
     main.appendChild(TLKVNewsRenderer.renderArticle(article.content));
 
     // Sidebar

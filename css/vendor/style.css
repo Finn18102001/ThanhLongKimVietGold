@@ -245,12 +245,30 @@ ul { list-style: none; }
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
+  --tlkv-footer-lockup-h: calc((25px * 1.08 + 2px + 38px * 1.08) * 1.22);
+  --tlkv-footer-mark-w: calc(var(--tlkv-footer-lockup-h) * 1.38);
 }
 
 .tlkv-global-footer__logo {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0;
   flex-shrink: 0;
+  width: var(--tlkv-footer-mark-w, calc(var(--tlkv-footer-lockup-h, 88px) * 1.38));
+  height: var(--tlkv-footer-lockup-h, 88px);
+  overflow: visible;
+}
+
+.tlkv-global-footer__logo .site-logo-img--footer {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-height: none;
+  margin-bottom: 0;
+  object-fit: contain;
+  transform: scale(1.18);
+  transform-origin: center center;
 }
 
 .tlkv-global-footer__brand-name {
@@ -532,7 +550,8 @@ ul { list-style: none; }
 
   /* Brand lockup — same logic as desktop navbar: logo height = line1 + gap + line2 */
   .tlkv-global-footer__brand-head {
-    --tlkv-footer-mb-lockup-h: 40px;
+    --tlkv-footer-mb-lockup-h: 52px;
+    --tlkv-footer-mb-mark-w: calc(var(--tlkv-footer-mb-lockup-h) * 1.35);
     --tlkv-footer-mb-line-1: calc(var(--tlkv-footer-mb-lockup-h) * 28 / 73);
     --tlkv-footer-mb-line-2: calc(var(--tlkv-footer-mb-lockup-h) * 40 / 73);
     --tlkv-footer-mb-line-gap: calc(var(--tlkv-footer-mb-lockup-h) * 5 / 73);
@@ -557,11 +576,17 @@ ul { list-style: none; }
     font-size: var(--tlkv-footer-mb-line-2);
   }
 
+  .tlkv-global-footer__logo {
+    width: var(--tlkv-footer-mb-mark-w);
+    height: var(--tlkv-footer-mb-lockup-h);
+  }
+
   .tlkv-global-footer__logo .site-logo-img--footer {
     width: auto;
     height: var(--tlkv-footer-mb-lockup-h);
     max-height: var(--tlkv-footer-mb-lockup-h);
     margin-bottom: 0;
+    transform: scale(1.14);
   }
 
   .tlkv-global-footer__brand-line {

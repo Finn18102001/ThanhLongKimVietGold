@@ -32,7 +32,17 @@ function showToast(message, type = 'success') {
   /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
   var sb = null;
   var adminAuthed = false;
+  var Access = window.TLKVAdminAccess;
   var currentTab = "gold";
+  var applyingSession = false;
+
+  function canPerform(module) {
+    return Access && typeof Access.guardAction === "function" && Access.guardAction(module);
+  }
+
+  function currentAccess() {
+    return Access && typeof Access.getCurrentAccess === "function" ? Access.getCurrentAccess() : null;
+  }
   var goldHistSearchTimer = null;
   var productHistSearchTimer = null;
   var HISTORY_PAGE_SIZE = 10;
@@ -63,12 +73,18 @@ function showToast(message, type = 'success') {
     return document.getElementById(id);
   }
 
+  function setBodyAuthState(state) {
+    if (document.body) document.body.setAttribute("data-auth-state", state);
+  }
+
   function showLogin() {
+    setBodyAuthState("anonymous");
     $("login-panel").hidden = false;
     $("admin-panel").hidden = true;
   }
 
   function showAdmin() {
+    setBodyAuthState("authenticated");
     $("login-panel").hidden = true;
     $("admin-panel").hidden = false;
   }
@@ -376,35 +392,46 @@ function showToast(message, type = 'success') {
   }
 
   function switchTab(tab) {
-    currentTab = tab === "products" ? "products" : "gold";
+    var requested = tab === "products" ? "products" : "gold";
+    var access = currentAccess();
+    if (access && Access) {
+      if (!Access.canAccessModule(access, requested)) {
+        requested = Access.defaultModule(access) || requested;
+      }
+    }
+    currentTab = requested;
     var goldPanel = $("admin-tab-gold");
     var prodPanel = $("admin-tab-products");
     var btnG = $("tab-btn-gold");
     var btnP = $("tab-btn-products");
     var title = $("admin-page-title");
+    var canGold = !access || !Access || Access.canAccessModule(access, "gold");
+    var canProducts = !access || !Access || Access.canAccessModule(access, "products");
+    var showGold = currentTab === "gold" && canGold;
+    var showProducts = currentTab === "products" && canProducts;
 
     if (goldPanel) {
-      goldPanel.hidden = currentTab !== "gold";
-      goldPanel.classList.toggle("admin-tab-panel--hidden", currentTab !== "gold");
+      goldPanel.hidden = !showGold;
+      goldPanel.classList.toggle("admin-tab-panel--hidden", !showGold);
     }
     if (prodPanel) {
-      prodPanel.hidden = currentTab !== "products";
-      prodPanel.classList.toggle("admin-tab-panel--hidden", currentTab !== "products");
+      prodPanel.hidden = !showProducts;
+      prodPanel.classList.toggle("admin-tab-panel--hidden", !showProducts);
     }
     if (btnG) {
-      btnG.classList.toggle("admin-tab--active", currentTab === "gold");
-      btnG.setAttribute("aria-selected", currentTab === "gold" ? "true" : "false");
+      btnG.classList.toggle("admin-tab--active", showGold);
+      btnG.setAttribute("aria-selected", showGold ? "true" : "false");
     }
     if (btnP) {
-      btnP.classList.toggle("admin-tab--active", currentTab === "products");
-      btnP.setAttribute("aria-selected", currentTab === "products" ? "true" : "false");
+      btnP.classList.toggle("admin-tab--active", showProducts);
+      btnP.setAttribute("aria-selected", showProducts ? "true" : "false");
     }
     if (title) {
-      title.textContent = currentTab === "products" ? "Quản lý sản phẩm" : "Quản lý giá vàng";
+      title.textContent = showProducts ? "Quản lý sản phẩm" : "Quản lý giá vàng";
     }
 
-    if (currentTab === "gold") refreshGoldHistory();
-    else refreshProductHistory();
+    if (showGold) refreshGoldHistory();
+    else if (showProducts) refreshProductHistory();
   }
 
   // Sửa lại renderGoldHistPage để render đúng trang hiện tại
@@ -433,6 +460,7 @@ function showToast(message, type = 'success') {
   }
 
   function refreshGoldHistory() {
+    if (!canPerform("gold")) return;
     var tb = $("gold-history-rows");
     if (!tb) return;
     if (!sb || !window.TLKVAudit) {
@@ -473,6 +501,7 @@ function showToast(message, type = 'success') {
   }
 
   function refreshProductHistory() {
+    if (!canPerform("products")) return;
     var tb = $("product-history-rows");
     if (!tb) return;
     if (!sb || !window.TLKVAudit) {
@@ -546,6 +575,7 @@ function showToast(message, type = 'success') {
   }
 
   function commitGoldInlineEdit() {
+    if (!canPerform("gold")) return;
     if (!window.TLKVGold) return;
     if (!goldInlineEditHasAny()) return;
     if (!confirm("Bạn có chắc chắn muốn thay đổi giá vàng hiện tại không?")) return;
@@ -700,6 +730,7 @@ function showToast(message, type = 'success') {
 
   /* ───── refreshMetaForm ───── */
   async function refreshMetaForm() {
+    if (!canPerform("gold")) return;
     if (!window.TLKVGold) return;
     var d;
     try {
@@ -720,6 +751,7 @@ function showToast(message, type = 'success') {
 
   /* ───── refreshTable (bảng giá — mỗi dòng một hàng, sửa inline) ───── */
   async function refreshTable() {
+    if (!canPerform("gold")) return;
     var data;
     try {
       data = await window.TLKVGold.getGoldTable();
@@ -850,6 +882,7 @@ function showToast(message, type = 'success') {
 
     tb.querySelectorAll(".btn-del").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        if (!canPerform("gold")) return;
         var id = btn.getAttribute("data-id");
         if (!confirm("Xóa dòng này?")) return;
         if (goldInlineEditRowIds[id]) {
@@ -903,6 +936,7 @@ function showToast(message, type = 'success') {
 
     tb.querySelectorAll(".btn-edit").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        if (!canPerform("gold")) return;
         var id = btn.getAttribute("data-id");
         if (!id) return;
         if (goldInlineEditRowIds[id]) {
@@ -926,6 +960,7 @@ function showToast(message, type = 'success') {
 
   /* ───── refreshProductsTable ───── */
   function refreshProductsTable() {
+    if (!canPerform("products")) return;
     if (window.TLKVCatalogAdmin && typeof window.TLKVCatalogAdmin.refreshProductsTableAdmin === "function") {
       window.TLKVCatalogAdmin.refreshProductsTableAdmin();
       return;
@@ -983,6 +1018,7 @@ function showToast(message, type = 'success') {
 
         tb.querySelectorAll(".btn-del-product").forEach(function (btn) {
           btn.addEventListener("click", function () {
+            if (!canPerform("products")) return;
             var id = btn.getAttribute("data-id");
             if (!confirm("Xóa sản phẩm này?")) return;
             var removed = null;
@@ -1070,30 +1106,79 @@ function showToast(message, type = 'success') {
   }
 
   /* ───── applySession ───── */
-  function applySession(session) {
+  async function applySession(session) {
+    if (applyingSession) return;
+    applyingSession = true;
+    try {
+      await _applySession(session);
+    } finally {
+      applyingSession = false;
+    }
+  }
+
+  async function _applySession(session) {
     var wasAuthed = adminAuthed;
-    adminAuthed = !!session;
-    if (adminAuthed) {
-      showAdmin();
-      /* Chỉ về tab giá vàng khi vừa đăng nhập — không khi TOKEN_REFRESHED sau lưu SP */
-      if (!wasAuthed) {
-        currentTab = "gold";
-        switchTab("gold");
-      }
+
+    if (!session || !sb) {
+      adminAuthed = false;
+      if (Access) Access.clearCurrentAccess();
+      showLogin();
+      return;
+    }
+
+    var access =
+      Access && typeof Access.resolveFromSupabase === "function"
+        ? await Access.resolveFromSupabase(sb)
+        : null;
+
+    if (!access || !access.email) {
+      adminAuthed = false;
+      if (Access) Access.clearCurrentAccess();
+      try {
+        await sb.auth.signOut();
+      } catch (_) {}
+      showLogin();
+      return;
+    }
+
+    adminAuthed = true;
+    if (Access) Access.setCurrentAccess(access);
+
+    if (Access && typeof Access.applyMainAdminNavVisibility === "function") {
+      Access.applyMainAdminNavVisibility(access);
+    }
+
+    var defaultTab =
+      Access && typeof Access.defaultModule === "function"
+        ? Access.defaultModule(access)
+        : "gold";
+
+    if (!wasAuthed) {
+      currentTab = defaultTab || "gold";
+      switchTab(currentTab);
+    } else if (Access && !Access.canAccessModule(access, currentTab)) {
+      currentTab = defaultTab || currentTab;
+      switchTab(currentTab);
+    }
+
+    showAdmin();
+
+    if (access.canAccessGoldManagement) {
       refreshTable();
       refreshMetaForm();
-      refreshProductsTable();
       if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
         console.log("[TLKV gold-push] admin: session authed → bật pipeline SSE để quan sát push");
         window.TLKVGold.startGoldPush();
       }
-    } else {
-      showLogin();
+    }
+    if (access.canAccessContentManagement) {
+      refreshProductsTable();
     }
   }
 
   /* ───── bootSupabaseAuth ───── */
   async function bootSupabaseAuth() {
+    setBodyAuthState("pending");
     try {
       if (window.TLKVSupabase && typeof window.TLKVSupabase.getSupabaseClient === "function") {
         sb = await window.TLKVSupabase.getSupabaseClient();
@@ -1132,16 +1217,13 @@ function showToast(message, type = 'success') {
     var sessionResult = await sb.auth.getSession();
     var session = sessionResult.data.session;
 
-    if (session) {
-      try {
-        await sb.auth.getUser();
-      } catch (_) { }
-    }
-
-    applySession(session);
+    await applySession(session);
 
     sb.auth.onAuthStateChange(function (event, newSession) {
       if (event === "INITIAL_SESSION") return;
+      /* TOKEN_REFRESHED only rotates the JWT — user identity and permissions are unchanged.
+         Skip the full applySession cycle to avoid redundant DOM writes and getUser() round-trips. */
+      if (event === "TOKEN_REFRESHED" && adminAuthed) return;
       applySession(newSession);
     });
   }
@@ -1151,9 +1233,11 @@ function showToast(message, type = 'success') {
     bootSupabaseAuth();
 
     $("tab-btn-gold")?.addEventListener("click", function () {
+      if (!canPerform("gold")) return;
       switchTab("gold");
     });
     $("tab-btn-products")?.addEventListener("click", function () {
+      if (!canPerform("products")) return;
       switchTab("products");
     });
 
@@ -1189,6 +1273,7 @@ function showToast(message, type = 'success') {
     });
 
     $("btn-reset-json")?.addEventListener("click", function () {
+      if (!canPerform("gold")) return;
       if (!confirm("Xóa khóa localStorage cũ của bảng giá (nếu có)? Dữ liệu trên Supabase không bị xóa."))
         return;
       window.TLKVGold.clearStorage();
@@ -1198,6 +1283,7 @@ function showToast(message, type = 'success') {
 
     $("meta-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!canPerform("gold")) return;
       var meta = {
         headerTime: $("meta-header-time").value.trim(),
         footerNote: $("meta-footer-note").value.trim(),
@@ -1242,7 +1328,10 @@ function showToast(message, type = 'success') {
       $("form-title").textContent = "Thêm dòng";
     }
 
-    $("btn-new")?.addEventListener("click", resetForm);
+    $("btn-new")?.addEventListener("click", function () {
+      if (!canPerform("gold")) return;
+      resetForm();
+    });
 
     function syncSilverIfBacBrand() {
       var bEl = $("f-brand");
@@ -1257,6 +1346,7 @@ function showToast(message, type = 'success') {
 
     $("row-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!canPerform("gold")) return;
       var wasEdit = false;
       var savedRow = null;
       var beforeSnapshot = null;
@@ -1351,13 +1441,18 @@ function showToast(message, type = 'success') {
     });
 
     $("btn-gold-thay-doi")?.addEventListener("click", function () {
+      if (!canPerform("gold")) return;
       commitGoldInlineEdit();
     });
 
-    $("btn-product-new")?.addEventListener("click", resetProductForm);
+    $("btn-product-new")?.addEventListener("click", function () {
+      if (!canPerform("products")) return;
+      resetProductForm();
+    });
 
     $("product-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!canPerform("products")) return;
       if (document.getElementById("pf-brand-id")) return;
       if (!window.TLKVProducts) return;
 

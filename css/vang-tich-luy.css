@@ -163,6 +163,17 @@
   flex-shrink: 0;
 }
 
+.vtl-brand-tab__logo.tlkv-brand-logo-plate {
+  padding: 5px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.vtl-brand-tab.is-active .vtl-brand-tab__logo.tlkv-brand-logo-plate {
+  background: transparent;
+  padding: 0;
+}
+
 
 .vtl-brand-tab.is-active .vtl-brand-tab__logo {
   filter: brightness(1.15);
@@ -222,6 +233,11 @@
   padding: 0.25rem;
   border-radius: 10px;
   background: var(--vtl-bg);
+}
+
+.vtl-brand-view__logo.tlkv-brand-logo-plate {
+  padding: 0.55rem;
+  background: var(--tlkv-brand-logo-plate, #8c0003);
 }
 
 

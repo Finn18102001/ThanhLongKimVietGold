@@ -27,7 +27,9 @@
     var(--tlkv-brand-line-1) + var(--tlkv-brand-line-gap) + var(--tlkv-brand-line-2)
   );
   --tlkv-brand-lockup-h: var(--tlkv-brand-wordmark-h);
-  --tlkv-header-mark-size: var(--tlkv-brand-lockup-h);
+  --tlkv-header-mark-h: calc(var(--tlkv-brand-lockup-h) * 1.22);
+  --tlkv-header-mark-w: calc(var(--tlkv-brand-lockup-h) * 1.38);
+  --tlkv-header-mark-size: var(--tlkv-header-mark-h);
   --tlkv-header-inner-min-h: 108px;
   --tlkv-header-nav-gap: 4px;
   --tlkv-header-nav-offset: 10%;
@@ -174,23 +176,26 @@
 }
 
 .header-brand__mark {
-  flex: 0 0 var(--tlkv-header-mark-size);
-  width: var(--tlkv-header-mark-size);
-  height: var(--tlkv-header-mark-size);
+  flex: 0 0 var(--tlkv-header-mark-w);
+  width: var(--tlkv-header-mark-w);
+  height: var(--tlkv-header-mark-h);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
   /* Optical center: emblem reads slightly low vs cap height */
   transform: translateY(-0.5px);
 }
 
 .header-brand__mark .site-logo-img {
-  max-width: 100%;
-  max-height: 100%;
   width: auto;
-  height: auto;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   filter: none;
+  transform: scale(1.14);
+  transform-origin: center center;
 }
 
 .header-brand__text {
@@ -282,8 +287,13 @@
 }
 
 .header-pc .header-brand__mark {
-  --tlkv-header-mark-size: var(--tlkv-brand-lockup-h);
+  --tlkv-header-mark-h: calc(var(--tlkv-brand-lockup-h) * 1.24);
+  --tlkv-header-mark-w: calc(var(--tlkv-brand-lockup-h) * 1.42);
   transform: none;
+}
+
+.header-pc .header-brand__mark .site-logo-img {
+  transform: scale(1.18);
 }
 
 .header-pc .header-brand__text {
@@ -560,11 +570,16 @@
 }
 
 .header-brand--mb .header-brand__mark {
-  --tlkv-header-mark-size: clamp(40px, 10.5vw, 48px);
-  flex: 0 0 var(--tlkv-header-mark-size);
-  width: var(--tlkv-header-mark-size);
-  height: var(--tlkv-header-mark-size);
+  --tlkv-header-mark-h: clamp(46px, 12vw, 56px);
+  --tlkv-header-mark-w: clamp(52px, 13.5vw, 64px);
+  flex: 0 0 var(--tlkv-header-mark-w);
+  width: var(--tlkv-header-mark-w);
+  height: var(--tlkv-header-mark-h);
   transform: translateY(0);
+}
+
+.header-brand--mb .header-brand__mark .site-logo-img {
+  transform: scale(1.12);
 }
 
 /* Mobile: một dòng — THĂNG LONG KIM VIỆT, sát logo + padding trái */

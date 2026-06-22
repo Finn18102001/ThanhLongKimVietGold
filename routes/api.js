@@ -361,5 +361,9 @@ module.exports = function apiRouter(_ROOT) {
     }
   });
 
+  // News image upload — server-side transcode with sharp (Phase B).
+  // Mounted at /api/news/* so the browser admin CMS can POST to /api/news/upload-image.
+  router.use("/news", require("./api-news-image")());
+
   return router;
 };

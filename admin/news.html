@@ -10,13 +10,13 @@
   <title>Quản lý tin tức - Thăng Long Kim Việt</title>
   <meta name="robots" content="noindex, nofollow" />
 
-  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png?v=20260623" />
 
   <link href="/admin/admin.css" rel="stylesheet" />
   <link href="/css/news-admin.css" rel="stylesheet" />
 </head>
 
-<body class="news-admin-shell">
+<body class="news-admin-shell" data-auth-state="pending">
 
   <!-- LOGIN -->
   <div id="news-admin-login" class="news-admin-wrap" hidden style="max-width:440px;margin-top:80px">
@@ -47,7 +47,7 @@
       <div>
         <p class="news-admin-bcrumb">
           <a href="/admin/">Bảng điều khiển</a> ›
-          <a href="/admin/news.html">Tin tức</a>
+          <a href="/admin/news">Tin tức</a>
         </p>
         <h1>Quản lý tin tức</h1>
       </div>
@@ -89,6 +89,8 @@
 
   <script src="/js/admin/news-storage.js"></script>
   <script src="/js/admin/news-editor.js"></script>
+  <script src="/js/admin/news-form-lifecycle.js"></script>
+  <script src="/js/admin/admin-access.js"></script>
   <script src="/js/admin/news-admin.js"></script>
 </body>
 

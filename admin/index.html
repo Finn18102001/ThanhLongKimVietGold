@@ -8,13 +8,13 @@
   <style id="tlkv-force-light">html{color-scheme:only light!important;background-color:#fdfcf8!important;-webkit-filter:none!important;filter:none!important}</style>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin - Thăng Long Kim Việt</title>
-  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
-  <link rel="icon" type="image/png" href="/assets/favicon-48.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png?v=20260623" />
+  <link rel="icon" type="image/png" href="/assets/favicon-48.png?v=20260623" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png?v=20260623" />
   <link href="/admin/admin.css" rel="stylesheet" />
 </head>
 
-<body class="admin-body">
+<body class="admin-body" data-auth-state="pending">
   <div class="admin-wrap">
     <div id="login-panel" class="admin-card login-form">
       <h1>Đăng nhập quản trị</h1>
@@ -41,10 +41,11 @@
 
       <div class="admin-tabs" role="tablist" aria-label="Khu vực quản trị">
         <button type="button" class="admin-tab admin-tab--active" id="tab-btn-gold" role="tab" aria-selected="true"
-          aria-controls="admin-tab-gold" data-tab="gold">Giá vàng</button>
+          aria-controls="admin-tab-gold" data-tab="gold" hidden>Giá vàng</button>
         <button type="button" class="admin-tab" id="tab-btn-products" role="tab" aria-selected="false"
-          aria-controls="admin-tab-products" data-tab="products">Sản phẩm</button>
-        <a class="admin-tab" href="/admin/news.html" style="text-decoration:none;display:inline-flex;align-items:center">Tin tức ↗</a>
+          aria-controls="admin-tab-products" data-tab="products" hidden>Sản phẩm</button>
+        <a class="admin-tab" id="tab-btn-news" href="/admin/news" hidden
+          style="text-decoration:none;display:inline-flex;align-items:center">Tin tức ↗</a>
       </div>
 
       <section id="admin-tab-gold" class="admin-tab-panel" role="tabpanel" aria-labelledby="tab-btn-gold">
@@ -493,6 +494,7 @@
   <script src="/js/products-data.js"></script>
   <script src="/js/products/catalog-api.js"></script>
   <script src="/js/admin-audit.js"></script>
+  <script src="/js/admin/admin-access.js"></script>
   <script src="/js/admin-app.js"></script>
   <script src="/js/admin/product-form-admin.js"></script>
   <script src="/js/admin/catalog-admin.js"></script>
