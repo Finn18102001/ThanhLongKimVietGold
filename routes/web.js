@@ -54,6 +54,9 @@ module.exports = function webRouter(ROOT) {
   router.get("/tin-tuc/danh-sach/", function (req, res) {
     res.redirect(301, "/tin-tuc/danh-sach");
   });
+  router.get("/tin-tuc/danh-sach.html", function (req, res) {
+    res.redirect(301, "/tin-tuc/danh-sach");
+  });
   router.get("/tin-tuc/thi-truong", function (req, res) {
     res.redirect(301, "/tin-tuc/danh-sach");
   });
@@ -62,6 +65,15 @@ module.exports = function webRouter(ROOT) {
   });
   router.get("/tin-tuc", send("tin-tuc/index.html"));
   router.get("/tin-tuc/", function (req, res) { res.redirect(301, "/tin-tuc"); });
+  router.get("/tin-tuc/index.html", function (req, res) {
+    res.redirect(301, "/tin-tuc");
+  });
+  /** Legacy detail URL → clean /tin-tuc/:slug */
+  router.get("/tin-tuc/chi-tiet/:slug", function (req, res) {
+    var slug = String(req.params.slug || "").trim();
+    if (!slug) return res.redirect(301, "/tin-tuc");
+    res.redirect(301, "/tin-tuc/" + encodeURIComponent(slug));
+  });
   /** Bắt buộc khai báo TRƯỚC :slug — nếu không, `danh-sach` sẽ bị coi là slug bài và vào chi-tiet.html. */
   router.get("/tin-tuc/:slug", function (req, res, next) {
     var slug = String(req.params.slug || "");

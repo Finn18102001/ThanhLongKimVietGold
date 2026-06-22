@@ -273,19 +273,7 @@
       main.appendChild(lead);
     }
 
-    if (article.thumbnailUrl) {
-      var heroFig = document.createElement("figure");
-      heroFig.className = "tlkv-news-block tlkv-news-image";
-      var img = document.createElement("img");
-      img.src = article.thumbnailUrl;
-      img.alt = article.title || "";
-      img.loading = "eager";
-      img.decoding = "async";
-      heroFig.appendChild(img);
-      main.appendChild(heroFig);
-    }
-
-    // Body (block renderer)
+    // Body only — Editor.js blocks (text + user-inserted images). Thumbnail is list/OG only.
     main.appendChild(TLKVNewsRenderer.renderArticle(article.content));
 
     // Sidebar

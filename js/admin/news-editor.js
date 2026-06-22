@@ -260,12 +260,14 @@
     });
 
     function save() {
-      return editor.save().then(function (output) {
-        return {
-          time: output.time,
-          blocks: Array.isArray(output.blocks) ? output.blocks : [],
-          version: output.version,
-        };
+      return editor.isReady.then(function () {
+        return editor.save().then(function (output) {
+          return normalizeEditorData({
+            time: output.time,
+            blocks: Array.isArray(output.blocks) ? output.blocks : [],
+            version: output.version,
+          });
+        });
       });
     }
 
