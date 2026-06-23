@@ -27,7 +27,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "Cách sửa: Export 3840×1440 từ thiết kế, kéo thả GHI ĐÈ (không gửi qua chat):"
   echo "  hero-bao-tin-manh-hai-new-3840w.png"
   echo "  hero-bao-tin-minh-chau-new-3840w.png"
-  echo "  hero-tich-san-vang-new-3840w.png"
+  echo "  hero-tich-san-vang-new-3840w.webp"
   exit 1
 fi
 
