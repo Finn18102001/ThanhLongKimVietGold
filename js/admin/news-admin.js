@@ -939,30 +939,78 @@
     setUploadBusy(false);
     prewarmUploadAuth();
 
-    async function runUpload(folder, file, progressEl) {
+    async function runUpload(folder, file, progressEl, previewTarget) {
       if (LC.isUploading()) {
         toast("Đang xử lý một ảnh khác, vui lòng đợi…", "warn");
         return null;
       }
       var bar = progressEl.firstChild;
+      var lastPreviewUrl = null;
+
+      function setProgressStatus(text) {
+        var status = progressEl._statusEl;
+        if (!status) {
+          status = el("p", {
+            class: "news-admin-thumb__progress-label",
+            style: "font-size:12px;color:var(--na-muted);margin:6px 0 0;text-align:center",
+          });
+          progressEl._statusEl = status;
+          if (progressEl.parentNode) progressEl.parentNode.insertBefore(status, progressEl.nextSibling);
+        }
+        status.textContent = text || "";
+        status.style.display = text ? "block" : "none";
+      }
+
+      function setStatsText(stats) {
+        if (!stats || !global.TLKVImageOptimizer) return;
+        var fmt = TLKVImageOptimizer.formatBytes;
+        var line = "Gốc: " + fmt(stats.originalBytes) +
+          " → Tối ưu: " + fmt(stats.optimizedBytes) +
+          " (tiết kiệm " + stats.savedPercent + "%)";
+        setProgressStatus(line);
+      }
+
+      function applyPreview(url) {
+        if (!url || !previewTarget) return;
+        if (lastPreviewUrl && global.TLKVImageOptimizer && TLKVImageOptimizer.revokePreviewUrl) {
+          TLKVImageOptimizer.revokePreviewUrl(lastPreviewUrl);
+        }
+        lastPreviewUrl = url;
+        previewTarget.classList.remove("news-admin-thumb__preview--empty");
+        previewTarget.textContent = "";
+        previewTarget.style.backgroundImage = "url('" + url + "')";
+      }
+
       LC.setUpload("uploading");
       setUploadBusy(true);
       syncFormChrome();
       progressEl.style.display = "block";
-      bar.style.width = "8%";
+      bar.style.width = "10%";
+      setProgressStatus(TLKVNewsStorage.phaseLabel("validate"));
       LC.log("UPLOAD", "start", { folder: folder, size: file.size, type: file.type });
       try {
         var res = await TLKVNewsStorage.upload(folder, file, {
-          onPhase: function (phase, ratio) {
-            bar.style.width = Math.max(8, Math.round(ratio * 100)) + "%";
+          onPhase: function (phase, ratio, meta) {
+            var label = TLKVNewsStorage.phaseLabel(phase);
+            if (phase === "optimized" && meta && meta.stats) {
+              setStatsText(meta.stats);
+              if (meta.previewUrl) applyPreview(meta.previewUrl);
+            } else if (label) {
+              setProgressStatus(label);
+            }
+            bar.style.width = Math.max(10, Math.round(ratio * 100)) + "%";
           },
         });
         bar.style.width = "100%";
+        if (res && res.optimize && res.optimize.stats) {
+          setStatsText(res.optimize.stats);
+        }
         LC.setUpload("done");
         LC.log("UPLOAD", "done", { path: res.path });
         return res;
       } catch (e) {
         LC.setUpload("error");
+        setProgressStatus("");
         console.error("[UPLOAD] failed (" + folder + "):", e);
         toast("Lỗi upload: " + (e && e.message ? e.message : String(e)), "error");
         return null;
@@ -973,7 +1021,8 @@
         setTimeout(function () {
           progressEl.style.display = "none";
           bar.style.width = "0%";
-        }, 600);
+          setProgressStatus("");
+        }, 1200);
       }
     }
 
@@ -982,10 +1031,19 @@
       var f = thFile.files && thFile.files[0];
       if (!f) return;
       try {
-        var res = await runUpload("thumbnails", f, thProgress);
+        var oldPath = (LC.getFormData() || {}).thumbnailPath;
+        var res = await runUpload("thumbnails", f, thProgress, preview);
         if (!res || aborted()) return;
+        if (oldPath && oldPath !== res.path) {
+          TLKVNewsStorage.remove(oldPath).catch(function (e) {
+            console.warn("[UPLOAD] could not delete old thumbnail:", e);
+          });
+        }
         LC.patchFormData({ thumbnailUrl: res.publicUrl, thumbnailPath: res.path });
         $("#f-thumb", form).value = res.publicUrl;
+        if (res.optimize && res.optimize.previewUrl && global.TLKVImageOptimizer) {
+          TLKVImageOptimizer.revokePreviewUrl(res.optimize.previewUrl);
+        }
         preview.classList.remove("news-admin-thumb__preview--empty");
         preview.textContent = "";
         preview.style.backgroundImage = "url('" + res.publicUrl + "')";
@@ -1071,8 +1129,11 @@
       var f = ciFile.files && ciFile.files[0];
       if (!f) return;
       try {
-        var res = await runUpload("content", f, ciProgress);
+        var res = await runUpload("content", f, ciProgress, ciPreview);
         if (!res || aborted()) return;
+        if (res.optimize && res.optimize.previewUrl && global.TLKVImageOptimizer) {
+          TLKVImageOptimizer.revokePreviewUrl(res.optimize.previewUrl);
+        }
         $("#f-content-img-url", form).value = res.publicUrl;
         setContentImgPreview(res.publicUrl);
         var cap = $("#f-content-img-caption", form);

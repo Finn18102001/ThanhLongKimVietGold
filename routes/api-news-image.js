@@ -38,25 +38,40 @@ const { createClient } = require("@supabase/supabase-js");
 // ── Constants ──────────────────────────────────────────────────────────────
 const BUCKET      = "news-media";
 const MAX_BYTES   = 10 * 1024 * 1024;   // mirrors the bucket file_size_limit
-const MAX_DIM     = 1920;               // longest edge ceiling (px)
+const MAX_DIM     = 1920;               // longest edge ceiling (px) — legacy fallback
+const WEBP_PASSTHROUGH_MAX_DIM = 1200; // matches client-side optimizer
+const WEBP_PASSTHROUGH_MAX_BYTES = 350 * 1024; // slight buffer over 300 KB target
 const JPEG_QUALITY = 82;               // perceptually lossless for news photos
 const JPEG_SMALL_PASSTHROUGH_BYTES = 2.5 * 1024 * 1024; // skip re-encode if tiny JPEG
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
   "image/gif",
   "image/svg+xml",
 ]);
 
 /** Types that go through sharp resize/encode. SVG + GIF are uploaded as-is. */
-const RASTER_COMPRESSIBLE = new Set(["image/jpeg", "image/png", "image/webp"]);
+const RASTER_COMPRESSIBLE = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
 
 const EXT_MAP = {
   "image/jpeg":   "jpg",
-  "image/png":    "jpg",  // re-encoded to JPEG
-  "image/webp":   "jpg",  // re-encoded to JPEG
+  "image/jpg":    "jpg",
+  "image/png":    "jpg",  // re-encoded to JPEG (legacy)
+  "image/webp":   "webp", // pass-through when pre-optimized by client
+  "image/heic":   "webp",
+  "image/heif":   "webp",
   "image/gif":    "gif",
   "image/svg+xml":"svg",
 };
@@ -146,6 +161,24 @@ async function handleUpload(req, res) {
 
     if (RASTER_COMPRESSIBLE.has(req.file.mimetype)) {
       /*
+       * Pre-optimized WebP from the client (image-optimizer.js):
+       * pass-through to preserve format and avoid double-encoding.
+       */
+      if (req.file.mimetype === "image/webp") {
+        const meta = await sharp(req.file.buffer).metadata();
+        const srcW = meta.width  || 0;
+        const srcH = meta.height || 0;
+        const withinDims = Math.max(srcW, srcH) <= WEBP_PASSTHROUGH_MAX_DIM;
+        const withinBytes = req.file.size <= WEBP_PASSTHROUGH_MAX_BYTES;
+        if (withinDims && withinBytes) {
+          outBuffer = req.file.buffer;
+          outMime   = "image/webp";
+          outExt    = "webp";
+        }
+      }
+
+      if (!outBuffer) {
+      /*
        * Pipeline:
        *   a) rotate()          — honour EXIF orientation (phone photos)
        *   b) resize(…inside)   — scale down if longest edge > MAX_DIM
@@ -182,7 +215,8 @@ async function handleUpload(req, res) {
           .toBuffer();
         outMime = "image/jpeg";
       }
-      outExt = "jpg";
+      outExt = outExt || "jpg";
+      }
 
     } else {
       // SVG / GIF: pass-through (animated GIF is preserved, SVG is vector)

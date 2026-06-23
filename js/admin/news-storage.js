@@ -35,22 +35,58 @@
 
   var ALLOWED_MIME = {
     "image/jpeg":   "jpg",
+    "image/jpg":    "jpg",
     "image/png":    "png",
     "image/webp":   "webp",
-    "image/gif":    "gif",
-    "image/svg+xml":"svg",
+    "image/heic":   "webp",
+    "image/heif":   "webp",
   };
 
   function noop() {}
+
+  function shouldOptimize(file) {
+    if (!global.TLKVImageOptimizer) return false;
+    if (typeof global.TLKVImageOptimizer.isOptimizableRaster === "function") {
+      return global.TLKVImageOptimizer.isOptimizableRaster(file);
+    }
+    return !!ALLOWED_MIME[file.type];
+  }
+
+  function mapOptimizePhase(phase, ratio) {
+    if (phase === "validate") return 0.10;
+    if (phase === "resize") return 0.25;
+    if (phase === "convert") return 0.50;
+    if (phase === "compress") return 0.75;
+    if (phase === "optimized") return 0.75;
+    if (phase === "auth") return 0.78;
+    if (phase === "upload") return Math.max(0.78, Math.min(0.99, ratio));
+    if (phase === "done") return 1;
+    return ratio;
+  }
+
+  function phaseLabel(phase) {
+    if (phase === "validate") return "Đang kiểm tra ảnh…";
+    if (phase === "resize") return "Đang thay đổi kích thước…";
+    if (phase === "convert") return "Đang chuyển sang WebP…";
+    if (phase === "compress") return "Đang nén ảnh…";
+    if (phase === "optimized") return "Đã tối ưu — chuẩn bị tải lên…";
+    if (phase === "auth") return "Đang xác thực…";
+    if (phase === "upload") return "Đang tải lên…";
+    return "";
+  }
 
   // ── Guards ────────────────────────────────────────────────────────────────
 
   function validateFileType(file) {
     if (!file) throw new Error("Không có tệp.");
+    if (global.TLKVImageOptimizer && typeof global.TLKVImageOptimizer.validateImage === "function") {
+      global.TLKVImageOptimizer.validateImage(file);
+      return;
+    }
     if (!ALLOWED_MIME[file.type]) {
       throw new Error(
         "Định dạng không hỗ trợ: " + (file.type || "?") +
-        " — chấp nhận JPG, PNG, WEBP, GIF, SVG."
+        " — chấp nhận JPEG, PNG, WebP, HEIC."
       );
     }
   }
@@ -171,29 +207,71 @@
    * @param {function} onPhase  — (phase: string, ratio: number) => void
    * @returns {Promise<{path: string, publicUrl: string}>}
    */
-  async function doUpload(folder, file, onPhase) {
+  async function doUpload(folder, file, onPhase, uploadOpts) {
     if (folder !== "thumbnails" && folder !== "content") {
       throw new Error("Folder không hợp lệ: " + folder);
     }
 
-    // ── 1. Fast client-side guards (before any network) ──────────────────
+    function emit(phase, ratio, meta) {
+      onPhase(phase, mapOptimizePhase(phase, ratio), meta || null);
+    }
+
+    // ── 1. Validate ──────────────────────────────────────────────────────
     console.log("[UPLOAD] start", { folder: folder, size: file.size, type: file.type });
-    onPhase("validate", 0.10);
+    emit("validate", 0.10);
     validateFileType(file);
     validateFileSize(file);
 
-    // ── 2. Fetch JWT ──────────────────────────────────────────────────────
-    onPhase("auth", 0.15);
+    var optimizeMeta = null;
+
+    // ── 2. Client-side optimize (Web Worker) ───────────────────────────
+    if (
+      global.TLKVImageOptimizer &&
+      typeof global.TLKVImageOptimizer.optimizeNewsImage === "function" &&
+      shouldOptimize(file)
+    ) {
+      try {
+        var preset = (uploadOpts && uploadOpts.preset) ||
+          (folder === "content" ? "NEWS_CONTENT" : "NEWS_THUMBNAIL");
+        var optimized = await global.TLKVImageOptimizer.optimizeNewsImage(file, {
+          preset: preset,
+          onPhase: function (phase, progress) {
+            emit(phase, progress);
+          },
+        });
+        file = optimized.file;
+        optimizeMeta = {
+          previewUrl: optimized.previewUrl,
+          stats: optimized.stats,
+          skipped: optimized.skipped,
+        };
+        emit("optimized", 0.75, optimizeMeta);
+        console.log("[UPLOAD] optimized", {
+          size: file.size,
+          type: file.type,
+          skipped: optimized.skipped,
+          saved: optimized.stats && optimized.stats.savedPercent,
+        });
+      } catch (e) {
+        console.error("[UPLOAD] optimize failed:", e);
+        throw new Error(
+          (e && e.message) ? e.message : "Không thể tối ưu ảnh. Vui lòng thử ảnh khác."
+        );
+      }
+    }
+
+    // ── 3. Fetch JWT ──────────────────────────────────────────────────────
+    emit("auth", 0.78);
     var jwt = await getAccessToken();
     if (!jwt) throw new Error("Chưa đăng nhập hoặc phiên đã hết hạn.");
     console.log("[UPLOAD] auth ok");
 
-    // ── 3. Build multipart payload ────────────────────────────────────────
+    // ── 4. Build multipart payload ────────────────────────────────────────
     var fd = new FormData();
     fd.append("file", file);
     fd.append("folder", folder);
 
-    // ── 4. XHR with real progress ─────────────────────────────────────────
+    // ── 5. XHR with real progress ─────────────────────────────────────────
     return new Promise(function (resolve, reject) {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/news/upload-image");
@@ -205,8 +283,8 @@
         // Map client→server upload bytes to the 15%–90% window.
         // The server processes + re-uploads to Supabase at datacenter speed
         // so we jump straight to 100% when we get a success response.
-        var ratio = 0.15 + (e.loaded / e.total) * 0.75;
-        onPhase("upload", Math.min(0.90, ratio));
+        var ratio = 0.78 + (e.loaded / e.total) * 0.21;
+        emit("upload", Math.min(0.99, ratio));
       };
 
       xhr.onload = function () {
@@ -215,9 +293,13 @@
           return reject(new Error("Phản hồi không hợp lệ từ server."));
         }
         if (xhr.status >= 200 && xhr.status < 300 && !result.error) {
-          onPhase("done", 1);
+          emit("done", 1, optimizeMeta);
           console.log("[UPLOAD] done", { path: result.path });
-          resolve({ path: result.path, publicUrl: result.url || "" });
+          resolve({
+            path: result.path,
+            publicUrl: result.url || "",
+            optimize: optimizeMeta,
+          });
         } else if (xhr.status === 401) {
           clearAuthCache();
           reject(new Error("Phiên đăng nhập hết hạn — tải lại trang và đăng nhập lại."));
@@ -266,12 +348,12 @@
    *
    * @param {'thumbnails'|'content'} folder
    * @param {File} file
-   * @param {{ onPhase?: (phase:string, ratio:number)=>void }} [opts]
+   * @param {{ onPhase?: (phase:string, ratio:number, meta?:object)=>void, preset?: string }} [opts]
    * @returns {Promise<{ path: string, publicUrl: string }>}
    */
   function upload(folder, file, opts) {
     var onPhase = opts && typeof opts.onPhase === "function" ? opts.onPhase : noop;
-    return enqueue(function () { return doUpload(folder, file, onPhase); });
+    return enqueue(function () { return doUpload(folder, file, onPhase, opts || {}); });
   }
 
   /** Best-effort delete of a Storage object by its path. */
@@ -300,5 +382,7 @@
     clearAuthCache:   clearAuthCache,
     remove:           remove,
     pathFromPublicUrl: pathFromPublicUrl,
+    mapOptimizePhase: mapOptimizePhase,
+    phaseLabel: phaseLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);
