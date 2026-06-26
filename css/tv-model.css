@@ -416,8 +416,9 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody tr:last-child td
   margin-right: calc(-1 * var(--tlkv-tv-shell-pad-x));
   margin-bottom: 0;
   margin-top: 0;
-  height: clamp(32px, 3.55vh, 54px);
+  height: clamp(38px, 4.15vh, 60px);
   min-height: 0;
+  --tlkv-tv-marquee-logo: clamp(30px, 3.35vh, 48px);
   background: transparent !important;
   border-top: none;
   overflow: hidden;
@@ -477,10 +478,33 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__text {
 }
 
 body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
-  font-size: calc(clamp(0.85rem, 1.4vw, 1.85rem) - 1px + var(--tlkv-tv-fs-table-add));
-  color: rgba(255, 242, 120, 0.95);
-  font-weight: 900;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--tlkv-tv-marquee-logo);
+  height: var(--tlkv-tv-marquee-logo);
+  min-width: var(--tlkv-tv-marquee-logo);
+  min-height: var(--tlkv-tv-marquee-logo);
+  aspect-ratio: 1;
+  line-height: 0;
+  padding: 0;
+  border-radius: 4px;
+  background: var(--tlkv-brand-logo-plate, #8c0003);
+  box-sizing: border-box;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
+  width: 100%;
+  height: 100%;
+  padding: clamp(3px, 0.35vh, 5px);
+  object-fit: contain;
+  display: block;
+  border-radius: 0;
+  box-sizing: border-box;
 }
 
 @media (max-width: 860px) {
