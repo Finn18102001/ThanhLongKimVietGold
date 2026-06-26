@@ -64,8 +64,19 @@ module.exports = function registerRoutes(app, ROOT) {
     express.static(ROOT, {
       index: false,
       setHeaders: function (res, filePath) {
-        if (path.extname(filePath) === ".json") {
+        var ext = path.extname(filePath).toLowerCase();
+        var base = path.basename(filePath).toLowerCase();
+        if (ext === ".json") {
           res.setHeader("Cache-Control", "no-store");
+          return;
+        }
+        if (
+          base === "favicon-48.png" ||
+          base === "apple-touch-icon-180.png" ||
+          base === "og-logo-256.png" ||
+          base.indexOf("tlkv-logo") === 0
+        ) {
+          res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
         }
       },
     })

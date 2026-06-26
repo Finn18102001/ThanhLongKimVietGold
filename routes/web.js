@@ -11,9 +11,27 @@ module.exports = function webRouter(ROOT) {
   /** Google / trình duyệt thường gọi /favicon.ico — trỏ PNG 48px (logo gốc ~12k px không dùng làm favicon). */
   router.get("/favicon.ico", function (req, res) {
     res.type("image/png");
-    res.setHeader("Cache-Control", "public, max-age=604800");
+    res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
     res.sendFile(path.join(ROOT, "assets", "favicon-48.png"));
   });
+
+  /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
+  var LOGO_V = "20260623";
+  var LEGACY_LOGO_REDIRECTS = [
+    ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
+    ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
+    ["/assets/logo-thanglong-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
+  ];
+  LEGACY_LOGO_REDIRECTS.forEach(function (pair) {
+    router.get(pair[0], function (req, res) {
+      res.setHeader("Cache-Control", "no-store");
+      res.redirect(301, pair[1]);
+    });
+  });
+
+  router.get("/robots.txt", send("robots.txt"));
+  router.get("/sitemap.xml", send("sitemap.xml"));
+  router.get("/site.webmanifest", send("site.webmanifest"));
 
   router.get("/", send("index.html"));
   router.get("/gioithieu", send("gioi-thieu/index.html"));

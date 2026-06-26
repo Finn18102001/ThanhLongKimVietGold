@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Logo/favicon chuẩn (Google SERP favicon)
+Allow: /favicon.ico
+Allow: /assets/favicon-48.png
+Allow: /assets/apple-touch-icon-180.png
+Allow: /assets/og-logo-256.png
+Allow: /assets/tlkv-logo-mark.png
+Allow: /assets/tlkv-logo-lockup.png
+
+# Logo cũ — đã 301 sang logo mới; không cần crawl trực tiếp
+Disallow: /assets/logo-tv-modal.svg
+Disallow: /assets/logo-thang-long-kim-viet.png
+
+Sitemap: https://www.thanglongkimviet.vn/sitemap.xml
