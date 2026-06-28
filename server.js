@@ -12,6 +12,13 @@ const app = express();
 
 require("./routes")(app, ROOT);
 
+process.on("unhandledRejection", function (reason) {
+  console.error("[TLKV] unhandledRejection:", reason);
+});
+process.on("uncaughtException", function (err) {
+  console.error("[TLKV] uncaughtException:", err && err.stack ? err.stack : err);
+});
+
 const BASE_PORT = Number(process.env.PORT) || 5190;
 const MAX_TRIES = 25;
 
@@ -36,7 +43,7 @@ function listenFrom(port, triesLeft) {
     console.log("TLKV site: http://127.0.0.1:" + port);
     console.log("  /        → public (trang chủ)");
     console.log("  /admin   → admin UI");
-    console.log("  /api     → world-xau-usd, gold-table/stream (SSE), health Supabase");
+    console.log("  /api     → gold-table/stream (SSE local), health Supabase");
     console.log("  /api/health/supabase-products → debug RLS (anon, cùng key .env)");
   });
 }

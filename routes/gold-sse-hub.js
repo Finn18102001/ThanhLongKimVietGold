@@ -10,23 +10,14 @@
  * Trình duyệt chỉ giữ MỘT EventSource tới server; server giữ MỘT Realtime tới Supabase.
  */
 const { createClient } = require("@supabase/supabase-js");
+const { isServerlessHost, supabasePublicFromProcessEnv } = require("../lib/runtime-env");
 
 const LOG = "[TLKV gold-push]";
 const HEARTBEAT_MS = 20000;
 
-function trimEnv(v) {
-  return String(v || "").trim();
-}
-
 function supabasePublicEnv() {
-  const url =
-    trimEnv(process.env.SUPABASE_URL) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key =
-    trimEnv(process.env.SUPABASE_ANON_KEY) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  return { url, key };
+  const { url, anonKey } = supabasePublicFromProcessEnv();
+  return { url, key: anonKey };
 }
 
 /** @type {Set<import("http").ServerResponse>} */
@@ -120,6 +111,7 @@ function stopHub() {
 }
 
 function ensureHub() {
+  if (isServerlessHost()) return false;
   if (hubChannel) return true;
   const { url, key } = supabasePublicEnv();
   if (!url || !key) {
@@ -161,6 +153,7 @@ function ensureHub() {
 }
 
 function addSseClient(res) {
+  if (isServerlessHost()) return 0;
   __clientSeq += 1;
   const id = __clientSeq;
   res.__tlkvSseId = id;

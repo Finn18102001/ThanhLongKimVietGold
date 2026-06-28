@@ -1,24 +1,6 @@
 const express = require("express");
 const path = require("path");
-
-function trimEnv(v) {
-  return String(v || "").trim();
-}
-
-/**
- * URL + key công khai cho trình duyệt.
- * Hỗ trợ tên biến cổ điển (.env) và tên giống Supabase Dashboard / Next (NEXT_PUBLIC_*).
- */
-function supabasePublicFromProcessEnv() {
-  const url =
-    trimEnv(process.env.SUPABASE_URL) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const anonKey =
-    trimEnv(process.env.SUPABASE_ANON_KEY) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-    trimEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  return { url, anonKey };
-}
+const { isServerlessHost, supabasePublicFromProcessEnv } = require("../lib/runtime-env");
 
 /**
  * @param {import("express").Express} app
@@ -44,17 +26,20 @@ module.exports = function registerRoutes(app, ROOT) {
     res.setHeader("Cache-Control", "no-store");
     const { url, anonKey } = supabasePublicFromProcessEnv();
     const payload = { url, anonKey };
-    res.send(
+    var boot =
       "window.__TLKV_SUPABASE__=" +
-        JSON.stringify(payload) +
-        ";" +
-        "window.TLKV_SUPABASE_URL=" +
-        JSON.stringify(url) +
-        ";" +
-        "window.TLKV_SUPABASE_ANON_KEY=" +
-        JSON.stringify(anonKey) +
-        ";"
-    );
+      JSON.stringify(payload) +
+      ";" +
+      "window.TLKV_SUPABASE_URL=" +
+      JSON.stringify(url) +
+      ";" +
+      "window.TLKV_SUPABASE_ANON_KEY=" +
+      JSON.stringify(anonKey) +
+      ";";
+    if (isServerlessHost()) {
+      boot += "window.__TLKV_DISABLE_GOLD_SSE=true;";
+    }
+    res.send(boot);
   });
 
   app.use("/api", require("./api")(ROOT));
@@ -81,4 +66,10 @@ module.exports = function registerRoutes(app, ROOT) {
       },
     })
   );
+
+  app.use(function (err, req, res, _next) {
+    console.error("[TLKV] unhandled route error:", req.method, req.url, err && err.stack ? err.stack : err);
+    if (res.headersSent) return;
+    res.status(500).type("json").json({ ok: false, error: "Lỗi server nội bộ." });
+  });
 };

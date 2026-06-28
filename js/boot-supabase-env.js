@@ -10,4 +10,5 @@
   global.TLKV_SUPABASE_URL = url;
   global.TLKV_SUPABASE_ANON_KEY = anonKey;
   global.__TLKV_SUPABASE__ = { url: url, anonKey: anonKey };
+  global.__TLKV_DISABLE_GOLD_SSE = true;
 })(typeof window !== "undefined" ? window : globalThis);

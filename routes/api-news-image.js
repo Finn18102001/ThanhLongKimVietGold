@@ -31,9 +31,13 @@
 
 const express = require("express");
 const multer  = require("multer");
-const sharp   = require("sharp");
 const crypto  = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { supabasePublicFromProcessEnv } = require("../lib/runtime-env");
+
+function getSharp() {
+  return require("sharp");
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const BUCKET      = "news-media";
@@ -120,9 +124,10 @@ function todayFolder() {
  * therefore evaluated against the real user — no service_role key needed.
  */
 function supabaseForJwt(jwt) {
+  const { url, anonKey } = supabasePublicFromProcessEnv();
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY,
+    url,
+    anonKey,
     {
       global:  { headers: { Authorization: `Bearer ${jwt}` } },
       auth:    { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -165,6 +170,7 @@ async function handleUpload(req, res) {
        * pass-through to preserve format and avoid double-encoding.
        */
       if (req.file.mimetype === "image/webp") {
+        const sharp = getSharp();
         const meta = await sharp(req.file.buffer).metadata();
         const srcW = meta.width  || 0;
         const srcH = meta.height || 0;
@@ -188,6 +194,7 @@ async function handleUpload(req, res) {
        * within dimensions, AND below the byte budget, skip re-encoding to
        * preserve quality and save CPU.
        */
+      const sharp = getSharp();
       const meta = await sharp(req.file.buffer).metadata();
       const srcW = meta.width  || 0;
       const srcH = meta.height || 0;

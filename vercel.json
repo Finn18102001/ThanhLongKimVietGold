@@ -6,14 +6,22 @@
       "use": "@vercel/node",
       "config": {
         "maxDuration": 60,
-        "includeFiles": "{*.html,robots.txt,sitemap.xml,site.webmanifest,local.css,admin/**,assets/**,css/**,js/**,data/**,gioi-thieu/**,san-pham/**,tin-tuc/**,thuong-hieu/**,routes/**}"
+        "includeFiles": "{*.html,robots.txt,sitemap.xml,site.webmanifest,local.css,admin/**,gioi-thieu/**,san-pham/**,tin-tuc/**,thuong-hieu/**,routes/**,lib/**,data/**}"
       }
-    }
+    },
+    { "src": "js/**", "use": "@vercel/static" },
+    { "src": "css/**", "use": "@vercel/static" },
+    { "src": "assets/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/assets/logo-tv-modal.svg", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20260623" } },
     { "src": "/assets/logo-thang-long-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20260623" } },
     { "src": "/assets/logo-thanglong-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20260623" } },
+    { "src": "/js/boot-supabase-env.js", "dest": "server.js" },
+    { "src": "/js/vendor/supabase.js", "dest": "server.js" },
+    { "src": "/js/(.*)", "dest": "/js/$1" },
+    { "src": "/css/(.*)", "dest": "/css/$1" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
     { "src": "/admin/news/edit/([0-9a-fA-F-]+)", "dest": "server.js" },
     { "src": "/admin/news/new", "dest": "server.js" },
     { "src": "/admin/news", "dest": "server.js" },

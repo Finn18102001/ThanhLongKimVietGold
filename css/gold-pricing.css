@@ -170,11 +170,6 @@
   touch-action: pan-y;
 }
 
-.tlkv-world-xau-meta {
-  margin: 0 0 0.35rem;
-}
-
-/* ----- TLKV table (store panel) ----- */
 .tlkv-gold-dashboard .tlkv-gp-table-shell.table-responsive.gold-table {
   display: flex;
   width: 100%;
@@ -473,44 +468,12 @@
   color: var(--tlkv-gp-text);
 }
 
-.tlkv-gold-panel--world .tlkv-world-xau-meta {
-  font-family: var(--tlkv-font-body);
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--tlkv-gp-header-text);
-}
-
 .tlkv-gold-panel--world .tlkv-world-xau-sub {
   margin: 0;
   font-size: 0.75rem;
   letter-spacing: 0.02em;
   color: var(--tlkv-gp-header-text);
   opacity: 0.95;
-}
-
-.tlkv-gold-panel--world .tlkv-world-xau-spot {
-  text-align: right;
-}
-
-.tlkv-gold-panel--world .tlkv-world-xau-price {
-  font-family: var(--tlkv-font-body);
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--tlkv-gp-header-gold);
-}
-
-.tlkv-gold-panel--world .tlkv-world-xau-change {
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.tlkv-gold-panel--world .tlkv-world-xau-change--up {
-  color: #3d7a52;
-}
-
-.tlkv-gold-panel--world .tlkv-world-xau-change--down {
-  color: #9e4a4a;
 }
 
 .tlkv-gold-panel--world .tlkv-world-xau-tv-wrap {
@@ -995,16 +958,6 @@
   .tlkv-gold-panel__body {
     padding-bottom: 0.75rem;
   }
-
-  .tlkv-gold-panel--world .tlkv-world-xau-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .tlkv-gold-panel--world .tlkv-world-xau-spot {
-    text-align: left;
-    width: 100%;
-  }
 }
 
 /* Samsung / Chrome forced-dark: re-assert dashboard colours when OS is dark */
@@ -1040,8 +993,7 @@
 
   .tlkv-gold-panel__meta,
   .tlkv-gold-dashboard .gold-table-meta,
-  .tlkv-gold-panel--world .tlkv-world-xau-sub,
-  .tlkv-gold-panel--world .tlkv-world-xau-meta {
+  .tlkv-gold-panel--world .tlkv-world-xau-sub {
     color: #ffffff !important;
     opacity: 1 !important;
   }
