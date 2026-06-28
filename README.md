@@ -16,7 +16,6 @@ Mặc định: `http://127.0.0.1:5190`
 
 - **Không commit** `.env` / `.env.local` (đã có trong `.gitignore`). Key thật chỉ đặt trên máy chủ hoặc tab *Environment variables* của nền tảng deploy.
 - Sao chép `.env.example` → tạo `.env.local` trên máy dev; trên production thêm cùng tên biến trên host.
-- **`GOLDAPI_KEY`**: bắt buộc nếu cần API giá vàng thế giới (`/api/world-xau-usd`, widget XAU/USD). Lấy key tại [goldapi.io/dashboard](https://www.goldapi.io/dashboard).
 - **Supabase** (nếu dùng): `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` hoặc `NEXT_PUBLIC_SUPABASE_ANON_KEY` (hoặc bộ `SUPABASE_*` tương đương trong `.env.example`).
 
 - `/` — Trang chủ (bảng giá đọc `data/gold-table.json` hoặc `localStorage` sau admin)

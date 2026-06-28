@@ -1,13 +1,8 @@
-/* Khối Giá vàng thế giới (XAU/USD) — dưới bảng giá cửa hàng */
+/* Khối biểu đồ giá vàng thế giới (TradingView XAU/USD) */
 .tlkv-world-xau {
   margin-top: var(--tlkv-space-8);
   padding-top: var(--tlkv-space-6);
   border-top: 1px solid var(--tlkv-border);
-}
-
-/* Ẩn bảng "Diễn biến" — chỉ hiển thị biểu đồ (logic JS giữ nguyên) */
-.tlkv-world-xau-side {
-  display: none !important;
 }
 
 .tlkv-gold-dashboard .tlkv-world-xau {
@@ -43,7 +38,7 @@
   font-family: var(--tlkv-font-heading);
   font-size: var(--tlkv-text-xl);
   font-weight: 750;
-  color: #d4af37; /* premium gold */
+  color: #d4af37;
   margin: 0 0 6px;
 }
 
@@ -52,35 +47,6 @@
   font-size: var(--tlkv-text-sm);
   color: var(--tlkv-text-muted);
   letter-spacing: var(--tlkv-tracking-normal);
-}
-
-.tlkv-world-xau-spot {
-  text-align: center;
-}
-
-.tlkv-world-xau-price {
-  font-size: 1.65rem;
-  font-weight: var(--tlkv-weight-bold);
-  color: var(--tlkv-text);
-  line-height: var(--tlkv-leading-tight);
-}
-
-.tlkv-world-xau-change {
-  font-size: 0.95rem;
-  font-weight: var(--tlkv-weight-semibold);
-  margin-top: var(--tlkv-space-1);
-}
-
-.tlkv-world-xau-change--up {
-  color: #3d7a52;
-}
-
-.tlkv-world-xau-change--down {
-  color: #9e4a4a;
-}
-
-.tlkv-world-xau-change--flat {
-  color: var(--tlkv-text-muted);
 }
 
 .tlkv-world-xau-tv-wrap {
@@ -103,7 +69,6 @@
   overflow: hidden;
 }
 
-/* TV / save-data: không nhúng TradingView (iframe quá nặng) */
 .tlkv-world-xau-tv-skip {
   padding: var(--tlkv-space-5) 18px;
   font-size: 0.92rem;
@@ -112,104 +77,16 @@
   max-width: 42rem;
   margin: 0 auto;
 }
+
 .tlkv-world-xau-tv-skip p {
   margin: 0 0 10px;
 }
+
 .tlkv-world-xau-tv-skip p:last-child {
   margin-bottom: 0;
 }
+
 .tlkv-world-xau-tv-skip-link a {
   color: var(--tlkv-gold-dark);
   font-weight: var(--tlkv-weight-semibold);
-}
-
-.tlkv-world-xau-side {
-  background: var(--tlkv-bg-elevated);
-  border: 1px solid var(--tlkv-border);
-  border-radius: var(--tlkv-radius-lg);
-  padding: var(--tlkv-space-4) 18px;
-  box-shadow: var(--tlkv-shadow-sm);
-}
-
-.tlkv-world-xau-side h3 {
-  font-family: var(--tlkv-font-heading);
-  font-size: var(--tlkv-text-lg);
-  font-weight: var(--tlkv-weight-semibold);
-  color: var(--tlkv-text);
-  margin: 0 0 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--tlkv-border-light);
-}
-
-.tlkv-world-xau-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.tlkv-world-xau-table tr {
-  border-bottom: 1px solid var(--tlkv-border-light);
-}
-
-.tlkv-world-xau-table tr:last-child {
-  border-bottom: none;
-}
-
-.tlkv-world-xau-table th,
-.tlkv-world-xau-table td {
-  padding: 10px var(--tlkv-space-2);
-  text-align: left;
-}
-
-.tlkv-world-xau-table th:nth-child(2),
-.tlkv-world-xau-table td:nth-child(2) {
-  text-align: center;
-}
-
-.tlkv-world-xau-table th:nth-child(3),
-.tlkv-world-xau-table td:nth-child(3) {
-  text-align: right;
-}
-
-.tlkv-world-xau-table th {
-  font-weight: var(--tlkv-weight-semibold);
-  color: var(--tlkv-text-muted);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: var(--tlkv-tracking-wide);
-}
-
-.tlkv-world-xau-num--up {
-  color: var(--tlkv-success);
-  font-weight: var(--tlkv-weight-semibold);
-}
-
-.tlkv-world-xau-num--down {
-  color: var(--tlkv-danger);
-  font-weight: var(--tlkv-weight-semibold);
-}
-
-.tlkv-world-xau-num--na {
-  color: var(--tlkv-text-soft);
-}
-
-.tlkv-world-xau-foot {
-  margin-top: var(--tlkv-space-3);
-  font-size: 0.75rem;
-  color: var(--tlkv-text-soft);
-}
-
-.tlkv-world-xau--error .tlkv-world-xau-main,
-.tlkv-world-xau--error .tlkv-world-xau-side {
-  border-color: #fecaca;
-  background: #fff7f7;
-}
-
-.tlkv-world-xau-msg {
-  padding: var(--tlkv-space-4);
-  color: var(--tlkv-danger);
-  font-size: 0.9rem;
-  line-height: var(--tlkv-leading-normal);
-  white-space: normal;
-  word-break: break-word;
 }
