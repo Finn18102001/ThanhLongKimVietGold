@@ -1292,7 +1292,7 @@
 /* ==========================================================================
    Homepage address banner (between brand intro and news)
    Desktop: full-bleed hero stage + blur edge fill, banner-adress-footer1 @ 4K.
-   Mobile: padded inset, banner-adress-footer.webp natural width.
+   Mobile: padded inset, banner-adress-footer.png natural width.
    ========================================================================== */
 .tlkv-home-address-banner {
   --tlkv-address-banner-native-w: 3840px;
