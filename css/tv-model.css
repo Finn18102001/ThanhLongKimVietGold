@@ -500,7 +500,7 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__dot {
 body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
   width: 100%;
   height: 100%;
-  padding: clamp(3px, 0.35vh, 5px);
+  padding: 0;
   object-fit: contain;
   display: block;
   border-radius: 0;
