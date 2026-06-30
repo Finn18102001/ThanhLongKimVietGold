@@ -418,7 +418,7 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody tr:last-child td
   margin-top: 0;
   height: clamp(38px, 4.15vh, 60px);
   min-height: 0;
-  --tlkv-tv-marquee-logo: clamp(24px, 2.1vh, 30px);
+  --tlkv-tv-marquee-logo: clamp(23px, 2vh, 29px);
   background: transparent !important;
   border-top: none;
   overflow: hidden;
