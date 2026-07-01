@@ -171,16 +171,46 @@ body.tlkv-tv-model-page .tv-inline-company-name p {
   color: #ffffff !important;
 }
 
+body.tlkv-tv-model-page .tv-inline-company-name {
+  min-width: 0;
+  max-width: 100%;
+}
+
 body.tlkv-tv-model-page .tv-inline-company-name h4 {
   font-size: max(16px, calc(1.04rem + 4.5px - 9px + var(--tlkv-tv-fs-table-add))) !important;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 body.tlkv-tv-model-page .tv-inline-company-name p {
   font-size: max(12px, calc(0.68rem + 4.5px - 9px + var(--tlkv-tv-fs-table-add))) !important;
+  margin: 2px 0 0;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
 }
 
-/* B. Title — nhỏ thêm ~3–4px so với bản trước; màu vàng tiêu đề cột TH */
+/* B. Title — centered in its own grid column; never absolute (local.css default overlaps brand) */
+body.tlkv-tv-model-page .tv-inline-heading-block {
+  min-width: 0;
+  justify-self: center;
+  text-align: center;
+  padding: 0 clamp(4px, 0.5vw, 10px);
+}
+
 body.tlkv-tv-model-page .tv-inline-main-title {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  pointer-events: auto;
+  white-space: nowrap;
   font-size: max(1.08rem, calc(2.72rem - 21px + var(--tlkv-tv-fs-table-add))) !important;
   color: var(--tlkv-tv-label-yellow) !important;
   font-weight: 900 !important;
@@ -201,10 +231,25 @@ body.tlkv-tv-model-page .tv-inline-header {
 }
 
 body.tlkv-tv-model-page .tv-inline-header.tv-inline-header--tv-model {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: clamp(8px, 1vw, 16px);
   padding: clamp(4px, 0.45vh, 8px) var(--tlkv-tv-shell-pad-x);
-  gap: clamp(6px, 0.75vw, 12px);
   position: relative;
   z-index: 3;
+}
+
+body.tlkv-tv-model-page .tv-inline-brand--corner:first-child {
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.tlkv-tv-model-page .tv-inline-brand--end {
+  justify-self: end;
+  min-width: 0;
+  text-align: right;
 }
 
 body.tlkv-tv-model-page .tv-inline-table-wrap {
@@ -522,9 +567,24 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
 }
 
 @media (max-width: 860px) {
-  body.tlkv-tv-model-page .tv-inline-header {
-    flex-wrap: wrap;
-    justify-content: center;
+  body.tlkv-tv-model-page .tv-inline-header.tv-inline-header--tv-model {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    row-gap: clamp(6px, 0.75vh, 10px);
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-brand--corner:first-child,
+  body.tlkv-tv-model-page .tv-inline-brand--end,
+  body.tlkv-tv-model-page .tv-inline-heading-block {
+    justify-self: center;
+    text-align: center;
+  }
+
+  body.tlkv-tv-model-page .tv-inline-main-title {
+    white-space: normal;
+    line-height: 1.15;
   }
 
   body.tlkv-tv-model-page .tv-inline-date-line {
