@@ -166,33 +166,18 @@ body.tlkv-tv-model-page .tv-inline-brand img {
   backface-visibility: hidden;
 }
 
-body.tlkv-tv-model-page .tv-inline-company-name h4,
-body.tlkv-tv-model-page .tv-inline-company-name p {
-  color: #ffffff !important;
-}
-
 body.tlkv-tv-model-page .tv-inline-company-name {
   min-width: 0;
   max-width: 100%;
 }
 
 body.tlkv-tv-model-page .tv-inline-company-name h4 {
-  font-size: max(16px, calc(1.04rem + 4.5px - 9px + var(--tlkv-tv-fs-table-add))) !important;
+  color: #ffffff !important;
+  font-size: max(19.2px, calc((1.04rem + 4.5px - 9px + var(--tlkv-tv-fs-table-add)) * 1.2)) !important;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-body.tlkv-tv-model-page .tv-inline-company-name p {
-  font-size: max(12px, calc(0.68rem + 4.5px - 9px + var(--tlkv-tv-fs-table-add))) !important;
-  margin: 2px 0 0;
-  line-height: 1.15;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  white-space: normal;
 }
 
 /* B. Title — centered in its own grid column; never absolute (local.css default overlaps brand) */
