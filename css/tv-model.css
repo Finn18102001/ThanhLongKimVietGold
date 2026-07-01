@@ -418,13 +418,14 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody tr:last-child td
   margin-top: 0;
   height: clamp(38px, 4.15vh, 60px);
   min-height: 0;
-  --tlkv-tv-marquee-logo: clamp(23px, 2vh, 29px);
+  --tlkv-tv-marquee-logo: clamp(18px, 2vh, 20px);
   background: transparent !important;
   border-top: none;
   overflow: hidden;
   display: flex;
   align-items: center;
-  padding: 0 clamp(3px, 0.35vw, 6px);
+  padding-left: clamp(3px, 0.35vw, 6px); 
+  padding-right: clamp(3px, 0.35vw, 6px);
 }
 
 .tlkv-tv-marquee__viewport {
