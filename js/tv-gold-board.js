@@ -37,6 +37,93 @@
     );
   }
 
+  var __tvModelLayoutTimer = null;
+  var __tvModelLayoutRo = null;
+
+  /**
+   * Fit tbody row height so table + header never bleed under the marquee.
+   * Subtracts measured marquee + header from shell; divides remainder by row count.
+   */
+  function fitTvModelTableLayout() {
+    if (!isTvModelHtmlPage() || !global.getComputedStyle) return;
+
+    var shell = document.querySelector(".tlkv-tv-shell");
+    var header = document.querySelector(".tv-inline-header--tv-model");
+    var marquee = document.querySelector(".tlkv-tv-marquee");
+    var table = document.getElementById("tv-gold-table");
+    var tbody = document.getElementById("tv-table-body");
+    var root = document.documentElement;
+    if (!shell || !table || !tbody) return;
+
+    if (marquee && marquee.offsetHeight > 0) {
+      root.style.setProperty("--tlkv-tv-marquee-h", marquee.offsetHeight + "px");
+    }
+
+    var shellPadTop = parseFloat(global.getComputedStyle(shell).paddingTop) || 0;
+    var headerH = header ? header.offsetHeight : 0;
+    var marqueeH = marquee ? marquee.offsetHeight : 0;
+    var available = shell.clientHeight - shellPadTop - headerH - marqueeH;
+    if (available < 72) return;
+
+    var thead = table.tHead;
+    var theadH = 0;
+    if (thead && thead.rows && thead.rows.length) {
+      theadH = thead.rows[0].offsetHeight;
+    }
+    if (!theadH) {
+      var theadVar = global.getComputedStyle(root).getPropertyValue("--tlkv-tv-thead-row-h").trim();
+      theadH = parseFloat(theadVar) || 40;
+    }
+
+    var bodyAvailable = available - theadH;
+    if (bodyAvailable < 32) return;
+
+    var rows = tbody.querySelectorAll("tr");
+    var rowCount = rows.length;
+    if (!rowCount) return;
+
+    var minRow = 26;
+    var maxRow = 56;
+    var ideal = Math.floor(bodyAvailable / rowCount);
+    var rowH;
+    if (ideal < minRow) {
+      rowH = Math.max(20, ideal);
+    } else {
+      rowH = Math.min(ideal, maxRow);
+    }
+
+    root.style.setProperty("--tlkv-tv-tbody-row-h", rowH + "px");
+
+    var theadTarget = Math.max(28, Math.min(50, Math.floor(available * 0.055)));
+    root.style.setProperty("--tlkv-tv-thead-row-h", theadTarget + "px");
+  }
+
+  function scheduleTvModelTableLayout() {
+    if (__tvModelLayoutTimer) clearTimeout(__tvModelLayoutTimer);
+    __tvModelLayoutTimer = setTimeout(function () {
+      __tvModelLayoutTimer = null;
+      fitTvModelTableLayout();
+    }, 48);
+  }
+
+  function bindTvModelLayoutObservers() {
+    if (!isTvModelHtmlPage() || __tvModelLayoutRo) return;
+
+    var shell = document.querySelector(".tlkv-tv-shell");
+    if (!shell) return;
+
+    global.addEventListener("resize", scheduleTvModelTableLayout, { passive: true });
+
+    if (typeof ResizeObserver !== "undefined") {
+      __tvModelLayoutRo = new ResizeObserver(scheduleTvModelTableLayout);
+      __tvModelLayoutRo.observe(shell);
+      var marquee = document.querySelector(".tlkv-tv-marquee");
+      if (marquee) __tvModelLayoutRo.observe(marquee);
+      var header = document.querySelector(".tv-inline-header--tv-model");
+      if (header) __tvModelLayoutRo.observe(header);
+    }
+  }
+
   /**
    * @param {{ rows?: unknown[], meta?: object } | null} data
    */
@@ -424,6 +511,7 @@
       highlightPriceColumns();
       highlightTVBrandColumn();
       loadTVLogos();
+      scheduleTvModelTableLayout();
     }
 
     function updateTVDateTime() {
@@ -538,6 +626,9 @@
     window.addEventListener("offline", onOffline);
     window.addEventListener("online", onOnline);
 
+    bindTvModelLayoutObservers();
+    scheduleTvModelTableLayout();
+
     board.loadTVLogos();
     if (global.TLKVGold && typeof global.TLKVGold.startGoldPush === "function") {
       global.TLKVGold.startGoldPush();
@@ -556,6 +647,7 @@
       "pageshow",
       function (ev) {
         board.loadTVLogos();
+        scheduleTvModelTableLayout();
       },
       { passive: true }
     );
@@ -591,6 +683,8 @@
   global.TLKVTvGoldBoard = {
     createBoard: createGoldTvBoard,
     initTvModelPage: initTvModelPage,
+    fitTvModelTableLayout: fitTvModelTableLayout,
+    scheduleTvModelTableLayout: scheduleTvModelTableLayout,
     tvLogoAbsUrl: tvLogoAbsUrl,
     /** Custom stripe rows (product / purity / price cells) */
     TV_CUSTOM_STRIPE_INDEXES: TLKV_TV_CUSTOM_STRIPE_INDEXES,
