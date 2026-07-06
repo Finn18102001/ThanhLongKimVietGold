@@ -87,6 +87,7 @@
     const priceRaw = r.price_text ?? r.priceText ?? r.pricetext ?? "";
     const brand = r.brands || null;
     const cat = r.categories || null;
+    const thumbnailUrl = pickThumbnailUrlFromRow(r);
     return normalizeItem({
       id: r.id,
       name: r.name ?? "",
@@ -101,12 +102,71 @@
       priceNumeric: r.price_numeric != null ? Number(r.price_numeric) : parsePriceNumeric(priceRaw),
       weight: parseProductWeight(r.weight),
       image: r.image ?? "",
+      thumbnailUrl: thumbnailUrl,
       sortOrder: r.sort_order,
       isFeatured: !!r.is_featured,
       isBestSeller: !!r.is_best_seller,
       isHot: !!r.is_hot,
       isActive: r.is_active !== false,
     });
+  }
+
+  function pickThumbnailUrlFromRow(row) {
+    const images = row.product_images || [];
+    if (images.length) {
+      const sorted = images.slice().sort(function (a, b) {
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      const thumb = sorted.find(function (i) {
+        return i.role === "thumbnail";
+      });
+      const main = sorted.find(function (i) {
+        return i.role === "main";
+      });
+      const first = thumb || main || sorted[0];
+      if (first && first.public_url) return String(first.public_url);
+    }
+    const legacy = String(row.image ?? "").trim();
+    return legacy ? resolveProductImageSrc(legacy) : "";
+  }
+
+  function pathFromProductPublicUrl(publicUrl) {
+    const s = String(publicUrl || "").trim();
+    const marker = "/storage/v1/object/public/";
+    const idx = s.indexOf(marker);
+    if (idx === -1) return "";
+    const rest = s.slice(idx + marker.length);
+    const slash = rest.indexOf("/");
+    if (slash === -1) return "";
+    return rest.slice(slash + 1);
+  }
+
+  async function syncProductThumbnailRecord(sb, productId, publicUrl, storagePath) {
+    if (!sb || !productId || !publicUrl) return;
+    const path = String(storagePath || pathFromProductPublicUrl(publicUrl) || "").trim();
+    const { data: existing, error: eSel } = await sb
+      .from("product_images")
+      .select("id")
+      .eq("product_id", productId)
+      .eq("role", "thumbnail")
+      .maybeSingle();
+    if (eSel) throw eSel;
+    if (existing && existing.id) {
+      const { error: eUp } = await sb
+        .from("product_images")
+        .update({ public_url: publicUrl, storage_path: path || null })
+        .eq("id", existing.id);
+      if (eUp) throw eUp;
+      return;
+    }
+    const { error: eIns } = await sb.from("product_images").insert({
+      product_id: productId,
+      role: "thumbnail",
+      public_url: publicUrl,
+      storage_path: path || null,
+      sort_order: 0,
+    });
+    if (eIns) throw eIns;
   }
 
   function sortProductRowsClient(rows) {
@@ -221,6 +281,8 @@
       priceNumeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
       weight: parseProductWeight(p.weight),
       image: String(p.image ?? "").trim(),
+      thumbnailUrl: String(p.thumbnailUrl ?? p.image ?? "").trim(),
+      imageStoragePath: String(p.imageStoragePath ?? "").trim(),
       sortOrder: coerceSortOrder(p.sortOrder),
       isFeatured: !!p.isFeatured,
       isBestSeller: !!p.isBestSeller,
@@ -373,6 +435,14 @@
     const row = productAppToDb(normalized, sortOrder);
     const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
     throwIfSupabaseWriteError(error, adminUser);
+    if (normalized.image) {
+      await syncProductThumbnailRecord(
+        sb,
+        normalized.id,
+        normalized.image,
+        normalized.imageStoragePath || pathFromProductPublicUrl(normalized.image)
+      );
+    }
     global.dispatchEvent(new CustomEvent("tlkv:products-changed", { detail: { item: normalized } }));
     return normalized;
   }

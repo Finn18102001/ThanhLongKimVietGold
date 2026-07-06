@@ -2150,9 +2150,12 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
   uploadBtn.innerHTML = '⏳ Đang upload...';
 
   try {
-    // Tạo tên file duy nhất
-    const fileExt = currentUploadFile.name.split('.').pop();
-    const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+    // Immutable CDN-friendly URL: unique path per upload + long cache (parity with news-media).
+    const fileExt = (currentUploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const fileUuid = (global.crypto && global.crypto.randomUUID)
+      ? global.crypto.randomUUID()
+      : `p-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    const fileName = `${fileUuid}.${fileExt}`;
     const productId = (document.getElementById('pf-id') && document.getElementById('pf-id').value.trim()) || 'new';
     const filePath = `products/${productId}/thumbnail/${fileName}`;
 
@@ -2162,7 +2165,7 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
     const { data, error } = await supabaseClient.storage
       .from('product-media')
       .upload(filePath, currentUploadFile, {
-        cacheControl: '3600',
+        cacheControl: '31536000',
         upsert: false,
         contentType: currentUploadFile.type
       });
@@ -2178,8 +2181,17 @@ document.getElementById('btn-upload-supabase')?.addEventListener('click', async 
 
     console.log('🔗 Public URL:', publicUrl);
 
-    // Cập nhật đường dẫn ảnh vào input
+    // Cập nhật đường dẫn ảnh vào input (+ storage path cho sync product_images khi lưu)
     document.getElementById('pf-image').value = publicUrl;
+    var pathField = document.getElementById('pf-image-path');
+    if (!pathField) {
+      pathField = document.createElement('input');
+      pathField.type = 'hidden';
+      pathField.id = 'pf-image-path';
+      var form = document.getElementById('pf-image') && document.getElementById('pf-image').form;
+      if (form) form.appendChild(pathField);
+    }
+    pathField.value = filePath;
 
     // Cập nhật preview với URL thật
     const preview = document.getElementById('pf-image-preview');

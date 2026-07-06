@@ -22,7 +22,7 @@
   var FEATURED_BRAND_SELECT = "id, name, slug, logo_url, sort_order";
   var FEATURED_PRODUCT_SELECT = "id, name, slug, image, price_text, sort_order";
   var FEATURED_FALLBACK_PRODUCT_SELECT =
-    "id, name, slug, image, price_text, price_numeric, sort_order, weight, price_source_product, " +
+    "id, name, slug, image, price_text, price_numeric, sort_order, weight, price_source_product, brand_id, " +
     "is_featured, is_best_seller, is_hot, " +
     "categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";
@@ -206,23 +206,35 @@
     if (brandRes.error) throw brandRes.error;
 
     var brands = brandRes.data || [];
+    var brandIds = brands.map(function (b) {
+      return b.id;
+    });
+    var productsByBrand = {};
+    if (brandIds.length) {
+      var productQuery = sb
+        .from("products")
+        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
+        .in("brand_id", brandIds)
+        .eq("is_featured", true)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      var allProductRes = await productQuery;
+      if (allProductRes.error) throw allProductRes.error;
+      (allProductRes.data || []).forEach(function (row) {
+        var bid = row.brand_id;
+        if (!bid) return;
+        if (!productsByBrand[bid]) productsByBrand[bid] = [];
+        productsByBrand[bid].push(row);
+      });
+    }
+
     var out = [];
 
     for (var i = 0; i < brands.length; i += 1) {
       var brand = brands[i];
-      var productQuery = sb
-        .from("products")
-        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
-        .eq("brand_id", brand.id)
-        .eq("is_featured", true)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (limit > 0) productQuery = productQuery.limit(limit);
-      var productRes = await productQuery;
-
-      if (productRes.error) throw productRes.error;
-
-      var featuredProducts = (productRes.data || []).map(function (row) {
+      var rows = productsByBrand[brand.id] || [];
+      if (limit > 0) rows = rows.slice(0, limit);
+      var featuredProducts = rows.map(function (row) {
         return normalizeFeaturedProduct(row, rfn);
       });
 
@@ -483,23 +495,40 @@
     });
 
     var out = [];
+    var realBrandIds = orderedBrands
+      .filter(function (b) {
+        return b.id && String(b.id).indexOf("default-") !== 0;
+      })
+      .map(function (b) {
+        return b.id;
+      });
+    var productsByBrand = {};
+    if (realBrandIds.length) {
+      var batchRes = await sb
+        .from("products")
+        .select(PRODUCT_SELECT)
+        .in("brand_id", realBrandIds)
+        .eq("is_active", true)
+        .in("category_id", categoryIds)
+        .order("sort_order", { ascending: true });
+      if (batchRes.error) throw batchRes.error;
+      (batchRes.data || []).forEach(function (row) {
+        var bid = row.brand_id;
+        if (!bid) return;
+        if (!productsByBrand[bid]) productsByBrand[bid] = [];
+        productsByBrand[bid].push(row);
+      });
+    }
+
     for (var i = 0; i < orderedBrands.length; i += 1) {
       var brand = orderedBrands[i];
       if (!brand.id || String(brand.id).indexOf("default-") === 0) {
         out.push({ brand: brand, products: [] });
         continue;
       }
-      var productRes = await sb
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("brand_id", brand.id)
-        .eq("is_active", true)
-        .in("category_id", categoryIds)
-        .order("sort_order", { ascending: true });
-      if (productRes.error) throw productRes.error;
       out.push({
         brand: brand,
-        products: (productRes.data || []).map(function (row) {
+        products: (productsByBrand[brand.id] || []).map(function (row) {
           return normalizeProduct(row, rfn);
         }),
       });

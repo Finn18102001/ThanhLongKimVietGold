@@ -186,7 +186,7 @@
           count: (brand.featured_products || []).length,
           order: brand.sort_order,
           products: (brand.featured_products || []).map(function (p) {
-            return [p.id, p.sortOrder, p.showPrice, p.priceText, p.weight, p.priceSourceProduct];
+            return [p.id, p.sortOrder, p.showPrice, p.priceText, p.weight, p.priceSourceProduct, p.thumbnailUrl || p.image];
           }),
         };
       })

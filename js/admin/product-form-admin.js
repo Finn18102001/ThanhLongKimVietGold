@@ -133,6 +133,7 @@
       priceText: ($("pf-priceText") && $("pf-priceText").value.trim()) || "",
       weight: parseWeightInput($("pf-weight") && $("pf-weight").value),
       image: ($("pf-image") && $("pf-image").value.trim()) || "",
+      imageStoragePath: ($("pf-image-path") && $("pf-image-path").value.trim()) || "",
       sortOrder: null,
       isFeatured: !!($("pf-is-featured") && $("pf-is-featured").checked),
       isBestSeller: !!($("pf-is-best-seller") && $("pf-is-best-seller").checked),

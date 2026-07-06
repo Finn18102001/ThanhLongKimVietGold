@@ -108,9 +108,10 @@
     }
     items.forEach(function (p) {
       var tr = document.createElement("tr");
-      var imgSrc = window.TLKVProducts.resolveProductImageSrc(p.image);
+      var imgRaw = p.thumbnailUrl || p.image || "";
+      var imgSrc = window.TLKVProducts.resolveProductImageSrc(imgRaw);
       var tdThumb = imgSrc
-        ? '<td><img class="admin-product-thumb" src="' + imgSrc.replace(/"/g, "&quot;") + '" alt="" width="48" height="48" /></td>'
+        ? '<td><img class="admin-product-thumb" src="' + imgSrc.replace(/"/g, "&quot;") + '" alt="" width="48" height="48" loading="lazy" decoding="async" /></td>'
         : "<td>—</td>";
       tr.innerHTML =
         "<td><small>" +

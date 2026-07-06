@@ -280,6 +280,7 @@
   function createProductCard(product) {
     var card = document.createElement("li");
     card.className = "vtl-product-card";
+    if (product && product.id) card.setAttribute("data-tlkv-product-id", String(product.id));
 
     var media = document.createElement("div");
     media.className = "vtl-product-card__media";
@@ -400,6 +401,46 @@
     });
     grid.appendChild(frag);
     host.appendChild(grid);
+  }
+
+  function patchProductPricesInDom() {
+    var host = $("#vtl-product-grid-host");
+    if (!host) return;
+    var cards = host.querySelectorAll("[data-tlkv-product-id]");
+    if (!cards.length) return;
+    cards.forEach(function (card) {
+      var id = card.getAttribute("data-tlkv-product-id");
+      if (!id) return;
+      var product = null;
+      var slug = state.activeBrand;
+      var list = state.productsByBrand[slug] || [];
+      for (var i = 0; i < list.length; i += 1) {
+        if (String(list[i].id) === String(id)) {
+          product = list[i];
+          break;
+        }
+      }
+      if (!product) return;
+      var priceEl = card.querySelector(".vtl-product-card__price");
+      var label = formatPriceLabel(product);
+      if (!priceEl && label) {
+        var body = card.querySelector(".vtl-product-card__body");
+        if (body) {
+          priceEl = document.createElement("p");
+          priceEl.className = "vtl-product-card__price";
+          body.appendChild(priceEl);
+        }
+      }
+      if (priceEl) {
+        if (label) {
+          priceEl.textContent = label;
+          priceEl.hidden = false;
+        } else {
+          priceEl.textContent = "";
+          priceEl.hidden = true;
+        }
+      }
+    });
   }
 
   function renderBrandView() {
@@ -583,7 +624,7 @@
     global.addEventListener("tlkv:gold-rows-updated", function (ev) {
       var rows = ev && ev.detail && ev.detail.rows ? ev.detail.rows : null;
       applyDerivedPricesToAllSections(rows);
-      renderBrandView();
+      patchProductPricesInDom();
     });
 
     global.addEventListener("tlkv:products-changed", loadAndRender);
