@@ -34,6 +34,7 @@ const multer  = require("multer");
 const sharp   = require("sharp");
 const crypto  = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { supabasePublicEnv } = require("../lib/supabase-public-env");
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const BUCKET      = "news-media";
@@ -120,9 +121,15 @@ function todayFolder() {
  * therefore evaluated against the real user — no service_role key needed.
  */
 function supabaseForJwt(jwt) {
+  const { url, anonKey } = supabasePublicEnv();
+  if (!url || !anonKey) {
+    throw new Error(
+      "Thiếu SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL hoặc anon|publishable key trong .env trên server."
+    );
+  }
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY,
+    url,
+    anonKey,
     {
       global:  { headers: { Authorization: `Bearer ${jwt}` } },
       auth:    { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -256,7 +263,9 @@ async function handleUpload(req, res) {
 
   } catch (err) {
     console.error("[news-image] unhandled error:", err);
-    return res.status(500).json({ error: err.message || "Upload thất bại." });
+    const msg = err && err.message ? err.message : "Upload thất bại.";
+    const isConfig = /thiếu supabase_url|supabaseurl is required/i.test(msg);
+    return res.status(isConfig ? 503 : 500).json({ error: msg });
   }
 }
 
