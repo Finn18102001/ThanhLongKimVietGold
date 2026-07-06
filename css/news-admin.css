@@ -372,6 +372,31 @@
 .news-admin-editor .codex-editor { padding: 0 !important; }
 .news-admin-editor .codex-editor__redactor { padding-bottom: 80px !important; }
 
+.news-admin-editor-fallback {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px dashed #f59e0b;
+  border-radius: var(--na-radius);
+  background: #fffbeb;
+  max-height: 420px;
+  overflow: auto;
+}
+.news-admin-editor-fallback__warn {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+}
+.news-admin-editor-fallback__raw {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.news-admin-editor-fallback .tlkv-news-article {
+  font-size: 14px;
+}
+
 /* Sidebar form */
 .news-admin-sidebar {
   display: flex;

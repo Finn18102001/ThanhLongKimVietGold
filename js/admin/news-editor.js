@@ -74,7 +74,7 @@
       };
     }
 
-    if (type === "list" || type === "nestedlist") {
+    if (type === "list" || type === "nestedlist" || type === "nestedList") {
       var items = normalizeListItems(data.items);
       if (!items.length) return null;
       return {
@@ -115,14 +115,29 @@
     return { type: type, data: data };
   }
 
+  function newBlockId() {
+    return "blk-" + Math.random().toString(36).slice(2, 11);
+  }
+
   function normalizeEditorData(raw) {
     var blocks = raw && Array.isArray(raw.blocks) ? raw.blocks : [];
     var normalized = blocks.map(normalizeBlock).filter(Boolean);
     return {
       time: raw && raw.time,
       blocks: normalized,
-      version: raw && raw.version,
+      version: (raw && raw.version) || "2.30.7",
     };
+  }
+
+  /** Normalize + assign stable ids before Editor.js hydrate (production-safe). */
+  function prepareForMount(raw) {
+    var data = normalizeEditorData(raw && typeof raw === "object" ? raw : { blocks: [] });
+    data.blocks = (data.blocks || []).map(function (block) {
+      var next = Object.assign({}, block);
+      if (!next.id) next.id = newBlockId();
+      return next;
+    });
+    return data;
   }
 
   function buildTools() {
@@ -158,11 +173,13 @@
       };
     }
     if (List) {
-      tools.list = {
+      var listTool = {
         class: List,
         inlineToolbar: true,
         config: { defaultStyle: "unordered" },
       };
+      tools.list = listTool;
+      tools.nestedlist = listTool;
     }
     if (Quote) {
       tools.quote = {
@@ -241,13 +258,13 @@
     }
     if (!holderEl) throw new Error("Không tìm thấy phần tử cho editor.");
 
-    var data = normalizeEditorData(opts && opts.data && typeof opts.data === "object" ? opts.data : { blocks: [] });
+    var data = prepareForMount(opts && opts.data && typeof opts.data === "object" ? opts.data : { blocks: [] });
     var tools = buildTools();
 
     var editor = new global.EditorJS({
       holder: holderEl,
       tools: tools,
-      data: data,
+      data: { time: data.time || Date.now(), blocks: [], version: data.version || "2.30.7" },
       placeholder: "Bắt đầu viết bài… Nhấn “/” để chọn loại khối.",
       autofocus: false,
       minHeight: 320,
@@ -301,6 +318,9 @@
     }
 
     await editor.isReady;
+    if (data.blocks && data.blocks.length) {
+      await editor.blocks.render(data);
+    }
     return {
       save: save,
       setData: setData,
@@ -314,5 +334,6 @@
     mount: mount,
     isAllowedImageUrl: isAllowedImageUrl,
     normalizeEditorData: normalizeEditorData,
+    prepareForMount: prepareForMount,
   };
 })(typeof window !== "undefined" ? window : globalThis);

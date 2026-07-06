@@ -697,7 +697,18 @@
       seoDescription: initial ? initial.seoDescription : "",
       seoKeywords: initial ? initial.seoKeywords : "",
       slugTouched: !!editId,
+      articleContent: (global.TLKVNewsEditor && typeof global.TLKVNewsEditor.prepareForMount === "function")
+        ? global.TLKVNewsEditor.prepareForMount(initial && initial.content ? initial.content : { blocks: [] })
+        : (initial && initial.content ? initial.content : { blocks: [] }),
     });
+
+    var editorSeed = fd.articleContent || { blocks: [] };
+    if (editId) {
+      LC.log("FORM", "content loaded", {
+        id: editId,
+        blocks: editorSeed.blocks ? editorSeed.blocks.length : 0,
+      });
+    }
 
     var card = el("div", { class: "news-admin-card" });
     card.appendChild(el("div", { class: "news-admin-card__header" }, [
@@ -799,8 +810,14 @@
       id: "na-editor-status",
     }, "Đang tải trình soạn thảo…");
     var edHolder = el("div", { class: "news-admin-editor", id: "tlkv-news-editor-holder" });
+    var edFallback = el("div", {
+      class: "news-admin-editor-fallback",
+      id: "na-editor-fallback",
+      hidden: "hidden",
+    });
     edField.appendChild(edStatus);
     edField.appendChild(edHolder);
+    edField.appendChild(edFallback);
     edField.appendChild(el("span", { class: "news-admin-hint" },
       "Chèn ảnh bằng khối phía trên hoặc nhấn “/” → “Ảnh” trong trình soạn thảo."));
     left.appendChild(edField);
@@ -910,6 +927,93 @@
     LC.setForm("ready");
     LC.log("FORM", "DOM ready — submit unlocked (editor independent)");
     syncFormChrome();
+
+    async function mountArticleEditor() {
+      var seed = (LC.getFormData() && LC.getFormData().articleContent) || editorSeed || { blocks: [] };
+      if (global.TLKVNewsEditor && typeof global.TLKVNewsEditor.prepareForMount === "function") {
+        seed = global.TLKVNewsEditor.prepareForMount(seed);
+      }
+      try {
+        EDITOR_INSTANCE = await LC.mountEditorWithTimeout(
+          function (opts) { return TLKVNewsEditor.mount(opts); },
+          {
+            holder: "tlkv-news-editor-holder",
+            data: seed,
+          }
+        );
+        if (aborted()) {
+          try { await EDITOR_INSTANCE.destroy(); } catch (e) { /* ignore */ }
+          EDITOR_INSTANCE = null;
+          return;
+        }
+
+        var savedCount = seed.blocks ? seed.blocks.length : 0;
+        var liveCount = 0;
+        try {
+          var live = await EDITOR_INSTANCE.save();
+          liveCount = live && live.blocks ? live.blocks.length : 0;
+        } catch (e) {
+          console.warn("[EDITOR] post-mount save check failed:", e);
+        }
+
+        if (savedCount > 0 && liveCount === 0) {
+          console.warn("[EDITOR] hydrate empty — retry setData", { savedCount: savedCount });
+          await EDITOR_INSTANCE.setData(seed);
+          try {
+            var retry = await EDITOR_INSTANCE.save();
+            liveCount = retry && retry.blocks ? retry.blocks.length : 0;
+          } catch (e2) {
+            console.warn("[EDITOR] retry save failed:", e2);
+          }
+        }
+
+        if (savedCount > 0 && liveCount === 0) {
+          showEditorFallback(seed, "Trình soạn thảo không tải được nội dung đã lưu (" + savedCount + " khối). Xem bản đọc-only bên dưới.");
+        } else {
+          hideEditorFallback();
+          if (edStatus && edStatus.parentNode) edStatus.remove();
+        }
+      } catch (e) {
+        if (aborted()) return;
+        console.error("[EDITOR] mount failed:", e);
+        if (edStatus) {
+          edStatus.className = "news-admin-editor-status news-admin-editor-status--failed";
+          edStatus.textContent = "⚠ Không tải được trình soạn thảo: " +
+            (e && e.message ? e.message : String(e));
+        }
+        if (seed.blocks && seed.blocks.length) {
+          showEditorFallback(seed, "Trình soạn thảo lỗi — hiển thị nội dung đọc-only để bạn không mất dữ liệu.");
+        }
+        EDITOR_INSTANCE = null;
+      }
+      syncFormChrome();
+    }
+
+    function showEditorFallback(content, message) {
+      var box = $("#na-editor-fallback", form);
+      if (!box) return;
+      box.hidden = false;
+      box.innerHTML = "";
+      if (message) {
+        box.appendChild(el("p", { class: "news-admin-editor-fallback__warn" }, message));
+      }
+      if (global.TLKVNewsRenderer && typeof global.TLKVNewsRenderer.renderArticle === "function") {
+        box.appendChild(global.TLKVNewsRenderer.renderArticle(content));
+      } else {
+        box.appendChild(el("pre", { class: "news-admin-editor-fallback__raw" },
+          JSON.stringify(content, null, 2).slice(0, 8000)));
+      }
+    }
+
+    function hideEditorFallback() {
+      var box = $("#na-editor-fallback", form);
+      if (!box) return;
+      box.hidden = true;
+      box.innerHTML = "";
+    }
+
+    // Mount editor as soon as the holder is in the DOM (before slow upload wiring).
+    mountArticleEditor();
 
     // Wire inputs to lifecycle formData (immutable patches)
     titleInput.addEventListener("input", function () {
@@ -1185,34 +1289,6 @@
     var feat = $("#f-feat", form);
     feat.checked = !!(LC.getFormData() && LC.getFormData().featured);
     feat.addEventListener("change", function () { LC.patchFormData({ featured: feat.checked }); });
-
-    // Mount Editor.js
-    try {
-      EDITOR_INSTANCE = await LC.mountEditorWithTimeout(
-        function (opts) { return TLKVNewsEditor.mount(opts); },
-        {
-          holder: "tlkv-news-editor-holder",
-          data: initial && initial.content && Array.isArray(initial.content.blocks)
-            ? initial.content
-            : { blocks: [] },
-        }
-      );
-      if (aborted()) {
-        try { await EDITOR_INSTANCE.destroy(); } catch (e) { /* ignore */ }
-        EDITOR_INSTANCE = null;
-        return;
-      }
-      if (edStatus && edStatus.parentNode) edStatus.remove();
-    } catch (e) {
-      if (aborted()) return;
-      console.error("[EDITOR] mount failed:", e);
-      if (edStatus) {
-        edStatus.className = "news-admin-editor-status news-admin-editor-status--failed";
-        edStatus.textContent = "⚠ Không tải được trình soạn thảo. Bạn vẫn có thể lưu nháp (nội dung trống).";
-      }
-      EDITOR_INSTANCE = null;
-    }
-    syncFormChrome();
   }
 
   async function saveDraft() { return submitArticle("draft"); }
@@ -1273,11 +1349,21 @@
 
       var contentJson = { blocks: [] };
       var editorLc = LC.getLifecycle().editor;
+      var storedContent = data.articleContent && data.articleContent.blocks ? data.articleContent : null;
+
       if (EDITOR_INSTANCE && editorLc === "ready") {
         try {
           contentJson = await withTimeout(EDITOR_INSTANCE.save(), 15000, "Đọc nội dung editor");
           if (global.TLKVNewsEditor && typeof TLKVNewsEditor.normalizeEditorData === "function") {
             contentJson = TLKVNewsEditor.normalizeEditorData(contentJson);
+          }
+          var savedBlocks = contentJson.blocks ? contentJson.blocks.length : 0;
+          var storedBlocks = storedContent && storedContent.blocks ? storedContent.blocks.length : 0;
+          if (savedBlocks === 0 && storedBlocks > 0) {
+            contentJson = global.TLKVNewsEditor.prepareForMount
+              ? global.TLKVNewsEditor.prepareForMount(storedContent)
+              : storedContent;
+            toast("Editor trống — giữ nguyên nội dung đã lưu (" + storedBlocks + " khối).", "warn");
           }
           var contentBytes = JSON.stringify(contentJson).length;
           LC.log("SUBMIT", "editor content saved", {
@@ -1286,15 +1372,30 @@
           });
         } catch (e) {
           console.error("[SUBMIT] editor.save failed:", e);
-          toast("Lỗi đọc nội dung: " + (e && e.message ? e.message : String(e)), "error");
-          return;
+          if (storedContent && storedContent.blocks && storedContent.blocks.length) {
+            contentJson = storedContent;
+            toast("Không đọc được editor — giữ nội dung gốc.", "warn");
+          } else {
+            toast("Lỗi đọc nội dung: " + (e && e.message ? e.message : String(e)), "error");
+            return;
+          }
         }
       } else if (editorLc === "failed") {
-        console.warn("[SUBMIT] degraded save — editor failed, empty content");
-        toast("Lưu không có nội dung editor (trình soạn thảo lỗi).", "info");
+        if (storedContent && storedContent.blocks && storedContent.blocks.length) {
+          contentJson = storedContent;
+          toast("Editor lỗi — lưu với nội dung gốc (" + storedContent.blocks.length + " khối).", "warn");
+        } else {
+          console.warn("[SUBMIT] degraded save — editor failed, empty content");
+          toast("Lưu không có nội dung editor (trình soạn thảo lỗi).", "info");
+        }
       } else if (editorLc === "mounting") {
-        console.warn("[SUBMIT] editor still mounting, saving without waiting");
-        toast("Trình soạn thảo chưa xong — lưu có thể thiếu nội dung.", "warn");
+        if (storedContent && storedContent.blocks && storedContent.blocks.length) {
+          contentJson = storedContent;
+          toast("Editor chưa xong — lưu với nội dung đã tải.", "warn");
+        } else {
+          console.warn("[SUBMIT] editor still mounting, saving without waiting");
+          toast("Trình soạn thảo chưa xong — lưu có thể thiếu nội dung.", "warn");
+        }
       }
 
       LC.log("SUBMIT", "resolving actor");
@@ -1343,7 +1444,12 @@
         return;
       }
 
-      LC.patchFormData({ id: saved.id, status: saved.status, slug: saved.slug });
+      LC.patchFormData({
+        id: saved.id,
+        status: saved.status,
+        slug: saved.slug,
+        articleContent: contentJson,
+      });
       submitActive = false;
       finishSubmit(LC);
       syncPublishWidgets();

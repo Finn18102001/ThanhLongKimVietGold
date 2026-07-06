@@ -262,10 +262,21 @@
    */
 
   function normalizeContent(raw) {
-    // Accept three flavours: null, EditorJS object, or array of blocks.
+    // Accept: null, JSON string, EditorJS object, or bare array of blocks.
     if (!raw) return { blocks: [] };
+    if (typeof raw === "string") {
+      var trimmed = raw.trim();
+      if (!trimmed) return { blocks: [] };
+      try {
+        raw = JSON.parse(trimmed);
+      } catch (e) {
+        return { blocks: [] };
+      }
+    }
     if (Array.isArray(raw)) return { blocks: raw };
-    if (raw && Array.isArray(raw.blocks)) return { blocks: raw.blocks, time: raw.time, version: raw.version };
+    if (raw && Array.isArray(raw.blocks)) {
+      return { blocks: raw.blocks, time: raw.time, version: raw.version };
+    }
     return { blocks: [] };
   }
 
@@ -640,10 +651,17 @@
     apiLog("adminGetById", { id: safeId, via: "rest" });
     var rows = await restFetch(
       "news?id=eq." + encodeURIComponent(safeId) + "&select=" + encodeURIComponent(SELECT_DETAIL),
-      { label: "Tải bài viết", timeoutMs: 15000 }
+      { label: "Tải bài viết", timeoutMs: 45000 }
     );
     var row = Array.isArray(rows) && rows.length ? rows[0] : null;
-    return row ? rowToDetail(row) : null;
+    var detail = row ? rowToDetail(row) : null;
+    if (detail) {
+      apiLog("adminGetById:done", {
+        id: detail.id,
+        blocks: detail.content && detail.content.blocks ? detail.content.blocks.length : 0,
+      });
+    }
+    return detail;
   }
 
   function pickWritable(input, opts) {
