@@ -309,6 +309,23 @@
     };
   }
 
+  /** Site logo when a list card has no cover image (thumbnail_url empty in DB). */
+  function resolveThumbnailFallback() {
+    if (global.TLKV_SITE_LOGO_MARK_URL) return global.TLKV_SITE_LOGO_MARK_URL;
+    return "/assets/tlkv-logo-mark.png?v=20260623";
+  }
+
+  /**
+   * Pick cover image for list/home cards.
+   * DB column: thumbnail_url → app field thumbnailUrl (upload + manual URL share this field).
+   * @returns {{ src: string, isFallback: boolean }}
+   */
+  function resolveThumbnailUrl(item) {
+    var url = String((item && item.thumbnailUrl) || "").trim();
+    if (url) return { src: url, isFallback: false };
+    return { src: resolveThumbnailFallback(), isFallback: true };
+  }
+
   function rowToListItem(r) {
     if (!r) return null;
     var cat = r.news_categories || r.category || null; // PostgREST joined relation
@@ -718,6 +735,8 @@
 
     // helpers
     buildSlug: buildSlug,
+    resolveThumbnailFallback: resolveThumbnailFallback,
+    resolveThumbnailUrl: resolveThumbnailUrl,
     _getSupabase: getSupabaseClient,
   };
 })(typeof window !== "undefined" ? window : globalThis);

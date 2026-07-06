@@ -187,7 +187,7 @@
   grid-column: 1 / 2;
   grid-row: 1 / 3;
   min-height: 0;
-  align-self: stretch;
+  align-self: start;
 }
 
 .tlkv-news-grid__side {
@@ -195,23 +195,22 @@
   grid-row: 1 / 3;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 16px;
   align-content: start;
   min-height: 0;
-  align-self: stretch;
+  align-self: start;
 }
 
-/* Hero: cap featured vertical size to match the side column (not stretch layout width) */
+/* Hero featured: natural image height (no stretch/crop in media frame) */
 .tlkv-news-hero .tlkv-news-grid .tlkv-news-card--featured {
-  height: 100%;
+  height: auto;
   min-height: 0;
   overflow: hidden;
 }
 
 .tlkv-news-hero .tlkv-news-grid .tlkv-news-card--featured .tlkv-news-card__media {
-  aspect-ratio: auto;
-  flex: 1 1 0;
+  flex: none;
   min-height: 0;
 }
 
@@ -229,7 +228,6 @@
   }
   .tlkv-news-hero .tlkv-news-grid .tlkv-news-card--featured .tlkv-news-card__media {
     flex: none;
-    aspect-ratio: 4 / 3;
   }
 }
 
@@ -261,18 +259,32 @@
 }
 .tlkv-news-card__media {
   position: relative;
-  aspect-ratio: 16 / 10;
   background: #f1ece5;
   overflow: hidden;
+  line-height: 0;
 }
 .tlkv-news-card__media img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
-  transition: transform .5s ease;
+  vertical-align: middle;
 }
-.tlkv-news-card:hover .tlkv-news-card__media img { transform: scale(1.04); }
+.tlkv-news-card__media--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  aspect-ratio: 16 / 10;
+  line-height: normal;
+}
+.tlkv-news-card__media--fallback img {
+  width: auto;
+  height: auto;
+  max-width: 52%;
+  max-height: 68%;
+  object-fit: contain;
+  padding: 14px;
+}
 .tlkv-news-card__body {
   padding: 18px 20px 22px;
   display: flex;
@@ -318,7 +330,6 @@
 }
 
 /* Featured (large) variant */
-.tlkv-news-card--featured .tlkv-news-card__media { aspect-ratio: 4 / 3; }
 .tlkv-news-card--featured .tlkv-news-card__title { font-size: 28px; line-height: 1.2; -webkit-line-clamp: 4; }
 .tlkv-news-card--featured .tlkv-news-card__excerpt { font-size: 15px; -webkit-line-clamp: 3; }
 .tlkv-news-card--featured .tlkv-news-card__body { padding: 22px 24px 26px; }
@@ -368,12 +379,11 @@
   border-radius: var(--tlkv-news-radius);
   animation: tlkv-news-shimmer 1.4s linear infinite;
 }
-.tlkv-news-skel--media { aspect-ratio: 16 / 10; }
-.tlkv-news-skel--media.tlkv-news-skel--big { aspect-ratio: 4 / 3; }
+.tlkv-news-skel--media { min-height: 148px; aspect-ratio: 16 / 10; }
+.tlkv-news-skel--media.tlkv-news-skel--big { min-height: 200px; aspect-ratio: 16 / 10; }
 .tlkv-news-hero .tlkv-news-grid .tlkv-news-card--featured .tlkv-news-skel--big {
-  aspect-ratio: auto;
-  flex: 1 1 0;
-  min-height: 0;
+  flex: none;
+  min-height: 200px;
 }
 .tlkv-news-skel--line { height: 14px; margin: 8px 16px; }
 .tlkv-news-skel--line.lg { height: 20px; margin: 14px 16px; }
@@ -841,21 +851,34 @@
 }
 
 .tlkv-home-editorial-card__media {
-  aspect-ratio: 5 / 3.6;
   background: #f3efe6;
   overflow: hidden;
+  line-height: 0;
+}
+
+.tlkv-home-editorial-card__media--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  aspect-ratio: 5 / 3.6;
+  line-height: normal;
 }
 
 .tlkv-home-editorial-card__media img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
-  transition: transform 0.42s ease;
+  vertical-align: middle;
 }
 
-.tlkv-home-editorial-card:hover .tlkv-home-editorial-card__media img {
-  transform: scale(1.03);
+.tlkv-home-editorial-card__media--fallback img {
+  width: auto;
+  height: auto;
+  max-width: 52%;
+  max-height: 68%;
+  object-fit: contain;
+  padding: 14px;
 }
 
 .tlkv-home-editorial-card__body {
@@ -1054,10 +1077,6 @@
     display: none;
   }
 
-  .tlkv-news-card--featured .tlkv-news-card__media {
-    aspect-ratio: 16 / 10;
-  }
-
   .tlkv-news-card--featured .tlkv-news-card__body {
     padding: 12px 12px 14px;
   }
@@ -1188,10 +1207,6 @@
 
   .tlkv-home-editorial-card:hover {
     transform: none;
-  }
-
-  .tlkv-home-editorial-card__media {
-    aspect-ratio: 1 / 0.72;
   }
 
   .tlkv-home-editorial-card__body {

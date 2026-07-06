@@ -24,6 +24,18 @@
     return "/tin-tuc/" + encodeURIComponent(item.slug || "");
   }
 
+  function pickThumb(item) {
+    if (typeof TLKVNewsAPI !== "undefined" && typeof TLKVNewsAPI.resolveThumbnailUrl === "function") {
+      return TLKVNewsAPI.resolveThumbnailUrl(item);
+    }
+    var url = String((item && item.thumbnailUrl) || "").trim();
+    if (url) return { src: url, isFallback: false };
+    var fallback =
+      (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
+      "/assets/tlkv-logo-mark.png?v=20260623";
+    return { src: fallback, isFallback: true };
+  }
+
   function createCard(item) {
     var a = document.createElement("a");
     a.className = "tlkv-home-editorial-card";
@@ -31,19 +43,30 @@
 
     var media = document.createElement("div");
     media.className = "tlkv-home-editorial-card__media";
-    var thumb = (item && item.thumbnailUrl) || "";
-    if (thumb) {
-      var img = document.createElement("img");
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.alt = item.title || "Tin tức và kiến thức";
-      img.src = thumb;
-      img.onerror = function () {
-        this.onerror = null;
-        this.style.display = "none";
-      };
-      media.appendChild(img);
+    var thumb = pickThumb(item);
+    var fallbackSrc =
+      (typeof TLKVNewsAPI !== "undefined" && typeof TLKVNewsAPI.resolveThumbnailFallback === "function")
+        ? TLKVNewsAPI.resolveThumbnailFallback()
+        : thumb.isFallback
+          ? thumb.src
+          : ((typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
+            "/assets/tlkv-logo-mark.png?v=20260623");
+
+    if (thumb.isFallback) {
+      media.classList.add("tlkv-home-editorial-card__media--fallback");
     }
+
+    var img = document.createElement("img");
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = item.title || "Tin tức và kiến thức";
+    img.src = thumb.src;
+    img.onerror = function () {
+      this.onerror = null;
+      this.src = fallbackSrc;
+      media.classList.add("tlkv-home-editorial-card__media--fallback");
+    };
+    media.appendChild(img);
     a.appendChild(media);
 
     var body = document.createElement("div");

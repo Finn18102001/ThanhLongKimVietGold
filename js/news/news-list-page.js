@@ -95,9 +95,47 @@
   }
 
   function pickThumb(item) {
-    var u = (item && item.thumbnailUrl) || "";
-    if (!u) return "";
-    return u;
+    if (typeof TLKVNewsAPI !== "undefined" && typeof TLKVNewsAPI.resolveThumbnailUrl === "function") {
+      return TLKVNewsAPI.resolveThumbnailUrl(item);
+    }
+    var url = String((item && item.thumbnailUrl) || "").trim();
+    if (url) return { src: url, isFallback: false };
+    var fallback =
+      (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
+      "/assets/tlkv-logo-mark.png?v=20260623";
+    return { src: fallback, isFallback: true };
+  }
+
+  function thumbnailFallbackSrc(thumb) {
+    if (typeof TLKVNewsAPI !== "undefined" && typeof TLKVNewsAPI.resolveThumbnailFallback === "function") {
+      return TLKVNewsAPI.resolveThumbnailFallback();
+    }
+    if (thumb && thumb.isFallback) return thumb.src;
+    return (
+      (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
+      "/assets/tlkv-logo-mark.png?v=20260623"
+    );
+  }
+
+  function appendCardMedia(media, item) {
+    var thumb = pickThumb(item);
+    var fallbackSrc = thumbnailFallbackSrc(thumb);
+
+    if (thumb.isFallback) {
+      media.classList.add("tlkv-news-card__media--fallback");
+    }
+
+    var img = document.createElement("img");
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = item.title || "Tin tức thị trường";
+    img.src = thumb.src;
+    img.onerror = function () {
+      this.onerror = null;
+      this.src = fallbackSrc;
+      media.classList.add("tlkv-news-card__media--fallback");
+    };
+    media.appendChild(img);
   }
 
   function articleHref(item) {
@@ -179,16 +217,7 @@
 
     var media = document.createElement("div");
     media.className = "tlkv-news-card__media";
-    var thumb = pickThumb(item);
-    if (thumb) {
-      var img = document.createElement("img");
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.alt = item.title || "Tin tức thị trường";
-      img.src = thumb;
-      img.onerror = function () { this.onerror = null; this.style.display = "none"; };
-      media.appendChild(img);
-    }
+    appendCardMedia(media, item);
     a.appendChild(media);
 
     var body = document.createElement("div");
