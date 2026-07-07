@@ -15,10 +15,6 @@
   let __goldRealtimeChannel = null;
   let __goldRealtimePagehideBound = false;
 
-  /** @type {EventSource | null} */
-  let __goldEventSource = null;
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let __goldSseFallbackTimer = null;
   /** @type {ReturnType<typeof setInterval> | null} */
   let __goldPollTimer = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
@@ -55,7 +51,7 @@
     }, getGoldTableChangedDebounceMs());
   }
 
-  /** TV / trình duyệt yếu: không mở EventSource + không mở Realtime WebSocket trên tab (chỉ poll nhẹ). */
+  /** TV / trình duyệt yếu: không mở Realtime WebSocket trên tab (chỉ poll nhẹ). */
   function isLeanGoldPushClient() {
     if (global.__TLKV_LEAN_GOLD_PUSH === true) return true;
     if (global.__TLKV_LEAN_GOLD_PUSH === false) return false;
@@ -90,19 +86,6 @@
       clearInterval(__goldPollTimer);
       __goldPollTimer = null;
     }
-    if (__goldSseFallbackTimer != null) {
-      clearTimeout(__goldSseFallbackTimer);
-      __goldSseFallbackTimer = null;
-    }
-    if (__goldEventSource) {
-      if (typeof console !== "undefined" && console.log) {
-        console.log(GOLD_PUSH_LOG + " client: EventSource.close() (pagehide / cleanup)");
-      }
-      try {
-        __goldEventSource.close();
-      } catch (_) {}
-      __goldEventSource = null;
-    }
     if (__goldRealtimeSb && __goldRealtimeChannel) {
       try {
         __goldRealtimeSb.removeChannel(__goldRealtimeChannel);
@@ -122,7 +105,6 @@
   }
 
   let __goldBrowserRealtimeNotifyCount = 0;
-  let __goldSseNotifyCount = 0;
 
   function dispatchGoldPushUi(detail) {
     try {
@@ -180,54 +162,29 @@
         console.log(GOLD_PUSH_LOG + " client: browser Realtime status", status);
       }
     });
-    console.log(GOLD_PUSH_LOG + " client: using Supabase Realtime trong trình duyệt (fallback hoặc tắt SSE)");
+    console.log(GOLD_PUSH_LOG + " client: using Supabase Realtime trong trình duyệt");
     ensureGoldRealtimePagehideCleanup();
   }
 
   /**
-   * Luôn dùng path tuyệt đối từ origin (tránh resolve theo pathname hiện tại, ví dụ /admin/).
-   * Không dùng TLKV_BASE vì các route API nằm ở gốc site (`app.use("/api", …)`).
-   */
-  function goldTableSseUrl() {
-    return global.location.origin + "/api/gold-table/stream";
-  }
-
-  function goldTableNotifyUrl() {
-    return global.location.origin + "/api/gold-table/notify";
-  }
-
-  /**
-   * Gọi sau khi admin lưu giá thành công → đẩy SSE cho mọi tab đang mở (không phụ thuộc postgres_changes).
-   * Không chặn UI: resolve ngay cả khi fetch lỗi.
+   * Giữ API cho admin sau khi lưu — tab admin đã dispatch `tlkv:gold-table-changed` cục bộ;
+   * tab khác nhận postgres_changes qua Supabase Realtime (không còn SSE hub / POST notify).
    */
   function notifyGoldTableChanged(reason) {
-    if (typeof fetch !== "function") return Promise.resolve(false);
-    var url = goldTableNotifyUrl();
-    var body = JSON.stringify({ reason: reason || "admin-save" });
-    console.log(GOLD_PUSH_LOG + " client: POST /notify →", url, reason || "admin-save");
-    return fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body,
-      keepalive: true,
-      cache: "no-store",
-    })
-      .then(function (r) {
-        console.log(GOLD_PUSH_LOG + " client: POST /notify status", r.status);
-        return r.ok;
-      })
-      .catch(function (e) {
-        console.warn(GOLD_PUSH_LOG + " client: POST /notify failed", e && e.message ? e.message : e);
-        return false;
-      });
+    if (typeof console !== "undefined" && console.log) {
+      console.log(
+        GOLD_PUSH_LOG + " client: notifyGoldTableChanged (no-op; cross-tab qua Supabase Realtime)",
+        reason || "admin-save"
+      );
+    }
+    return Promise.resolve(true);
   }
 
   /**
-   * Ưu tiên SSE qua server (một subscription Supabase trên Node, fan-out tới tab).
-   * Nếu không mở được (host tĩnh, thiếu .env server…) → fallback Realtime trực tiếp trên trình duyệt như cũ.
-   * `window.__TLKV_DISABLE_GOLD_SSE = true` để luôn dùng Realtime trên client.
+   * Bật pipeline push: Supabase Realtime postgres_changes (gold_meta + gold_price_rows).
+   * TV / trình duyệt yếu: chỉ poll nhẹ (không mở WebSocket tab).
    */
-  function startGoldTableSseThenRealtime(sb) {
+  function startGoldTablePush(sb) {
     if (__goldPushStarted) return;
     __goldPushStarted = true;
 
@@ -236,7 +193,7 @@
       if (!Number.isFinite(pollMs) || pollMs < 15000) pollMs = 90000;
       if (typeof console !== "undefined" && console.log) {
         console.log(
-          GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không SSE/Realtime tab"
+          GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không Realtime tab"
         );
       }
       dispatchGoldPushUi({ mode: "poll", intervalMs: pollMs });
@@ -250,109 +207,17 @@
       return;
     }
 
-    const notifyFromSse = function (ev) {
-      __goldSseNotifyCount += 1;
-      var detail = {};
-      try {
-        if (ev && ev.data) detail = JSON.parse(ev.data);
-      } catch (_) {}
-      if (typeof console !== "undefined" && console.log) {
-        console.log(GOLD_PUSH_LOG + " client: SSE message → dispatch #" + __goldSseNotifyCount, detail);
+    if (!sb) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(GOLD_PUSH_LOG + " client: thiếu Supabase client — không bật Realtime push");
       }
-      dispatchGoldTableChangedDebounced(undefined);
-    };
-
-    if (global.__TLKV_DISABLE_GOLD_SSE === true) {
-      console.log(GOLD_PUSH_LOG + " client: __TLKV_DISABLE_GOLD_SSE=true → bỏ qua EventSource");
-      dispatchGoldPushUi({ mode: "realtime", reason: "disable-sse-flag" });
-      startGoldTableRealtime(sb);
-      return;
-    }
-    if (typeof EventSource === "undefined") {
-      console.log(GOLD_PUSH_LOG + " client: không có EventSource → Realtime trên trình duyệt");
-      dispatchGoldPushUi({ mode: "realtime", reason: "no-eventsource" });
-      startGoldTableRealtime(sb);
+      dispatchGoldPushUi({ mode: "realtime", state: "reconnecting", reason: "no-supabase-client" });
+      ensureGoldRealtimePagehideCleanup();
       return;
     }
 
-    var streamUrl = goldTableSseUrl();
-    console.log(GOLD_PUSH_LOG + " client: EventSource →", streamUrl);
-    dispatchGoldPushUi({ mode: "sse", state: "connecting", url: streamUrl });
-
-    let es;
-    try {
-      es = new EventSource(streamUrl);
-    } catch (e) {
-      console.warn(GOLD_PUSH_LOG + " client: EventSource throw → Realtime", e && e.message ? e.message : e);
-      dispatchGoldPushUi({ mode: "realtime", reason: "eventsource-throw" });
-      startGoldTableRealtime(sb);
-      return;
-    }
-
-    __goldEventSource = es;
-    let sseReady = false;
-
-    function markSseReady(reason) {
-      if (sseReady) return;
-      sseReady = true;
-      if (__goldSseFallbackTimer != null) {
-        clearTimeout(__goldSseFallbackTimer);
-        __goldSseFallbackTimer = null;
-      }
-      if (typeof console !== "undefined" && console.log) {
-        console.log(GOLD_PUSH_LOG + " client: SSE stream OK (" + (reason || "ready") + ")");
-      }
-      dispatchGoldPushUi({ mode: "sse", state: "live", reason: reason || "ready" });
-    }
-
-    es.addEventListener("open", function () {
-      if (typeof console !== "undefined" && console.log) {
-        console.log(GOLD_PUSH_LOG + " client: EventSource open (CONNECTING→OPEN)");
-      }
-    });
-    es.addEventListener("ready", function () {
-      markSseReady("event:ready");
-    });
-    es.addEventListener("gold-table-changed", function (ev) {
-      markSseReady("event:gold-table-changed");
-      notifyFromSse(ev);
-    });
-
-    __goldSseFallbackTimer = setTimeout(function () {
-      __goldSseFallbackTimer = null;
-      if (sseReady) return;
-      console.warn(
-        GOLD_PUSH_LOG + " client: không nhận SSE `ready` trong 4s → fallback Realtime (kiểm tra npm start + /api/gold-table/stream)"
-      );
-      dispatchGoldPushUi({ mode: "realtime", reason: "sse-ready-timeout" });
-      try {
-        es.close();
-      } catch (_) {}
-      __goldEventSource = null;
-      startGoldTableRealtime(sb);
-    }, 4000);
-
-    es.addEventListener("error", function () {
-      if (sseReady) {
-        if (typeof console !== "undefined" && console.log) {
-          console.log(GOLD_PUSH_LOG + " client: EventSource error (đã ready — trình duyệt có thể tự reconnect)");
-        }
-        dispatchGoldPushUi({ mode: "sse", state: "reconnecting" });
-        return;
-      }
-      if (typeof EventSource !== "undefined" && es.readyState === EventSource.CLOSED) {
-        if (__goldSseFallbackTimer != null) {
-          clearTimeout(__goldSseFallbackTimer);
-          __goldSseFallbackTimer = null;
-        }
-        console.warn(GOLD_PUSH_LOG + " client: EventSource CLOSED trước khi ready → fallback Realtime");
-        dispatchGoldPushUi({ mode: "realtime", reason: "sse-closed-before-ready" });
-        __goldEventSource = null;
-        startGoldTableRealtime(sb);
-      }
-    });
-
-    ensureGoldRealtimePagehideCleanup();
+    dispatchGoldPushUi({ mode: "realtime", state: "connecting" });
+    startGoldTableRealtime(sb);
   }
 
   /** Hiển thị: số trong DB → chuỗi kiểu 15.600.000. kind "sell": 0 → rỗng (vàng & bạc). */
@@ -1145,7 +1010,7 @@
         );
       }
       return persistGoldToSupabase(sb, payload).then(function () {
-        console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local + POST /notify");
+        console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local (cross-tab qua Realtime)");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
         notifyGoldTableChanged("admin-save");
       });
@@ -1166,7 +1031,7 @@
         );
       }
       return persistGoldMetaToSupabase(sb, meta).then(function () {
-        console.log(GOLD_PUSH_LOG + " client: saveGoldMetaOnly() persisted → dispatch local + POST /notify");
+        console.log(GOLD_PUSH_LOG + " client: saveGoldMetaOnly() persisted → dispatch local (cross-tab qua Realtime)");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: { metaOnly: true } }));
         notifyGoldTableChanged("admin-save-meta");
       });
@@ -1382,7 +1247,7 @@ function applyMetaToDom(meta) {
   async function mountGoldTable(tbodySelector) {
     __goldMountLastSelector = tbodySelector;
     if (__goldMountInFlight) {
-      // Tránh bơm nhiều request/render chồng nhau khi SSE/realtime bắn dày.
+      // Tránh bơm nhiều request/render chồng nhau khi Realtime bắn dày.
       __goldMountPending = true;
       return __goldMountInFlight;
     }
@@ -1408,11 +1273,11 @@ function applyMetaToDom(meta) {
         GOLD_PUSH_LOG + " client: mountGoldTable() render OK #" + seq,
         { rows: ((data && data.rows) || []).length, ms: ms }
       );
-      // Mặc định: auto bật pipeline push (SSE → fallback Realtime).
+      // Mặc định: auto bật pipeline push (Supabase Realtime).
       // Kiosk/TV mode có thể đặt `window.__TLKV_GOLD_PUSH_MANUAL = true` để chỉ bật khi cần.
       if (global.__TLKV_GOLD_PUSH_MANUAL !== true) {
         const sb = await getSupabaseClient();
-        startGoldTableSseThenRealtime(sb);
+        startGoldTablePush(sb);
       }
       return data;
       } catch (err) {
@@ -1445,12 +1310,12 @@ function applyMetaToDom(meta) {
   }
 
   /**
-   * Cho phép trang (ví dụ /admin) bật pipeline push (SSE + fallback Realtime) mà không cần render bảng.
-   * Idempotent — gọi bao nhiêu lần cũng chỉ mở một EventSource.
+   * Cho phép trang (ví dụ /admin) bật pipeline push (Supabase Realtime) mà không cần render bảng.
+   * Idempotent — gọi bao nhiêu lần cũng chỉ mở một subscription.
    */
   async function startGoldPush() {
     const sb = await getSupabaseClient();
-    startGoldTableSseThenRealtime(sb);
+    startGoldTablePush(sb);
   }
 
   function getLastGoldRows() {

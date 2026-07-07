@@ -1167,7 +1167,7 @@ function showToast(message, type = 'success') {
       refreshTable();
       refreshMetaForm();
       if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
-        console.log("[TLKV gold-push] admin: session authed → bật pipeline SSE để quan sát push");
+        console.log("[TLKV gold-push] admin: session authed → bật pipeline Realtime để quan sát push");
         window.TLKVGold.startGoldPush();
       }
     }

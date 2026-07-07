@@ -36,7 +36,7 @@ function listenFrom(port, triesLeft) {
     console.log("TLKV site: http://127.0.0.1:" + port);
     console.log("  /        → public (trang chủ)");
     console.log("  /admin   → admin UI");
-    console.log("  /api     → gold-table/stream (SSE), health Supabase");
+    console.log("  /api     → health Supabase, news upload");
     console.log("  /api/health/supabase-products → debug RLS (anon, cùng key .env)");
   });
 }

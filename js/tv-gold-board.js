@@ -1,6 +1,6 @@
 /**
  * Shared TV-style gold table UI: render helpers, logo, column striping, datetime.
- * Data + SSE/Realtime remain in js/gold-data.js (TLKVGold).
+ * Data + Supabase Realtime remain in js/gold-data.js (TLKVGold).
  */
 (function (global) {
   /** Chỉ ô Sản phẩm / Hàm lượng / Giá — không áp nền custom lên cột Thương hiệu */
