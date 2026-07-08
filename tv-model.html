@@ -111,10 +111,10 @@
     <script>
       window.TLKV_BASE = "/";
       window.__TLKV_GOLD_PUSH_MANUAL = true;
-      window.__TLKV_LEAN_GOLD_PUSH = true;
-      window.__TLKV_GOLD_POLL_MS = 15000;   
+      /** Realtime trực tiếp (Supabase postgres_changes) — nhẹ RAM hơn poll lặp vì không refetch/render định kỳ. */
+      window.__TLKV_LEAN_GOLD_PUSH = false;
       window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS = 500;
-      window.__TLKV_TV_MAX_GOLD_ROWS = 100; 
+      window.__TLKV_TV_MAX_GOLD_ROWS = 100;
     </script>
     <script src="/js/vendor/supabase.js"></script>
     <script src="/js/boot-supabase-env.js"></script>
