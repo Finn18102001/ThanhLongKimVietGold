@@ -55,6 +55,17 @@
     }
   }
 
+  function pathFromProductPublicUrl(url) {
+    var s = String(url || "").trim();
+    var marker = "/storage/v1/object/public/";
+    var idx = s.indexOf(marker);
+    if (idx === -1) return "";
+    var rest = s.slice(idx + marker.length);
+    var slash = rest.indexOf("/");
+    if (slash === -1) return "";
+    return rest.slice(slash + 1);
+  }
+
   function resetImageUi() {
     if (typeof global.__tlkvResetProductImageUpload === "function") {
       global.__tlkvResetProductImageUpload();
@@ -76,10 +87,17 @@
     if (fileInput) fileInput.value = "";
     var fileInfo = $("selected-file-info");
     if (fileInfo) fileInfo.style.display = "none";
-    var uploadBtn = $("btn-upload-supabase");
-    if (uploadBtn) {
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = "☁️ Upload lên Supabase trước khi tạo mới";
+    var fileNameSpan = $("file-name");
+    var fileSizeSpan = $("file-size");
+    if (fileNameSpan) fileNameSpan.textContent = "";
+    if (fileSizeSpan) fileSizeSpan.textContent = "";
+    var progressEl = $("product-upload-progress");
+    var progressLabel = $("product-upload-progress-label");
+    if (progressEl) progressEl.style.display = "none";
+    if (progressEl && progressEl.firstElementChild) progressEl.firstElementChild.style.width = "0%";
+    if (progressLabel) {
+      progressLabel.style.display = "none";
+      progressLabel.textContent = "";
     }
   }
 
@@ -114,6 +132,7 @@
     if ($("pf-priceText")) $("pf-priceText").value = data.priceText || "";
     if ($("pf-weight")) $("pf-weight").value = formatWeightInputValue(data.weight);
     if ($("pf-image")) $("pf-image").value = data.image || "";
+    if ($("pf-image-path")) $("pf-image-path").value = data.imageStoragePath || "";
     setCheckboxes(data);
     updateSlugPreview(data.name || "");
   }
@@ -183,6 +202,7 @@
       priceText: item.priceText || "",
       weight: item.weight != null ? item.weight : null,
       image: item.image || "",
+      imageStoragePath: item.imageStoragePath || pathFromProductPublicUrl(item.image || ""),
       isFeatured: !!item.isFeatured,
       isBestSeller: !!item.isBestSeller,
       isHot: !!item.isHot,

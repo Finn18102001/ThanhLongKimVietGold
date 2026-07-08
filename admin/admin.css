@@ -954,6 +954,29 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   color: #92400e;
 }
 
+.news-admin-thumb__progress.product-upload-progress {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.news-admin-thumb__progress.product-upload-progress > span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  transition: width .2s ease;
+}
+
+.news-admin-thumb__progress-label.product-upload-progress-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
 .form-hint {
   display: flex;
   gap: 12px;

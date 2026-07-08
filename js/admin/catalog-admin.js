@@ -462,8 +462,7 @@
         .then(function (saved) {
           toast(isEdit ? "Đã cập nhật." : "Đã thêm sản phẩm.", "success");
           if (window.TLKVProductFormAdmin) {
-            if (isEdit && saved) window.TLKVProductFormAdmin.loadForEdit(saved, { scroll: false });
-            else window.TLKVProductFormAdmin.resetToCreateMode();
+            window.TLKVProductFormAdmin.resetToCreateMode();
           } else if (typeof window.clearProductForm === "function") window.clearProductForm();
           refreshProductsTableAdmin();
         })

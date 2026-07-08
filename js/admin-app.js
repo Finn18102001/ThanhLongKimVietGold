@@ -1993,6 +1993,49 @@ document.getElementById('btn-export-pdf')?.addEventListener('click', exportGoldH
 // ========== UPLOAD ẢNH LÊN SUPABASE STORAGE ==========
 
 let currentUploadFile = null;
+
+function ensureProductImagePathField() {
+  var pathField = document.getElementById("pf-image-path");
+  if (pathField) return pathField;
+  pathField = document.createElement("input");
+  pathField.type = "hidden";
+  pathField.id = "pf-image-path";
+  var imageField = document.getElementById("pf-image");
+  var form = imageField && imageField.form;
+  if (form) form.appendChild(pathField);
+  return pathField;
+}
+
+function setProductImageFields(publicUrl, storagePath) {
+  var imageField = document.getElementById("pf-image");
+  if (imageField) imageField.value = publicUrl || "";
+  var pathField = ensureProductImagePathField();
+  if (pathField) pathField.value = storagePath || "";
+}
+
+function clearProductImageFields() {
+  setProductImageFields("", "");
+}
+
+function pathFromProductPublicUrl(publicUrl) {
+  var s = String(publicUrl || "").trim();
+  var marker = "/storage/v1/object/public/";
+  var idx = s.indexOf(marker);
+  if (idx === -1) return "";
+  var rest = s.slice(idx + marker.length);
+  var slash = rest.indexOf("/");
+  if (slash === -1) return "";
+  return rest.slice(slash + 1);
+}
+
+async function removeProductStoragePath(path) {
+  var clean = String(path || "").trim();
+  if (!clean) return;
+  if (!window.TLKVProductStorage || typeof window.TLKVProductStorage.remove !== "function") return;
+  window.TLKVProductStorage.remove(clean).catch(function (e) {
+    console.warn("Could not delete old product image:", e);
+  });
+}
 let supabaseClient = null;
 
 
@@ -2035,45 +2078,128 @@ function showSelectedFileInfo(file) {
   const fileInfo = document.getElementById('selected-file-info');
   const fileName = document.getElementById('file-name');
   const fileSize = document.getElementById('file-size');
-  const uploadBtn = document.getElementById('btn-upload-supabase');
 
   if (fileInfo && fileName && fileSize) {
     fileName.textContent = file.name;
     fileSize.textContent = formatFileSize(file.size);
     fileInfo.style.display = 'flex';
-    if (uploadBtn) uploadBtn.disabled = false;
   }
 }
 
 // Ẩn thông tin file đã chọn
 function hideSelectedFileInfo() {
   const fileInfo = document.getElementById('selected-file-info');
-  const uploadBtn = document.getElementById('btn-upload-supabase');
   const fileInput = document.getElementById('pf-image-file');
 
   if (fileInfo) fileInfo.style.display = 'none';
-  if (uploadBtn) uploadBtn.disabled = true;
   if (fileInput) fileInput.value = '';
 }
 
-// Xem trước ảnh khi chọn file
-document.getElementById('pf-image-file')?.addEventListener('change', function (e) {
+async function uploadSelectedProductImage(file) {
+  if (!file) return false;
+
+  if (!window.TLKVProductStorage || typeof window.TLKVProductStorage.upload !== "function") {
+    showToast('Module upload ảnh sản phẩm chưa tải', 'error');
+    return false;
+  }
+
+  const statusDiv = document.getElementById('upload-status');
+  const progressEl = document.getElementById('product-upload-progress');
+  const progressBar = progressEl && progressEl.firstElementChild;
+  const progressLabel = document.getElementById('product-upload-progress-label');
+  statusDiv.style.display = 'block';
+  statusDiv.innerHTML = '⏳ Đang xử lý ảnh...';
+  statusDiv.className = 'upload-status loading';
+
+  const chooseBtn = document.getElementById('btn-choose-file');
+  const fileInput = document.getElementById('pf-image-file');
+  if (chooseBtn) chooseBtn.classList.add('is-disabled');
+  if (fileInput) fileInput.disabled = true;
+  if (progressEl) progressEl.style.display = 'block';
+  if (progressBar) progressBar.style.width = '10%';
+  if (progressLabel) {
+    progressLabel.style.display = 'block';
+    progressLabel.textContent = window.TLKVProductStorage.phaseLabel('validate');
+  }
+
+  try {
+    const oldPublicUrl = (document.getElementById('pf-image') && document.getElementById('pf-image').value.trim()) || '';
+    const oldPathField = document.getElementById('pf-image-path');
+    const oldPath = (oldPathField && oldPathField.value.trim()) ||
+      (window.TLKVProductStorage.pathFromPublicUrl
+        ? window.TLKVProductStorage.pathFromPublicUrl(oldPublicUrl)
+        : pathFromProductPublicUrl(oldPublicUrl));
+    const productId = (document.getElementById('pf-id') && document.getElementById('pf-id').value.trim()) || 'new';
+    const res = await window.TLKVProductStorage.upload(file, {
+      productId: productId,
+      onPhase: function (phase, ratio, meta) {
+        var label = window.TLKVProductStorage.phaseLabel(phase);
+        if (progressBar) progressBar.style.width = Math.max(10, Math.round(ratio * 100)) + '%';
+        if (progressLabel && label) progressLabel.textContent = label;
+        if (phase === 'optimized' && meta && meta.stats && window.TLKVImageOptimizer) {
+          progressLabel.textContent =
+            'Gốc: ' + window.TLKVImageOptimizer.formatBytes(meta.stats.originalBytes) +
+            ' → Tối ưu: ' + window.TLKVImageOptimizer.formatBytes(meta.stats.optimizedBytes) +
+            ' (tiết kiệm ' + meta.stats.savedPercent + '%)';
+          if (meta.previewUrl) {
+            const optimizedPreview = document.getElementById('pf-image-preview');
+            const optimizedContainer = document.getElementById('image-preview-container');
+            if (optimizedPreview) optimizedPreview.src = meta.previewUrl;
+            if (optimizedContainer) optimizedContainer.style.display = 'flex';
+          }
+        }
+      }
+    });
+    if (!res) throw new Error('Upload thất bại');
+    setProductImageFields(res.publicUrl, res.path);
+
+    const preview = document.getElementById('pf-image-preview');
+    if (preview) {
+      preview.src = res.publicUrl;
+    }
+    const container = document.getElementById('image-preview-container');
+    if (container) container.style.display = 'flex';
+
+    if (oldPath && oldPath !== res.path) {
+      removeProductStoragePath(oldPath);
+    }
+
+    if (res.optimize && res.optimize.previewUrl && window.TLKVImageOptimizer) {
+      window.TLKVImageOptimizer.revokePreviewUrl(res.optimize.previewUrl);
+    }
+    if (progressBar) progressBar.style.width = '100%';
+    statusDiv.innerHTML = '✅ Upload thành công! URL đã được điền tự động.';
+    statusDiv.className = 'upload-status success';
+    showToast('Upload ảnh thành công', 'success');
+
+    currentUploadFile = null;
+    hideSelectedFileInfo();
+    document.getElementById('pf-image-file').value = '';
+    return true;
+  } catch (error) {
+    console.error('❌ Upload error:', error);
+    statusDiv.innerHTML = '❌ ' + (error.message || 'Upload thất bại');
+    statusDiv.className = 'upload-status error';
+    showToast(error.message || 'Upload thất bại', 'error');
+    return false;
+  } finally {
+    if (chooseBtn) chooseBtn.classList.remove('is-disabled');
+    if (fileInput) fileInput.disabled = false;
+    setTimeout(function () {
+      if (progressEl) progressEl.style.display = 'none';
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressLabel) {
+        progressLabel.textContent = '';
+        progressLabel.style.display = 'none';
+      }
+    }, 1200);
+  }
+}
+
+// Xem trước ảnh khi chọn file + auto upload như News
+document.getElementById('pf-image-file')?.addEventListener('change', async function (e) {
   const file = e.target.files[0];
   if (!file) return;
-
-  // Validate file type
-  if (!file.type.startsWith('image/')) {
-    showToast('Vui lòng chọn file ảnh (JPG, PNG, GIF)', 'error');
-    this.value = '';
-    return;
-  }
-
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('Ảnh quá lớn, vui lòng chọn ảnh dưới 5MB', 'error');
-    this.value = '';
-    return;
-  }
 
   currentUploadFile = file;
 
@@ -2099,8 +2225,17 @@ document.getElementById('pf-image-file')?.addEventListener('change', function (e
     statusDiv.innerHTML = '';
     statusDiv.className = 'upload-status';
   }
+  const progressEl = document.getElementById('product-upload-progress');
+  const progressLabel = document.getElementById('product-upload-progress-label');
+  if (progressEl) progressEl.style.display = 'none';
+  if (progressEl && progressEl.firstElementChild) progressEl.firstElementChild.style.width = '0%';
+  if (progressLabel) {
+    progressLabel.style.display = 'none';
+    progressLabel.textContent = '';
+  }
 
   console.log('✅ File selected:', file.name, formatFileSize(file.size));
+  await uploadSelectedProductImage(file);
 });
 
 // Hủy chọn file
@@ -2118,124 +2253,43 @@ document.getElementById('btn-cancel-file')?.addEventListener('click', function (
     statusDiv.style.display = 'none';
     statusDiv.innerHTML = '';
   }
+  const progressEl = document.getElementById('product-upload-progress');
+  const progressLabel = document.getElementById('product-upload-progress-label');
+  if (progressEl) progressEl.style.display = 'none';
+  if (progressEl && progressEl.firstElementChild) progressEl.firstElementChild.style.width = '0%';
+  if (progressLabel) {
+    progressLabel.style.display = 'none';
+    progressLabel.textContent = '';
+  }
 
   console.log('❌ File selection cancelled');
 });
 
-// Upload ảnh lên Supabase Storage
-document.getElementById('btn-upload-supabase')?.addEventListener('click', async function () {
-  if (!currentUploadFile) {
-    showToast('Vui lòng chọn ảnh trước', 'error');
-    return;
-  }
-
-  supabaseClient = await initSupabaseClient();
-  if (!supabaseClient) {
-    showToast('Chưa kết nối Supabase', 'error');
-    return;
-  }
-  var uploadUser = await supabaseClient.auth.getUser();
-  if (!uploadUser.data || !uploadUser.data.user) {
-    showToast('Chưa đăng nhập Supabase — đăng nhập /admin trước khi upload ảnh', 'error');
-    return;
-  }
-
-  const statusDiv = document.getElementById('upload-status');
-  statusDiv.style.display = 'block';
-  statusDiv.innerHTML = '⏳ Đang upload lên Supabase...';
-  statusDiv.className = 'upload-status loading';
-
-  const uploadBtn = document.getElementById('btn-upload-supabase');
-  uploadBtn.disabled = true;
-  uploadBtn.innerHTML = '⏳ Đang upload...';
-
-  try {
-    // Immutable CDN-friendly URL: unique path per upload + long cache (parity with news-media).
-    const fileExt = (currentUploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    const fileUuid = (global.crypto && global.crypto.randomUUID)
-      ? global.crypto.randomUUID()
-      : `p-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-    const fileName = `${fileUuid}.${fileExt}`;
-    const productId = (document.getElementById('pf-id') && document.getElementById('pf-id').value.trim()) || 'new';
-    const filePath = `products/${productId}/thumbnail/${fileName}`;
-
-    console.log('📤 Uploading to:', filePath);
-
-    // Upload lên Supabase Storage (bucket product-media)
-    const { data, error } = await supabaseClient.storage
-      .from('product-media')
-      .upload(filePath, currentUploadFile, {
-        cacheControl: '31536000',
-        upsert: false,
-        contentType: currentUploadFile.type
-      });
-
-    if (error) throw error;
-
-    console.log('✅ Upload success:', data);
-
-    // Lấy public URL
-    const { data: { publicUrl } } = supabaseClient.storage
-      .from('product-media')
-      .getPublicUrl(filePath);
-
-    console.log('🔗 Public URL:', publicUrl);
-
-    // Cập nhật đường dẫn ảnh vào input (+ storage path cho sync product_images khi lưu)
-    document.getElementById('pf-image').value = publicUrl;
-    var pathField = document.getElementById('pf-image-path');
-    if (!pathField) {
-      pathField = document.createElement('input');
-      pathField.type = 'hidden';
-      pathField.id = 'pf-image-path';
-      var form = document.getElementById('pf-image') && document.getElementById('pf-image').form;
-      if (form) form.appendChild(pathField);
-    }
-    pathField.value = filePath;
-
-    // Cập nhật preview với URL thật
-    const preview = document.getElementById('pf-image-preview');
-    if (preview) {
-      preview.src = publicUrl;
-    }
-
-    statusDiv.innerHTML = '✅ Upload thành công! URL đã được điền tự động.';
-    statusDiv.className = 'upload-status success';
-    showToast('Upload ảnh thành công', 'success');
-
-    // Clear file selection
-    currentUploadFile = null;
-    hideSelectedFileInfo();
-    document.getElementById('pf-image-file').value = '';
-
-  } catch (error) {
-    console.error('❌ Upload error:', error);
-    statusDiv.innerHTML = '❌ ' + (error.message || 'Upload thất bại');
-    statusDiv.className = 'upload-status error';
-    showToast(error.message || 'Upload thất bại', 'error');
-  } finally {
-    uploadBtn.disabled = false;
-    uploadBtn.innerHTML = '☁️ Upload lên Supabase';
-  }
-});
-
 // Xóa ảnh (clear all)
 document.getElementById('btn-clear-image')?.addEventListener('click', function () {
+  var oldPublicUrl = (document.getElementById('pf-image') && document.getElementById('pf-image').value.trim()) || '';
+  var oldPathField = document.getElementById('pf-image-path');
+  var oldPath = (oldPathField && oldPathField.value.trim()) || pathFromProductPublicUrl(oldPublicUrl);
   currentUploadFile = null;
   document.getElementById('pf-image-file').value = '';
-  document.getElementById('pf-image').value = '';
+  clearProductImageFields();
   document.getElementById('pf-image-preview').src = '';
   document.getElementById('image-preview-container').style.display = 'none';
   document.getElementById('upload-status').style.display = 'none';
   hideSelectedFileInfo();
+  if (oldPath) removeProductStoragePath(oldPath);
   showToast('Đã xóa ảnh', 'info');
 });
 
 // Remove preview
 document.getElementById('btn-remove-preview')?.addEventListener('click', function () {
-  document.getElementById('pf-image').value = '';
+  var oldPublicUrl = (document.getElementById('pf-image') && document.getElementById('pf-image').value.trim()) || '';
+  var oldPathField = document.getElementById('pf-image-path');
+  var oldPath = (oldPathField && oldPathField.value.trim()) || pathFromProductPublicUrl(oldPublicUrl);
+  clearProductImageFields();
   document.getElementById('pf-image-preview').src = '';
   document.getElementById('image-preview-container').style.display = 'none';
+  if (oldPath) removeProductStoragePath(oldPath);
 });
 
 function clearProductForm() {
@@ -2243,11 +2297,12 @@ function clearProductForm() {
     window.TLKVProductFormAdmin.resetToCreateMode();
     return;
   }
-  __tlkvResetProductImageUpload();
+  window.__tlkvResetProductImageUpload();
 }
 
-global.__tlkvResetProductImageUpload = function __tlkvResetProductImageUpload() {
+window.__tlkvResetProductImageUpload = function __tlkvResetProductImageUpload() {
   currentUploadFile = null;
+  clearProductImageFields();
   var fileInput = document.getElementById("pf-image-file");
   if (fileInput) fileInput.value = "";
   var fileInfo = document.getElementById("selected-file-info");
@@ -2262,10 +2317,13 @@ global.__tlkvResetProductImageUpload = function __tlkvResetProductImageUpload() 
     statusDiv.innerHTML = "";
     statusDiv.className = "upload-status";
   }
-  var uploadBtn = document.getElementById("btn-upload-supabase");
-  if (uploadBtn) {
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = "☁️ Upload lên Supabase trước khi tạo mới";
+  var progressEl = document.getElementById("product-upload-progress");
+  var progressLabel = document.getElementById("product-upload-progress-label");
+  if (progressEl) progressEl.style.display = "none";
+  if (progressEl && progressEl.firstElementChild) progressEl.firstElementChild.style.width = "0%";
+  if (progressLabel) {
+    progressLabel.style.display = "none";
+    progressLabel.textContent = "";
   }
   var fileNameSpan = document.getElementById("file-name");
   var fileSizeSpan = document.getElementById("file-size");
@@ -2274,3 +2332,6 @@ global.__tlkvResetProductImageUpload = function __tlkvResetProductImageUpload() 
 };
 // Khởi tạo
 initSupabaseClient();
+if (window.TLKVProductStorage && typeof window.TLKVProductStorage.prewarmAuth === "function") {
+  window.TLKVProductStorage.prewarmAuth();
+}

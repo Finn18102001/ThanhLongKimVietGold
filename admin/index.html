@@ -259,9 +259,6 @@
                           📁 Chọn ảnh từ máy tính
                           <input type="file" id="pf-image-file" accept="image/*" hidden />
                         </label>
-                        <button type="button" id="btn-upload-supabase" class="btn-upload-supabase" disabled>
-                          ☁️ Upload lên Supabase trước khi tạo mới
-                        </button>
                         <button type="button" id="btn-clear-image" class="btn-clear-image">🗑 Xóa</button>
                       </div>
 
@@ -284,13 +281,16 @@
                       </div>
                     </div>
 
+                    <div id="product-upload-progress" class="news-admin-thumb__progress product-upload-progress" style="display: none;"><span></span></div>
+                    <p id="product-upload-progress-label" class="news-admin-thumb__progress-label product-upload-progress-label" style="display: none;"></p>
+
                     <!-- Upload status -->
                     <div id="upload-status" class="upload-status" style="display: none;"></div>
                   </div>
               </div>
             </div>
 
-            <p class="catalog-admin-hint">Dán URL ảnh hoặc chọn file rồi upload lên Supabase — URL sẽ tự điền.</p>
+            <p class="catalog-admin-hint">Dán URL ảnh hoặc chọn file để tự upload lên Supabase — URL sẽ tự điền.</p>
 
             <div class="catalog-admin-form__actions">
               <button type="submit" class="btn-primary btn-save">Lưu sản phẩm</button>
@@ -488,6 +488,7 @@
     window.TLKV_BASE = "/";
   </script>
   <script src="/js/vendor/supabase.js"></script>
+  <script src="/js/utils/image-optimizer.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/products/constants.js"></script>
   <script src="/js/products/product-crud.js"></script>
@@ -495,6 +496,7 @@
   <script src="/js/products/catalog-api.js"></script>
   <script src="/js/admin-audit.js"></script>
   <script src="/js/admin/admin-access.js"></script>
+  <script src="/js/admin/product-storage.js"></script>
   <script src="/js/admin-app.js"></script>
   <script src="/js/admin/product-form-admin.js"></script>
   <script src="/js/admin/catalog-admin.js"></script>
