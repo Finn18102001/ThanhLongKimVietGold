@@ -10,6 +10,14 @@
       }
     }
   ],
+  "headers": [
+    {
+      "source": "/assets/(.*\\.(?:webp|png|jpe?g|gif|svg|ico|avif))",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
   "routes": [
     { "src": "/assets/logo-tv-modal.svg", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20260623" } },
     { "src": "/assets/logo-thang-long-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20260623" } },

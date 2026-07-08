@@ -15,8 +15,8 @@
 
   global.TLKV_BRAND_LOGO_FALLBACKS = {
     "thang-long-kim-viet": "/assets/tlkv-logo-mark.png" + logoV,
-    "bao-tin-manh-hai": "/assets/brands/bao-tin-manh-hai.png",
-    "bao-tin-minh-chau": "/assets/brands/bao-tin-minh-chau.png",
+    "bao-tin-manh-hai": "/assets/brands/bao-tin-manh-hai.png" + logoV,
+    "bao-tin-minh-chau": "/assets/brands/bao-tin-minh-chau.png" + logoV,
   };
 
   global.TLKV_BRAND_LOGO_PLATE_SLUG = "thang-long-kim-viet";

@@ -60,23 +60,30 @@ module.exports = function registerRoutes(app, ROOT) {
   app.use("/api", require("./api")(ROOT));
   app.use("/admin", require("./admin")(ROOT));
   app.use("/", require("./web")(ROOT));
+  var assetsRoot = path.join(ROOT, "assets") + path.sep;
+  var DISK_CACHE_IMAGE_EXTS = {
+    ".webp": 1,
+    ".png": 1,
+    ".jpg": 1,
+    ".jpeg": 1,
+    ".gif": 1,
+    ".svg": 1,
+    ".ico": 1,
+    ".avif": 1,
+  };
+
   app.use(
     express.static(ROOT, {
       index: false,
       setHeaders: function (res, filePath) {
         var ext = path.extname(filePath).toLowerCase();
-        var base = path.basename(filePath).toLowerCase();
         if (ext === ".json") {
           res.setHeader("Cache-Control", "no-store");
           return;
         }
-        if (
-          base === "favicon-48.png" ||
-          base === "apple-touch-icon-180.png" ||
-          base === "og-logo-256.png" ||
-          base.indexOf("tlkv-logo") === 0
-        ) {
-          res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+        // Ảnh/icon dưới /assets → disk cache lâu (Chrome hiển thị "disk cache" lần tải sau).
+        if (DISK_CACHE_IMAGE_EXTS[ext] && filePath.indexOf(assetsRoot) === 0) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         }
       },
     })
