@@ -210,7 +210,7 @@
     });
 
     resetImageUi();
-    var src = global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc(item.image);
+    var src = global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc(item.thumbnailUrl || item.image);
     if (src && $("pf-image-preview")) {
       $("pf-image-preview").src = src;
       if ($("image-preview-container")) $("image-preview-container").style.display = "flex";

@@ -643,7 +643,7 @@
       const imgWrap = document.createElement("div");
       imgWrap.className = "tlkv-product-card__img-wrap";
 
-      const src = resolveProductImageSrc(p.image);
+      const src = resolveProductImageSrc(p.thumbnailUrl || p.image);
 
       if (src) {
         const img = document.createElement("img");

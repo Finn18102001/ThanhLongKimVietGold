@@ -1009,7 +1009,7 @@ function showToast(message, type = 'success') {
         }
         data.items.forEach(function (p) {
           var tr = document.createElement("tr");
-          var imgSrc = window.TLKVProducts.resolveProductImageSrc(p.image);
+          var imgSrc = window.TLKVProducts.resolveProductImageSrc(p.thumbnailUrl || p.image);
           var tdThumb =
             imgSrc !== ""
               ? '<td><img class="admin-product-thumb" src="' +

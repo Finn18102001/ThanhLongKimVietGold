@@ -243,7 +243,7 @@ async function handleUpload(req, res) {
     const { error: uploadErr } = await sb.storage.from(BUCKET).upload(
       storagePath,
       outBuffer,
-      { contentType: outMime, cacheControl: "31536000", upsert: false }
+      { contentType: outMime, cacheControl: "public, max-age=31536000, immutable", upsert: false }
     );
     if (uploadErr) {
       console.error("[news-image] Supabase storage error:", uploadErr);
