@@ -46,6 +46,7 @@ function showToast(message, type = 'success') {
   var goldHistSearchTimer = null;
   var productHistSearchTimer = null;
   var HISTORY_PAGE_SIZE = 10;
+  var goldAdminRefreshInFlight = null;
   var goldHistAllRows = [];
   var goldHistPage = 1;
   var productHistAllRows = [];
@@ -574,6 +575,166 @@ function showToast(message, type = 'success') {
     return null;
   }
 
+  async function getGoldAdminData(forceRefresh) {
+    if (!window.TLKVGold || typeof window.TLKVGold.getGoldTable !== "function") return null;
+    return window.TLKVGold.getGoldTable({ forceRefresh: forceRefresh === true });
+  }
+
+  function applyGoldMetaForm(data) {
+    var m = (data && data.meta) || {};
+    var el = function (id) {
+      return document.getElementById(id);
+    };
+    el("meta-header-time").value = m.headerTime || "";
+    el("meta-footer-note").value = m.footerNote || "";
+    el("meta-unit-line").value = m.unitLine || "";
+    el("meta-brand-italic").value = m.brandItalic || "";
+  }
+
+  function renderGoldAdminRows(data) {
+    var tb = $("admin-rows");
+    if (!tb) return;
+    tb.innerHTML = "";
+    var rows = (data && data.rows) || [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var isEditing = !!goldInlineEditRowIds[r.id];
+      var productShown =
+        String(r.product || "").trim() ||
+        (i >= 0 ? window.TLKVGold.variantParentProduct(rows, i) : "");
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-row-id", r.id);
+      if (r.metal === "silver") tr.classList.add("row-silver");
+      if (r.highlight === true) tr.classList.add("row-highlight");
+
+      var tdId = document.createElement("td");
+      tdId.textContent = r.id;
+      tr.appendChild(tdId);
+
+      var tdBrand = document.createElement("td");
+      tdBrand.textContent = r.brand;
+      tr.appendChild(tdBrand);
+
+      var tdProd = document.createElement("td");
+      if (isEditing) {
+        var inProd = document.createElement("input");
+        inProd.type = "text";
+        inProd.className = "admin-gold-inline-input";
+        inProd.setAttribute("data-inline-field", "product");
+        inProd.value = productShown;
+        tdProd.appendChild(inProd);
+      } else {
+        tdProd.textContent = productShown;
+      }
+      tr.appendChild(tdProd);
+
+      var tdPur = document.createElement("td");
+      if (isEditing) {
+        var inPur = document.createElement("input");
+        inPur.type = "text";
+        inPur.className = "admin-gold-inline-input";
+        inPur.setAttribute("data-inline-field", "purity");
+        inPur.value = r.purity;
+        tdPur.appendChild(inPur);
+      } else {
+        tdPur.textContent = r.purity;
+      }
+      tr.appendChild(tdPur);
+
+      var tdBuy = document.createElement("td");
+      if (isEditing) {
+        var inBuy = document.createElement("input");
+        inBuy.type = "text";
+        inBuy.className = "admin-gold-inline-input";
+        inBuy.setAttribute("data-inline-field", "buy");
+        inBuy.value = r.buy;
+        tdBuy.appendChild(inBuy);
+      } else {
+        tdBuy.textContent = r.buy;
+      }
+      tr.appendChild(tdBuy);
+
+      var tdSell = document.createElement("td");
+      if (isEditing) {
+        var inSell = document.createElement("input");
+        inSell.type = "text";
+        inSell.className = "admin-gold-inline-input";
+        inSell.setAttribute("data-inline-field", "sell");
+        inSell.value = r.sell;
+        tdSell.appendChild(inSell);
+      } else {
+        tdSell.textContent = r.sell;
+      }
+      tr.appendChild(tdSell);
+
+      var tdMetal = document.createElement("td");
+      tdMetal.textContent = r.metal;
+      tr.appendChild(tdMetal);
+
+      var tdAct = document.createElement("td");
+      tdAct.className = "admin-cell-actions";
+      if (isEditing) {
+        var bCancel = document.createElement("button");
+        bCancel.type = "button";
+        bCancel.className = "admin-btn-inline-secondary btn-gold-inline-cancel";
+        bCancel.setAttribute("data-id", r.id);
+        bCancel.textContent = "Hủy";
+        var bDelEd = document.createElement("button");
+        bDelEd.type = "button";
+        bDelEd.className = "btn-del";
+        bDelEd.setAttribute("data-id", r.id);
+        bDelEd.textContent = "Xóa";
+        tdAct.appendChild(bCancel);
+        tdAct.appendChild(bDelEd);
+      } else {
+        var bEdit = document.createElement("button");
+        bEdit.type = "button";
+        bEdit.className = "btn-edit";
+        bEdit.setAttribute("data-id", r.id);
+        bEdit.textContent = "Sửa";
+        var bDel = document.createElement("button");
+        bDel.type = "button";
+        bDel.className = "btn-del";
+        bDel.setAttribute("data-id", r.id);
+        bDel.textContent = "Xóa";
+        tdAct.appendChild(bEdit);
+        tdAct.appendChild(bDel);
+      }
+      tr.appendChild(tdAct);
+      tb.appendChild(tr);
+    }
+
+    setGoldThayDoiVisible(goldInlineEditHasAny());
+  }
+
+  async function refreshGoldAdminUi(options) {
+    if (!canPerform("gold")) return null;
+    var opts = options || {};
+    if (goldAdminRefreshInFlight) return goldAdminRefreshInFlight;
+    goldAdminRefreshInFlight = getGoldAdminData(opts.forceRefresh === true)
+      .then(function (data) {
+        return Promise.all([refreshMetaForm(data || {}), refreshTable(data || {})]).then(function () {
+          return data;
+        });
+      })
+      .catch(function (err) {
+        console.error(err);
+        var tbErr = $("admin-rows");
+        if (tbErr) {
+          tbErr.innerHTML =
+            "<tr><td colspan=\"8\">Không tải bảng giá từ Supabase: " +
+            escapeHtml(err && err.message ? err.message : String(err)) +
+            "</td></tr>";
+        }
+        setGoldThayDoiVisible(false);
+        return null;
+      })
+      .finally(function () {
+        goldAdminRefreshInFlight = null;
+      });
+    return goldAdminRefreshInFlight;
+  }
+
   function commitGoldInlineEdit() {
     if (!canPerform("gold")) return;
     if (!window.TLKVGold) return;
@@ -718,8 +879,7 @@ function showToast(message, type = 'success') {
           showAdminToast(n === 1 ? "Đã lưu 1 dòng giá." : "Đã lưu " + n + " dòng giá.");
         }
         clearGoldInlineEdit();
-        refreshTable();
-        refreshMetaForm();
+        refreshGoldAdminUi();
         if (currentTab === "gold") refreshGoldHistory();
       })
       .catch(function (err) {
@@ -729,157 +889,22 @@ function showToast(message, type = 'success') {
   }
 
   /* ───── refreshMetaForm ───── */
-  async function refreshMetaForm() {
+  async function refreshMetaForm(prefetched) {
     if (!canPerform("gold")) return;
     if (!window.TLKVGold) return;
-    var d;
-    try {
-      d = await window.TLKVGold.getGoldTable();
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-    var m = (d && d.meta) || {};
-    var el = function (id) {
-      return document.getElementById(id);
-    };
-    el("meta-header-time").value = m.headerTime || "";
-    el("meta-footer-note").value = m.footerNote || "";
-    el("meta-unit-line").value = m.unitLine || "";
-    el("meta-brand-italic").value = m.brandItalic || "";
+    var data = prefetched || (await getGoldAdminData(false));
+    if (!data) return;
+    applyGoldMetaForm(data);
   }
 
   /* ───── refreshTable (bảng giá — mỗi dòng một hàng, sửa inline) ───── */
-  async function refreshTable() {
+  async function refreshTable(prefetched) {
     if (!canPerform("gold")) return;
-    var data;
-    try {
-      data = await window.TLKVGold.getGoldTable();
-    } catch (err) {
-      console.error(err);
-      var tbErr = $("admin-rows");
-      if (tbErr) {
-        tbErr.innerHTML =
-          "<tr><td colspan=\"8\">Không tải bảng giá từ Supabase: " +
-          escapeHtml(err && err.message ? err.message : String(err)) +
-          "</td></tr>";
-      }
-      setGoldThayDoiVisible(false);
-      return;
-    }
+    var data = prefetched || (await getGoldAdminData(false));
+    if (!data) return;
+    renderGoldAdminRows(data);
+
     var tb = $("admin-rows");
-    tb.innerHTML = "";
-    var rows = (data && data.rows) || [];
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var isEditing = !!goldInlineEditRowIds[r.id];
-      var productShown =
-        String(r.product || "").trim() ||
-        (i >= 0 ? window.TLKVGold.variantParentProduct(rows, i) : "");
-      var tr = document.createElement("tr");
-      tr.setAttribute("data-row-id", r.id);
-      if (r.metal === "silver") tr.classList.add("row-silver");
-      if (r.highlight === true) tr.classList.add("row-highlight");
-
-      var tdId = document.createElement("td");
-      tdId.textContent = r.id;
-      tr.appendChild(tdId);
-
-      var tdBrand = document.createElement("td");
-      tdBrand.textContent = r.brand;
-      tr.appendChild(tdBrand);
-
-      var tdProd = document.createElement("td");
-      if (isEditing) {
-        var inProd = document.createElement("input");
-        inProd.type = "text";
-        inProd.className = "admin-gold-inline-input";
-        inProd.setAttribute("data-inline-field", "product");
-        inProd.value = productShown;
-        tdProd.appendChild(inProd);
-      } else {
-        tdProd.textContent = productShown;
-      }
-      tr.appendChild(tdProd);
-
-      var tdPur = document.createElement("td");
-      if (isEditing) {
-        var inPur = document.createElement("input");
-        inPur.type = "text";
-        inPur.className = "admin-gold-inline-input";
-        inPur.setAttribute("data-inline-field", "purity");
-        inPur.value = r.purity;
-        tdPur.appendChild(inPur);
-      } else {
-        tdPur.textContent = r.purity;
-      }
-      tr.appendChild(tdPur);
-
-      var tdBuy = document.createElement("td");
-      if (isEditing) {
-        var inBuy = document.createElement("input");
-        inBuy.type = "text";
-        inBuy.className = "admin-gold-inline-input";
-        inBuy.setAttribute("data-inline-field", "buy");
-        inBuy.value = r.buy;
-        tdBuy.appendChild(inBuy);
-      } else {
-        tdBuy.textContent = r.buy;
-      }
-      tr.appendChild(tdBuy);
-
-      var tdSell = document.createElement("td");
-      if (isEditing) {
-        var inSell = document.createElement("input");
-        inSell.type = "text";
-        inSell.className = "admin-gold-inline-input";
-        inSell.setAttribute("data-inline-field", "sell");
-        inSell.value = r.sell;
-        tdSell.appendChild(inSell);
-      } else {
-        tdSell.textContent = r.sell;
-      }
-      tr.appendChild(tdSell);
-
-      var tdMetal = document.createElement("td");
-      tdMetal.textContent = r.metal;
-      tr.appendChild(tdMetal);
-
-      var tdAct = document.createElement("td");
-      tdAct.className = "admin-cell-actions";
-      if (isEditing) {
-        var bCancel = document.createElement("button");
-        bCancel.type = "button";
-        bCancel.className = "admin-btn-inline-secondary btn-gold-inline-cancel";
-        bCancel.setAttribute("data-id", r.id);
-        bCancel.textContent = "Hủy";
-        var bDelEd = document.createElement("button");
-        bDelEd.type = "button";
-        bDelEd.className = "btn-del";
-        bDelEd.setAttribute("data-id", r.id);
-        bDelEd.textContent = "Xóa";
-        tdAct.appendChild(bCancel);
-        tdAct.appendChild(bDelEd);
-      } else {
-        var bEdit = document.createElement("button");
-        bEdit.type = "button";
-        bEdit.className = "btn-edit";
-        bEdit.setAttribute("data-id", r.id);
-        bEdit.textContent = "Sửa";
-        var bDel = document.createElement("button");
-        bDel.type = "button";
-        bDel.className = "btn-del";
-        bDel.setAttribute("data-id", r.id);
-        bDel.textContent = "Xóa";
-        tdAct.appendChild(bEdit);
-        tdAct.appendChild(bDel);
-      }
-      tr.appendChild(tdAct);
-      tb.appendChild(tr);
-    }
-
-    setGoldThayDoiVisible(goldInlineEditHasAny());
-
     tb.querySelectorAll(".btn-del").forEach(function (btn) {
       btn.addEventListener("click", function () {
         if (!canPerform("gold")) return;
@@ -923,8 +948,7 @@ function showToast(message, type = 'success') {
           })
           .then(function () {
             showAdminToast("Đã xóa dòng giá.");
-            refreshTable();
-            refreshMetaForm();
+            refreshGoldAdminUi();
             if (currentTab === "gold") refreshGoldHistory();
           })
           .catch(function (err) {
@@ -1164,8 +1188,7 @@ function showToast(message, type = 'success') {
     showAdmin();
 
     if (access.canAccessGoldManagement) {
-      refreshTable();
-      refreshMetaForm();
+      refreshGoldAdminUi();
       if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
         console.log("[TLKV gold-push] admin: session authed → bật pipeline Realtime để quan sát push");
         window.TLKVGold.startGoldPush();
@@ -1277,8 +1300,7 @@ function showToast(message, type = 'success') {
       if (!confirm("Xóa khóa localStorage cũ của bảng giá (nếu có)? Dữ liệu trên Supabase không bị xóa."))
         return;
       window.TLKVGold.clearStorage();
-      refreshTable();
-      refreshMetaForm();
+      refreshGoldAdminUi();
     });
 
     $("meta-form")?.addEventListener("submit", function (e) {
@@ -1421,8 +1443,7 @@ function showToast(message, type = 'success') {
         })
         .then(function () {
           showAdminToast("Đã lưu dòng giá.");
-          refreshTable();
-          refreshMetaForm();
+          refreshGoldAdminUi();
           resetForm();
           if (currentTab === "gold") refreshGoldHistory();
         })
@@ -1435,8 +1456,7 @@ function showToast(message, type = 'success') {
     window.addEventListener("tlkv:gold-table-changed", function () {
       if (adminAuthed) {
         clearGoldInlineEdit();
-        refreshTable();
-        refreshMetaForm();
+        refreshGoldAdminUi();
       }
     });
 

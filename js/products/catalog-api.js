@@ -191,7 +191,7 @@
    * 2) per brand, load featured products (weight + price_source_product for derived pricing)
    * 3) attach to featured_products and drop empty brands
    */
-  async function fetchFeaturedBrandsWithProducts(productLimitPerBrand) {
+  async function fetchFeaturedBrandsBundle(productLimitPerBrand) {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
     var rfn = resolveFn();
@@ -250,7 +250,24 @@
       }
     }
 
-    return out;
+    return {
+      featuredBrands: out,
+      allBrands: brands.map(function (brand) {
+        return {
+          id: brand.id,
+          name: brand.name || "",
+          slug: brand.slug || "",
+          logo_url: brand.logo_url || "",
+          sort_order: brand.sort_order,
+          is_active: true,
+        };
+      }),
+    };
+  }
+
+  async function fetchFeaturedBrandsWithProducts(productLimitPerBrand) {
+    var bundle = await fetchFeaturedBrandsBundle(productLimitPerBrand);
+    return bundle.featuredBrands;
   }
 
   function applyProductFilters(q, filters) {
@@ -539,6 +556,7 @@
   global.TLKVCatalogApi = {
     getSupabaseClient: getSupabaseClient,
     fetchBrandCatalogSections: fetchBrandCatalogSections,
+    fetchFeaturedBrandsBundle: fetchFeaturedBrandsBundle,
     fetchFeaturedBrandsWithProducts: fetchFeaturedBrandsWithProducts,
     fetchProductsPage: fetchProductsPage,
     fetchBrandsList: fetchBrandsList,

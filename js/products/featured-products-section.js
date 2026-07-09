@@ -392,20 +392,26 @@
     bindProductRailDrag(host);
   }
 
-  async function fetchFeaturedBrandsWithProducts(limit) {
-    if (!global.TLKVCatalogApi || typeof global.TLKVCatalogApi.fetchFeaturedBrandsWithProducts !== "function") {
+  async function fetchFeaturedBrandsBundle(limit) {
+    if (!global.TLKVCatalogApi) {
+      throw new Error("Thiếu TLKVCatalogApi.");
+    }
+    if (typeof global.TLKVCatalogApi.fetchFeaturedBrandsBundle === "function") {
+      return global.TLKVCatalogApi.fetchFeaturedBrandsBundle(limit);
+    }
+    if (typeof global.TLKVCatalogApi.fetchFeaturedBrandsWithProducts !== "function") {
       throw new Error("Thiếu TLKVCatalogApi.fetchFeaturedBrandsWithProducts.");
     }
-    return global.TLKVCatalogApi.fetchFeaturedBrandsWithProducts(limit);
-  }
-
-  async function fetchBrandsList() {
-    if (!global.TLKVCatalogApi || typeof global.TLKVCatalogApi.fetchBrandsList !== "function") return [];
-    try {
-      return await global.TLKVCatalogApi.fetchBrandsList();
-    } catch (_) {
-      return [];
+    var featuredBrands = await global.TLKVCatalogApi.fetchFeaturedBrandsWithProducts(limit);
+    var allBrands = [];
+    if (typeof global.TLKVCatalogApi.fetchBrandsList === "function") {
+      try {
+        allBrands = await global.TLKVCatalogApi.fetchBrandsList();
+      } catch (_) {
+        allBrands = [];
+      }
     }
+    return { featuredBrands: featuredBrands, allBrands: allBrands };
   }
 
   function normalizeDefaultBrands(allBrands) {
@@ -494,14 +500,14 @@
   async function loadFeaturedBrands(limit) {
     if (state.inFlight) return state.inFlight;
     state.inFlight = Promise.all([
-      fetchFeaturedBrandsWithProducts(limit),
-      fetchBrandsList(),
+      fetchFeaturedBrandsBundle(limit),
       resolveGoldRowsForPricing(),
     ])
       .then(function (res) {
-        var brands = res[0] || [];
-        var allBrands = res[1] || [];
-        var goldRows = res[2] || [];
+        var bundle = res[0] || {};
+        var brands = bundle.featuredBrands || [];
+        var allBrands = bundle.allBrands || [];
+        var goldRows = res[1] || [];
         var rows = prioritizeBongSenVangForBtmh(ensureDefaultBrandRows(brands, allBrands));
         state.inFlight = null;
         state.brands = rows;
@@ -555,11 +561,12 @@
   function refreshIfChanged(containerSelector, opts) {
     opts = opts || {};
     var limit = opts.limit != null ? opts.limit : MAX_PRODUCTS_PER_BRAND;
-    return Promise.all([fetchFeaturedBrandsWithProducts(limit), fetchBrandsList(), resolveGoldRowsForPricing()])
+    return Promise.all([fetchFeaturedBrandsBundle(limit), resolveGoldRowsForPricing()])
       .then(function (res) {
-        var next = ensureDefaultBrandRows(res[0] || [], res[1] || []);
+        var bundle = res[0] || {};
+        var next = ensureDefaultBrandRows(bundle.featuredBrands || [], bundle.allBrands || []);
         state.brands = next;
-        applyDerivedPricesToStateBrands(res[2] || []);
+        applyDerivedPricesToStateBrands(res[1] || []);
         var nextSig = buildSignature(state.brands);
         if (nextSig === state.signature) return state.brands;
         state.signature = nextSig;
@@ -585,7 +592,11 @@
   }
 
   global.TLKVFeaturedProductsSection = {
-    fetchFeaturedBrandsWithProducts: fetchFeaturedBrandsWithProducts,
+    fetchFeaturedBrandsWithProducts: function (limit) {
+      return fetchFeaturedBrandsBundle(limit).then(function (bundle) {
+        return bundle.featuredBrands || [];
+      });
+    },
     loadFeaturedBrands: loadFeaturedBrands,
     getBrandRows: function () {
       return state.brands;

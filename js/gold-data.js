@@ -20,6 +20,24 @@
   /** @type {ReturnType<typeof setTimeout> | null} */
   let __goldTableChangedDebounceTimer = null;
   let __goldPushStarted = false;
+  let __goldTableCache = null;
+  let __goldTableFetchInFlight = null;
+
+  function setGoldTableCache(payload) {
+    const fixed = normalizePayload(payload);
+    if (!fixed) return null;
+    __goldTableCache = fixed;
+    global.__TLKV_LAST_GOLD_ROWS = fixed.rows;
+    return fixed;
+  }
+
+  function peekGoldTableCache() {
+    return __goldTableCache;
+  }
+
+  function invalidateGoldTableCache() {
+    __goldTableCache = null;
+  }
 
   /** Debounce giữa các `tlkv:gold-table-changed` (tv-model có thể tăng qua `window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS`). */
   function getGoldTableChangedDebounceMs() {
@@ -141,6 +159,7 @@
   function startGoldTableRealtime(sb) {
     if (!sb || __goldRealtimeChannel) return;
     const notify = function (payload) {
+      invalidateGoldTableCache();
       __goldBrowserRealtimeNotifyCount += 1;
       if (typeof console !== "undefined" && console.log) {
         console.log(
@@ -1035,6 +1054,7 @@
         );
       }
       return persistGoldToSupabase(sb, payload).then(function () {
+        setGoldTableCache(payload);
         console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local (cross-tab qua Realtime)");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
         notifyGoldTableChanged("admin-save");
@@ -1056,6 +1076,15 @@
         );
       }
       return persistGoldMetaToSupabase(sb, meta).then(function () {
+        const cached = peekGoldTableCache();
+        if (cached) {
+          setGoldTableCache({
+            meta: Object.assign({}, cached.meta || {}, meta || {}),
+            rows: cached.rows || [],
+          });
+        } else {
+          invalidateGoldTableCache();
+        }
         console.log(GOLD_PUSH_LOG + " client: saveGoldMetaOnly() persisted → dispatch local (cross-tab qua Realtime)");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: { metaOnly: true } }));
         notifyGoldTableChanged("admin-save-meta");
@@ -1068,6 +1097,7 @@
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (_) {}
+    invalidateGoldTableCache();
     global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
   }
 
@@ -1118,15 +1148,30 @@
     throw new Error("fetchDefaultJson đã tắt — dùng Supabase (gold_meta + gold_price_rows).");
   }
 
-  async function getGoldTable() {
-    const sb = await getSupabaseClient();
-    if (!sb) {
-      throw new Error(
-        "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
-      );
+  async function getGoldTable(options) {
+    const opts = options && typeof options === "object" ? options : {};
+    if (opts.forceRefresh !== true) {
+      const cached = peekGoldTableCache();
+      if (cached) return cached;
+      if (__goldTableFetchInFlight) return __goldTableFetchInFlight;
+    } else {
+      invalidateGoldTableCache();
     }
-    try { await sb.auth.getUser(); } catch (_) {}
-    return fetchGoldFromSupabase(sb);
+    __goldTableFetchInFlight = (async function () {
+      const sb = await getSupabaseClient();
+      if (!sb) {
+        throw new Error(
+          "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
+        );
+      }
+      const data = await fetchGoldFromSupabase(sb);
+      return setGoldTableCache(data) || data;
+    })();
+    try {
+      return await __goldTableFetchInFlight;
+    } finally {
+      __goldTableFetchInFlight = null;
+    }
   }
 
 function applyMetaToDom(meta) {
@@ -1344,7 +1389,8 @@ function applyMetaToDom(meta) {
   }
 
   function getLastGoldRows() {
-    const rows = global.__TLKV_LAST_GOLD_ROWS;
+    const cached = peekGoldTableCache();
+    const rows = cached && Array.isArray(cached.rows) ? cached.rows : global.__TLKV_LAST_GOLD_ROWS;
     return Array.isArray(rows) ? rows : null;
   }
 
@@ -1352,6 +1398,7 @@ function applyMetaToDom(meta) {
     STORAGE_KEY,
     isLeanGoldPushClient,
     getGoldTable,
+    invalidateGoldTableCache,
     getLastGoldRows,
     parseGoldMoneyToInt,
     formatPriceDisplay,
