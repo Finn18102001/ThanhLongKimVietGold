@@ -39,6 +39,18 @@ module.exports = function registerRoutes(app, ROOT) {
    * Inject Supabase public config từ .env / .env.local (phải load trước /js/supabaseClient.js).
    * Đăng ký trước static để không bị ghi đè bởi file tĩnh.
    */
+  app.get("/js/gold-data.js", function (req, res) {
+    res.type("application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.sendFile(path.join(ROOT, "js", "gold-data.js"));
+  });
+
+  app.get("/js/tv-gold-board.js", function (req, res) {
+    res.type("application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.sendFile(path.join(ROOT, "js", "tv-gold-board.js"));
+  });
+
   app.get("/js/boot-supabase-env.js", function (req, res) {
     res.type("application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "no-store");

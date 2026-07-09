@@ -56,7 +56,11 @@ module.exports = function webRouter(ROOT) {
     }
     res.sendFile(path.join(ROOT, "san-pham", "chi-tiet.html"));
   });
-  router.get("/tv-model", send("tv-model.html"));
+  router.get("/tv-model", function (req, res) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.sendFile(path.join(ROOT, "tv-model.html"));
+  });
 
   /**
    * News (Tin tức thị trường).

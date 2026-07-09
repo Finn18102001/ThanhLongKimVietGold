@@ -51,8 +51,22 @@
     }, getGoldTableChangedDebounceMs());
   }
 
+  /** Trang /tv-model — luôn Realtime, không poll (kể cả TV cache HTML/JS cũ có lean=true). */
+  function isTvModelGoldPage() {
+    try {
+      return !!(
+        typeof document !== "undefined" &&
+        document.documentElement &&
+        document.documentElement.classList.contains("tlkv-tv-model-page")
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   /** TV / trình duyệt yếu: không mở Realtime WebSocket trên tab (chỉ poll nhẹ). */
   function isLeanGoldPushClient() {
+    if (isTvModelGoldPage()) return false;
     if (global.__TLKV_LEAN_GOLD_PUSH === true) return true;
     if (global.__TLKV_LEAN_GOLD_PUSH === false) return false;
     try {
@@ -193,7 +207,12 @@
       if (!Number.isFinite(pollMs) || pollMs < 15000) pollMs = 90000;
       if (typeof console !== "undefined" && console.log) {
         console.log(
-          GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không Realtime tab"
+          GOLD_PUSH_LOG + " client: chế độ lean (TV / save-data) → poll mỗi " + pollMs + "ms, không Realtime tab",
+          {
+            leanFlag: global.__TLKV_LEAN_GOLD_PUSH,
+            pollMsFlag: global.__TLKV_GOLD_POLL_MS,
+            tvModelPage: isTvModelGoldPage(),
+          }
         );
       }
       dispatchGoldPushUi({ mode: "poll", intervalMs: pollMs });
@@ -216,6 +235,12 @@
       return;
     }
 
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: chế độ Realtime (không poll)", {
+        leanFlag: global.__TLKV_LEAN_GOLD_PUSH,
+        tvModelPage: isTvModelGoldPage(),
+      });
+    }
     dispatchGoldPushUi({ mode: "realtime", state: "connecting" });
     startGoldTableRealtime(sb);
   }
