@@ -901,7 +901,7 @@
 
   /**
    * Giữ đơn vị + thương hiệu; đặt **cùng một mốc giờ VN** cho header_time (vd. 10h30) và footer_note
-   * (vd. "Cập nhật lúc 10:30 09/04/2026") — khớp với cách `applyMetaToDom` render hai vị trí.
+   * (vd. "Cập nhật lúc 10:30 09/04/2026"). `applyMetaToDom` hiển thị footer_note trên dòng meta bảng giá.
    * Gọi khi admin lưu giá / thêm / sửa / xóa dòng (stampMetaOnPayload).
    */
   function stampMetaWithVietnamNow(meta) {
@@ -1178,15 +1178,13 @@ function applyMetaToDom(meta) {
   if (!meta) return;
 
   const m = normalizeMeta(meta);
-  const ht = m.headerTime || META_DEFAULTS.headerTime;
   const ul = m.unitLine || META_DEFAULTS.unitLine;
   const fn = m.footerNote || META_DEFAULTS.footerNote;
 
   const unitEl = document.querySelector("[data-gold-meta-line]");
   if (unitEl) {
     unitEl.innerHTML =
-      "Cập nhật lúc: " +
-      escapeMetaHtml(ht) +
+      escapeMetaHtml(fn) +
       " · " +
       escapeMetaHtml(ul);
   }
