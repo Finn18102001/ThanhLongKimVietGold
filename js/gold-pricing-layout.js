@@ -97,6 +97,17 @@
         var inner = document.createElement("div");
         inner.className = "tlkv-gp-cell__inner";
         while (td.firstChild) inner.appendChild(td.firstChild);
+        /* Bọc text giá riêng để ellipsis không clip icon ▲/▼ */
+        var nodes = Array.prototype.slice.call(inner.childNodes);
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          if (node.nodeType === 3 && String(node.textContent || "").trim()) {
+            var priceText = document.createElement("span");
+            priceText.className = "tv-price-text";
+            priceText.textContent = String(node.textContent).replace(/\s+/g, " ").trim();
+            inner.replaceChild(priceText, node);
+          }
+        }
         td.appendChild(inner);
         var label = inner.textContent.replace(/\s+/g, " ").trim();
         if (label) inner.setAttribute("title", label);
@@ -151,25 +162,72 @@
   }
 
   /**
-   * Grid stretch handles equal height; RO ensures iframe/chart fill after TV embed loads.
+   * Side-by-side (≥1400px): chart panel + TradingView wrap khớp đúng height bảng giá.
+   * TradingView cần height px tường minh — height:100% alone không đủ.
+   * Chỉ ép height lên world/chart; store giữ chiều cao tự nhiên theo bảng.
    */
+  var lastSyncStoreH = 0;
+  var syncingHeights = false;
+
+  function clearPanelHeightSync(dash, world, tvWrap) {
+    dash.style.removeProperty("--tlkv-gp-panel-sync-h");
+    dash.style.removeProperty("--tlkv-gp-chart-h");
+    if (world) {
+      world.style.removeProperty("height");
+      world.style.removeProperty("min-height");
+    }
+    if (tvWrap) {
+      tvWrap.style.removeProperty("height");
+      tvWrap.style.removeProperty("min-height");
+    }
+    lastSyncStoreH = 0;
+  }
+
   function syncPanelHeights() {
     var dash = getDashboard();
-    if (!dash) return;
+    if (!dash || syncingHeights) return;
 
-    var grid = dash.querySelector(".tlkv-gold-dashboard__grid");
     var store = dash.querySelector(".tlkv-gold-panel--store");
     var world = dash.querySelector(".tlkv-gold-panel--world");
-    if (!grid || !store || !world) return;
+    var tvWrap = dash.querySelector(".tlkv-world-xau-tv-wrap");
+    if (!store || !world) return;
 
-    if (global.matchMedia && global.matchMedia("(max-width: 991.98px)").matches) {
-      dash.style.removeProperty("--tlkv-gp-panel-sync-h");
+    /* Khớp CSS: side-by-side chỉ từ 1400px */
+    if (global.matchMedia && global.matchMedia("(max-width: 1399.98px)").matches) {
+      clearPanelHeightSync(dash, world, tvWrap);
       return;
     }
 
-    var h = Math.max(store.offsetHeight, world.offsetHeight);
-    if (h > 0) {
-      dash.style.setProperty("--tlkv-gp-panel-sync-h", h + "px");
+    syncingHeights = true;
+    try {
+      var storeH = Math.round(store.getBoundingClientRect().height || store.offsetHeight || 0);
+      if (storeH < 120) return;
+
+      var head = world.querySelector(".tlkv-world-xau-head");
+      var headH = head ? Math.round(head.getBoundingClientRect().height || head.offsetHeight || 0) : 0;
+      var chartH = Math.max(280, storeH - headH);
+
+      if (Math.abs(storeH - lastSyncStoreH) < 2) {
+        world.style.height = storeH + "px";
+        world.style.minHeight = storeH + "px";
+        if (tvWrap) {
+          tvWrap.style.height = chartH + "px";
+          tvWrap.style.minHeight = chartH + "px";
+        }
+        return;
+      }
+      lastSyncStoreH = storeH;
+
+      dash.style.setProperty("--tlkv-gp-panel-sync-h", storeH + "px");
+      dash.style.setProperty("--tlkv-gp-chart-h", chartH + "px");
+      world.style.height = storeH + "px";
+      world.style.minHeight = storeH + "px";
+      if (tvWrap) {
+        tvWrap.style.height = chartH + "px";
+        tvWrap.style.minHeight = chartH + "px";
+      }
+    } finally {
+      syncingHeights = false;
     }
   }
 
@@ -196,8 +254,9 @@
       ro = new ResizeObserver(onLayout);
       var grid = dash.querySelector(".tlkv-gold-dashboard__grid");
       if (grid) ro.observe(grid);
-      var tv = dash.querySelector(".tlkv-world-xau-tv-wrap");
-      if (tv) ro.observe(tv);
+      /* Chỉ observe store — tránh loop khi sync set height lên tv-wrap */
+      var storePanel = dash.querySelector(".tlkv-gold-panel--store");
+      if (storePanel) ro.observe(storePanel);
     }
 
     global.addEventListener("resize", onLayout);
@@ -208,6 +267,9 @@
     if (!getDashboard()) return;
     scheduleLayout();
     bindObservers();
+    /* TradingView embed load async — sync lại sau khi iframe có kích thước */
+    setTimeout(scheduleLayout, 400);
+    setTimeout(scheduleLayout, 1200);
   }
 
   if (document.readyState === "loading") {
