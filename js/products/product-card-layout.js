@@ -64,7 +64,10 @@
    * @param {string} alt
    * @param {{ w: number, h: number }} aspect
    */
-  function mountProductImage(imgWrap, skeleton, src, alt, aspect) {
+  function mountProductImage(imgWrap, skeleton, src, alt, aspect, opts) {
+    opts = opts || {};
+    var fallbackSrc = String(opts.fallbackSrc || "").trim();
+
     if (!src) {
       var noImg = document.createElement("div");
       noImg.className = "tlkv-product-card__noimg";
@@ -96,12 +99,22 @@
       markMediaLoaded(imgWrap);
     }
 
-    function onError() {
+    function showPlaceholder() {
       img.removeEventListener("load", onSuccess);
       img.removeEventListener("error", onError);
       img.src = PLACEHOLDER_SVG;
       imgWrap.classList.add("is-error");
       onSuccess();
+    }
+
+    function onError() {
+      if (fallbackSrc && img.src !== fallbackSrc) {
+        img.removeEventListener("error", onError);
+        img.addEventListener("error", showPlaceholder, { once: true });
+        img.src = fallbackSrc;
+        return;
+      }
+      showPlaceholder();
     }
 
     img.addEventListener("load", onSuccess, { once: true });

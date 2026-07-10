@@ -111,8 +111,29 @@
     });
   }
 
-  function pickThumbnailUrlFromRow(row) {
-    const images = row.product_images || [];
+  function isSharedStagingProductImageUrl(url) {
+    return /\/products\/new\/thumbnail\//i.test(String(url || ""));
+  }
+
+  function isProductScopedStorageUrl(url, productId) {
+    const id = String(productId || "").trim();
+    if (!id || id === "new" || !url) return false;
+    return String(url).indexOf("/products/" + id + "/") !== -1;
+  }
+
+  function resolveLegacyProductImage(row, rfn) {
+    const legacy = String((row && row.image) ?? "").trim();
+    if (!legacy) return "";
+    const fn = rfn || resolveProductImageSrc;
+    return fn ? fn(legacy) : legacy;
+  }
+
+  /** Prefer real per-product storage over legacy shared `products/new/thumbnail/` rows. */
+  function pickProductDisplayImageUrl(row, rfn) {
+    const images = (row && row.product_images) || [];
+    let thumbUrl = "";
+    let mainImgUrl = "";
+
     if (images.length) {
       const sorted = images.slice().sort(function (a, b) {
         return (a.sort_order || 0) - (b.sort_order || 0);
@@ -120,14 +141,32 @@
       const thumb = sorted.find(function (i) {
         return i.role === "thumbnail";
       });
-      const main = sorted.find(function (i) {
+      const mainImg = sorted.find(function (i) {
         return i.role === "main";
       });
-      const first = thumb || main || sorted[0];
-      if (first && first.public_url) return String(first.public_url);
+      const first = thumb || mainImg || sorted[0];
+      thumbUrl = thumb && thumb.public_url ? String(thumb.public_url).trim() : "";
+      mainImgUrl = mainImg && mainImg.public_url ? String(mainImg.public_url).trim() : "";
+      if (!thumbUrl && !mainImgUrl && first && first.public_url) {
+        thumbUrl = String(first.public_url).trim();
+      }
     }
-    const legacy = String(row.image ?? "").trim();
-    return legacy ? resolveProductImageSrc(legacy) : "";
+
+    const legacy = resolveLegacyProductImage(row, rfn);
+
+    if (thumbUrl && isSharedStagingProductImageUrl(thumbUrl)) {
+      if (isProductScopedStorageUrl(legacy, row && row.id)) return legacy;
+      if (mainImgUrl && !isSharedStagingProductImageUrl(mainImgUrl)) return mainImgUrl;
+      if (legacy && !isSharedStagingProductImageUrl(legacy)) return legacy;
+    }
+
+    if (thumbUrl) return thumbUrl;
+    if (mainImgUrl) return mainImgUrl;
+    return legacy;
+  }
+
+  function pickThumbnailUrlFromRow(row) {
+    return pickProductDisplayImageUrl(row, resolveProductImageSrc);
   }
 
   function pathFromProductPublicUrl(publicUrl) {
@@ -746,6 +785,8 @@
     renderList,
     renderProductGrid,
     resolveProductImageSrc,
+    pickProductDisplayImageUrl,
+    isSharedStagingProductImageUrl,
     assetUrl,
   };
 })(typeof window !== "undefined" ? window : globalThis);

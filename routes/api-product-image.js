@@ -6,6 +6,7 @@ const sharp = require("sharp");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { supabasePublicEnv } = require("../lib/supabase-public-env");
+const { immutableStorageUploadOptions } = require("../lib/immutable-cache");
 
 const BUCKET = "product-media";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -162,7 +163,7 @@ async function handleUpload(req, res) {
     const { error: uploadErr } = await sb.storage.from(BUCKET).upload(
       storagePath,
       outBuffer,
-      { contentType: outMime, cacheControl: "public, max-age=31536000, immutable", upsert: false }
+      immutableStorageUploadOptions(outMime)
     );
     if (uploadErr) {
       const msg = uploadErr.message || "";

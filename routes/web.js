@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const { IMMUTABLE_CACHE_CONTROL } = require("../lib/immutable-cache");
 
 /**
  * Public HTML routes (clean paths). Static js/data/assets are served after this router in server.js.
@@ -11,7 +12,7 @@ module.exports = function webRouter(ROOT) {
   /** Google / trình duyệt thường gọi /favicon.ico — trỏ PNG 48px (logo gốc ~12k px không dùng làm favicon). */
   router.get("/favicon.ico", function (req, res) {
     res.type("image/png");
-    res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+    res.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
     res.sendFile(path.join(ROOT, "assets", "favicon-48.png"));
   });
 

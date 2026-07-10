@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const { IMMUTABLE_CACHE_CONTROL } = require("../lib/immutable-cache");
 
 function trimEnv(v) {
   return String(v || "").trim();
@@ -95,7 +96,7 @@ module.exports = function registerRoutes(app, ROOT) {
         }
         // Ảnh/icon dưới /assets → disk cache lâu (Chrome hiển thị "disk cache" lần tải sau).
         if (DISK_CACHE_IMAGE_EXTS[ext] && filePath.indexOf(assetsRoot) === 0) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          res.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
         }
       },
     })

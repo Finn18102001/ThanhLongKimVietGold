@@ -115,6 +115,13 @@
       var mediaRegion = Layout.createMediaRegion(variant);
 
       var src = resolveImageSrc(product, resolveFn);
+      var fallbackSrc = "";
+      if (product.image && resolveFn) {
+        fallbackSrc = resolveFn(product.image);
+      } else if (product.image) {
+        fallbackSrc = String(product.image);
+      }
+      if (fallbackSrc === src) fallbackSrc = "";
 
       Layout.mountProductImage(
 
@@ -126,7 +133,9 @@
 
         product.name || "Sản phẩm",
 
-        mediaRegion.aspect
+        mediaRegion.aspect,
+
+        { fallbackSrc: fallbackSrc }
 
       );
 

@@ -35,6 +35,7 @@ const sharp   = require("sharp");
 const crypto  = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { supabasePublicEnv } = require("../lib/supabase-public-env");
+const { immutableStorageUploadOptions } = require("../lib/immutable-cache");
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const BUCKET      = "news-media";
@@ -243,7 +244,7 @@ async function handleUpload(req, res) {
     const { error: uploadErr } = await sb.storage.from(BUCKET).upload(
       storagePath,
       outBuffer,
-      { contentType: outMime, cacheControl: "public, max-age=31536000, immutable", upsert: false }
+      immutableStorageUploadOptions(outMime)
     );
     if (uploadErr) {
       console.error("[news-image] Supabase storage error:", uploadErr);

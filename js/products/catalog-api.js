@@ -52,19 +52,9 @@
   }
 
   function pickImageUrl(row, rfn) {
-    var images = row.product_images || [];
-    if (images.length) {
-      var sorted = images.slice().sort(function (a, b) {
-        return (a.sort_order || 0) - (b.sort_order || 0);
-      });
-      var thumb = sorted.find(function (i) {
-        return i.role === "thumbnail";
-      });
-      var main = sorted.find(function (i) {
-        return i.role === "main";
-      });
-      var first = thumb || main || sorted[0];
-      if (first && first.public_url) return first.public_url;
+    rfn = rfn || resolveFn();
+    if (global.TLKVProducts && typeof global.TLKVProducts.pickProductDisplayImageUrl === "function") {
+      return global.TLKVProducts.pickProductDisplayImageUrl(row, rfn);
     }
     if (row.image && rfn) return rfn(row.image);
     return row.image || "";
