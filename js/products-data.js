@@ -101,6 +101,10 @@
       priceText: priceRaw,
       priceNumeric: r.price_numeric != null ? Number(r.price_numeric) : parsePriceNumeric(priceRaw),
       weight: parseProductWeight(r.weight),
+      priceSourceProduct:
+        r.price_source_product != null
+          ? String(r.price_source_product).trim().replace(/\s+/g, " ")
+          : null,
       image: r.image ?? "",
       thumbnailUrl: thumbnailUrl,
       sortOrder: r.sort_order,
@@ -319,6 +323,10 @@
       priceText: String(p.priceText ?? ""),
       priceNumeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
       weight: parseProductWeight(p.weight),
+      priceSourceProduct:
+        p.priceSourceProduct != null
+          ? String(p.priceSourceProduct).trim().replace(/\s+/g, " ")
+          : null,
       image: String(p.image ?? "").trim(),
       thumbnailUrl: String(p.thumbnailUrl ?? p.image ?? "").trim(),
       imageStoragePath: String(p.imageStoragePath ?? "").trim(),
@@ -330,10 +338,24 @@
     };
   }
 
+  function resolvePriceSourceProductForSave(p) {
+    var explicit =
+      p.priceSourceProduct != null ? String(p.priceSourceProduct).trim().replace(/\s+/g, " ") : "";
+    if (explicit) return explicit;
+    var weight = parseProductWeight(p.weight);
+    if (weight == null) return null;
+    var engine = global.TLKVProductPriceEngine;
+    if (engine && typeof engine.inferPriceSourceProduct === "function") {
+      return engine.inferPriceSourceProduct(p.name, weight);
+    }
+    return null;
+  }
+
   function productAppToDb(p, sortOrderResolved) {
     const slug = String(p.slug || "").trim() || slugifySimple(p.name) || String(p.id);
     const sortOrder =
       sortOrderResolved != null ? coerceSortOrder(sortOrderResolved) : coerceSortOrder(p.sortOrder);
+    const priceSourceProduct = resolvePriceSourceProductForSave(p);
     return {
       id: p.id,
       name: p.name || "",
@@ -342,6 +364,7 @@
       price_text: p.priceText || "",
       price_numeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
       weight: parseProductWeight(p.weight),
+      price_source_product: priceSourceProduct,
       image: p.image || "",
       sort_order: sortOrder != null ? sortOrder : 0,
       brand_id: p.brandId || null,

@@ -4,7 +4,7 @@
   var DEFAULT_LIMIT =
     typeof global.TLKV_PRODUCTS_PER_BRAND_SECTION === "number"
       ? global.TLKV_PRODUCTS_PER_BRAND_SECTION
-      : 7;
+      : 8;
 
   /**
    * @param {{

@@ -222,7 +222,10 @@
 
               <div class="catalog-admin-field">
                 <label class="catalog-admin-label" for="pf-weight">Định lượng (chỉ)</label>
-                <input type="number" id="pf-weight" class="catalog-admin-input" step="0.1" min="0" placeholder="VD: 1.0" />
+                <input type="number" id="pf-weight" class="catalog-admin-input" step="0.1" min="0" placeholder="VD: 0.1, 1.0, 2.0" />
+                <p class="catalog-admin-slug-hint">
+                  SP &lt; 1 chỉ (0.1, 0.2, 0.3…) tự tính giá = giá 1 chỉ × lượng vàng. Chỉ cần nhập tên SP đúng dòng giá (VD: Nhẫn Tròn Kim Việt 0.1 chỉ).
+                </p>
               </div>
 
               <div class="catalog-admin-field catalog-admin-field--full">
@@ -490,6 +493,7 @@
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/utils/image-optimizer.js"></script>
   <script src="/js/gold-data.js"></script>
+  <script src="/js/products/product-price-engine.js"></script>
   <script src="/js/products/constants.js"></script>
   <script src="/js/products/product-crud.js"></script>
   <script src="/js/products-data.js"></script>

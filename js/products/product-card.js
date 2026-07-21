@@ -177,13 +177,18 @@
 
       regions.content.appendChild(nameEl);
 
-      if (isShowcase && product.showPrice === true) {
-        var showcasePrice = formatPriceLabel(product.priceText);
-        if (showcasePrice) {
+      if (product.showPrice === true) {
+        var derivedPrice = formatPriceLabel(product.priceText);
+        if (derivedPrice) {
           var derivedPriceEl = document.createElement("p");
           derivedPriceEl.className = "tlkv-product-card__price tlkv-product-card__price--derived";
-          derivedPriceEl.textContent = showcasePrice;
-          regions.footer.appendChild(derivedPriceEl);
+          derivedPriceEl.textContent = derivedPrice;
+          var ctaBeforePrice = regions.footer.querySelector(".tlkv-product-card__cta");
+          if (ctaBeforePrice) {
+            regions.footer.insertBefore(derivedPriceEl, ctaBeforePrice);
+          } else {
+            regions.footer.appendChild(derivedPriceEl);
+          }
           card.classList.add("tlkv-product-card--has-price");
         }
       }

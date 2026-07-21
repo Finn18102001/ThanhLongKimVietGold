@@ -36,9 +36,13 @@
     return s;
   }
 
-  /** Một dòng gold_price_rows — giá đồng/chỉ; SP nhân theo weight. */
+  /** Một dòng gold_price_rows — giá đồng/chỉ hoặc giá cố định theo lượng ghi trên dòng (VD: 0.1 chỉ). */
   var KIM_GIA_BAO_GOLD_ROW_KEY = "Kim Gia Bảo";
   var NHAN_TRON_KIM_VIET_GOLD_ROW_KEY = "Nhẫn Tròn Kim Việt";
+  var BONG_LUA_VANG_GOLD_ROW_KEY = "Bông Lúa Vàng 0.1 chỉ";
+  var HAT_GAO_VANG_GOLD_ROW_KEY = "Hạt Gạo Vàng 0.1 chỉ";
+  var VANG_RONG_SMALL_GOLD_ROW_KEY = "Vàng Rồng Thăng Long 0.5, 1, 2, 3 chỉ";
+  var VANG_RONG_LARGE_GOLD_ROW_KEY = "Vàng Rồng Thăng Long 5, 10 chỉ";
 
   function isKimGiaBaoFamilyLabel(label) {
     var key = normalizeProductKey(label);
@@ -48,32 +52,109 @@
     return false;
   }
 
-  /** Nhẫn Tròn Kim Việt, Nhẫn Tròn Kim Việt 1, … 0.5, 2, 3, 5, 10 → cùng dòng giá/chỉ. */
+  /** Bông Lúa Vàng* → dòng giá cố định 0.1 chỉ trên bảng giá (không dùng Vàng Rồng / giá/chỉ cũ). */
+  function isBongLuaVangFamilyLabel(label) {
+    var key = normalizeProductKey(label);
+    if (!key) return false;
+    return /^Bông Lúa Vàng\b/i.test(key);
+  }
+
+  /** Hạt Gạo Vàng* → dòng giá cố định 0.1 chỉ. */
+  function isHatGaoVangFamilyLabel(label) {
+    var key = normalizeProductKey(label);
+    if (!key) return false;
+    return /^Hạt Gạo Vàng\b/i.test(key);
+  }
+
+  /** Nhẫn Tròn Kim Việt, Nhẫn Tròn Kim Việt 1, … 0.1–10 chỉ → cùng dòng giá/chỉ. */
   function isNhanTronKimVietFamilyLabel(label) {
     var key = normalizeProductKey(label);
     if (!key) return false;
     return /^Nhẫn Tròn Kim Việt\b/i.test(key);
   }
 
+  /** Vàng Rồng Thăng Long — nhóm 0.5–3 chỉ hoặc 5–10 chỉ tùy weight. */
+  function isVangRongThangLongFamilyLabel(label) {
+    var key = normalizeProductKey(label);
+    if (!key) return false;
+    return /v[àa]ng\s*r[ồo]ng\s*th[ăa]ng\s*long/i.test(key);
+  }
+
+  function resolveVangRongGoldRowKey(weight) {
+    var w = Number(weight);
+    if (!Number.isFinite(w) || w <= 0) return VANG_RONG_SMALL_GOLD_ROW_KEY;
+    return w >= 5 ? VANG_RONG_LARGE_GOLD_ROW_KEY : VANG_RONG_SMALL_GOLD_ROW_KEY;
+  }
+
   function resolveGoldRowLookupKeyFromLabel(label, index) {
     var key = normalizeProductKey(label);
     if (!key) return null;
     if (index && index.has && index.has(key)) return key;
+    if (isBongLuaVangFamilyLabel(key)) {
+      if (index && index.has && index.has(BONG_LUA_VANG_GOLD_ROW_KEY)) {
+        return BONG_LUA_VANG_GOLD_ROW_KEY;
+      }
+      return BONG_LUA_VANG_GOLD_ROW_KEY;
+    }
+    if (isHatGaoVangFamilyLabel(key)) {
+      if (index && index.has && index.has(HAT_GAO_VANG_GOLD_ROW_KEY)) {
+        return HAT_GAO_VANG_GOLD_ROW_KEY;
+      }
+      return HAT_GAO_VANG_GOLD_ROW_KEY;
+    }
     if (isKimGiaBaoFamilyLabel(key)) return KIM_GIA_BAO_GOLD_ROW_KEY;
     if (isNhanTronKimVietFamilyLabel(key)) return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
+    if (isVangRongThangLongFamilyLabel(key)) {
+      if (index && index.has && index.has(VANG_RONG_SMALL_GOLD_ROW_KEY)) {
+        return VANG_RONG_SMALL_GOLD_ROW_KEY;
+      }
+      if (index && index.has && index.has(VANG_RONG_LARGE_GOLD_ROW_KEY)) {
+        return VANG_RONG_LARGE_GOLD_ROW_KEY;
+      }
+      return VANG_RONG_SMALL_GOLD_ROW_KEY;
+    }
     return key;
   }
 
   /**
    * price_source_product (hoặc tên SP) → gold_price_rows.product.
    * - Kim Gia Bảo* / Bông Sen Vàng → một dòng Kim Gia Bảo.
+   * - Bông Lúa Vàng* → dòng "Bông Lúa Vàng 0.1 chỉ" (giá mệnh giá 0.1 chỉ × tỉ lệ lượng).
+   * - Hạt Gạo Vàng* → dòng "Hạt Gạo Vàng 0.1 chỉ".
    * - Nhẫn Tròn Kim Việt* → một dòng Nhẫn Tròn Kim Việt (giá/chỉ × weight).
    * - Khớp nguyên văn trước nếu đã có dòng riêng trên bảng giá.
    */
-  function resolveGoldRowLookupKey(priceSourceProduct, productName, index) {
+  function resolveGoldRowLookupKey(priceSourceProduct, productName, index, weight) {
     var fromSource = resolveGoldRowLookupKeyFromLabel(priceSourceProduct, index);
-    if (fromSource) return fromSource;
-    return resolveGoldRowLookupKeyFromLabel(productName, index);
+    if (fromSource) {
+      if (isVangRongThangLongFamilyLabel(fromSource)) {
+        return resolveVangRongGoldRowKey(weight);
+      }
+      return fromSource;
+    }
+    var fromName = resolveGoldRowLookupKeyFromLabel(productName, index);
+    if (fromName && isVangRongThangLongFamilyLabel(fromName)) {
+      return resolveVangRongGoldRowKey(weight);
+    }
+    return fromName;
+  }
+
+  /**
+   * Suy ra price_source_product khi admin thêm SP (weight + tên dòng giá).
+   * SP < 1 chỉ (0.1, 0.2…) — Bông Lúa/Hạt Gạo dùng giá mệnh giá 0.1 chỉ; còn lại giá/chỉ × weight.
+   */
+  function inferPriceSourceProduct(name, weight) {
+    var label = normalizeProductKey(name);
+    if (!label) return null;
+    var w = weight != null ? Number(weight) : null;
+    if (w != null && (!Number.isFinite(w) || w <= 0)) w = null;
+
+    if (isBongLuaVangFamilyLabel(label)) return BONG_LUA_VANG_GOLD_ROW_KEY;
+    if (isHatGaoVangFamilyLabel(label)) return HAT_GAO_VANG_GOLD_ROW_KEY;
+    if (isNhanTronKimVietFamilyLabel(label)) return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
+    if (isKimGiaBaoFamilyLabel(label)) return KIM_GIA_BAO_GOLD_ROW_KEY;
+    if (isVangRongThangLongFamilyLabel(label)) return resolveVangRongGoldRowKey(w);
+    return null;
   }
 
   function resolvePricingWeight(product) {
@@ -89,6 +170,48 @@
     return null;
   }
 
+  /**
+   * So sánh 2 SP theo lượng chỉ tăng dần (chỉ nhỏ hiển thị trước).
+   * SP không có lượng → xếp cuối. Trả về 0 khi bằng nhau để giữ nguyên thứ tự
+   * trước đó (Array.prototype.sort ổn định) → reload không đảo lộn.
+   */
+  function compareBySmallestWeight(a, b) {
+    var wa = resolvePricingWeight(a);
+    var wb = resolvePricingWeight(b);
+    if (wa == null && wb == null) return 0;
+    if (wa == null) return 1;
+    if (wb == null) return -1;
+    if (wa === wb) return 0;
+    return wa - wb;
+  }
+
+  /** Sắp xếp in-place theo lượng chỉ nhỏ trước (giữ ổn định cho phần bằng nhau). */
+  function sortBySmallestWeight(products) {
+    if (!Array.isArray(products)) return products;
+    return products.sort(compareBySmallestWeight);
+  }
+
+  /**
+   * Lượng vàng mà giá trên bảng đang áp dụng (mặc định 1 chỉ = giá/chỉ).
+   * Chỉ dùng mệnh giá cố định (< 1 chỉ) cho dòng SP đơn lẻ (Bông Lúa 0.1 chỉ).
+   * Dòng Vàng Rồng "0.5, 1, 2, 3 chỉ" / "5, 10 chỉ" vẫn là giá/chỉ — không parse số cuối tên.
+   */
+  function resolveReferenceWeightForGoldRow(sourceKey) {
+    var key = normalizeProductKey(sourceKey);
+    if (!key) return 1;
+    if (key === BONG_LUA_VANG_GOLD_ROW_KEY || key === HAT_GAO_VANG_GOLD_ROW_KEY) {
+      return 0.1;
+    }
+    if (isVangRongThangLongFamilyLabel(key)) return 1;
+    if (/,/.test(key)) return 1;
+    var match = key.match(/(\d+(?:[.,]\d+)?)\s*ch[ỉi]\s*$/i);
+    if (match) {
+      var parsed = parseFloat(String(match[1]).replace(",", "."));
+      if (Number.isFinite(parsed) && parsed > 0 && parsed < 1) return parsed;
+    }
+    return 1;
+  }
+
   function resolveBasePricePerChi(entry, side) {
     if (!entry) return null;
     var primary = side === "buy" ? entry.buyNum : entry.sellNum;
@@ -101,12 +224,13 @@
 
   /** SP có khối lượng + khớp được dòng gold_price_rows (trực tiếp hoặc qua alias). */
   function isPriceMappable(product, index) {
+    var weight = resolvePricingWeight(product);
     var lookupKey = resolveGoldRowLookupKey(
       product && product.priceSourceProduct,
       product && product.name,
-      index
+      index,
+      weight
     );
-    var weight = resolvePricingWeight(product);
     return !!(lookupKey && weight != null);
   }
 
@@ -132,16 +256,27 @@
   }
 
   /**
+   * Integer-safe: basePrice (cho referenceWeight) × (productWeight / referenceWeight).
+   * referenceWeight=1 → giá/chỉ × weight; referenceWeight=0.1 → giá món 0.1 chỉ × (weight/0.1).
+   */
+  function multiplyVndByReferenceWeight(basePriceVnd, productWeight, referenceWeight) {
+    if (basePriceVnd == null || !Number.isFinite(basePriceVnd) || basePriceVnd < 0) return null;
+    var w = Number(productWeight);
+    var ref = Number(referenceWeight);
+    if (!Number.isFinite(w) || w <= 0) return null;
+    if (!Number.isFinite(ref) || ref <= 0) return null;
+    var weightTenths = Math.round(w * 10);
+    var refTenths = Math.round(ref * 10);
+    if (weightTenths <= 0 || refTenths <= 0) return null;
+    return Math.round((basePriceVnd * weightTenths) / refTenths);
+  }
+
+  /**
    * Integer-safe: pricePerChi (VND integer) × weight numeric(5,1).
    * weight 0.5 → tenths=5 → (price * 5) / 10
    */
   function multiplyVndByWeight(pricePerChiVnd, weight) {
-    if (pricePerChiVnd == null || !Number.isFinite(pricePerChiVnd) || pricePerChiVnd < 0) return null;
-    var w = Number(weight);
-    if (!Number.isFinite(w) || w <= 0) return null;
-    var weightTenths = Math.round(w * 10);
-    if (weightTenths <= 0) return null;
-    return Math.round((pricePerChiVnd * weightTenths) / 10);
+    return multiplyVndByReferenceWeight(pricePerChiVnd, weight, 1);
   }
 
   function formatVndInteger(amountVnd) {
@@ -167,8 +302,8 @@
       return { amountVnd: null, priceText: "", isDerived: false, showPrice: false };
     }
 
-    var source = resolveGoldRowLookupKey(product.priceSourceProduct, product.name, index);
     var weight = resolvePricingWeight(product);
+    var source = resolveGoldRowLookupKey(product.priceSourceProduct, product.name, index, weight);
     var entry = index && index.get ? index.get(source) : null;
 
     if (!entry) {
@@ -184,8 +319,9 @@
       return { amountVnd: null, priceText: "", isDerived: true, showPrice: false };
     }
 
-    var basePerChi = resolveBasePricePerChi(entry, side);
-    var amountVnd = multiplyVndByWeight(basePerChi, weight);
+    var basePrice = resolveBasePricePerChi(entry, side);
+    var refWeight = resolveReferenceWeightForGoldRow(source);
+    var amountVnd = multiplyVndByReferenceWeight(basePrice, weight, refWeight);
     if (amountVnd == null) {
       return { amountVnd: null, priceText: "", isDerived: true, showPrice: false };
     }
@@ -232,18 +368,45 @@
     return brandRows;
   }
 
+  async function resolveGoldRowsForPricing() {
+    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
+      var cached = global.TLKVGold.getLastGoldRows();
+      if (cached && cached.length) return cached;
+    }
+    if (global.TLKVGold && typeof global.TLKVGold.getGoldTable === "function") {
+      var data = await global.TLKVGold.getGoldTable();
+      return (data && data.rows) || [];
+    }
+    return [];
+  }
+
+  function applyDerivedPricesFromRows(products, goldRows, opts) {
+    var index = buildGoldPriceIndex(goldRows);
+    return applyDerivedPrices(products, index, opts);
+  }
+
   global.TLKVProductPriceEngine = {
     buildGoldPriceIndex: buildGoldPriceIndex,
     multiplyVndByWeight: multiplyVndByWeight,
+    multiplyVndByReferenceWeight: multiplyVndByReferenceWeight,
+    resolveReferenceWeightForGoldRow: resolveReferenceWeightForGoldRow,
     formatVndInteger: formatVndInteger,
     isPriceMappable: isPriceMappable,
     deriveProductPrice: deriveProductPrice,
     applyDerivedPrices: applyDerivedPrices,
     applyDerivedPricesToBrandRows: applyDerivedPricesToBrandRows,
+    applyDerivedPricesFromRows: applyDerivedPricesFromRows,
+    resolveGoldRowsForPricing: resolveGoldRowsForPricing,
+    inferPriceSourceProduct: inferPriceSourceProduct,
+    compareBySmallestWeight: compareBySmallestWeight,
+    sortBySmallestWeight: sortBySmallestWeight,
     normalizeProductKey: normalizeProductKey,
     resolveGoldRowLookupKey: resolveGoldRowLookupKey,
     resolvePricingWeight: resolvePricingWeight,
     isKimGiaBaoFamilyLabel: isKimGiaBaoFamilyLabel,
+    isBongLuaVangFamilyLabel: isBongLuaVangFamilyLabel,
+    isHatGaoVangFamilyLabel: isHatGaoVangFamilyLabel,
     isNhanTronKimVietFamilyLabel: isNhanTronKimVietFamilyLabel,
+    isVangRongThangLongFamilyLabel: isVangRongThangLongFamilyLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

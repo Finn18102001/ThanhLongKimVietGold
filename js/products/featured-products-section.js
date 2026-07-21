@@ -4,7 +4,7 @@
   var MAX_PRODUCTS_PER_BRAND =
     typeof global.TLKV_PRODUCTS_PER_BRAND_SECTION === "number"
       ? global.TLKV_PRODUCTS_PER_BRAND_SECTION
-      : 7;
+      : 8;
   var DEFAULT_BRAND_SLUGS = ["thang-long-kim-viet", "bao-tin-manh-hai", "bao-tin-minh-chau"];
   var BTMH_BRAND_SLUG = "bao-tin-manh-hai";
 
@@ -463,6 +463,18 @@
     return brandRows;
   }
 
+  /** Chỉ nhỏ hiển thị trước, giữ ổn định (không đảo thứ tự khi reload từ cache). */
+  function sortBrandRowsBySmallestWeight(brandRows) {
+    var engine = getPriceEngine();
+    if (!engine || typeof engine.sortBySmallestWeight !== "function") return brandRows;
+    (brandRows || []).forEach(function (brand) {
+      if (brand && Array.isArray(brand.featured_products)) {
+        engine.sortBySmallestWeight(brand.featured_products);
+      }
+    });
+    return brandRows;
+  }
+
   function ensureDefaultBrandRows(featuredBrands, allBrands) {
     var defaults = normalizeDefaultBrands(allBrands);
     var bySlug = {};
@@ -508,7 +520,9 @@
         var brands = bundle.featuredBrands || [];
         var allBrands = bundle.allBrands || [];
         var goldRows = res[1] || [];
-        var rows = prioritizeBongSenVangForBtmh(ensureDefaultBrandRows(brands, allBrands));
+        var rows = sortBrandRowsBySmallestWeight(
+          prioritizeBongSenVangForBtmh(ensureDefaultBrandRows(brands, allBrands))
+        );
         state.inFlight = null;
         state.brands = rows;
         applyDerivedPricesToStateBrands(goldRows);
@@ -564,7 +578,11 @@
     return Promise.all([fetchFeaturedBrandsBundle(limit), resolveGoldRowsForPricing()])
       .then(function (res) {
         var bundle = res[0] || {};
-        var next = ensureDefaultBrandRows(bundle.featuredBrands || [], bundle.allBrands || []);
+        var next = sortBrandRowsBySmallestWeight(
+          prioritizeBongSenVangForBtmh(
+            ensureDefaultBrandRows(bundle.featuredBrands || [], bundle.allBrands || [])
+          )
+        );
         state.brands = next;
         applyDerivedPricesToStateBrands(res[1] || []);
         var nextSig = buildSignature(state.brands);

@@ -16,12 +16,21 @@
       "metal": "gold"
     },
     {
-      "id": "r2",
+      "id": "r2a",
       "brand": "THĂNG LONG KIM VIỆT",
-      "product": "Bông Lúa Vàng",
+      "product": "Bông Lúa Vàng 0.1 chỉ",
       "purity": "999,9",
-      "buy": "15.750.000",
-      "sell": "15.950.000",
+      "buy": "1.327.000",
+      "sell": "1.342.000",
+      "metal": "gold"
+    },
+    {
+      "id": "r2b",
+      "brand": "THĂNG LONG KIM VIỆT",
+      "product": "Hạt Gạo Vàng 0.1 chỉ",
+      "purity": "999,9",
+      "buy": "1.327.000",
+      "sell": "1.342.000",
       "metal": "gold"
     },
     {

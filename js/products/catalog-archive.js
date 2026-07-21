@@ -2,6 +2,8 @@
   "use strict";
 
   var STATE = { page: 1, brandSlug: "", categorySlug: "", featured: false, hot: false, bestSeller: false, sort: "sort", q: "" };
+  var lastRenderedItems = [];
+  var goldListenerBound = false;
 
   function $(sel) {
     return document.querySelector(sel);
@@ -44,10 +46,80 @@
     container.appendChild(next);
   }
 
+  function formatPriceLabel(priceText) {
+    var t = String(priceText || "").trim();
+    if (!t) return null;
+    if (/^li[eê]n\s*h[eệ]$/i.test(t)) return null;
+    if (/^contact$/i.test(t)) return null;
+    return t;
+  }
+
+  async function applyDerivedPricesToItems(items, goldRows) {
+    var engine = global.TLKVProductPriceEngine;
+    if (!engine || typeof engine.applyDerivedPricesFromRows !== "function") return items;
+    var rows = goldRows;
+    if (!rows || !rows.length) {
+      if (typeof engine.resolveGoldRowsForPricing === "function") {
+        rows = await engine.resolveGoldRowsForPricing();
+      }
+    }
+    if (!rows || !rows.length) return items;
+    engine.applyDerivedPricesFromRows(items, rows);
+    return items;
+  }
+
+  function patchProductPricesInDom(items) {
+    var listEl = $("#product-list");
+    if (!listEl) return;
+    var byId = Object.create(null);
+    (items || []).forEach(function (p) {
+      if (p && p.id != null) byId[String(p.id)] = p;
+    });
+    listEl.querySelectorAll("[data-tlkv-product-id]").forEach(function (card) {
+      var id = card.getAttribute("data-tlkv-product-id");
+      var product = id ? byId[id] : null;
+      if (!product) return;
+      var label = product.showPrice === true ? formatPriceLabel(product.priceText) : null;
+      var priceEl = card.querySelector(".tlkv-product-card__price--derived, .tlkv-product-card__price");
+      if (label) {
+        if (!priceEl) {
+          var footer = card.querySelector(".tlkv-product-card__footer");
+          var body = card.querySelector(".tlkv-product-card__body");
+          var host = footer || body;
+          if (!host) return;
+          priceEl = document.createElement("p");
+          priceEl.className = "tlkv-product-card__price tlkv-product-card__price--derived";
+          var cta = host.querySelector(".tlkv-product-card__cta");
+          if (cta) host.insertBefore(priceEl, cta);
+          else host.appendChild(priceEl);
+        }
+        priceEl.textContent = label;
+        priceEl.hidden = false;
+        card.classList.add("tlkv-product-card--has-price");
+      } else if (priceEl) {
+        priceEl.remove();
+        card.classList.remove("tlkv-product-card--has-price");
+      }
+    });
+  }
+
+  function bindGoldPriceListener() {
+    if (goldListenerBound) return;
+    goldListenerBound = true;
+    global.addEventListener("tlkv:gold-rows-updated", function (ev) {
+      var rows = ev && ev.detail && ev.detail.rows ? ev.detail.rows : null;
+      if (!lastRenderedItems.length) return;
+      applyDerivedPricesToItems(lastRenderedItems, rows).then(function () {
+        patchProductPricesInDom(lastRenderedItems);
+      });
+    });
+  }
+
   function renderGrid(container, items) {
     if (!container) return;
     container.innerHTML = "";
     container.className = "tlkv-catalog-root";
+    lastRenderedItems = items || [];
 
     if (!items.length) {
       var empty = document.createElement("p");
@@ -149,6 +221,7 @@
       );
 
       var items = global.TLKVCatalogFilters.clientFilterByQuery(result.items, STATE.q);
+      await applyDerivedPricesToItems(items);
       renderGrid(listEl, items);
       renderPagination(pagEl, result.total, result.page, pageSize);
 
@@ -194,6 +267,7 @@
 
   async function mountCatalogArchive() {
     STATE = global.TLKVCatalogFilters.readUrlState();
+    bindGoldPriceListener();
     await populateFilterSelects();
     bindToolbar();
     await loadAndRender();

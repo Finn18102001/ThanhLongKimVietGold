@@ -1,7 +1,7 @@
 (function (global) {
   /** Existing site-wide Zalo contact — do not change integration behavior. */
   global.TLKV_PRODUCT_ZALO_URL = "https://zalo.me/0995682568";
-  global.TLKV_PRODUCTS_PER_BRAND_SECTION = 7;
+  global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
   /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
   global.TLKV_LOGO_ASSET_VERSION = "20260623";

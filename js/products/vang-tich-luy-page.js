@@ -232,6 +232,18 @@
     return product.sortOrder != null ? Number(product.sortOrder) : 0;
   }
 
+  /** Lượng chỉ để sort mặc định (chỉ nhỏ trước); SP không có lượng → xếp cuối. */
+  function productWeightForSort(product) {
+    var engine = global.TLKVProductPriceEngine;
+    var w = null;
+    if (engine && typeof engine.resolvePricingWeight === "function") {
+      w = engine.resolvePricingWeight(product);
+    } else if (product && product.weight != null) {
+      w = Number(product.weight);
+    }
+    return w != null && Number.isFinite(w) && w > 0 ? w : Infinity;
+  }
+
   function sortProducts(items, sort) {
     var list = items.slice();
     list.sort(function (a, b) {
@@ -257,6 +269,9 @@
         if (sa !== sb) return sb - sa;
         return String(b.id || "").localeCompare(String(a.id || ""));
       }
+      var wa = productWeightForSort(a);
+      var wb = productWeightForSort(b);
+      if (wa !== wb) return wa - wb;
       var oa = a.sortOrder != null ? Number(a.sortOrder) : 0;
       var ob = b.sortOrder != null ? Number(b.sortOrder) : 0;
       if (oa !== ob) return oa - ob;
