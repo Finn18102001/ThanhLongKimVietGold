@@ -1412,6 +1412,12 @@
   .tlkv-home-address-banner + .tlkv-home-editorial-news {
     padding-top: 20px;
   }
+ 
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name,
+  .tlkv-featured-products .tlkv-product-card--normalized .tlkv-product-card__name-link {
+    width: 88%;
+    margin: 0 auto;
+  }
 }
 
 @media (min-width: 768px) and (prefers-reduced-transparency: reduce) {
