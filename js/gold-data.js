@@ -1,5 +1,9 @@
 (function (global) {
   const STORAGE_KEY = "tlkv_gold_table_v1";
+  /** Session-scoped gold payload (survives soft reload in same tab; short TTL). */
+  const SESSION_CACHE_KEY = "tlkv_gold_table_session_v1";
+  /** 45s — enough to skip repeat PostgREST on revisit; short enough for price freshness. */
+  const SESSION_CACHE_TTL_MS = 45000;
   const GOLD_PUSH_LOG = "[TLKV gold-push]";
 
   function getSupabaseClient() {
@@ -9,17 +13,68 @@
     return Promise.resolve(null);
   }
 
+  function getSessionStorage() {
+    try {
+      return global.sessionStorage || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function readGoldSessionCache() {
+    const ss = getSessionStorage();
+    if (!ss) return null;
+    try {
+      const raw = ss.getItem(SESSION_CACHE_KEY);
+      if (!raw) return null;
+      const wrapped = JSON.parse(raw);
+      const savedAt = Number(wrapped && wrapped.savedAt);
+      if (!Number.isFinite(savedAt) || Date.now() - savedAt > SESSION_CACHE_TTL_MS) {
+        ss.removeItem(SESSION_CACHE_KEY);
+        return null;
+      }
+      return normalizePayload(wrapped && wrapped.payload);
+    } catch (_) {
+      try {
+        ss.removeItem(SESSION_CACHE_KEY);
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  function writeGoldSessionCache(payload) {
+    const ss = getSessionStorage();
+    if (!ss || !payload) return;
+    try {
+      ss.setItem(
+        SESSION_CACHE_KEY,
+        JSON.stringify({ savedAt: Date.now(), payload: payload })
+      );
+    } catch (_) {}
+  }
+
+  function clearGoldSessionCache() {
+    const ss = getSessionStorage();
+    if (!ss) return;
+    try {
+      ss.removeItem(SESSION_CACHE_KEY);
+    } catch (_) {}
+  }
+
   /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
   let __goldRealtimeSb = null;
   /** @type {ReturnType<import("@supabase/supabase-js").SupabaseClient["channel"]> | null} */
   let __goldRealtimeChannel = null;
-  let __goldRealtimePagehideBound = false;
+  let __goldRealtimeLifecycleBound = false;
 
   /** @type {ReturnType<typeof setInterval> | null} */
   let __goldPollTimer = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let __goldTableChangedDebounceTimer = null;
   let __goldPushStarted = false;
+  /** Page wants live push; survives temporary pause while document.hidden. */
+  let __goldPushDesired = false;
+  let __goldPausedForHidden = false;
   let __goldTableCache = null;
   let __goldTableFetchInFlight = null;
 
@@ -28,15 +83,33 @@
     if (!fixed) return null;
     __goldTableCache = fixed;
     global.__TLKV_LAST_GOLD_ROWS = fixed.rows;
+    writeGoldSessionCache(fixed);
     return fixed;
   }
 
   function peekGoldTableCache() {
-    return __goldTableCache;
+    if (__goldTableCache) return __goldTableCache;
+    const fromSession = readGoldSessionCache();
+    if (fromSession) {
+      __goldTableCache = fromSession;
+      global.__TLKV_LAST_GOLD_ROWS = fromSession.rows;
+      return fromSession;
+    }
+    return null;
   }
 
   function invalidateGoldTableCache() {
     __goldTableCache = null;
+    clearGoldSessionCache();
+  }
+
+  function isDocumentHidden() {
+    try {
+      if (typeof document === "undefined" || !document) return false;
+      if (typeof document.hidden === "boolean") return document.hidden === true;
+      if (document.visibilityState) return document.visibilityState === "hidden";
+    } catch (_) {}
+    return false;
   }
 
   /** Debounce giữa các `tlkv:gold-table-changed` (tv-model có thể tăng qua `window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS`). */
@@ -109,7 +182,12 @@
     return false;
   }
 
-  function stopGoldTableRealtime() {
+  /**
+   * Tear down WS / poll. When opts.permanent, clear desired flag (pagehide / explicit stop).
+   * When pausing for a hidden tab, keep __goldPushDesired so we can resume.
+   */
+  function stopGoldTableRealtime(opts) {
+    const permanent = !(opts && opts.permanent === false);
     if (__goldTableChangedDebounceTimer != null) {
       clearTimeout(__goldTableChangedDebounceTimer);
       __goldTableChangedDebounceTimer = null;
@@ -126,14 +204,59 @@
     __goldRealtimeSb = null;
     __goldRealtimeChannel = null;
     __goldPushStarted = false;
+    if (permanent) {
+      __goldPushDesired = false;
+      __goldPausedForHidden = false;
+    }
   }
 
-  function ensureGoldRealtimePagehideCleanup() {
-    if (__goldRealtimePagehideBound || typeof global.addEventListener !== "function") return;
-    __goldRealtimePagehideBound = true;
-    global.addEventListener("pagehide", function () {
-      stopGoldTableRealtime();
+  function pauseGoldPushForHiddenTab() {
+    if (!__goldPushDesired) return;
+    if (!__goldPushStarted && !__goldRealtimeChannel && !__goldPollTimer) {
+      __goldPausedForHidden = true;
+      return;
+    }
+    __goldPausedForHidden = true;
+    stopGoldTableRealtime({ permanent: false });
+    dispatchGoldPushUi({ mode: "realtime", state: "paused", reason: "tab-hidden" });
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: pause Realtime/poll (tab hidden)");
+    }
+  }
+
+  function resumeGoldPushAfterVisible() {
+    if (!__goldPushDesired) return;
+    if (!__goldPausedForHidden && (__goldPushStarted || __goldRealtimeChannel || __goldPollTimer)) {
+      return;
+    }
+    __goldPausedForHidden = false;
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: resume Realtime/poll (tab visible)");
+    }
+    getSupabaseClient().then(function (sb) {
+      startGoldTablePush(sb);
+      // Catch updates missed while WS was closed.
+      invalidateGoldTableCache();
+      dispatchGoldTableChangedDebounced(undefined);
     });
+  }
+
+  function ensureGoldRealtimeLifecycle() {
+    if (__goldRealtimeLifecycleBound || typeof global.addEventListener !== "function") return;
+    __goldRealtimeLifecycleBound = true;
+    global.addEventListener("pagehide", function () {
+      stopGoldTableRealtime({ permanent: true });
+    });
+    var doc = typeof document !== "undefined" ? document : null;
+    if (doc && typeof doc.addEventListener === "function") {
+      doc.addEventListener("visibilitychange", function () {
+        if (isDocumentHidden()) {
+          pauseGoldPushForHiddenTab();
+        } else {
+          resumeGoldPushAfterVisible();
+        }
+      });
+    }
   }
 
   let __goldBrowserRealtimeNotifyCount = 0;
@@ -154,7 +277,7 @@
   }
 
   /**
-   * Một subscription Realtime cho bảng giá; gọi stopGoldTableRealtime khi không cần (SPA unmount / pagehide đã gắn sẵn).
+   * Một subscription Realtime cho bảng giá; pause khi tab ẩn, stop khi pagehide.
    */
   function startGoldTableRealtime(sb) {
     if (!sb || __goldRealtimeChannel) return;
@@ -196,7 +319,7 @@
       }
     });
     console.log(GOLD_PUSH_LOG + " client: using Supabase Realtime trong trình duyệt");
-    ensureGoldRealtimePagehideCleanup();
+    ensureGoldRealtimeLifecycle();
   }
 
   /**
@@ -216,10 +339,24 @@
   /**
    * Bật pipeline push: Supabase Realtime postgres_changes (gold_meta + gold_price_rows).
    * TV / trình duyệt yếu: chỉ poll nhẹ (không mở WebSocket tab).
+   * Tab ẩn: đánh dấu desired nhưng không mở WS/poll đến khi visible lại.
    */
   function startGoldTablePush(sb) {
+    __goldPushDesired = true;
+    ensureGoldRealtimeLifecycle();
+
+    if (isDocumentHidden()) {
+      __goldPausedForHidden = true;
+      dispatchGoldPushUi({ mode: "realtime", state: "paused", reason: "tab-hidden" });
+      if (typeof console !== "undefined" && console.log) {
+        console.log(GOLD_PUSH_LOG + " client: defer Realtime/poll until tab visible");
+      }
+      return;
+    }
+
     if (__goldPushStarted) return;
     __goldPushStarted = true;
+    __goldPausedForHidden = false;
 
     if (isLeanGoldPushClient()) {
       var pollMs = Number(global.__TLKV_GOLD_POLL_MS);
@@ -241,7 +378,6 @@
       setTimeout(function () {
         dispatchGoldTableChangedDebounced(undefined);
       }, 2500);
-      ensureGoldRealtimePagehideCleanup();
       return;
     }
 
@@ -250,7 +386,7 @@
         console.warn(GOLD_PUSH_LOG + " client: thiếu Supabase client — không bật Realtime push");
       }
       dispatchGoldPushUi({ mode: "realtime", state: "reconnecting", reason: "no-supabase-client" });
-      ensureGoldRealtimePagehideCleanup();
+      __goldPushStarted = false;
       return;
     }
 
@@ -1394,6 +1530,8 @@ function applyMetaToDom(meta) {
 
   global.TLKVGold = {
     STORAGE_KEY,
+    SESSION_CACHE_KEY,
+    SESSION_CACHE_TTL_MS,
     isLeanGoldPushClient,
     getGoldTable,
     invalidateGoldTableCache,
@@ -1426,5 +1564,15 @@ function applyMetaToDom(meta) {
     coalesceProductForNewSilverRow,
     normalizeMeta,
     stampMetaWithVietnamNow,
+    /** Test/debug: whether push is desired while possibly paused for hidden tab. */
+    isGoldPushDesired: function () {
+      return __goldPushDesired === true;
+    },
+    isGoldPushPausedForHidden: function () {
+      return __goldPausedForHidden === true;
+    },
+    isGoldRealtimeActive: function () {
+      return !!(__goldRealtimeChannel || __goldPollTimer);
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

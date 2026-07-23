@@ -1,5 +1,9 @@
 (function (global) {
   const STORAGE_KEY = "tlkv_products_v1";
+  /** Session-scoped products list (same tab; TTL). */
+  const SESSION_CACHE_KEY = "tlkv_products_session_v1";
+  /** 2 minutes — products change rarely vs gold prices. */
+  const SESSION_CACHE_TTL_MS = 120000;
 
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
@@ -8,17 +12,161 @@
     return Promise.resolve(null);
   }
 
+  function getSessionStorage() {
+    try {
+      return global.sessionStorage || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isDocumentHidden() {
+    try {
+      if (typeof document === "undefined" || !document) return false;
+      if (typeof document.hidden === "boolean") return document.hidden === true;
+      if (document.visibilityState) return document.visibilityState === "hidden";
+    } catch (_) {}
+    return false;
+  }
+
+  function readProductsSessionCache() {
+    const ss = getSessionStorage();
+    if (!ss) return null;
+    try {
+      const raw = ss.getItem(SESSION_CACHE_KEY);
+      if (!raw) return null;
+      const wrapped = JSON.parse(raw);
+      const savedAt = Number(wrapped && wrapped.savedAt);
+      if (!Number.isFinite(savedAt) || Date.now() - savedAt > SESSION_CACHE_TTL_MS) {
+        ss.removeItem(SESSION_CACHE_KEY);
+        return null;
+      }
+      return normalizePayload(wrapped && wrapped.payload);
+    } catch (_) {
+      try {
+        ss.removeItem(SESSION_CACHE_KEY);
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  function writeProductsSessionCache(payload) {
+    const ss = getSessionStorage();
+    if (!ss || !payload) return;
+    try {
+      ss.setItem(SESSION_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), payload: payload }));
+    } catch (_) {}
+  }
+
+  function clearProductsSessionCache() {
+    const ss = getSessionStorage();
+    if (!ss) return;
+    try {
+      ss.removeItem(SESSION_CACHE_KEY);
+    } catch (_) {}
+  }
+
+  let __productsRealtimeDesired = false;
   let __productsRealtimeStarted = false;
+  let __productsPausedForHidden = false;
+  let __productsRealtimeLifecycleBound = false;
+  let __productsRealtimeSb = null;
+  let __productsRealtimeChannel = null;
+
+  function stopProductsRealtime(opts) {
+    const permanent = !(opts && opts.permanent === false);
+    if (__productsRealtimeSb && __productsRealtimeChannel) {
+      try {
+        __productsRealtimeSb.removeChannel(__productsRealtimeChannel);
+      } catch (_) {}
+    }
+    __productsRealtimeSb = null;
+    __productsRealtimeChannel = null;
+    __productsRealtimeStarted = false;
+    if (permanent) {
+      __productsRealtimeDesired = false;
+      __productsPausedForHidden = false;
+    }
+  }
+
+  function pauseProductsRealtimeForHiddenTab() {
+    if (!__productsRealtimeDesired) return;
+    if (!__productsRealtimeStarted && !__productsRealtimeChannel) {
+      __productsPausedForHidden = true;
+      return;
+    }
+    __productsPausedForHidden = true;
+    stopProductsRealtime({ permanent: false });
+    if (typeof console !== "undefined" && console.log) {
+      console.log("[TLKVProducts] pause Realtime (tab hidden)");
+    }
+  }
+
+  function resumeProductsRealtimeAfterVisible() {
+    if (!__productsRealtimeDesired) return;
+    if (!__productsPausedForHidden && (__productsRealtimeStarted || __productsRealtimeChannel)) {
+      return;
+    }
+    __productsPausedForHidden = false;
+    if (typeof console !== "undefined" && console.log) {
+      console.log("[TLKVProducts] resume Realtime (tab visible)");
+    }
+    getSupabaseClient().then(function (sb) {
+      startProductsRealtime(sb);
+      clearProductsSessionCache();
+      global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
+    });
+  }
+
+  function ensureProductsRealtimeLifecycle() {
+    if (__productsRealtimeLifecycleBound || typeof global.addEventListener !== "function") return;
+    __productsRealtimeLifecycleBound = true;
+    global.addEventListener("pagehide", function () {
+      stopProductsRealtime({ permanent: true });
+    });
+    var doc = typeof document !== "undefined" ? document : null;
+    if (doc && typeof doc.addEventListener === "function") {
+      doc.addEventListener("visibilitychange", function () {
+        if (isDocumentHidden()) {
+          pauseProductsRealtimeForHiddenTab();
+        } else {
+          resumeProductsRealtimeAfterVisible();
+        }
+      });
+    }
+    global.addEventListener("tlkv:products-changed", function () {
+      clearProductsSessionCache();
+    });
+  }
+
   function startProductsRealtime(sb) {
-    if (__productsRealtimeStarted || !sb) return;
+    __productsRealtimeDesired = true;
+    ensureProductsRealtimeLifecycle();
+
+    if (!sb) return;
+
+    if (isDocumentHidden()) {
+      __productsPausedForHidden = true;
+      if (typeof console !== "undefined" && console.log) {
+        console.log("[TLKVProducts] defer Realtime until tab visible");
+      }
+      return;
+    }
+
+    if (__productsRealtimeStarted || __productsRealtimeChannel) return;
     __productsRealtimeStarted = true;
+    __productsPausedForHidden = false;
+
     const notify = function () {
+      clearProductsSessionCache();
       global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
     };
-    sb.channel("tlkv_public_products")
+    __productsRealtimeSb = sb;
+    __productsRealtimeChannel = sb
+      .channel("tlkv_public_products")
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, notify)
-      .on("postgres_changes", { event: "*", schema: "public", table: "brands" }, notify)
-      .subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "brands" }, notify);
+    __productsRealtimeChannel.subscribe();
   }
 
   function parsePriceNumeric(priceText) {
@@ -618,6 +766,7 @@
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (_) { }
+    clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
@@ -625,7 +774,15 @@
     throw new Error("fetchDefaultJson đã tắt — dùng Supabase (bảng products).");
   }
 
-  async function getProducts() {
+  async function getProducts(options) {
+    const opts = options && typeof options === "object" ? options : {};
+    if (opts.forceRefresh !== true) {
+      const cached = readProductsSessionCache();
+      if (cached) return cached;
+    } else {
+      clearProductsSessionCache();
+    }
+
     const sb = await getSupabaseClient();
     if (!sb) {
       throw new Error(
@@ -640,6 +797,7 @@
       try { await sb.auth.getUser(); } catch (_) { }
       result = await fetchProductsFromSupabase(sb);
     }
+    if (result) writeProductsSessionCache(result);
     return result;
   }
 
@@ -785,6 +943,8 @@
 
   global.TLKVProducts = {
     STORAGE_KEY,
+    SESSION_CACHE_KEY,
+    SESSION_CACHE_TTL_MS,
     getProducts,
     fetchDefaultJson,
     loadFromStorage,
@@ -811,5 +971,16 @@
     pickProductDisplayImageUrl,
     isSharedStagingProductImageUrl,
     assetUrl,
+    startProductsRealtime,
+    stopProductsRealtime,
+    isProductsRealtimeDesired: function () {
+      return __productsRealtimeDesired === true;
+    },
+    isProductsRealtimePausedForHidden: function () {
+      return __productsPausedForHidden === true;
+    },
+    isProductsRealtimeActive: function () {
+      return !!__productsRealtimeChannel;
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);
