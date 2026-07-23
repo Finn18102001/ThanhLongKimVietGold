@@ -33,6 +33,13 @@
   <link rel="icon" type="image/png" href="/assets/favicon-48.png?v=20260623" />
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png?v=20260623" />
   <link rel="manifest" href="/site.webmanifest" />
+  <link
+    rel="preload"
+    as="image"
+    href="/assets/home/banner-adress-footer.webp?v=20260723"
+    type="image/webp"
+    media="(max-width: 767.98px)"
+  />
 
   <meta property="og:site_name" content="TLKV - Thăng Long Kim Việt" />
   <meta property="og:title" content="Giá Vàng Hôm Nay - Vàng TLKV | Thăng Long Kim Việt" />
@@ -256,8 +263,8 @@
                   <figure class="tlkv-hero__slide is-active" data-tlkv-hero-slide style="--tlkv-hero-native-w: 2048px;">
                     <div class="tlkv-hero__slide-fill" data-tlkv-hero-fill aria-hidden="true"></div>
                     <div class="tlkv-hero__slide-overlay" aria-hidden="true"></div>
-                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang-new-3840w.webp?v=20260623"
-                      srcset="/assets/home/hero-tich-san-vang-new.webp?v=20260623 1024w, /assets/home/hero-tich-san-vang-new-3840w.webp?v=20260623 2048w"
+                    <img class="tlkv-hero__slide-img" src="/assets/home/hero-tich-san-vang-new-3840w.webp?v=20260723d"
+                      srcset="/assets/home/hero-tich-san-vang-new.webp?v=20260723d 1024w, /assets/home/hero-tich-san-vang-new-3840w.webp?v=20260723d 2048w"
                       sizes="100vw" alt="Banner Tích sản vàng" width="2048" height="768" loading="eager"
                       decoding="async" fetchpriority="high" />
                   </figure>
@@ -453,31 +460,33 @@
           <section
             class="tlkv-home-address-banner"
             aria-label="Địa chỉ cửa hàng"
-            style="--tlkv-address-banner-fill: url('/assets/home/banner-adress-footer1-3840w.webp?v=20260623')"
+            style="--tlkv-address-banner-fill: url('/assets/home/banner-adress-footer1-3840w.webp?v=20260723')"
           >
             <div class="tlkv-home-address-banner__stage">
               <div class="tlkv-home-address-banner__fill" aria-hidden="true"></div>
               <picture class="tlkv-home-address-banner__picture">
                 <source
                   media="(max-width: 767.98px)"
-                  srcset="/assets/home/banner-adress-footer.webp?v=20260623"
+                  srcset="/assets/home/banner-adress-footer.webp?v=20260723 1583w"
+                  sizes="100vw"
                 />
                 <source
                   media="(min-width: 768px)"
                   srcset="
-                    /assets/home/banner-adress-footer1-3840w.webp?v=20260623 3840w,
-                    /assets/home/banner-adress-footer1.webp?v=20260623 2172w
+                    /assets/home/banner-adress-footer1-3840w.webp?v=20260723 3840w,
+                    /assets/home/banner-adress-footer1.webp?v=20260723 2172w
                   "
                   sizes="100vw"
                 />
                 <img
                   class="tlkv-home-address-banner__img"
-                  src="/assets/home/banner-adress-footer.webp?v=20260623"
+                  src="/assets/home/banner-adress-footer.webp?v=20260723"
                   alt="322 Đường Nguyễn Trãi, Phường Đại Mỗ, Hà Nội"
                   width="1583"
                   height="326"
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
+                  fetchpriority="low"
                 />
               </picture>
             </div>
