@@ -126,6 +126,9 @@
     if (!root || !parsed) return;
 
     bindGoldPriceListener();
+    if (global.TLKVSkeleton && typeof global.TLKVSkeleton.productDetail === "function") {
+      global.TLKVSkeleton.productDetail(root);
+    }
 
     try {
       var p = await global.TLKVCatalogApi.fetchProductBySlugs(parsed.categorySlug, parsed.productSlug);
@@ -136,9 +139,11 @@
 
       p = await applyDerivedPrice(p);
       state.product = p;
+      root.removeAttribute("aria-busy");
       renderProductDetail(root, p);
     } catch (err) {
       console.error(err);
+      root.removeAttribute("aria-busy");
       root.innerHTML = '<p class="tlkv-product-empty">Lỗi tải sản phẩm.</p>';
     }
   }

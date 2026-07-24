@@ -478,6 +478,16 @@
   letter-spacing: .04em;
   text-transform: uppercase;
 }
+.tlkv-news-detail__cover {
+  margin: 18px 0 22px;
+}
+.tlkv-news-detail__cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .04);
+}
 .tlkv-news-detail__excerpt {
   font-size: 17px;
   color: var(--tlkv-news-ink-soft);

@@ -196,15 +196,30 @@
     STATE.bestSeller = !!($("#catalog-filter-bestseller") && $("#catalog-filter-bestseller").checked);
   }
 
+  var __catalogFetchAbort = null;
+
   async function loadAndRender() {
     var listEl = $("#product-list");
     var pagEl = $("#catalog-pagination");
     if (!listEl) return;
 
+    if (__catalogFetchAbort) {
+      try {
+        __catalogFetchAbort.abort();
+      } catch (_) {}
+    }
+    __catalogFetchAbort =
+      typeof AbortController === "function" ? new AbortController() : null;
+    var signal = __catalogFetchAbort ? __catalogFetchAbort.signal : null;
+
     listEl.setAttribute("aria-busy", "true");
+    var pageSize =
+      (global.TLKVCatalogFilters && global.TLKVCatalogFilters.ARCHIVE_PAGE_SIZE) || 24;
+    if (global.TLKVSkeleton && typeof global.TLKVSkeleton.productGrid === "function") {
+      global.TLKVSkeleton.productGrid(listEl, Math.min(pageSize, 8));
+    }
 
     try {
-      var pageSize = global.TLKVCatalogFilters.ARCHIVE_PAGE_SIZE;
       var catalogGroup = global.TLKVCatalogFilters.catalogPageKind();
       var result = await global.TLKVCatalogApi.fetchProductsPage(
         {
@@ -217,7 +232,8 @@
           catalogGroup: catalogGroup === "all" ? "" : catalogGroup,
         },
         STATE.page,
-        pageSize
+        pageSize,
+        { signal: signal }
       );
 
       var items = global.TLKVCatalogFilters.clientFilterByQuery(result.items, STATE.q);
@@ -234,6 +250,7 @@
         titleEl.textContent = parts.join(" ");
       }
     } catch (err) {
+      if (err && (err.name === "AbortError" || err.code === "20")) return;
       console.error(err);
       listEl.innerHTML = "";
       var p = document.createElement("p");

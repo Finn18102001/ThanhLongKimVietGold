@@ -1,0 +1,237 @@
+/**
+ * Shared loading skeletons — shimmer blocks matching section layouts.
+ * Soft gold-beige palette (matches news.tlkv-news-skel).
+ */
+@keyframes tlkv-skel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.tlkv-skel {
+  background: linear-gradient(90deg, #f1ece5 0%, #faf7f3 50%, #f1ece5 100%);
+  background-size: 200% 100%;
+  animation: tlkv-skel-shimmer 1.4s linear infinite;
+  border-radius: 4px;
+}
+
+.tlkv-skel--line {
+  height: 12px;
+  margin: 0;
+}
+
+.tlkv-skel--line.lg {
+  height: 16px;
+}
+
+.tlkv-skel--block {
+  display: block;
+  width: 100%;
+}
+
+/* —— Gold table rows —— */
+.tlkv-gold-skel-row td {
+  padding: 12px 10px !important;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.tlkv-gold-skel-row .tlkv-skel {
+  height: 14px;
+  width: 72%;
+  max-width: 140px;
+  display: inline-block;
+}
+
+.tlkv-gold-skel-row .tlkv-skel--wide {
+  width: 88%;
+  max-width: 220px;
+}
+
+.tlkv-gold-skel-row .tlkv-skel--price {
+  width: 64%;
+  max-width: 110px;
+  margin-left: auto;
+  display: block;
+}
+
+/* —— Featured homepage —— */
+.tlkv-featured-products__rows.is-loading {
+  min-height: 0;
+  display: block;
+  border: none;
+  background: transparent;
+  place-items: unset;
+  color: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+.tlkv-featured-skel-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 18px;
+  min-height: 120px;
+}
+
+.tlkv-featured-skel-brand {
+  flex: 0 0 110px;
+  border-radius: 4px;
+  min-height: 110px;
+}
+
+.tlkv-featured-skel-cards {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.tlkv-featured-skel-card {
+  flex: 0 0 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tlkv-featured-skel-card__media {
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 4px;
+}
+
+@media (max-width: 767.98px) {
+  .tlkv-featured-skel-brand {
+    flex-basis: 72px;
+    min-height: 72px;
+  }
+  .tlkv-featured-skel-card {
+    flex-basis: 88px;
+  }
+}
+
+/* —— Product catalog grid —— */
+.tlkv-catalog-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.tlkv-catalog-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+}
+
+.tlkv-catalog-skel-card__media {
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.tlkv-catalog-skel-card__line {
+  height: 12px;
+}
+
+.tlkv-catalog-skel-card__line.lg {
+  height: 14px;
+  width: 70%;
+}
+
+/* —— Vàng tích lũy grid —— */
+.vtl-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  padding: 12px 0 20px;
+}
+
+.vtl-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vtl-skel-card__media {
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 4px;
+}
+
+/* —— Product detail —— */
+.tlkv-product-detail-skel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 24px 0 48px;
+  align-items: start;
+}
+
+.tlkv-product-detail-skel__media {
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 6px;
+}
+
+.tlkv-product-detail-skel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.tlkv-product-detail-skel__body .tlkv-skel--line {
+  height: 14px;
+  max-width: 420px;
+}
+
+.tlkv-product-detail-skel__body .tlkv-skel--line.lg {
+  height: 28px;
+  max-width: 360px;
+}
+
+.tlkv-product-detail-skel__body .tlkv-skel--cta {
+  height: 40px;
+  width: 140px;
+  margin-top: 8px;
+  border-radius: 6px;
+}
+
+@media (max-width: 767.98px) {
+  .tlkv-product-detail-skel {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+/* —— News detail —— */
+.tlkv-news-detail-skel {
+  padding: 28px 0 64px;
+}
+
+.tlkv-news-detail-skel .tlkv-skel--title {
+  height: 36px;
+  max-width: 640px;
+  margin: 12px 0 18px;
+}
+
+.tlkv-news-detail-skel .tlkv-skel--hero {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-width: 920px;
+  margin: 18px 0 24px;
+  border-radius: 6px;
+}
+
+.tlkv-news-detail-skel .tlkv-skel--line {
+  height: 14px;
+  margin: 10px 0;
+  max-width: 860px;
+}

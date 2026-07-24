@@ -14,12 +14,45 @@
 
   // ---------------------------------------------------------------------------
   // Supabase client (lazy, singleton).
+  // Public reads use a lean anon client (no auth session / refresh) — faster first paint.
+  // Admin writes keep the shared authenticated client.
   // ---------------------------------------------------------------------------
+  var __publicClient = null;
+  var __publicClientPromise = null;
+
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {
       return global.TLKVSupabase.getSupabaseClient();
     }
     return Promise.resolve(null);
+  }
+
+  function getPublicSupabaseClient() {
+    if (__publicClient) return Promise.resolve(__publicClient);
+    if (__publicClientPromise) return __publicClientPromise;
+    __publicClientPromise = Promise.resolve().then(function () {
+      var cfg =
+        global.TLKVSupabase && typeof global.TLKVSupabase.readSupabaseConfig === "function"
+          ? global.TLKVSupabase.readSupabaseConfig()
+          : { url: "", anonKey: "" };
+      var sdk = global.supabase;
+      if (!cfg.url || !cfg.anonKey || !sdk || typeof sdk.createClient !== "function") {
+        return getSupabaseClient();
+      }
+      __publicClient = sdk.createClient(cfg.url, cfg.anonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+          storageKey: "tlkv-news-public-anon",
+        },
+        global: {
+          headers: { "X-Client-Info": "tlkv-news-public" },
+        },
+      });
+      return __publicClient;
+    });
+    return __publicClientPromise;
   }
 
   function requireSupabase() {
@@ -32,6 +65,67 @@
       }
       return sb;
     });
+  }
+
+  function requirePublicSupabase() {
+    return getPublicSupabaseClient().then(function (sb) {
+      if (!sb) {
+        throw new Error(
+          "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + key trong .env."
+        );
+      }
+      return sb;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Detail cache (sessionStorage) — click từ list/home không chờ round-trip lần 2.
+  // ---------------------------------------------------------------------------
+  var DETAIL_CACHE_KEY = "tlkv_news_detail_v1:";
+  var DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+  var __detailMemory = Object.create(null);
+  var __detailInFlight = Object.create(null);
+
+  function readDetailCache(slug) {
+    var safe = String(slug || "").trim();
+    if (!safe) return null;
+    var mem = __detailMemory[safe];
+    if (mem && Date.now() - mem.savedAt < DETAIL_CACHE_TTL_MS) return mem.article;
+    try {
+      var ss = global.sessionStorage;
+      if (!ss) return null;
+      var raw = ss.getItem(DETAIL_CACHE_KEY + safe);
+      if (!raw) return null;
+      var wrapped = JSON.parse(raw);
+      if (!wrapped || Date.now() - Number(wrapped.savedAt) > DETAIL_CACHE_TTL_MS) {
+        ss.removeItem(DETAIL_CACHE_KEY + safe);
+        return null;
+      }
+      __detailMemory[safe] = { savedAt: wrapped.savedAt, article: wrapped.article };
+      return wrapped.article || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeDetailCache(slug, article) {
+    var safe = String(slug || "").trim();
+    if (!safe || !article) return;
+    var payload = { savedAt: Date.now(), article: article };
+    __detailMemory[safe] = payload;
+    try {
+      var ss = global.sessionStorage;
+      if (ss) ss.setItem(DETAIL_CACHE_KEY + safe, JSON.stringify(payload));
+    } catch (_) {}
+  }
+
+  function clearDetailCache(slug) {
+    var safe = String(slug || "").trim();
+    if (safe) delete __detailMemory[safe];
+    try {
+      var ss = global.sessionStorage;
+      if (ss && safe) ss.removeItem(DETAIL_CACHE_KEY + safe);
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
@@ -421,7 +515,7 @@
 
   /** List published articles with pagination + optional category/search filter. */
   async function listPublished(opts) {
-    var sb = await requireSupabase();
+    var sb = await requirePublicSupabase();
     opts = opts || {};
     var page = Math.max(1, Number(opts.page) || 1);
     var pageSize = Math.min(50, Math.max(1, Number(opts.pageSize) || 12));
@@ -437,14 +531,28 @@
 
     var cat = sanitizeSlug(opts.categorySlug);
     if (cat) {
-      // join filter via embedded resource
-      q = q.eq("news_categories.slug", cat);
+      // Inner join so category slug filter is applied in SQL (uses idx on categories.slug).
+      q = sb
+        .from("news")
+        .select(
+          "id,title,slug,short_description,thumbnail_url,status,featured,view_count," +
+            "published_at,created_at,updated_at,category_id," +
+            "news_categories!inner(id,name,slug)",
+          { count: opts.withCount ? "exact" : undefined }
+        )
+        .eq("status", "published")
+        .eq("news_categories.slug", cat)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .range(from, to);
     }
     var search = sanitizeIlike(opts.search);
     if (search) {
       q = q.or(
         "title.ilike.%" + search + "%,short_description.ilike.%" + search + "%"
       );
+    }
+    if (opts.signal && typeof q.abortSignal === "function") {
+      q = q.abortSignal(opts.signal);
     }
 
     var res = await q;
@@ -459,18 +567,23 @@
 
   /** Landing hero split — newest article is always the large featured card. */
   async function listForLandingHero(opts) {
-    var sb = await requireSupabase();
-    var limitFeatured = Math.max(1, Number((opts || {}).limitFeatured) || 1);
-    var limitSecondary = Math.max(1, Number((opts || {}).limitSecondary) || 4);
+    var sb = await requirePublicSupabase();
+    opts = opts || {};
+    var limitFeatured = Math.max(1, Number(opts.limitFeatured) || 1);
+    var limitSecondary = Math.max(1, Number(opts.limitSecondary) || 4);
     var total = limitFeatured + limitSecondary;
 
-    var { data, error } = await sb
+    var q = sb
       .from("news")
       .select(SELECT_LIST)
       .eq("status", "published")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(total);
+    if (opts.signal && typeof q.abortSignal === "function") {
+      q = q.abortSignal(opts.signal);
+    }
+    var { data, error } = await q;
     if (error) throw error;
 
     var items = sortNewsByRecency((data || []).map(rowToListItem));
@@ -480,11 +593,9 @@
     };
   }
 
-  /** Fetch one article by slug (public — published only). */
-  async function getBySlug(slug) {
-    var sb = await requireSupabase();
+  async function fetchDetailFromNetwork(slug) {
+    var sb = await requirePublicSupabase();
     var safe = String(slug || "").trim();
-    if (!safe) throw new Error("Thiếu slug bài viết.");
     var { data, error } = await sb
       .from("news")
       .select(SELECT_DETAIL)
@@ -495,39 +606,74 @@
     return data ? rowToDetail(data) : null;
   }
 
+  /**
+   * Fetch one article by slug (public — published only).
+   * Uses memory/session cache; concurrent callers share one in-flight request.
+   */
+  async function getBySlug(slug, opts) {
+    var safe = String(slug || "").trim();
+    if (!safe) throw new Error("Thiếu slug bài viết.");
+    opts = opts || {};
+    if (opts.forceRefresh !== true) {
+      var cached = readDetailCache(safe);
+      if (cached) return cached;
+      if (__detailInFlight[safe]) return __detailInFlight[safe];
+    } else {
+      clearDetailCache(safe);
+    }
+
+    __detailInFlight[safe] = fetchDetailFromNetwork(safe)
+      .then(function (article) {
+        if (article) writeDetailCache(safe, article);
+        return article;
+      })
+      .finally(function () {
+        delete __detailInFlight[safe];
+      });
+    return __detailInFlight[safe];
+  }
+
+  /** Warm cache before navigation (hover / pointerdown on news cards). */
+  function prefetchBySlug(slug) {
+    var safe = String(slug || "").trim();
+    if (!safe) return Promise.resolve(null);
+    if (readDetailCache(safe)) return Promise.resolve(readDetailCache(safe));
+    return getBySlug(safe).catch(function (e) {
+      if (typeof console !== "undefined") console.warn("[TLKVNewsAPI] prefetch failed:", e);
+      return null;
+    });
+  }
+
   /** Related articles — same category, excluding current id, fallback to recent. */
   async function listRelated(opts) {
-    var sb = await requireSupabase();
+    var sb = await requirePublicSupabase();
     var limit = Math.max(1, Math.min(8, Number((opts || {}).limit) || 4));
     var excludeId = (opts || {}).excludeId || null;
     var categoryId = (opts || {}).categoryId || null;
 
-    if (categoryId) {
+    async function runQuery(withCategory) {
       var q = sb
         .from("news")
         .select(SELECT_LIST)
         .eq("status", "published")
-        .eq("category_id", categoryId)
         .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limit + (excludeId ? 1 : 0));
+        .limit(limit);
+      if (withCategory && categoryId) q = q.eq("category_id", categoryId);
+      if (excludeId) q = q.neq("id", excludeId);
       var res = await q;
       if (res.error) throw res.error;
-      var rows = (res.data || []).filter(function (r) { return r.id !== excludeId; }).slice(0, limit);
-      if (rows.length > 0) return rows.map(rowToListItem);
+      return (res.data || []).map(rowToListItem);
     }
-    // Fallback: most recent (still excluding the current article).
-    var fb = await sb
-      .from("news")
-      .select(SELECT_LIST)
-      .eq("status", "published")
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(limit + (excludeId ? 1 : 0));
-    if (fb.error) throw fb.error;
-    return (fb.data || []).filter(function (r) { return r.id !== excludeId; }).slice(0, limit).map(rowToListItem);
+
+    if (categoryId) {
+      var rows = await runQuery(true);
+      if (rows.length > 0) return rows;
+    }
+    return runQuery(false);
   }
 
   async function listCategories() {
-    var sb = await requireSupabase();
+    var sb = await requirePublicSupabase();
     var { data, error } = await sb
       .from("news_categories")
       .select("id,name,slug,sort_order")
@@ -541,7 +687,7 @@
 
   /** Anon-safe view counter — calls SECURITY DEFINER RPC defined in news-schema.sql. */
   async function incrementView(slug) {
-    var sb = await requireSupabase();
+    var sb = await requirePublicSupabase();
     var safe = String(slug || "").trim();
     if (!safe) return;
     try {
@@ -739,9 +885,11 @@
     listPublished: listPublished,
     listForLandingHero: listForLandingHero,
     getBySlug: getBySlug,
+    prefetchBySlug: prefetchBySlug,
     listRelated: listRelated,
     listCategories: listCategories,
     incrementView: incrementView,
+    peekDetailCache: readDetailCache,
 
     // admin
     adminList: adminList,

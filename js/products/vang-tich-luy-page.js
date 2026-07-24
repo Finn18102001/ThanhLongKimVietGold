@@ -613,7 +613,11 @@
     if (state.loading) return;
     state.loading = true;
     var panelEl = $("#vtl-showcase-panel");
+    var host = $("#vtl-product-grid-host");
     if (panelEl) panelEl.classList.add("is-loading");
+    if (host && global.TLKVSkeleton && typeof global.TLKVSkeleton.vtlGrid === "function") {
+      global.TLKVSkeleton.vtlGrid(host, 8);
+    }
 
     try {
       await fetchSectionsData();
@@ -624,7 +628,6 @@
       renderAll();
     } catch (err) {
       console.error("[TLKVAccumulationPage]", err);
-      var host = $("#vtl-product-grid-host");
       if (host) {
         host.innerHTML =
           '<p class="vtl-empty">Không tải được danh sách vàng tích lũy. Vui lòng thử lại sau.</p>';
@@ -632,6 +635,7 @@
     } finally {
       state.loading = false;
       if (panelEl) panelEl.classList.remove("is-loading");
+      if (host) host.removeAttribute("aria-busy");
     }
   }
 

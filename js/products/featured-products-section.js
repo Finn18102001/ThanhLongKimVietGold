@@ -544,18 +544,24 @@
     if (!root) return null;
 
     var host = root.querySelector("[data-featured-products-host]") || root;
-    host.innerHTML = "";
-    host.classList.remove("is-loading", "is-empty", "is-error");
-    host.classList.add("is-loading");
+    host.classList.remove("is-empty", "is-error");
+    if (global.TLKVSkeleton && typeof global.TLKVSkeleton.featuredRows === "function") {
+      global.TLKVSkeleton.featuredRows(host, 3, 4);
+    } else {
+      host.innerHTML = "";
+      host.classList.add("is-loading");
+    }
 
     try {
       state.mountedRoot = root;
       bindGoldPriceListener();
       var brands = await loadFeaturedBrands(limit);
       host.classList.remove("is-loading");
+      host.removeAttribute("aria-busy");
 
       if (!brands.length) {
         host.classList.add("is-empty");
+        host.innerHTML = "";
         return brands;
       }
 
@@ -564,6 +570,7 @@
       return brands;
     } catch (err) {
       host.classList.remove("is-loading");
+      host.removeAttribute("aria-busy");
       host.classList.add("is-error");
       host.textContent =
         "Không tải được sản phẩm nổi bật. Vui lòng kiểm tra brands, products (weight, price_source_product) và bảng giá vàng.";

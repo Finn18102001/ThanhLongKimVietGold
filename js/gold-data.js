@@ -678,10 +678,21 @@
     return row;
   }
 
+  const GOLD_META_SELECT = "id, header_time, footer_note, unit_line, brand_italic";
+  const GOLD_ROWS_SELECT =
+    "id, brand, product, purity, buy, sell, metal, highlight, previous_buy, previous_sell, sort_order";
+
   async function fetchGoldFromSupabase(sb) {
-    const { data: metaRow, error: e1 } = await sb.from("gold_meta").select("*").eq("id", 1).maybeSingle();
+    const { data: metaRow, error: e1 } = await sb
+      .from("gold_meta")
+      .select(GOLD_META_SELECT)
+      .eq("id", 1)
+      .maybeSingle();
     if (e1) throw e1;
-    const { data: rowList, error: e2 } = await sb.from("gold_price_rows").select("*").order("sort_order", { ascending: true });
+    const { data: rowList, error: e2 } = await sb
+      .from("gold_price_rows")
+      .select(GOLD_ROWS_SELECT)
+      .order("sort_order", { ascending: true });
     if (e2) throw e2;
     const meta = normalizeMeta(metaRowToApp(metaRow));
     const rows = (rowList || []).map(priceRowDbToApp);
@@ -707,7 +718,9 @@
   /** Chỉ đồng bộ gold_price_rows (không đụng gold_meta). */
   async function persistGoldRowsToSupabase(sb, rowsNormalized) {
     const rows = rowsNormalized || [];
-    const { data: existingList, error: eEx } = await sb.from("gold_price_rows").select("*");
+    const { data: existingList, error: eEx } = await sb
+      .from("gold_price_rows")
+      .select(GOLD_ROWS_SELECT);
     if (eEx) throw eEx;
     const existingById = new Map();
     (existingList || []).forEach(function (row) {
@@ -1461,12 +1474,16 @@ function applyMetaToDom(meta) {
     const seq = __goldMountLoadCount;
     const t0 = (global.performance && global.performance.now) ? global.performance.now() : Date.now();
     console.log(GOLD_PUSH_LOG + " client: mountGoldTable() fetch #" + seq + " →", tbodySelector);
+    if (global.TLKVSkeleton && typeof global.TLKVSkeleton.goldTableRows === "function") {
+      global.TLKVSkeleton.goldTableRows(tbody, 7);
+    }
     __goldMountInFlight = (async function () {
       try {
       const data = await getGoldTable();
       const rows = (data && data.rows) || [];
       applyMetaToDom(data && data.meta);
       renderRowsIntoTbody(tbody, rows);
+      tbody.removeAttribute("aria-busy");
       dispatchGoldRowsUpdated(rows);
       if (global.TLKVGoldTableScroll && typeof global.TLKVGoldTableScroll.refresh === "function") {
         global.TLKVGoldTableScroll.refresh();
@@ -1477,11 +1494,15 @@ function applyMetaToDom(meta) {
         GOLD_PUSH_LOG + " client: mountGoldTable() render OK #" + seq,
         { rows: ((data && data.rows) || []).length, ms: ms }
       );
-      // Mặc định: auto bật pipeline push (Supabase Realtime).
-      // Kiosk/TV mode có thể đặt `window.__TLKV_GOLD_PUSH_MANUAL = true` để chỉ bật khi cần.
+      // Mặc định: chỉ mở Realtime khi bảng giá vào viewport (ít WS hơn).
+      // TV/admin: `window.__TLKV_GOLD_PUSH_EAGER = true` hoặc gọi startGoldPush().
+      // Tắt hẳn auto: `window.__TLKV_GOLD_PUSH_MANUAL = true`.
       if (global.__TLKV_GOLD_PUSH_MANUAL !== true) {
-        const sb = await getSupabaseClient();
-        startGoldTablePush(sb);
+        if (global.__TLKV_GOLD_PUSH_EAGER === true) {
+          startGoldPush();
+        } else {
+          startGoldPushWhenVisible(tbody);
+        }
       }
       return data;
       } catch (err) {
@@ -1522,6 +1543,38 @@ function applyMetaToDom(meta) {
     startGoldTablePush(sb);
   }
 
+  /**
+   * Chỉ mở Realtime khi element bảng giá vào viewport (giảm WS khi user chưa scroll tới / tab khác).
+   * Trang TV/admin có thể gọi startGoldPush() trực tiếp.
+   */
+  function startGoldPushWhenVisible(el) {
+    if (!el) {
+      startGoldPush();
+      return;
+    }
+    if (typeof IntersectionObserver !== "function") {
+      startGoldPush();
+      return;
+    }
+    var started = false;
+    var obs = new IntersectionObserver(
+      function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (!entries[i].isIntersecting) continue;
+          if (started) return;
+          started = true;
+          try {
+            obs.disconnect();
+          } catch (_) {}
+          startGoldPush();
+          return;
+        }
+      },
+      { root: null, rootMargin: "120px 0px", threshold: 0.01 }
+    );
+    obs.observe(el);
+  }
+
   function getLastGoldRows() {
     const cached = peekGoldTableCache();
     const rows = cached && Array.isArray(cached.rows) ? cached.rows : global.__TLKV_LAST_GOLD_ROWS;
@@ -1544,6 +1597,7 @@ function applyMetaToDom(meta) {
     saveGoldMetaOnly,
     stopGoldTableRealtime,
     startGoldPush,
+    startGoldPushWhenVisible,
     notifyGoldTableChanged,
     clearStorage,
     normalizePayload,

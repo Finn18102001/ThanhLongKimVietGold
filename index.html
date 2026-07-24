@@ -99,6 +99,7 @@
   <link href="/css/products-catalog.css" rel="stylesheet" />
   <link href="/css/home-sections.css" rel="stylesheet" />
   <link href="/css/product-card-layout.css" rel="stylesheet" />
+  <link href="/css/tlkv-skeleton.css" rel="stylesheet" />
   <link href="/css/chrome-typography.css" rel="stylesheet">
 </head>
 
@@ -605,6 +606,7 @@
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/tlkv-supabase-client.js"></script>
+  <script src="/js/tlkv-skeleton.js"></script>
   <script src="/js/gold-data.js"></script>
   <script src="/js/gold-pricing-layout.js"></script>
   <script src="/js/world-gold-xau.js"></script>
@@ -615,6 +617,7 @@
   <script src="/js/products/product-price-engine.js"></script>
   <script src="/js/products/featured-products-section.js"></script>
   <script src="/js/news/news-api.js"></script>
+  <script src="/js/news/news-prefetch.js"></script>
   <script src="/js/news/news-home-preview.js"></script>
   <script src="/js/hero-slider.js" defer></script>
   <script src="/js/site-nav.js"></script>
@@ -630,8 +633,42 @@
       return TLKVFeaturedProductsSection.mountFeaturedProductsSection(featuredRoot, { limit: featuredLimit });
     }
 
-    TLKVGold.mountGoldTable("#gold-table-body").then(function () {
-      return mountFeaturedSection();
+    TLKVGold.mountGoldTable("#gold-table-body");
+
+    function whenVisible(el, fn, rootMargin) {
+      if (!el || typeof fn !== "function") return;
+      if (typeof IntersectionObserver !== "function") {
+        fn();
+        return;
+      }
+      var done = false;
+      var obs = new IntersectionObserver(
+        function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (!entries[i].isIntersecting) continue;
+            if (done) return;
+            done = true;
+            try {
+              obs.disconnect();
+            } catch (_) {}
+            fn();
+            return;
+          }
+        },
+        { root: null, rootMargin: rootMargin || "200px 0px", threshold: 0.01 }
+      );
+      obs.observe(el);
+    }
+
+    var featuredEl = document.querySelector(featuredRoot);
+    var featuredHost = featuredEl
+      ? featuredEl.querySelector("[data-featured-products-host]") || featuredEl
+      : null;
+    if (featuredHost && window.TLKVSkeleton && typeof TLKVSkeleton.featuredRows === "function") {
+      TLKVSkeleton.featuredRows(featuredHost, 3, 4);
+    }
+    whenVisible(featuredEl, function () {
+      mountFeaturedSection();
     });
 
     window.addEventListener("tlkv:gold-table-changed", function () {

@@ -158,9 +158,37 @@
     }
   }
 
+  function scheduleLoadWhenVisible() {
+    var host = $("#tlkv-home-news-host");
+    if (!host) return;
+    // Show skeleton as soon as section is scheduled (before API), so lazy-fetch still feels instant.
+    renderSkeleton(host);
+    if (typeof IntersectionObserver !== "function") {
+      load();
+      return;
+    }
+    var done = false;
+    var obs = new IntersectionObserver(
+      function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (!entries[i].isIntersecting) continue;
+          if (done) return;
+          done = true;
+          try {
+            obs.disconnect();
+          } catch (_) {}
+          load();
+          return;
+        }
+      },
+      { root: null, rootMargin: "240px 0px", threshold: 0.01 }
+    );
+    obs.observe(host);
+  }
+
   if (document.readyState !== "loading") {
-    load();
+    scheduleLoadWhenVisible();
   } else {
-    document.addEventListener("DOMContentLoaded", load);
+    document.addEventListener("DOMContentLoaded", scheduleLoadWhenVisible);
   }
 })();

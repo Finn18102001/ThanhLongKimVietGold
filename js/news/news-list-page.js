@@ -391,6 +391,23 @@
     }
   }
 
+  var __newsFetchAbort = null;
+
+  function beginNewsFetch() {
+    if (__newsFetchAbort) {
+      try {
+        __newsFetchAbort.abort();
+      } catch (_) {}
+    }
+    __newsFetchAbort =
+      typeof AbortController === "function" ? new AbortController() : null;
+    return __newsFetchAbort ? __newsFetchAbort.signal : null;
+  }
+
+  function isAbortError(e) {
+    return !!(e && (e.name === "AbortError" || e.code === "20"));
+  }
+
   async function loadPageArchive() {
     var hero = $("#tlkv-news-hero-area");
     if (hero) {
@@ -405,6 +422,7 @@
     setListSectionVisible(true);
     listSkeleton();
 
+    var signal = beginNewsFetch();
     try {
       // Toàn bộ bài published trong DB (lọc ?cat / ?q / ?year / ?sort), phân trang.
       var res = await TLKVNewsAPI.listPublished({
@@ -415,10 +433,12 @@
         publishedYear: STATE.year ? parseInt(STATE.year, 10) : undefined,
         sortPublished: STATE.sort === "asc" ? "asc" : "desc",
         withCount: true,
+        signal: signal,
       });
       renderList(res.items, true);
       renderPager(res.total || 0, res.page, res.pageSize);
     } catch (e) {
+      if (isAbortError(e)) return;
       console.error("[news] archive load failed", e);
       renderError(e && e.message ? e.message : String(e));
     }
@@ -431,10 +451,12 @@
     heroSkeleton();
     listSkeleton();
 
+    var signal = beginNewsFetch();
     try {
       var hero = await TLKVNewsAPI.listForLandingHero({
         limitFeatured: HERO_FEATURED,
         limitSecondary: HERO_SIDE,
+        signal: signal,
       });
 
       if (!hero.featured.length && !hero.secondary.length) {
@@ -464,6 +486,7 @@
         page: 1,
         pageSize: LANDING_REST_PAGE_SIZE + skipIds.size,
         withCount: true,
+        signal: signal,
       });
       var rest = page1.items.filter(function (x) { return !skipIds.has(x.id); }).slice(0, LANDING_REST_PAGE_SIZE);
 
@@ -479,6 +502,7 @@
       var pg2 = $("#tlkv-news-pager");
       if (pg2) pg2.innerHTML = "";
     } catch (e) {
+      if (isAbortError(e)) return;
       console.error("[news] landing load failed", e);
       renderError(e && e.message ? e.message : String(e));
     }

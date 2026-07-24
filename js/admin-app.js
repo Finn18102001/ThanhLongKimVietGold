@@ -431,8 +431,17 @@ function showToast(message, type = 'success') {
       title.textContent = showProducts ? "Quản lý sản phẩm" : "Quản lý giá vàng";
     }
 
-    if (showGold) refreshGoldHistory();
-    else if (showProducts) refreshProductHistory();
+    if (showGold) {
+      refreshGoldHistory();
+      if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
+        window.TLKVGold.startGoldPush();
+      }
+    } else {
+      if (window.TLKVGold && typeof window.TLKVGold.stopGoldTableRealtime === "function") {
+        window.TLKVGold.stopGoldTableRealtime({ permanent: true });
+      }
+      if (showProducts) refreshProductHistory();
+    }
   }
 
   // Sửa lại renderGoldHistPage để render đúng trang hiện tại
@@ -1189,10 +1198,7 @@ function showToast(message, type = 'success') {
 
     if (access.canAccessGoldManagement) {
       refreshGoldAdminUi();
-      if (window.TLKVGold && typeof window.TLKVGold.startGoldPush === "function") {
-        console.log("[TLKV gold-push] admin: session authed → bật pipeline Realtime để quan sát push");
-        window.TLKVGold.startGoldPush();
-      }
+      // Realtime chỉ khi đang ở tab Giá vàng (xem switchTab).
     }
     if (access.canAccessContentManagement) {
       refreshProductsTable();

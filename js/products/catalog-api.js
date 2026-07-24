@@ -208,6 +208,10 @@
         .eq("is_featured", true)
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
+      // Soft cap: tránh kéo toàn bộ featured khi catalog lớn (slice vẫn theo brand phía dưới).
+      if (limit > 0) {
+        productQuery = productQuery.limit(Math.max(limit * brandIds.length, limit * 4));
+      }
       var allProductRes = await productQuery;
       if (allProductRes.error) throw allProductRes.error;
       (allProductRes.data || []).forEach(function (row) {
@@ -364,13 +368,14 @@
     return out;
   }
 
-  async function fetchProductsPage(filters, page, pageSize) {
+  async function fetchProductsPage(filters, page, pageSize, opts) {
     var sb = await getSupabaseClient();
     if (!sb) throw new Error("Supabase chưa cấu hình.");
     var size = pageSize || 24;
     var pg = Math.max(1, page || 1);
     var resolved = await resolveFilterIds(sb, filters || {});
     var rfn = resolveFn();
+    var signal = opts && opts.signal;
 
     var from = (pg - 1) * size;
     var to = from + size - 1;
@@ -380,6 +385,7 @@
         q = q.eq("is_active", true);
         q = applyProductFilters(q, resolved);
         q = applyProductSort(q, resolved.sort);
+        if (signal && typeof q.abortSignal === "function") q = q.abortSignal(signal);
         return q.range(from, to);
       },
       PRODUCT_SELECT,

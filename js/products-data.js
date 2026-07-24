@@ -914,10 +914,8 @@
     if (!el) return null;
     if (global.TLKVCatalogPage && typeof global.TLKVCatalogPage.mountCatalogPage === "function") {
       try {
-        const result = await global.TLKVCatalogPage.mountCatalogPage(el);
-        const sb = await getSupabaseClient();
-        startProductsRealtime(sb);
-        return result;
+        // Public catalog: fetch-only — no products Realtime (egress WS).
+        return await global.TLKVCatalogPage.mountCatalogPage(el);
       } catch (e) {
         console.warn("[TLKVProducts] catalog mount failed, legacy grid:", e);
       }
@@ -925,8 +923,7 @@
     try {
       const data = await getProducts();
       renderProductGrid(el, data && data.items);
-      const sb = await getSupabaseClient();
-      startProductsRealtime(sb);
+      // Legacy public grid: also fetch-only (admin uses save events / refresh).
       return data;
     } catch (e) {
       console.error(e);

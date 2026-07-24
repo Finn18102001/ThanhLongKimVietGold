@@ -273,7 +273,28 @@
       main.appendChild(lead);
     }
 
-    // Body only — Editor.js blocks (text + user-inserted images). Thumbnail is list/OG only.
+    // Cover image từ thumbnail_url — nhiều bài chỉ có ảnh đại diện, không có block ảnh trong content.
+    // Bỏ qua nếu block đầu content đã là ảnh (tránh trùng ảnh đôi).
+    var firstBlock =
+      article.content && Array.isArray(article.content.blocks) && article.content.blocks.length
+        ? article.content.blocks[0]
+        : null;
+    var contentStartsWithImage =
+      !!firstBlock && (firstBlock.type === "image" || firstBlock.type === "simpleImage");
+    if (article.thumbnailUrl && !contentStartsWithImage) {
+      var cover = document.createElement("figure");
+      cover.className = "tlkv-news-detail__cover";
+      var coverImg = document.createElement("img");
+      coverImg.src = article.thumbnailUrl;
+      coverImg.alt = article.title || "";
+      coverImg.decoding = "async";
+      coverImg.setAttribute("fetchpriority", "high");
+      coverImg.onerror = function () { cover.remove(); };
+      cover.appendChild(coverImg);
+      main.appendChild(cover);
+    }
+
+    // Body — Editor.js blocks (text + user-inserted images).
     main.appendChild(TLKVNewsRenderer.renderArticle(article.content));
 
     // Sidebar
@@ -335,16 +356,48 @@
       return;
     }
     var slug = route.slug;
+    var host = $("#tlkv-news-detail-host");
+    var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+
+    // Cache-first: if prefetched from list/home, render immediately (no skeleton flash).
+    var cached =
+      window.TLKVNewsAPI && typeof TLKVNewsAPI.peekDetailCache === "function"
+        ? TLKVNewsAPI.peekDetailCache(slug)
+        : null;
+    if (cached) {
+      if (host) host.removeAttribute("aria-busy");
+      applySeo(cached);
+      renderBreadcrumb(cached);
+      renderArticle(cached);
+      setTimeout(function () { TLKVNewsAPI.incrementView(slug); }, 1500);
+      // Revalidate in background (optional freshness).
+      TLKVNewsAPI.getBySlug(slug, { forceRefresh: true }).then(function (fresh) {
+        if (!fresh || !fresh.updatedAt || fresh.updatedAt === cached.updatedAt) return;
+        applySeo(fresh);
+        renderBreadcrumb(fresh);
+        renderArticle(fresh);
+      }).catch(function () {});
+      return;
+    }
+
+    if (host && window.TLKVSkeleton && typeof window.TLKVSkeleton.newsDetail === "function") {
+      window.TLKVSkeleton.newsDetail(host);
+    }
     try {
       var article = await TLKVNewsAPI.getBySlug(slug);
       if (!article) { renderNotFound(slug); return; }
+      if (host) host.removeAttribute("aria-busy");
       applySeo(article);
       renderBreadcrumb(article);
       renderArticle(article);
-      // Fire-and-forget view counter (after render so we don't block paint).
+      var t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+      if (typeof console !== "undefined" && console.log) {
+        console.log("[news-detail] getBySlug+render", Math.round(t1 - t0) + "ms", slug);
+      }
       setTimeout(function () { TLKVNewsAPI.incrementView(slug); }, 1500);
     } catch (e) {
       console.error("[news] detail load failed", e);
+      if (host) host.removeAttribute("aria-busy");
       renderError(e && e.message ? e.message : String(e));
     }
   }
