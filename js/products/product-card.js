@@ -56,17 +56,23 @@
 
 
 
+  function convertImageField(url, resolveFn) {
+    var s = String(url || "").trim();
+    if (!s) return "";
+    if (resolveFn) return resolveFn(s);
+    return global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function"
+      ? global.TLKVImageCDN.convertImageUrl(s)
+      : s;
+  }
+
   function resolveImageSrc(product, resolveFn) {
     if (product.thumbnailUrl) {
-      if (resolveFn) return resolveFn(product.thumbnailUrl);
-      return global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function"
-        ? global.TLKVImageCDN.convertImageUrl(product.thumbnailUrl)
-        : product.thumbnailUrl;
+      return convertImageField(product.thumbnailUrl, resolveFn);
     }
 
-    if (product.image && resolveFn) return resolveFn(product.image);
-
-    if (product.image) return product.image;
+    if (product.image) {
+      return convertImageField(product.image, resolveFn);
+    }
 
     return "";
 
@@ -120,10 +126,8 @@
 
       var src = resolveImageSrc(product, resolveFn);
       var fallbackSrc = "";
-      if (product.image && resolveFn) {
-        fallbackSrc = resolveFn(product.image);
-      } else if (product.image) {
-        fallbackSrc = String(product.image);
+      if (product.image) {
+        fallbackSrc = convertImageField(product.image, resolveFn);
       }
       if (fallbackSrc === src) fallbackSrc = "";
 

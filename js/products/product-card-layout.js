@@ -57,6 +57,15 @@
     imgWrap.classList.add("is-empty", "is-loaded");
   }
 
+  function isCdnImageUrl(url) {
+    var s = String(url || "").trim();
+    if (!s || s.indexOf("/storage/v1/object/public/") !== -1) return false;
+    if (global.TLKVImageCDN && global.TLKVImageCDN.IMAGE_CDN) {
+      return s.indexOf(global.TLKVImageCDN.IMAGE_CDN) === 0;
+    }
+    return false;
+  }
+
   /**
    * @param {HTMLElement} imgWrap
    * @param {HTMLElement} skeleton
@@ -108,7 +117,7 @@
     }
 
     function onError() {
-      if (fallbackSrc && img.src !== fallbackSrc) {
+      if (fallbackSrc && img.src !== fallbackSrc && isCdnImageUrl(fallbackSrc)) {
         img.removeEventListener("error", onError);
         img.addEventListener("error", showPlaceholder, { once: true });
         img.src = fallbackSrc;

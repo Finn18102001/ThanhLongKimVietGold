@@ -43,12 +43,42 @@
     });
   }
 
+  function convertImageUrl(url) {
+    var s = String(url || "").trim();
+    if (!s) return "";
+    if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+      return global.TLKVImageCDN.convertImageUrl(s);
+    }
+    return s;
+  }
+
   function resolveFn() {
-    return global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc
-      ? global.TLKVProducts.resolveProductImageSrc.bind(global.TLKVProducts)
-      : function (x) {
-          return x;
-        };
+    if (global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc) {
+      return global.TLKVProducts.resolveProductImageSrc.bind(global.TLKVProducts);
+    }
+    return convertImageUrl;
+  }
+
+  function pickImageUrlFromRowImages(row, rfn) {
+    var images = (row && row.product_images) || [];
+    if (!images.length) return "";
+    var sorted = images.slice().sort(function (a, b) {
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+    var thumb = sorted.find(function (i) {
+      return i.role === "thumbnail";
+    });
+    var mainImg = sorted.find(function (i) {
+      return i.role === "main";
+    });
+    var first = thumb || mainImg || sorted[0];
+    var url =
+      (thumb && thumb.public_url) ||
+      (mainImg && mainImg.public_url) ||
+      (first && first.public_url) ||
+      "";
+    url = String(url || "").trim();
+    return url ? rfn(url) : "";
   }
 
   function pickImageUrl(row, rfn) {
@@ -56,8 +86,10 @@
     if (global.TLKVProducts && typeof global.TLKVProducts.pickProductDisplayImageUrl === "function") {
       return global.TLKVProducts.pickProductDisplayImageUrl(row, rfn);
     }
-    if (row.image && rfn) return rfn(row.image);
-    return row.image || "";
+    var fromImages = pickImageUrlFromRowImages(row, rfn);
+    if (fromImages) return fromImages;
+    if (row.image) return rfn(row.image);
+    return "";
   }
 
   function normalizeProduct(row, rfn) {
