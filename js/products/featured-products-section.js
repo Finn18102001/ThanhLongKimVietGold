@@ -175,7 +175,7 @@
     if (brand && brand.logo_url) return String(brand.logo_url);
     var slug = String((brand && brand.slug) || "");
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20260623";
+    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20260727b";
   }
 
   function buildSignature(brands) {

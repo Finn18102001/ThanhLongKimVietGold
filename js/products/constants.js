@@ -4,14 +4,14 @@
   global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
   /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
-  global.TLKV_LOGO_ASSET_VERSION = "20260623";
+  global.TLKV_LOGO_ASSET_VERSION = "20260727b";
   var logoV = "?v=" + global.TLKV_LOGO_ASSET_VERSION;
 
   global.TLKV_SITE_LOGO_MARK_URL = "/assets/tlkv-logo-mark.png" + logoV;
   global.TLKV_SITE_LOGO_LOCKUP_URL = "/assets/tlkv-logo-lockup.png" + logoV;
   global.TLKV_SITE_LOGO_URL = global.TLKV_SITE_LOGO_MARK_URL;
   global.TLKV_SITE_LOGO_OG_URL =
-    "https://thanglongkimviet.vn/assets/og-logo-256.png" + logoV;
+    "https://thanglongkimviet.vn/assets/og-logo-tlkv-red-v2.png" + logoV;
 
   global.TLKV_BRAND_LOGO_FALLBACKS = {
     "thang-long-kim-viet": "/assets/tlkv-logo-mark.png" + logoV,

@@ -46,7 +46,7 @@
   flex: 0 0 auto;
   width: 100%;
   aspect-ratio: var(--tlkv-card-aspect, 4 / 5);
-  background: var(--tlkv-bg-pearl, #f8f6f1);
+  background: var(--tlkv-product-media-bg, #faf7f1);
   border-bottom: 1px solid var(--tlkv-border-light, #eee);
   overflow: hidden;
 }
@@ -72,7 +72,7 @@
   margin: 0;
   padding: 0;
   min-height: 0;
-  background: var(--tlkv-bg-pearl, #f8f6f1);
+  background: var(--tlkv-product-media-bg, #faf7f1);
 }
 
 .tlkv-product-card--normalized .tlkv-product-card__skeleton {
@@ -81,11 +81,11 @@
   z-index: 0;
   background: linear-gradient(
     110deg,
-    #f0ede6 0%,
-    #f0ede6 38%,
-    #faf8f4 50%,
-    #f0ede6 62%,
-    #f0ede6 100%
+    #ede9e0 0%,
+    #ede9e0 38%,
+    var(--tlkv-product-media-bg, #faf7f1) 50%,
+    #ede9e0 62%,
+    #ede9e0 100%
   );
   background-size: 200% 100%;
   animation: tlkv-card-shimmer 1.2s ease-in-out infinite;
@@ -139,7 +139,7 @@
   width: 100%;
   height: 100%;
   margin: 0;
-  background: var(--tlkv-bg-pearl, #f8f6f1)
+  background: var(--tlkv-product-media-bg, #faf7f1)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23B8B0A0' stroke-width='1.25'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='8.5' cy='10' r='1.25'/%3E%3Cpath d='M21 16l-5-5-4 4-2-2-4 4'/%3E%3C/svg%3E")
     center / 48px 48px no-repeat;
 }
@@ -294,7 +294,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tlkv-product-card--normalized .tlkv-product-card__skeleton {
     animation: none;
-    background: #f0ede6;
+    background: var(--tlkv-product-media-bg, #faf7f1);
   }
 
   .tlkv-product-card--normalized .tlkv-product-card__img {

@@ -17,11 +17,13 @@ module.exports = function webRouter(ROOT) {
   });
 
   /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
-  var LOGO_V = "20260623";
+  var LOGO_V = "20260727b";
   var LEGACY_LOGO_REDIRECTS = [
     ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thanglong-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
+    /** OG cũ (nền trong suốt/đen) → URL mới để Google re-crawl thumbnail nhanh hơn. */
+    ["/assets/og-logo-256.png", "/assets/og-logo-tlkv-red-v2.png?v=" + LOGO_V],
   ];
   LEGACY_LOGO_REDIRECTS.forEach(function (pair) {
     router.get(pair[0], function (req, res) {

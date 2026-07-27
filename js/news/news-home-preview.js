@@ -32,7 +32,7 @@
     if (url) return { src: url, isFallback: false };
     var fallback =
       (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-      "/assets/tlkv-logo-mark.png?v=20260623";
+      "/assets/tlkv-logo-mark.png?v=20260727b";
     return { src: fallback, isFallback: true };
   }
 
@@ -50,7 +50,7 @@
         : thumb.isFallback
           ? thumb.src
           : ((typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-            "/assets/tlkv-logo-mark.png?v=20260623");
+            "/assets/tlkv-logo-mark.png?v=20260727b");
 
     if (thumb.isFallback) {
       media.classList.add("tlkv-home-editorial-card__media--fallback");

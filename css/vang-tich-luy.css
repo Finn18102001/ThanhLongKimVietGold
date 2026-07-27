@@ -331,7 +331,7 @@
 
 .vtl-product-card__media {
   aspect-ratio: 1 / 0.88;
-  background: linear-gradient(160deg, #faf7f1 0%, #f3ece2 100%);
+  background: var(--tlkv-product-media-bg, #faf7f1);
   display: flex;
   align-items: center;
   justify-content: center;

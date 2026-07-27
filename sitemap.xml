@@ -3,10 +3,11 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://www.thanglongkimviet.vn/</loc>
+    <lastmod>2026-07-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://www.thanglongkimviet.vn/assets/og-logo-256.png?v=20260623</image:loc>
+      <image:loc>https://www.thanglongkimviet.vn/assets/og-logo-tlkv-red-v2.png?v=20260727b</image:loc>
       <image:title>Thăng Long Kim Việt — Logo chính thức</image:title>
     </image:image>
   </url>

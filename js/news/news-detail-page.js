@@ -71,7 +71,7 @@
       article.seoDescription ||
       article.shortDescription ||
       "Tin tức thị trường từ " + siteName;
-    var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-256.png?v=20260623");
+    var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b");
 
     document.title = title;
     document.querySelector("[data-tlkv-news-title]") &&
@@ -104,9 +104,9 @@
         "name": siteName,
         "logo": {
           "@type": "ImageObject",
-          "url": siteOrigin + "/assets/og-logo-256.png?v=20260623",
-          "width": 256,
-          "height": 256
+          "url": siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b",
+          "width": 512,
+          "height": 512
         }
       },
       "articleSection": article.category ? article.category.name : "Tin tức thị trường"

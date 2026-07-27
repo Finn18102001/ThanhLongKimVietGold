@@ -9,19 +9,19 @@
   "lang": "vi",
   "icons": [
     {
-      "src": "/assets/favicon-48.png?v=20260623",
+      "src": "/assets/favicon-48.png?v=20260727b",
       "sizes": "48x48",
       "type": "image/png"
     },
     {
-      "src": "/assets/apple-touch-icon-180.png?v=20260623",
+      "src": "/assets/apple-touch-icon-180.png?v=20260727b",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/og-logo-256.png?v=20260623",
-      "sizes": "256x256",
+      "src": "/assets/og-logo-tlkv-red-v2.png?v=20260727b",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]

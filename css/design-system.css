@@ -83,6 +83,12 @@ html {
   /* ----- Backgrounds ----- */
   --tlkv-bg-cream: #f8f6f1;
   --tlkv-bg-pearl: #fdfcf8;
+  /* Product card image plate — one tone for media + img-wrap (catalog pages) */
+  --tlkv-product-media-bg: #faf7f1;
+  --tlkv-product-card-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --tlkv-fs-card-name: clamp(0.78rem, 0.72rem + 0.32vw, 0.891rem);
+  --tlkv-fs-card-price: clamp(0.875rem, 0.8rem + 0.38vw, 1.031rem);
+  --tlkv-product-card-price-color: #c89b3c;
   --tlkv-bg: var(--tlkv-bg-pearl);
   --tlkv-bg-elevated: #ffffff;
   --tlkv-bg-muted: var(--tlkv-bg-cream);

@@ -417,7 +417,7 @@
   /** Site logo when a list card has no cover image (thumbnail_url empty in DB). */
   function resolveThumbnailFallback() {
     if (global.TLKV_SITE_LOGO_MARK_URL) return global.TLKV_SITE_LOGO_MARK_URL;
-    return "/assets/tlkv-logo-mark.png?v=20260623";
+    return "/assets/tlkv-logo-mark.png?v=20260727b";
   }
 
   /**

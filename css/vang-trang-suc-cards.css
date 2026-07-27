@@ -1,0 +1,298 @@
+/* ==========================================================================
+   Vàng trang sức — luxury product cards (page-scoped)
+   Scope: body.page-vang-trang-suc only. Does not affect home / vàng tích lũy.
+   Brand tokens: TLKV gold + pearl. 8px grid. Apple/Cartier-clean hierarchy.
+   ========================================================================== */
+
+body.page-vang-trang-suc {
+  --vts-radius: 12px;
+  --vts-gap: 24px;
+  --vts-pad-x: 16px;
+  --vts-pad-y: 16px;
+  --vts-media-pad: 16px;
+  --vts-shadow: 0 2px 8px rgba(42, 38, 32, 0.04), 0 12px 28px rgba(42, 38, 32, 0.06);
+  --vts-shadow-hover: 0 4px 12px rgba(42, 38, 32, 0.06), 0 20px 40px rgba(42, 38, 32, 0.1);
+  --vts-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* —— Grid rhythm —— */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-grid,
+body.page-vang-trang-suc .tlkv-product-grid:has(.tlkv-product-card--ratio-4-5) {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--vts-gap);
+  max-width: 1280px;
+  margin-inline: auto;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+/* —— Card shell —— */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card.tlkv-product-card--normalized,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 {
+  --tlkv-card-w: 100%;
+  --tlkv-card-h: auto;
+  --tlkv-card-media-h: auto;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin-inline: 0;
+  border: 1px solid rgba(201, 161, 74, 0.18);
+  border-radius: var(--vts-radius);
+  background: #fff;
+  box-shadow: var(--vts-shadow);
+  transition:
+    transform 0.45s var(--vts-ease),
+    box-shadow 0.45s var(--vts-ease),
+    border-color 0.35s var(--vts-ease);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover {
+  transform: translateY(-4px);
+  border-color: rgba(201, 161, 74, 0.42);
+  box-shadow: var(--vts-shadow-hover);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:active {
+  transform: translateY(-2px) scale(0.995);
+}
+
+/* —— Image: product-first —— */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__media,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__media {
+  aspect-ratio: 1 / 1;
+  height: auto;
+  flex: 0 0 auto;
+  border-bottom: 1px solid rgba(240, 237, 230, 0.85);
+  background: var(--tlkv-product-media-bg, #faf7f1);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__img-wrap {
+  padding: var(--vts-media-pad);
+  background: var(--tlkv-product-media-bg, #faf7f1);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__img {
+  object-fit: contain;
+  object-position: center;
+  transform: scale(1);
+  transition:
+    opacity 0.3s ease,
+    transform 0.55s var(--vts-ease);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover .tlkv-product-card__img-wrap.is-loaded .tlkv-product-card__img {
+  transform: scale(1.04);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__img-wrap.is-error .tlkv-product-card__img {
+  padding: 12%;
+  transform: none;
+}
+
+/* —— Body —— */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__body,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--tlkv-product-card-font);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__content,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__content {
+  flex: 0 0 auto;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px var(--vts-pad-x) 0;
+  min-height: 0;
+  gap: 0;
+}
+
+/* Title — match vang-tich-luy card typography */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__name,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__name {
+  font-family: inherit;
+  font-size: var(--tlkv-fs-card-name);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: #000;
+  margin: 0;
+  min-height: calc(2 * 1.35em);
+  max-height: calc(2 * 1.35em);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__name-link {
+  transition: color 0.25s ease;
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__name-link:hover {
+  color: var(--tlkv-gold-dark, #a88432);
+}
+
+/* —— Footer: price + CTA —— */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__footer,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 0 var(--vts-pad-x) var(--vts-pad-y);
+  box-sizing: border-box;
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__price,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__price,
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__price--derived {
+  flex: 1 1 auto;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--tlkv-fs-card-price);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tlkv-product-card-price-color, #c89b3c);
+  min-height: 0;
+  max-height: none;
+  -webkit-line-clamp: 1;
+}
+
+/* CTA — refined, high contrast */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  min-height: 40px;
+  padding: 0 16px;
+  margin: 0;
+  font-family: var(--tlkv-product-card-font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  text-decoration: none;
+  color: #2a2620;
+  background: #fff;
+  border: 1px solid rgba(201, 161, 74, 0.55);
+  border-radius: 999px;
+  box-shadow: none;
+  white-space: nowrap;
+  transition:
+    background 0.3s var(--vts-ease),
+    color 0.3s var(--vts-ease),
+    border-color 0.3s var(--vts-ease),
+    transform 0.2s var(--vts-ease);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta:hover {
+  color: #1a1a1a;
+  background: linear-gradient(180deg, var(--tlkv-gold-light, #d6b25e), var(--tlkv-gold, #c9a14a));
+  border-color: var(--tlkv-gold-dark, #a88432);
+  box-shadow: none;
+  transform: none;
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta:active {
+  transform: scale(0.98);
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta:focus-visible {
+  outline: 2px solid var(--tlkv-gold, #c9a14a);
+  outline-offset: 2px;
+}
+
+/* No-price cards: CTA stretches cleanly */
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:not(.tlkv-product-card--has-price) .tlkv-product-card__footer {
+  justify-content: stretch;
+}
+
+body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:not(.tlkv-product-card--has-price) .tlkv-product-card__cta {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* —— Tablet —— */
+@media (max-width: 991.98px) {
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-grid,
+  body.page-vang-trang-suc .tlkv-product-grid:has(.tlkv-product-card--ratio-4-5) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/* —— Mobile —— */
+@media (max-width: 767.98px) {
+  body.page-vang-trang-suc {
+    --vts-gap: 12px;
+    --vts-pad-x: 12px;
+    --vts-pad-y: 12px;
+    --vts-media-pad: 10px;
+    --vts-radius: 10px;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-grid,
+  body.page-vang-trang-suc .tlkv-product-grid:has(.tlkv-product-card--ratio-4-5) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--vts-gap);
+    max-width: none;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 {
+    --tlkv-card-w: 100%;
+    --tlkv-card-h: auto;
+    --tlkv-card-media-h: auto;
+    max-width: none;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__footer,
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized.tlkv-product-card--ratio-4-5 .tlkv-product-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 4px var(--vts-pad-x) var(--vts-pad-y);
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    font-size: 0.75rem;
+    padding: 0 12px;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover {
+    transform: none;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover .tlkv-product-card__img-wrap.is-loaded .tlkv-product-card__img {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized,
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__img,
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized .tlkv-product-card__cta {
+    transition: none;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover {
+    transform: none;
+  }
+
+  body.page-vang-trang-suc .tlkv-catalog-root .tlkv-product-card--normalized:hover .tlkv-product-card__img-wrap.is-loaded .tlkv-product-card__img {
+    transform: none;
+  }
+}
