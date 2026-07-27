@@ -2044,6 +2044,9 @@ function clearProductImageFields() {
 }
 
 function pathFromProductPublicUrl(publicUrl) {
+  if (window.TLKVImageCDN && typeof window.TLKVImageCDN.pathFromStorageUrl === "function") {
+    return window.TLKVImageCDN.pathFromStorageUrl(publicUrl);
+  }
   var s = String(publicUrl || "").trim();
   var marker = "/storage/v1/object/public/";
   var idx = s.indexOf(marker);

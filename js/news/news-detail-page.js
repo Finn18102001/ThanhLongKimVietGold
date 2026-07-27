@@ -71,7 +71,11 @@
       article.seoDescription ||
       article.shortDescription ||
       "Tin tức thị trường từ " + siteName;
-    var image = article.thumbnailUrl || (siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b");
+    var image =
+      (window.TLKVNewsAPI && typeof window.TLKVNewsAPI.resolveThumbnailUrl === "function"
+        ? window.TLKVNewsAPI.resolveThumbnailUrl(article).src
+        : String(article.thumbnailUrl || "").trim()) ||
+      (siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b");
 
     document.title = title;
     document.querySelector("[data-tlkv-news-title]") &&
@@ -193,7 +197,10 @@
         media.className = "tlkv-news-related__media";
         if (it.thumbnailUrl) {
           var img = document.createElement("img");
-          img.src = it.thumbnailUrl;
+          img.src =
+            window.TLKVNewsAPI && typeof window.TLKVNewsAPI.resolveThumbnailUrl === "function"
+              ? window.TLKVNewsAPI.resolveThumbnailUrl(it).src
+              : it.thumbnailUrl;
           img.loading = "lazy";
           img.decoding = "async";
           img.alt = it.title || "";
@@ -285,7 +292,10 @@
       var cover = document.createElement("figure");
       cover.className = "tlkv-news-detail__cover";
       var coverImg = document.createElement("img");
-      coverImg.src = article.thumbnailUrl;
+      coverImg.src =
+        window.TLKVNewsAPI && typeof window.TLKVNewsAPI.resolveThumbnailUrl === "function"
+          ? window.TLKVNewsAPI.resolveThumbnailUrl(article).src
+          : article.thumbnailUrl;
       coverImg.alt = article.title || "";
       coverImg.decoding = "async";
       coverImg.setAttribute("fetchpriority", "high");

@@ -427,7 +427,12 @@
    */
   function resolveThumbnailUrl(item) {
     var url = String((item && item.thumbnailUrl) || "").trim();
-    if (url) return { src: url, isFallback: false };
+    if (url) {
+      if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+        url = global.TLKVImageCDN.convertImageUrl(url);
+      }
+      return { src: url, isFallback: false };
+    }
     return { src: resolveThumbnailFallback(), isFallback: true };
   }
 

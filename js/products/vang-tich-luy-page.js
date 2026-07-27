@@ -41,7 +41,12 @@
     }
     var s = String(product.thumbnailUrl || product.image || "").trim();
     if (!s) return "";
-    if (/^https?:\/\//i.test(s)) return s;
+    if (/^https?:\/\//i.test(s)) {
+      if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+        return global.TLKVImageCDN.convertImageUrl(s);
+      }
+      return s;
+    }
     if (s.startsWith("/")) return s;
     return "/assets/" + s.replace(/^assets\//, "");
   }

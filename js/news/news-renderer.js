@@ -123,6 +123,9 @@
       (data && data.file && data.file.url) ||
       (data && data.url) ||
       "";
+    if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+      url = global.TLKVImageCDN.convertImageUrl(url);
+    }
     if (!isSafeImageUrl(url)) return null;
     var caption = (data && data.caption) || "";
     var fig = document.createElement("figure");

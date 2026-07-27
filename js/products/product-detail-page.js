@@ -44,6 +44,9 @@
   }
 
   function injectJsonLd(product) {
+    var imageUrl =
+      (global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc(product.thumbnailUrl || product.image)) ||
+      "";
     var script = document.getElementById("product-jsonld");
     if (!script) {
       script = document.createElement("script");
@@ -55,7 +58,7 @@
       "@context": "https://schema.org",
       "@type": "Product",
       name: product.name,
-      image: product.thumbnailUrl || product.image,
+      image: imageUrl,
       brand: product.brandName ? { "@type": "Brand", name: product.brandName } : undefined,
       offers: {
         "@type": "Offer",
@@ -76,7 +79,9 @@
     setMeta(product.name + " | Thăng Long Kim Việt", priceLabel || product.name, canonical);
     injectJsonLd(product);
 
-    var imgSrc = product.thumbnailUrl || (global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc(product.image));
+    var imgSrc =
+      (global.TLKVProducts && global.TLKVProducts.resolveProductImageSrc(product.thumbnailUrl || product.image)) ||
+      "";
     root.innerHTML =
       '<article class="tlkv-product-detail">' +
       '<div class="tlkv-product-detail__media">' +

@@ -99,7 +99,12 @@
       return TLKVNewsAPI.resolveThumbnailUrl(item);
     }
     var url = String((item && item.thumbnailUrl) || "").trim();
-    if (url) return { src: url, isFallback: false };
+    if (url) {
+      if (typeof TLKVImageCDN !== "undefined" && typeof TLKVImageCDN.convertImageUrl === "function") {
+        url = TLKVImageCDN.convertImageUrl(url);
+      }
+      return { src: url, isFallback: false };
+    }
     var fallback =
       (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
       "/assets/tlkv-logo-mark.png?v=20260727b";

@@ -164,8 +164,12 @@
     }
     var s = String(image || "").trim();
     if (!s) return "";
-    if (/^https?:\/\//i.test(s)) return s;
-    if (s.includes("supabase.co/storage/v1/object/public/")) return s;
+    if (/^https?:\/\//i.test(s)) {
+      if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+        return global.TLKVImageCDN.convertImageUrl(s);
+      }
+      return s;
+    }
     if (s.startsWith("/")) return s;
     if (s.startsWith("assets/")) return "/" + s;
     return "/assets/" + s;

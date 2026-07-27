@@ -56,6 +56,9 @@
   }
 
   function pathFromProductPublicUrl(url) {
+    if (global.TLKVImageCDN && typeof global.TLKVImageCDN.pathFromStorageUrl === "function") {
+      return global.TLKVImageCDN.pathFromStorageUrl(url);
+    }
     var s = String(url || "").trim();
     var marker = "/storage/v1/object/public/";
     var idx = s.indexOf(marker);

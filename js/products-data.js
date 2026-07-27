@@ -302,6 +302,10 @@
       if (!thumbUrl && !mainImgUrl && first && first.public_url) {
         thumbUrl = String(first.public_url).trim();
       }
+      if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+        thumbUrl = global.TLKVImageCDN.convertImageUrl(thumbUrl);
+        mainImgUrl = global.TLKVImageCDN.convertImageUrl(mainImgUrl);
+      }
     }
 
     const legacy = resolveLegacyProductImage(row, rfn);
@@ -322,6 +326,11 @@
   }
 
   function pathFromProductPublicUrl(publicUrl) {
+    // Delegate to TLKVImageCDN if available (supports both CDN and legacy Supabase URLs)
+    if (global.TLKVImageCDN && typeof global.TLKVImageCDN.pathFromStorageUrl === "function") {
+      return global.TLKVImageCDN.pathFromStorageUrl(publicUrl);
+    }
+    // Fallback: parse legacy Supabase Storage URL
     const s = String(publicUrl || "").trim();
     const marker = "/storage/v1/object/public/";
     const idx = s.indexOf(marker);
@@ -440,17 +449,19 @@
     const s = String(image || "").trim();
     if (!s) return '';
 
-    // URL đầy đủ (http/https)
-    if (/^https?:\/\//i.test(s)) return s;
+    // Full URL (convert legacy Supabase public URLs to CDN on render)
+    if (/^https?:\/\//i.test(s)) {
+      if (global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function") {
+        return global.TLKVImageCDN.convertImageUrl(s);
+      }
+      return s;
+    }
 
-    // Supabase Storage URL
-    if (s.includes('supabase.co/storage/v1/object/public/')) return s;
-
-    // Đường dẫn từ thư mục assets
+    // Local asset path
     if (s.startsWith('/assets/')) return s;
     if (s.startsWith('assets/')) return '/' + s;
 
-    // Mặc định: coi là tên file trong assets
+    // Default: treat as filename inside /assets/
     return '/assets/' + s;
   }
 

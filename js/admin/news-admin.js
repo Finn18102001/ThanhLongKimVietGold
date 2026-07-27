@@ -435,9 +435,13 @@
 
       var tbody = el("tbody");
       res.items.forEach(function (item) {
+        var thumbUrl =
+          window.TLKVImageCDN && typeof window.TLKVImageCDN.convertImageUrl === "function"
+            ? window.TLKVImageCDN.convertImageUrl(item.thumbnailUrl || "")
+            : (item.thumbnailUrl || "");
         var thumb = el("img", {
           class: "news-admin-table__thumb",
-          src: item.thumbnailUrl || "/assets/favicon-48.png",
+          src: thumbUrl || "/assets/favicon-48.png",
           alt: item.title,
           onerror: function () { this.onerror = null; this.src = "/assets/favicon-48.png"; },
         });
@@ -878,7 +882,11 @@
     var thBody = el("div", { class: "news-admin-card__body" });
     var thumbBox = el("div", { class: "news-admin-thumb" });
     var preview = el("div", { class: "news-admin-thumb__preview" + (fd.thumbnailUrl ? "" : " news-admin-thumb__preview--empty") });
-    if (fd.thumbnailUrl) preview.style.backgroundImage = "url('" + fd.thumbnailUrl + "')";
+    var previewUrl =
+      window.TLKVImageCDN && typeof window.TLKVImageCDN.convertImageUrl === "function"
+        ? window.TLKVImageCDN.convertImageUrl(fd.thumbnailUrl || "")
+        : (fd.thumbnailUrl || "");
+    if (previewUrl) preview.style.backgroundImage = "url('" + previewUrl + "')";
     else preview.textContent = "Chưa có ảnh";
     thumbBox.appendChild(preview);
     var thRow = el("div", { class: "news-admin-thumb__row" });

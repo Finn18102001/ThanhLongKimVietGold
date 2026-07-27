@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const { IMMUTABLE_CACHE_CONTROL } = require("../lib/immutable-cache");
 
@@ -18,7 +19,8 @@ function supabasePublicFromProcessEnv() {
     trimEnv(process.env.SUPABASE_ANON_KEY) ||
     trimEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
     trimEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  return { url, anonKey };
+  const imageCdn = trimEnv(process.env.NEXT_PUBLIC_IMAGE_CDN).replace(/\/$/, "");
+  return { url, anonKey, imageCdn };
 }
 
 /**
@@ -26,6 +28,7 @@ function supabasePublicFromProcessEnv() {
  * @param {string} ROOT - project root (folder containing index.html, data/, js/, …)
  */
 module.exports = function registerRoutes(app, ROOT) {
+  const imageCdnScript = fs.readFileSync(path.join(ROOT, "js", "image-cdn.js"), "utf8");
   /**
    * Serve Supabase UMD bundle locally (avoid CDN / ESM import issues on TV browsers).
    * This keeps the website functional even when external CDNs are blocked/slow.
@@ -55,7 +58,7 @@ module.exports = function registerRoutes(app, ROOT) {
   app.get("/js/boot-supabase-env.js", function (req, res) {
     res.type("application/javascript; charset=utf-8");
     res.setHeader("Cache-Control", "no-store");
-    const { url, anonKey } = supabasePublicFromProcessEnv();
+    const { url, anonKey, imageCdn } = supabasePublicFromProcessEnv();
     const payload = { url, anonKey };
     res.send(
       "window.__TLKV_SUPABASE__=" +
@@ -66,7 +69,11 @@ module.exports = function registerRoutes(app, ROOT) {
         ";" +
         "window.TLKV_SUPABASE_ANON_KEY=" +
         JSON.stringify(anonKey) +
-        ";"
+        ";" +
+        "window.__TLKV_IMAGE_CDN__=" +
+        JSON.stringify(imageCdn) +
+        ";" +
+        imageCdnScript
     );
   });
 

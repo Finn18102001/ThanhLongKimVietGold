@@ -36,6 +36,7 @@ const crypto  = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { supabasePublicEnv } = require("../lib/supabase-public-env");
 const { immutableStorageUploadOptions } = require("../lib/immutable-cache");
+const { buildStorageImageUrl } = require("../lib/image-cdn");
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const BUCKET      = "news-media";
@@ -255,11 +256,10 @@ async function handleUpload(req, res) {
       return res.status(502).json({ error: "Lưu ảnh lên storage thất bại: " + msg });
     }
 
-    // 7. Return public URL ─────────────────────────────────────────────────
-    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(storagePath);
+    // 7. Return public URL via CDN ─────────────────────────────────────────
     return res.json({
       path: storagePath,
-      url:  pub && pub.publicUrl ? pub.publicUrl : "",
+      url:  buildStorageImageUrl(BUCKET, storagePath),
     });
 
   } catch (err) {

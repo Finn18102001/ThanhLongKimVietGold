@@ -232,6 +232,11 @@
 
   function pathFromPublicUrl(url) {
     if (!url) return "";
+    // Delegate to TLKVImageCDN if available (supports both CDN and legacy Supabase URLs)
+    if (global.TLKVImageCDN && typeof global.TLKVImageCDN.pathFromStorageUrl === "function") {
+      return global.TLKVImageCDN.pathFromStorageUrl(url);
+    }
+    // Fallback: parse legacy Supabase Storage URL
     var m = String(url).match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
     return m ? decodeURIComponent(m[1]) : "";
   }

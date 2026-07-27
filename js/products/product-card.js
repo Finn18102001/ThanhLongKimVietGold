@@ -57,8 +57,12 @@
 
 
   function resolveImageSrc(product, resolveFn) {
-
-    if (product.thumbnailUrl) return product.thumbnailUrl;
+    if (product.thumbnailUrl) {
+      if (resolveFn) return resolveFn(product.thumbnailUrl);
+      return global.TLKVImageCDN && typeof global.TLKVImageCDN.convertImageUrl === "function"
+        ? global.TLKVImageCDN.convertImageUrl(product.thumbnailUrl)
+        : product.thumbnailUrl;
+    }
 
     if (product.image && resolveFn) return resolveFn(product.image);
 
