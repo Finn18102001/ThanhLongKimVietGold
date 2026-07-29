@@ -1,9 +1,15 @@
 (function (global) {
   const STORAGE_KEY = "tlkv_gold_table_v1";
-  /** Session-scoped gold payload (survives soft reload in same tab; short TTL). */
+  /** Session-scoped gold payload (survives soft reload in same tab). */
   const SESSION_CACHE_KEY = "tlkv_gold_table_session_v1";
-  /** 45s — enough to skip repeat PostgREST on revisit; short enough for price freshness. */
-  const SESSION_CACHE_TTL_MS = 45000;
+  /**
+   * Hard TTL — giá vàng ~1 lần/ngày; session cache cắt PostgREST lặp lại trong tab.
+   * Freshness khi đổi giá: Realtime/poll/admin → refreshGoldTableAfterChange (xoá + fetch + ghi lại).
+   * Safety: tab không có push vẫn soft-revalidate khi hiện lại sau SESSION_CACHE_SOFT_MS.
+   */
+  const SESSION_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+  /** Soft age — khi tab visible lại mà cache già hơn mức này → refetch nền (trang SP không Realtime). */
+  const SESSION_CACHE_SOFT_MS = 5 * 60 * 1000;
   const GOLD_PUSH_LOG = "[TLKV gold-push]";
 
   function getSupabaseClient() {
@@ -69,19 +75,28 @@
 
   /** @type {ReturnType<typeof setInterval> | null} */
   let __goldPollTimer = null;
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let __goldTableChangedDebounceTimer = null;
+  /** One-shot lean-mode bootstrap fetch; cleared on stop. */
+  let __goldPollBootstrapTimer = null;
   let __goldPushStarted = false;
   /** Page wants live push; survives temporary pause while document.hidden. */
   let __goldPushDesired = false;
   let __goldPausedForHidden = false;
+  /** @type {IntersectionObserver | null} */
+  let __goldPushVisibilityObserver = null;
   let __goldTableCache = null;
+  /** wall-clock ms when __goldTableCache / session entry was last written */
+  let __goldTableCacheSavedAt = 0;
   let __goldTableFetchInFlight = null;
+  let __goldChangeRefreshInFlight = null;
+  let __goldRefreshDebounceTimer = null;
+  /** Skip Realtime echo refetch on the same tab that just write-through cached. */
+  let __goldLocalWriteSuppressUntil = 0;
 
   function setGoldTableCache(payload) {
     const fixed = normalizePayload(payload);
     if (!fixed) return null;
     __goldTableCache = fixed;
+    __goldTableCacheSavedAt = Date.now();
     global.__TLKV_LAST_GOLD_ROWS = fixed.rows;
     writeGoldSessionCache(fixed);
     return fixed;
@@ -92,15 +107,103 @@
     const fromSession = readGoldSessionCache();
     if (fromSession) {
       __goldTableCache = fromSession;
+      try {
+        const ss = getSessionStorage();
+        const raw = ss && ss.getItem(SESSION_CACHE_KEY);
+        const wrapped = raw ? JSON.parse(raw) : null;
+        const savedAt = Number(wrapped && wrapped.savedAt);
+        __goldTableCacheSavedAt = Number.isFinite(savedAt) ? savedAt : Date.now();
+      } catch (_) {
+        __goldTableCacheSavedAt = Date.now();
+      }
       global.__TLKV_LAST_GOLD_ROWS = fromSession.rows;
       return fromSession;
     }
     return null;
   }
 
+  function getGoldTableCacheAgeMs() {
+    if (!__goldTableCache || !__goldTableCacheSavedAt) return null;
+    const age = Date.now() - __goldTableCacheSavedAt;
+    return Number.isFinite(age) && age >= 0 ? age : null;
+  }
+
   function invalidateGoldTableCache() {
     __goldTableCache = null;
+    __goldTableCacheSavedAt = 0;
     clearGoldSessionCache();
+  }
+
+  /** After admin write-through: ignore own Realtime echo briefly (other tabs unaffected). */
+  function markGoldLocalWriteThrough() {
+    __goldLocalWriteSuppressUntil = Date.now() + getGoldRefreshDebounceMs() + 1500;
+  }
+
+  function isGoldLocalWriteSuppressed() {
+    return Date.now() < __goldLocalWriteSuppressUntil;
+  }
+
+  /** Dispatch `tlkv:gold-table-changed` for UI remounts / derived pricing. */
+  function emitGoldTableChanged(detail) {
+    if (detail === undefined) {
+      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
+    } else {
+      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: detail }));
+    }
+  }
+
+  /** Xoá cache → fetch → ghi lại → báo UI. Poll / tab-visible / soft-revalidate. */
+  function refreshGoldTableAfterChange(reason) {
+    if (__goldChangeRefreshInFlight) return __goldChangeRefreshInFlight;
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: refresh after change →", reason || "unknown");
+    }
+    __goldChangeRefreshInFlight = getGoldTable({ forceRefresh: true })
+      .then(function (data) {
+        emitGoldTableChanged(data || undefined);
+        return data;
+      })
+      .catch(function (err) {
+        invalidateGoldTableCache();
+        emitGoldTableChanged(undefined);
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn(GOLD_PUSH_LOG + " client: refresh after change failed", err);
+        }
+        return null;
+      })
+      .finally(function () {
+        __goldChangeRefreshInFlight = null;
+      });
+    return __goldChangeRefreshInFlight;
+  }
+
+  /** Realtime burst: invalidate + debounce one fetch. Skip if this tab just write-through saved. */
+  function scheduleRefreshGoldTableAfterChange(reason) {
+    if (isGoldLocalWriteSuppressed()) {
+      if (__goldRefreshDebounceTimer != null) {
+        clearTimeout(__goldRefreshDebounceTimer);
+        __goldRefreshDebounceTimer = null;
+      }
+      return;
+    }
+    invalidateGoldTableCache();
+    if (__goldRefreshDebounceTimer != null) {
+      clearTimeout(__goldRefreshDebounceTimer);
+      __goldRefreshDebounceTimer = null;
+    }
+    __goldRefreshDebounceTimer = setTimeout(function () {
+      __goldRefreshDebounceTimer = null;
+      if (isGoldLocalWriteSuppressed()) return;
+      refreshGoldTableAfterChange(reason || "debounced-change");
+    }, getGoldRefreshDebounceMs());
+  }
+
+  function softRevalidateGoldCacheIfStale(reason) {
+    const cached = peekGoldTableCache();
+    if (!cached) return null;
+    const age = getGoldTableCacheAgeMs();
+    if (age == null || age < SESSION_CACHE_SOFT_MS) return null;
+    return refreshGoldTableAfterChange(reason || "soft-revalidate");
   }
 
   function isDocumentHidden() {
@@ -112,34 +215,11 @@
     return false;
   }
 
-  /** Debounce giữa các `tlkv:gold-table-changed` (tv-model có thể tăng qua `window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS`). */
-  function getGoldTableChangedDebounceMs() {
+  /** Debounce window for Realtime burst refresh (`window.__TLKV_GOLD_CHANGED_DEBOUNCE_MS`). */
+  function getGoldRefreshDebounceMs() {
     const n = Number(global.__TLKV_GOLD_CHANGED_DEBOUNCE_MS);
     if (Number.isFinite(n) && n >= 200 && n <= 60000) return n;
     return 500;
-  }
-
-  function flushGoldTableChangedDispatch(detail) {
-    __goldTableChangedDebounceTimer = null;
-    if (detail === undefined) {
-      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed"));
-    } else {
-      global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: detail }));
-    }
-  }
-
-  /**
-   * Gộp nhiều tín hiệu push trong cửa sổ ngắn → một lần làm mới (TV/kiosk ít RAM hơn).
-   * Lưu / admin vẫn dùng dispatch trực tiếp (xem saveToStorage).
-   */
-  function dispatchGoldTableChangedDebounced(detail) {
-    if (__goldTableChangedDebounceTimer != null) {
-      clearTimeout(__goldTableChangedDebounceTimer);
-      __goldTableChangedDebounceTimer = null;
-    }
-    __goldTableChangedDebounceTimer = setTimeout(function () {
-      flushGoldTableChangedDispatch(detail);
-    }, getGoldTableChangedDebounceMs());
   }
 
   /** Trang /tv-model — luôn Realtime, không poll (kể cả TV cache HTML/JS cũ có lean=true). */
@@ -182,15 +262,27 @@
     return false;
   }
 
+  function disconnectGoldPushVisibilityObserver() {
+    if (!__goldPushVisibilityObserver) return;
+    try {
+      __goldPushVisibilityObserver.disconnect();
+    } catch (_) {}
+    __goldPushVisibilityObserver = null;
+  }
+
   /**
-   * Tear down WS / poll. When opts.permanent, clear desired flag (pagehide / explicit stop).
+   * Tear down WS / poll / pending timers. When opts.permanent, clear desired flag (pagehide / explicit stop).
    * When pausing for a hidden tab, keep __goldPushDesired so we can resume.
    */
   function stopGoldTableRealtime(opts) {
     const permanent = !(opts && opts.permanent === false);
-    if (__goldTableChangedDebounceTimer != null) {
-      clearTimeout(__goldTableChangedDebounceTimer);
-      __goldTableChangedDebounceTimer = null;
+    if (__goldRefreshDebounceTimer != null) {
+      clearTimeout(__goldRefreshDebounceTimer);
+      __goldRefreshDebounceTimer = null;
+    }
+    if (__goldPollBootstrapTimer != null) {
+      clearTimeout(__goldPollBootstrapTimer);
+      __goldPollBootstrapTimer = null;
     }
     if (__goldPollTimer != null) {
       clearInterval(__goldPollTimer);
@@ -207,6 +299,7 @@
     if (permanent) {
       __goldPushDesired = false;
       __goldPausedForHidden = false;
+      disconnectGoldPushVisibilityObserver();
     }
   }
 
@@ -235,28 +328,30 @@
     }
     getSupabaseClient().then(function (sb) {
       startGoldTablePush(sb);
-      // Catch updates missed while WS was closed.
-      invalidateGoldTableCache();
-      dispatchGoldTableChangedDebounced(undefined);
+      refreshGoldTableAfterChange("tab-visible");
     });
   }
 
-  function ensureGoldRealtimeLifecycle() {
+  /** One visibility/pagehide binding: Realtime pause/resume OR soft-revalidate (catalog/SP). */
+  function ensureGoldLifecycle() {
     if (__goldRealtimeLifecycleBound || typeof global.addEventListener !== "function") return;
     __goldRealtimeLifecycleBound = true;
     global.addEventListener("pagehide", function () {
       stopGoldTableRealtime({ permanent: true });
     });
     var doc = typeof document !== "undefined" ? document : null;
-    if (doc && typeof doc.addEventListener === "function") {
-      doc.addEventListener("visibilitychange", function () {
-        if (isDocumentHidden()) {
-          pauseGoldPushForHiddenTab();
-        } else {
-          resumeGoldPushAfterVisible();
-        }
-      });
-    }
+    if (!doc || typeof doc.addEventListener !== "function") return;
+    doc.addEventListener("visibilitychange", function () {
+      if (isDocumentHidden()) {
+        pauseGoldPushForHiddenTab();
+        return;
+      }
+      if (__goldPushDesired) {
+        resumeGoldPushAfterVisible();
+        return;
+      }
+      softRevalidateGoldCacheIfStale("tab-visible-no-push");
+    });
   }
 
   let __goldBrowserRealtimeNotifyCount = 0;
@@ -282,17 +377,18 @@
   function startGoldTableRealtime(sb) {
     if (!sb || __goldRealtimeChannel) return;
     const notify = function (payload) {
-      invalidateGoldTableCache();
       __goldBrowserRealtimeNotifyCount += 1;
       if (typeof console !== "undefined" && console.log) {
         console.log(
-          GOLD_PUSH_LOG + " client: browser Realtime → dispatch #" + __goldBrowserRealtimeNotifyCount,
+          GOLD_PUSH_LOG + " client: browser Realtime → refresh #" + __goldBrowserRealtimeNotifyCount,
           payload && payload.table
             ? { table: payload.table, eventType: payload.eventType }
             : {}
         );
       }
-      dispatchGoldTableChangedDebounced(undefined);
+      scheduleRefreshGoldTableAfterChange(
+        "realtime:" + (payload && payload.table ? String(payload.table) : "gold")
+      );
     };
     __goldRealtimeSb = sb;
     __goldRealtimeChannel = sb
@@ -319,20 +415,11 @@
       }
     });
     console.log(GOLD_PUSH_LOG + " client: using Supabase Realtime trong trình duyệt");
-    ensureGoldRealtimeLifecycle();
+    ensureGoldLifecycle();
   }
 
-  /**
-   * Giữ API cho admin sau khi lưu — tab admin đã dispatch `tlkv:gold-table-changed` cục bộ;
-   * tab khác nhận postgres_changes qua Supabase Realtime (không còn SSE hub / POST notify).
-   */
-  function notifyGoldTableChanged(reason) {
-    if (typeof console !== "undefined" && console.log) {
-      console.log(
-        GOLD_PUSH_LOG + " client: notifyGoldTableChanged (no-op; cross-tab qua Supabase Realtime)",
-        reason || "admin-save"
-      );
-    }
+  /** Legacy stub — cross-tab updates via Supabase Realtime; kept for call-site compatibility. */
+  function notifyGoldTableChanged(_reason) {
     return Promise.resolve(true);
   }
 
@@ -343,7 +430,7 @@
    */
   function startGoldTablePush(sb) {
     __goldPushDesired = true;
-    ensureGoldRealtimeLifecycle();
+    ensureGoldLifecycle();
 
     if (isDocumentHidden()) {
       __goldPausedForHidden = true;
@@ -357,6 +444,7 @@
     if (__goldPushStarted) return;
     __goldPushStarted = true;
     __goldPausedForHidden = false;
+    disconnectGoldPushVisibilityObserver();
 
     if (isLeanGoldPushClient()) {
       var pollMs = Number(global.__TLKV_GOLD_POLL_MS);
@@ -373,10 +461,15 @@
       }
       dispatchGoldPushUi({ mode: "poll", intervalMs: pollMs });
       __goldPollTimer = setInterval(function () {
-        dispatchGoldTableChangedDebounced(undefined);
+        refreshGoldTableAfterChange("poll");
       }, pollMs);
-      setTimeout(function () {
-        dispatchGoldTableChangedDebounced(undefined);
+      if (__goldPollBootstrapTimer != null) {
+        clearTimeout(__goldPollBootstrapTimer);
+        __goldPollBootstrapTimer = null;
+      }
+      __goldPollBootstrapTimer = setTimeout(function () {
+        __goldPollBootstrapTimer = null;
+        refreshGoldTableAfterChange("poll-bootstrap");
       }, 2500);
       return;
     }
@@ -1204,6 +1297,7 @@
       }
       return persistGoldToSupabase(sb, payload).then(function () {
         setGoldTableCache(payload);
+        markGoldLocalWriteThrough();
         console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local (cross-tab qua Realtime)");
         global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
         notifyGoldTableChanged("admin-save");
@@ -1231,6 +1325,7 @@
             meta: Object.assign({}, cached.meta || {}, meta || {}),
             rows: cached.rows || [],
           });
+          markGoldLocalWriteThrough();
         } else {
           invalidateGoldTableCache();
         }
@@ -1298,6 +1393,7 @@
   }
 
   async function getGoldTable(options) {
+    ensureGoldLifecycle();
     const opts = options && typeof options === "object" ? options : {};
     if (opts.forceRefresh !== true) {
       const cached = peekGoldTableCache();
@@ -1544,10 +1640,13 @@ function applyMetaToDom(meta) {
   }
 
   /**
-   * Chỉ mở Realtime khi element bảng giá vào viewport (giảm WS khi user chưa scroll tới / tab khác).
-   * Trang TV/admin có thể gọi startGoldPush() trực tiếp.
+   * Start Realtime/poll once the gold table enters (near) the viewport.
+   * Singleton observer — remounts do not stack observers. TV/admin may call startGoldPush() directly.
    */
   function startGoldPushWhenVisible(el) {
+    if (__goldPushDesired || __goldPushStarted || __goldRealtimeChannel || __goldPollTimer) {
+      return;
+    }
     if (!el) {
       startGoldPush();
       return;
@@ -1556,23 +1655,21 @@ function applyMetaToDom(meta) {
       startGoldPush();
       return;
     }
-    var started = false;
-    var obs = new IntersectionObserver(
+    if (__goldPushVisibilityObserver) {
+      return;
+    }
+    __goldPushVisibilityObserver = new IntersectionObserver(
       function (entries) {
         for (var i = 0; i < entries.length; i++) {
           if (!entries[i].isIntersecting) continue;
-          if (started) return;
-          started = true;
-          try {
-            obs.disconnect();
-          } catch (_) {}
+          disconnectGoldPushVisibilityObserver();
           startGoldPush();
           return;
         }
       },
       { root: null, rootMargin: "120px 0px", threshold: 0.01 }
     );
-    obs.observe(el);
+    __goldPushVisibilityObserver.observe(el);
   }
 
   function getLastGoldRows() {
@@ -1585,9 +1682,14 @@ function applyMetaToDom(meta) {
     STORAGE_KEY,
     SESSION_CACHE_KEY,
     SESSION_CACHE_TTL_MS,
+    SESSION_CACHE_SOFT_MS,
     isLeanGoldPushClient,
     getGoldTable,
     invalidateGoldTableCache,
+    refreshGoldTableAfterChange,
+    scheduleRefreshGoldTableAfterChange,
+    softRevalidateGoldCacheIfStale,
+    markGoldLocalWriteThrough,
     getLastGoldRows,
     parseGoldMoneyToInt,
     formatPriceDisplay,
