@@ -34,6 +34,140 @@
     return Promise.resolve(null);
   }
 
+  // ---------------------------------------------------------------------------
+  // Session cache — brands nearly static; product structure changes rarely.
+  // Derived prices still come from gold rows (tlkv:gold-rows-updated), not this cache.
+  // ---------------------------------------------------------------------------
+  var BRANDS_LIST_CACHE_KEY = "tlkv_brands_list_v1";
+  var BRANDS_LIST_TTL_MS = 24 * 60 * 60 * 1000;
+  var FEATURED_BUNDLE_CACHE_PREFIX = "tlkv_featured_bundle_v1:";
+  var FEATURED_BUNDLE_TTL_MS = 15 * 60 * 1000;
+  var BRAND_BY_SLUG_CACHE_PREFIX = "tlkv_brand_slug_v1:";
+  var BRAND_BY_SLUG_TTL_MS = 15 * 60 * 1000;
+  var ACCUMULATION_CACHE_KEY = "tlkv_accumulation_brands_v1";
+  var ACCUMULATION_TTL_MS = 15 * 60 * 1000;
+  var CATEGORIES_LIST_CACHE_KEY = "tlkv_categories_list_v1";
+  var CATEGORIES_LIST_TTL_MS = 24 * 60 * 60 * 1000;
+
+  var __catalogMemory = Object.create(null);
+  var __catalogInFlight = Object.create(null);
+  var __catalogInvalidateBound = false;
+
+  function getSessionStorage() {
+    try {
+      return global.sessionStorage || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function readSessionCache(key, ttlMs) {
+    var mem = __catalogMemory[key];
+    if (mem && Date.now() - mem.savedAt < ttlMs) return mem.payload;
+    var ss = getSessionStorage();
+    if (!ss) return null;
+    try {
+      var raw = ss.getItem(key);
+      if (!raw) return null;
+      var wrapped = JSON.parse(raw);
+      var savedAt = Number(wrapped && wrapped.savedAt);
+      if (!Number.isFinite(savedAt) || Date.now() - savedAt > ttlMs) {
+        ss.removeItem(key);
+        return null;
+      }
+      __catalogMemory[key] = { savedAt: savedAt, payload: wrapped.payload };
+      return wrapped.payload;
+    } catch (_) {
+      try {
+        ss.removeItem(key);
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  function writeSessionCache(key, payload) {
+    var savedAt = Date.now();
+    __catalogMemory[key] = { savedAt: savedAt, payload: payload };
+    var ss = getSessionStorage();
+    if (!ss) return;
+    try {
+      ss.setItem(key, JSON.stringify({ savedAt: savedAt, payload: payload }));
+    } catch (_) {}
+  }
+
+  function removeSessionCacheKey(key) {
+    delete __catalogMemory[key];
+    var ss = getSessionStorage();
+    if (!ss) return;
+    try {
+      ss.removeItem(key);
+    } catch (_) {}
+  }
+
+  function clearCatalogSessionCaches() {
+    var keys = Object.keys(__catalogMemory);
+    for (var i = 0; i < keys.length; i += 1) delete __catalogMemory[keys[i]];
+    var ss = getSessionStorage();
+    if (!ss) return;
+    try {
+      var toRemove = [];
+      for (var j = 0; j < ss.length; j += 1) {
+        var k = ss.key(j);
+        if (
+          k &&
+          (k === BRANDS_LIST_CACHE_KEY ||
+            k === ACCUMULATION_CACHE_KEY ||
+            k === CATEGORIES_LIST_CACHE_KEY ||
+            k.indexOf(FEATURED_BUNDLE_CACHE_PREFIX) === 0 ||
+            k.indexOf(BRAND_BY_SLUG_CACHE_PREFIX) === 0 ||
+            k.indexOf("tlkv_brand_catalog_sections_v1:") === 0)
+        ) {
+          toRemove.push(k);
+        }
+      }
+      toRemove.forEach(function (k) {
+        ss.removeItem(k);
+      });
+    } catch (_) {}
+  }
+
+  function ensureCatalogInvalidateLifecycle() {
+    if (__catalogInvalidateBound || typeof global.addEventListener !== "function") return;
+    __catalogInvalidateBound = true;
+    global.addEventListener("tlkv:brands-changed", clearCatalogSessionCaches);
+    global.addEventListener("tlkv:products-changed", clearCatalogSessionCaches);
+  }
+
+  function withCatalogCache(key, ttlMs, loader) {
+    ensureCatalogInvalidateLifecycle();
+    var cached = readSessionCache(key, ttlMs);
+    if (cached != null) return Promise.resolve(cached);
+    if (__catalogInFlight[key]) return __catalogInFlight[key];
+    __catalogInFlight[key] = Promise.resolve()
+      .then(loader)
+      .then(function (payload) {
+        if (payload != null) writeSessionCache(key, payload);
+        return payload;
+      })
+      .finally(function () {
+        delete __catalogInFlight[key];
+      });
+    return __catalogInFlight[key];
+  }
+
+  /** Prefer same-origin CDN-cacheable API; fall back to Supabase. */
+  async function fetchBrandsListFromPublicApi() {
+    var version =
+      (global.__TLKV_PUBLIC_CACHE_VERSION && String(global.__TLKV_PUBLIC_CACHE_VERSION)) || "1";
+    var res = await fetch("/api/public/brands?v=" + encodeURIComponent(version), {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+    });
+    if (!res.ok) throw new Error("public brands " + res.status);
+    var body = await res.json();
+    return (body && body.items) || [];
+  }
+
   function sortByOrder(a, b) {
     var sa = a.sort_order != null ? Number(a.sort_order) : NaN;
     var sb = b.sort_order != null ? Number(b.sort_order) : NaN;
@@ -183,28 +317,31 @@
   }
 
   async function fetchBrandCatalogSections(productLimitPerBrand) {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
     var limit = productLimitPerBrand != null ? productLimitPerBrand : 7;
-    var rfn = resolveFn();
+    var cacheKey = "tlkv_brand_catalog_sections_v1:" + limit;
+    return withCatalogCache(cacheKey, FEATURED_BUNDLE_TTL_MS, async function () {
+      var sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase chưa cấu hình.");
+      var rfn = resolveFn();
 
-    var res = await sb
-      .from("brands")
-      .select(BRAND_SELECT)
-      .eq("is_active", true)
-      .eq("products.is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("sort_order", { foreignTable: "products", ascending: true });
+      var res = await sb
+        .from("brands")
+        .select(BRAND_SELECT)
+        .eq("is_active", true)
+        .eq("products.is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("sort_order", { foreignTable: "products", ascending: true });
 
-    if (res.error) throw res.error;
+      if (res.error) throw res.error;
 
-    return (res.data || [])
-      .map(function (row) {
-        return normalizeBrand(row, rfn, limit);
-      })
-      .filter(function (s) {
-        return s.products && s.products.length > 0;
-      });
+      return (res.data || [])
+        .map(function (row) {
+          return normalizeBrand(row, rfn, limit);
+        })
+        .filter(function (s) {
+          return s.products && s.products.length > 0;
+        });
+    });
   }
 
   /**
@@ -212,83 +349,88 @@
    * 1) load active brands ordered by sort_order
    * 2) per brand, load featured products (weight + price_source_product for derived pricing)
    * 3) attach to featured_products and drop empty brands
+   *
+   * Cache = product/brand structure only. Card prices still patch via tlkv:gold-rows-updated.
    */
   async function fetchFeaturedBrandsBundle(productLimitPerBrand) {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var rfn = resolveFn();
     /** undefined → 7 (homepage); 0 or null → không giới hạn */
     var limit = productLimitPerBrand === undefined ? 7 : productLimitPerBrand;
+    var cacheKey = FEATURED_BUNDLE_CACHE_PREFIX + String(limit);
+    return withCatalogCache(cacheKey, FEATURED_BUNDLE_TTL_MS, async function () {
+      var sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase chưa cấu hình.");
+      var rfn = resolveFn();
 
-    var brandRes = await sb
-      .from("brands")
-      .select(FEATURED_BRAND_SELECT)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
-    if (brandRes.error) throw brandRes.error;
-
-    var brands = brandRes.data || [];
-    var brandIds = brands.map(function (b) {
-      return b.id;
-    });
-    var productsByBrand = {};
-    if (brandIds.length) {
-      var productQuery = sb
-        .from("products")
-        .select(FEATURED_FALLBACK_PRODUCT_SELECT)
-        .in("brand_id", brandIds)
-        .eq("is_featured", true)
+      var brandRes = await sb
+        .from("brands")
+        .select(FEATURED_BRAND_SELECT)
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      // Soft cap: tránh kéo toàn bộ featured khi catalog lớn (slice vẫn theo brand phía dưới).
-      if (limit > 0) {
-        productQuery = productQuery.limit(Math.max(limit * brandIds.length, limit * 4));
-      }
-      var allProductRes = await productQuery;
-      if (allProductRes.error) throw allProductRes.error;
-      (allProductRes.data || []).forEach(function (row) {
-        var bid = row.brand_id;
-        if (!bid) return;
-        if (!productsByBrand[bid]) productsByBrand[bid] = [];
-        productsByBrand[bid].push(row);
+      if (brandRes.error) throw brandRes.error;
+
+      var brands = brandRes.data || [];
+      var brandIds = brands.map(function (b) {
+        return b.id;
       });
-    }
-
-    var out = [];
-
-    for (var i = 0; i < brands.length; i += 1) {
-      var brand = brands[i];
-      var rows = productsByBrand[brand.id] || [];
-      if (limit > 0) rows = rows.slice(0, limit);
-      var featuredProducts = rows.map(function (row) {
-        return normalizeFeaturedProduct(row, rfn);
-      });
-
-      if (featuredProducts.length > 0) {
-        out.push({
-          id: brand.id,
-          name: brand.name || "",
-          slug: brand.slug || "",
-          logo_url: brand.logo_url || "",
-          sort_order: brand.sort_order,
-          featured_products: featuredProducts,
+      var productsByBrand = {};
+      if (brandIds.length) {
+        var productQuery = sb
+          .from("products")
+          .select(FEATURED_FALLBACK_PRODUCT_SELECT)
+          .in("brand_id", brandIds)
+          .eq("is_featured", true)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+        // Soft cap: tránh kéo toàn bộ featured khi catalog lớn (slice vẫn theo brand phía dưới).
+        if (limit > 0) {
+          productQuery = productQuery.limit(Math.max(limit * brandIds.length, limit * 4));
+        }
+        var allProductRes = await productQuery;
+        if (allProductRes.error) throw allProductRes.error;
+        (allProductRes.data || []).forEach(function (row) {
+          var bid = row.brand_id;
+          if (!bid) return;
+          if (!productsByBrand[bid]) productsByBrand[bid] = [];
+          productsByBrand[bid].push(row);
         });
       }
-    }
 
-    return {
-      featuredBrands: out,
-      allBrands: brands.map(function (brand) {
-        return {
-          id: brand.id,
-          name: brand.name || "",
-          slug: brand.slug || "",
-          logo_url: brand.logo_url || "",
-          sort_order: brand.sort_order,
-          is_active: true,
-        };
-      }),
-    };
+      var out = [];
+
+      for (var i = 0; i < brands.length; i += 1) {
+        var brand = brands[i];
+        var rows = productsByBrand[brand.id] || [];
+        if (limit > 0) rows = rows.slice(0, limit);
+        var featuredProducts = rows.map(function (row) {
+          return normalizeFeaturedProduct(row, rfn);
+        });
+
+        if (featuredProducts.length > 0) {
+          out.push({
+            id: brand.id,
+            name: brand.name || "",
+            slug: brand.slug || "",
+            logo_url: brand.logo_url || "",
+            sort_order: brand.sort_order,
+            featured_products: featuredProducts,
+          });
+        }
+      }
+
+      return {
+        featuredBrands: out,
+        allBrands: brands.map(function (brand) {
+          return {
+            id: brand.id,
+            name: brand.name || "",
+            slug: brand.slug || "",
+            logo_url: brand.logo_url || "",
+            sort_order: brand.sort_order,
+            is_active: true,
+          };
+        }),
+      };
+    });
   }
 
   async function fetchFeaturedBrandsWithProducts(productLimitPerBrand) {
@@ -435,40 +577,52 @@
   }
 
   async function fetchBrandsList() {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var res = await sb
-      .from("brands")
-      .select("id, name, slug, logo_url, sort_order, is_active")
-      .order("sort_order", { ascending: true });
-    if (res.error) throw res.error;
-    return res.data || [];
+    return withCatalogCache(BRANDS_LIST_CACHE_KEY, BRANDS_LIST_TTL_MS, async function () {
+      try {
+        return await fetchBrandsListFromPublicApi();
+      } catch (_) {
+        var sb = await getSupabaseClient();
+        if (!sb) throw new Error("Supabase chưa cấu hình.");
+        var res = await sb
+          .from("brands")
+          .select("id, name, slug, logo_url, sort_order, is_active")
+          .order("sort_order", { ascending: true });
+        if (res.error) throw res.error;
+        return res.data || [];
+      }
+    });
   }
 
   async function fetchCategoriesList() {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var res = await sb
-      .from("categories")
-      .select("id, name, slug, sort_order, is_active")
-      .order("sort_order", { ascending: true });
-    if (res.error) throw res.error;
-    return res.data || [];
+    return withCatalogCache(CATEGORIES_LIST_CACHE_KEY, CATEGORIES_LIST_TTL_MS, async function () {
+      var sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase chưa cấu hình.");
+      var res = await sb
+        .from("categories")
+        .select("id, name, slug, sort_order, is_active")
+        .order("sort_order", { ascending: true });
+      if (res.error) throw res.error;
+      return res.data || [];
+    });
   }
 
   async function fetchBrandBySlug(slug) {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var res = await sb
-      .from("brands")
-      .select(BRAND_SELECT)
-      .eq("slug", slug)
-      .eq("is_active", true)
-      .eq("products.is_active", true)
-      .maybeSingle();
-    if (res.error) throw res.error;
-    if (!res.data) return null;
-    return normalizeBrand(res.data, resolveFn(), 0);
+    var safe = String(slug || "").trim();
+    if (!safe) return null;
+    return withCatalogCache(BRAND_BY_SLUG_CACHE_PREFIX + safe, BRAND_BY_SLUG_TTL_MS, async function () {
+      var sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase chưa cấu hình.");
+      var res = await sb
+        .from("brands")
+        .select(BRAND_SELECT)
+        .eq("slug", safe)
+        .eq("is_active", true)
+        .eq("products.is_active", true)
+        .maybeSingle();
+      if (res.error) throw res.error;
+      if (!res.data) return null;
+      return normalizeBrand(res.data, resolveFn(), 0);
+    });
   }
 
   async function fetchProductBySlugs(categorySlug, productSlug) {
@@ -504,81 +658,84 @@
 
   /**
    * Vàng tích lũy — products grouped by brand (vang-mieng, nhan-tron).
+   * Structure cache only — prices patch via tlkv:gold-rows-updated.
    */
   async function fetchAccumulationByBrands() {
-    var sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    var rfn = resolveFn();
-    var categoryIds = await resolveCategoryIds(sb, ACCUMULATION_CATEGORY_SLUGS);
-    if (!categoryIds.length) return [];
+    return withCatalogCache(ACCUMULATION_CACHE_KEY, ACCUMULATION_TTL_MS, async function () {
+      var sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase chưa cấu hình.");
+      var rfn = resolveFn();
+      var categoryIds = await resolveCategoryIds(sb, ACCUMULATION_CATEGORY_SLUGS);
+      if (!categoryIds.length) return [];
 
-    var brandRes = await sb
-      .from("brands")
-      .select("id, name, slug, description, logo_url, sort_order")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
-    if (brandRes.error) throw brandRes.error;
-
-    var brandsBySlug = {};
-    (brandRes.data || []).forEach(function (b) {
-      brandsBySlug[b.slug] = b;
-    });
-
-    var orderedBrands = DEFAULT_BRAND_SLUGS.map(function (slug, idx) {
-      var b = brandsBySlug[slug];
-      return {
-        id: b && b.id ? b.id : "default-" + slug,
-        name: b && b.name ? b.name : slug,
-        slug: slug,
-        description:
-          (b && b.description) ||
-          BRAND_DESCRIPTION_FALLBACKS[slug] ||
-          "",
-        logo_url: b && b.logo_url ? b.logo_url : "",
-        sort_order: b && b.sort_order != null ? b.sort_order : idx + 1,
-      };
-    });
-
-    var out = [];
-    var realBrandIds = orderedBrands
-      .filter(function (b) {
-        return b.id && String(b.id).indexOf("default-") !== 0;
-      })
-      .map(function (b) {
-        return b.id;
-      });
-    var productsByBrand = {};
-    if (realBrandIds.length) {
-      var batchRes = await sb
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .in("brand_id", realBrandIds)
+      var brandRes = await sb
+        .from("brands")
+        .select("id, name, slug, description, logo_url, sort_order")
         .eq("is_active", true)
-        .in("category_id", categoryIds)
         .order("sort_order", { ascending: true });
-      if (batchRes.error) throw batchRes.error;
-      (batchRes.data || []).forEach(function (row) {
-        var bid = row.brand_id;
-        if (!bid) return;
-        if (!productsByBrand[bid]) productsByBrand[bid] = [];
-        productsByBrand[bid].push(row);
-      });
-    }
+      if (brandRes.error) throw brandRes.error;
 
-    for (var i = 0; i < orderedBrands.length; i += 1) {
-      var brand = orderedBrands[i];
-      if (!brand.id || String(brand.id).indexOf("default-") === 0) {
-        out.push({ brand: brand, products: [] });
-        continue;
-      }
-      out.push({
-        brand: brand,
-        products: (productsByBrand[brand.id] || []).map(function (row) {
-          return normalizeProduct(row, rfn);
-        }),
+      var brandsBySlug = {};
+      (brandRes.data || []).forEach(function (b) {
+        brandsBySlug[b.slug] = b;
       });
-    }
-    return out;
+
+      var orderedBrands = DEFAULT_BRAND_SLUGS.map(function (slug, idx) {
+        var b = brandsBySlug[slug];
+        return {
+          id: b && b.id ? b.id : "default-" + slug,
+          name: b && b.name ? b.name : slug,
+          slug: slug,
+          description:
+            (b && b.description) ||
+            BRAND_DESCRIPTION_FALLBACKS[slug] ||
+            "",
+          logo_url: b && b.logo_url ? b.logo_url : "",
+          sort_order: b && b.sort_order != null ? b.sort_order : idx + 1,
+        };
+      });
+
+      var out = [];
+      var realBrandIds = orderedBrands
+        .filter(function (b) {
+          return b.id && String(b.id).indexOf("default-") !== 0;
+        })
+        .map(function (b) {
+          return b.id;
+        });
+      var productsByBrand = {};
+      if (realBrandIds.length) {
+        var batchRes = await sb
+          .from("products")
+          .select(PRODUCT_SELECT)
+          .in("brand_id", realBrandIds)
+          .eq("is_active", true)
+          .in("category_id", categoryIds)
+          .order("sort_order", { ascending: true });
+        if (batchRes.error) throw batchRes.error;
+        (batchRes.data || []).forEach(function (row) {
+          var bid = row.brand_id;
+          if (!bid) return;
+          if (!productsByBrand[bid]) productsByBrand[bid] = [];
+          productsByBrand[bid].push(row);
+        });
+      }
+
+      for (var i = 0; i < orderedBrands.length; i += 1) {
+        var brand = orderedBrands[i];
+        if (!brand.id || String(brand.id).indexOf("default-") === 0) {
+          out.push({ brand: brand, products: [] });
+          continue;
+        }
+        out.push({
+          brand: brand,
+          products: (productsByBrand[brand.id] || []).map(function (row) {
+            return normalizeProduct(row, rfn);
+          }),
+        });
+      }
+      return out;
+    });
   }
 
   global.TLKVCatalogApi = {
@@ -593,6 +750,9 @@
     fetchProductBySlugs: fetchProductBySlugs,
     fetchFlatLegacyProducts: fetchFlatLegacyProducts,
     fetchAccumulationByBrands: fetchAccumulationByBrands,
+    clearCatalogSessionCaches: clearCatalogSessionCaches,
+    BRANDS_LIST_TTL_MS: BRANDS_LIST_TTL_MS,
+    FEATURED_BUNDLE_TTL_MS: FEATURED_BUNDLE_TTL_MS,
     ACCUMULATION_CATEGORY_SLUGS: ACCUMULATION_CATEGORY_SLUGS,
     JEWELRY_CATEGORY_SLUGS: JEWELRY_CATEGORY_SLUGS,
     normalizeProduct: normalizeProduct,

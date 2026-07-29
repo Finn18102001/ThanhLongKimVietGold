@@ -240,6 +240,12 @@
     if (res.error) return toast(res.error.message, "error");
     toast("Đã lưu thương hiệu.", "success");
     resetBrandForm();
+    if (window.TLKVCatalogApi && typeof window.TLKVCatalogApi.clearCatalogSessionCaches === "function") {
+      window.TLKVCatalogApi.clearCatalogSessionCaches();
+    }
+    try {
+      window.dispatchEvent(new CustomEvent("tlkv:brands-changed"));
+    } catch (_) {}
     loadTaxonomies();
     refreshBrandsTable();
   }
@@ -329,6 +335,12 @@
         if (del.error) toast(del.error.message, "error");
         else {
           toast("Đã xóa.", "success");
+          if (window.TLKVCatalogApi && typeof window.TLKVCatalogApi.clearCatalogSessionCaches === "function") {
+            window.TLKVCatalogApi.clearCatalogSessionCaches();
+          }
+          try {
+            window.dispatchEvent(new CustomEvent("tlkv:brands-changed"));
+          } catch (_) {}
           refreshBrandsTable();
           loadTaxonomies();
         }

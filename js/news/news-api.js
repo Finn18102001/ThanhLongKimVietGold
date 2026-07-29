@@ -79,12 +79,22 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Detail cache (sessionStorage) — click từ list/home không chờ round-trip lần 2.
+  // Detail + list caches (sessionStorage). No Supabase Realtime for news —
+  // keeps RAM/WS low; admin writes clear caches; CDN TTL covers other users.
   // ---------------------------------------------------------------------------
   var DETAIL_CACHE_KEY = "tlkv_news_detail_v1:";
-  var DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+  var DETAIL_CACHE_TTL_MS = 10 * 60 * 1000;
+  var LIST_CACHE_PREFIX = "tlkv_news_list_v1:";
+  var LIST_CACHE_TTL_MS = 10 * 60 * 1000;
+  var HERO_CACHE_PREFIX = "tlkv_news_hero_v1:";
+  var HERO_CACHE_TTL_MS = 10 * 60 * 1000;
   var __detailMemory = Object.create(null);
   var __detailInFlight = Object.create(null);
+  var __listMemory = Object.create(null);
+  var __listInFlight = Object.create(null);
+  var __publicNewsVersionValue = "";
+  var __publicNewsVersionSavedAt = 0;
+  var __publicNewsVersionInFlight = null;
 
   function readDetailCache(slug) {
     var safe = String(slug || "").trim();
@@ -126,6 +136,179 @@
       var ss = global.sessionStorage;
       if (ss && safe) ss.removeItem(DETAIL_CACHE_KEY + safe);
     } catch (_) {}
+  }
+
+  function readKeyedCache(store, prefix, key, ttlMs) {
+    var full = prefix + key;
+    var mem = store[full];
+    if (mem && Date.now() - mem.savedAt < ttlMs) return mem.payload;
+    try {
+      var ss = global.sessionStorage;
+      if (!ss) return null;
+      var raw = ss.getItem(full);
+      if (!raw) return null;
+      var wrapped = JSON.parse(raw);
+      if (!wrapped || Date.now() - Number(wrapped.savedAt) > ttlMs) {
+        ss.removeItem(full);
+        return null;
+      }
+      store[full] = { savedAt: wrapped.savedAt, payload: wrapped.payload };
+      return wrapped.payload;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeKeyedCache(store, prefix, key, payload) {
+    var full = prefix + key;
+    var savedAt = Date.now();
+    store[full] = { savedAt: savedAt, payload: payload };
+    try {
+      var ss = global.sessionStorage;
+      if (ss) ss.setItem(full, JSON.stringify({ savedAt: savedAt, payload: payload }));
+    } catch (_) {}
+  }
+
+  function invalidateAllNewsCaches() {
+    __detailMemory = Object.create(null);
+    __listMemory = Object.create(null);
+    __publicNewsVersionValue = "";
+    __publicNewsVersionSavedAt = 0;
+    __publicNewsVersionInFlight = null;
+    try {
+      var ss = global.sessionStorage;
+      if (!ss) return;
+      var toRemove = [];
+      for (var i = 0; i < ss.length; i += 1) {
+        var k = ss.key(i);
+        if (
+          k &&
+          (k.indexOf(DETAIL_CACHE_KEY) === 0 ||
+            k.indexOf(LIST_CACHE_PREFIX) === 0 ||
+            k.indexOf(HERO_CACHE_PREFIX) === 0)
+        ) {
+          toRemove.push(k);
+        }
+      }
+      toRemove.forEach(function (k) {
+        ss.removeItem(k);
+      });
+    } catch (_) {}
+    try {
+      global.dispatchEvent(new CustomEvent("tlkv:news-changed"));
+    } catch (_) {}
+  }
+
+  function listCacheKey(opts) {
+    opts = opts || {};
+    return [
+      "p" + (Math.max(1, Number(opts.page) || 1)),
+      "s" + (Math.min(50, Math.max(1, Number(opts.pageSize) || 12))),
+      "c" + String(opts.categorySlug || ""),
+      "q" + String(opts.search || ""),
+      "w" + (opts.withCount ? "1" : "0"),
+    ].join("|");
+  }
+
+  function heroCacheKey(opts) {
+    opts = opts || {};
+    return "f" + (Number(opts.limitFeatured) || 1) + "|s" + (Number(opts.limitSecondary) || 4);
+  }
+
+  function listCacheKeyWithVersion(opts, version) {
+    return "v" + String(version || "1") + "|" + listCacheKey(opts);
+  }
+
+  function heroCacheKeyWithVersion(opts, version) {
+    return "v" + String(version || "1") + "|" + heroCacheKey(opts);
+  }
+
+  async function resolvePublicNewsVersion(opts) {
+    opts = opts || {};
+    if (
+      opts.forceRefresh !== true &&
+      __publicNewsVersionValue &&
+      Date.now() - __publicNewsVersionSavedAt < 30000
+    ) {
+      return __publicNewsVersionValue;
+    }
+    if (opts.forceRefresh !== true && __publicNewsVersionInFlight) {
+      return __publicNewsVersionInFlight;
+    }
+    __publicNewsVersionInFlight = fetch("/api/public/news/version", {
+      headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+      credentials: "same-origin",
+      cache: "no-store",
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("public news version " + res.status);
+        return res.json();
+      })
+      .then(function (body) {
+        var version =
+          body && body.version
+            ? String(body.version)
+            : String(global.__TLKV_PUBLIC_CACHE_VERSION || "1");
+        __publicNewsVersionValue = version;
+        __publicNewsVersionSavedAt = Date.now();
+        return version;
+      })
+      .finally(function () {
+        __publicNewsVersionInFlight = null;
+      });
+    return __publicNewsVersionInFlight;
+  }
+
+  async function fetchNewsListFromPublicApi(opts) {
+    opts = opts || {};
+    var version = await resolvePublicNewsVersion(opts);
+    var page = Math.max(1, Number(opts.page) || 1);
+    var pageSize = Math.min(50, Math.max(1, Number(opts.pageSize) || 12));
+    var qs =
+      "v=" +
+      encodeURIComponent(version) +
+      "&page=" +
+      page +
+      "&pageSize=" +
+      pageSize;
+    var cat = sanitizeSlug(opts.categorySlug);
+    if (cat) qs += "&categorySlug=" + encodeURIComponent(cat);
+    var res = await fetch("/api/public/news?" + qs, {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+    });
+    if (!res.ok) throw new Error("public news " + res.status);
+    var body = await res.json();
+    return {
+      items: ((body && body.items) || []).map(rowToListItem),
+      total: null,
+      page: page,
+      pageSize: pageSize,
+    };
+  }
+
+  async function fetchNewsHeroFromPublicApi(opts) {
+    opts = opts || {};
+    var version = await resolvePublicNewsVersion(opts);
+    var limitFeatured = Math.max(1, Number(opts.limitFeatured) || 1);
+    var limitSecondary = Math.max(1, Number(opts.limitSecondary) || 4);
+    var qs =
+      "v=" +
+      encodeURIComponent(version) +
+      "&limitFeatured=" +
+      limitFeatured +
+      "&limitSecondary=" +
+      limitSecondary;
+    var res = await fetch("/api/public/news/hero?" + qs, {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+    });
+    if (!res.ok) throw new Error("public news hero " + res.status);
+    var body = await res.json();
+    return {
+      featured: sortNewsByRecency(((body && body.featured) || []).map(rowToListItem)),
+      secondary: sortNewsByRecency(((body && body.secondary) || []).map(rowToListItem)),
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -520,82 +703,153 @@
 
   /** List published articles with pagination + optional category/search filter. */
   async function listPublished(opts) {
-    var sb = await requirePublicSupabase();
     opts = opts || {};
-    var page = Math.max(1, Number(opts.page) || 1);
-    var pageSize = Math.min(50, Math.max(1, Number(opts.pageSize) || 12));
-    var from = (page - 1) * pageSize;
-    var to = from + pageSize - 1;
+    // Search / abort / exact count stay on direct Supabase (not CDN-shaped).
+    var usePublicApi = !opts.search && !opts.signal && !opts.withCount && opts.forceRefresh !== true;
+    var cacheKey = listCacheKey(opts);
+    if (opts.forceRefresh !== true && !usePublicApi) {
+      var cached = readKeyedCache(__listMemory, LIST_CACHE_PREFIX, cacheKey, LIST_CACHE_TTL_MS);
+      if (cached) return cached;
+      if (__listInFlight[cacheKey]) return __listInFlight[cacheKey];
+    }
 
-    var q = sb
-      .from("news")
-      .select(SELECT_LIST, { count: opts.withCount ? "exact" : undefined })
-      .eq("status", "published")
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .range(from, to);
+    __listInFlight[cacheKey] = (async function () {
+      if (usePublicApi) {
+        try {
+          var version = await resolvePublicNewsVersion(opts);
+          var versionedCacheKey = listCacheKeyWithVersion(opts, version);
+          if (opts.forceRefresh !== true) {
+            var cachedVersioned = readKeyedCache(
+              __listMemory,
+              LIST_CACHE_PREFIX,
+              versionedCacheKey,
+              LIST_CACHE_TTL_MS
+            );
+            if (cachedVersioned) return cachedVersioned;
+          }
+          var fromApi = await fetchNewsListFromPublicApi(opts);
+          writeKeyedCache(__listMemory, LIST_CACHE_PREFIX, versionedCacheKey, fromApi);
+          return fromApi;
+        } catch (_) {
+          /* fall through to Supabase */
+        }
+      }
 
-    var cat = sanitizeSlug(opts.categorySlug);
-    if (cat) {
-      // Inner join so category slug filter is applied in SQL (uses idx on categories.slug).
-      q = sb
+      var sb = await requirePublicSupabase();
+      var page = Math.max(1, Number(opts.page) || 1);
+      var pageSize = Math.min(50, Math.max(1, Number(opts.pageSize) || 12));
+      var from = (page - 1) * pageSize;
+      var to = from + pageSize - 1;
+
+      var q = sb
         .from("news")
-        .select(
-          "id,title,slug,short_description,thumbnail_url,status,featured,view_count," +
-            "published_at,created_at,updated_at,category_id," +
-            "news_categories!inner(id,name,slug)",
-          { count: opts.withCount ? "exact" : undefined }
-        )
+        .select(SELECT_LIST, { count: opts.withCount ? "exact" : undefined })
         .eq("status", "published")
-        .eq("news_categories.slug", cat)
         .order("published_at", { ascending: false, nullsFirst: false })
         .range(from, to);
-    }
-    var search = sanitizeIlike(opts.search);
-    if (search) {
-      q = q.or(
-        "title.ilike.%" + search + "%,short_description.ilike.%" + search + "%"
-      );
-    }
-    if (opts.signal && typeof q.abortSignal === "function") {
-      q = q.abortSignal(opts.signal);
-    }
 
-    var res = await q;
-    if (res.error) throw res.error;
-    return {
-      items: (res.data || []).map(rowToListItem),
-      total: typeof res.count === "number" ? res.count : null,
-      page: page,
-      pageSize: pageSize,
-    };
+      var cat = sanitizeSlug(opts.categorySlug);
+      if (cat) {
+        q = sb
+          .from("news")
+          .select(
+            "id,title,slug,short_description,thumbnail_url,status,featured,view_count," +
+              "published_at,created_at,updated_at,category_id," +
+              "news_categories!inner(id,name,slug)",
+            { count: opts.withCount ? "exact" : undefined }
+          )
+          .eq("status", "published")
+          .eq("news_categories.slug", cat)
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .range(from, to);
+      }
+      var search = sanitizeIlike(opts.search);
+      if (search) {
+        q = q.or(
+          "title.ilike.%" + search + "%,short_description.ilike.%" + search + "%"
+        );
+      }
+      if (opts.signal && typeof q.abortSignal === "function") {
+        q = q.abortSignal(opts.signal);
+      }
+
+      var res = await q;
+      if (res.error) throw res.error;
+      var payload = {
+        items: (res.data || []).map(rowToListItem),
+        total: typeof res.count === "number" ? res.count : null,
+        page: page,
+        pageSize: pageSize,
+      };
+      writeKeyedCache(__listMemory, LIST_CACHE_PREFIX, cacheKey, payload);
+      return payload;
+    })().finally(function () {
+      delete __listInFlight[cacheKey];
+    });
+
+    return __listInFlight[cacheKey];
   }
 
   /** Landing hero split — newest article is always the large featured card. */
   async function listForLandingHero(opts) {
-    var sb = await requirePublicSupabase();
     opts = opts || {};
-    var limitFeatured = Math.max(1, Number(opts.limitFeatured) || 1);
-    var limitSecondary = Math.max(1, Number(opts.limitSecondary) || 4);
-    var total = limitFeatured + limitSecondary;
-
-    var q = sb
-      .from("news")
-      .select(SELECT_LIST)
-      .eq("status", "published")
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .limit(total);
-    if (opts.signal && typeof q.abortSignal === "function") {
-      q = q.abortSignal(opts.signal);
+    var cacheKey = heroCacheKey(opts);
+    if (opts.forceRefresh !== true) {
+      var cached = readKeyedCache(__listMemory, HERO_CACHE_PREFIX, cacheKey, HERO_CACHE_TTL_MS);
+      if (cached) return cached;
+      if (__listInFlight["hero:" + cacheKey]) return __listInFlight["hero:" + cacheKey];
     }
-    var { data, error } = await q;
-    if (error) throw error;
 
-    var items = sortNewsByRecency((data || []).map(rowToListItem));
-    return {
-      featured: items.slice(0, limitFeatured),
-      secondary: items.slice(limitFeatured, limitFeatured + limitSecondary),
-    };
+    __listInFlight["hero:" + cacheKey] = (async function () {
+      if (opts.forceRefresh !== true && !opts.signal) {
+        try {
+          var version = await resolvePublicNewsVersion(opts);
+          var versionedCacheKey = heroCacheKeyWithVersion(opts, version);
+          var cachedVersioned = readKeyedCache(
+            __listMemory,
+            HERO_CACHE_PREFIX,
+            versionedCacheKey,
+            HERO_CACHE_TTL_MS
+          );
+          if (cachedVersioned) return cachedVersioned;
+          var fromApi = await fetchNewsHeroFromPublicApi(opts);
+          writeKeyedCache(__listMemory, HERO_CACHE_PREFIX, versionedCacheKey, fromApi);
+          return fromApi;
+        } catch (_) {
+          /* fall through */
+        }
+      }
+
+      var sb = await requirePublicSupabase();
+      var limitFeatured = Math.max(1, Number(opts.limitFeatured) || 1);
+      var limitSecondary = Math.max(1, Number(opts.limitSecondary) || 4);
+      var total = limitFeatured + limitSecondary;
+
+      var q = sb
+        .from("news")
+        .select(SELECT_LIST)
+        .eq("status", "published")
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(total);
+      if (opts.signal && typeof q.abortSignal === "function") {
+        q = q.abortSignal(opts.signal);
+      }
+      var result = await q;
+      if (result.error) throw result.error;
+
+      var items = sortNewsByRecency((result.data || []).map(rowToListItem));
+      var payload = {
+        featured: items.slice(0, limitFeatured),
+        secondary: items.slice(limitFeatured, limitFeatured + limitSecondary),
+      };
+      writeKeyedCache(__listMemory, HERO_CACHE_PREFIX, cacheKey, payload);
+      return payload;
+    })().finally(function () {
+      delete __listInFlight["hero:" + cacheKey];
+    });
+
+    return __listInFlight["hero:" + cacheKey];
   }
 
   async function fetchDetailFromNetwork(slug) {
@@ -842,6 +1096,7 @@
     apiLog("adminCreate:insert", { title: row.title, status: row.status });
     var inserted = await insertWithSlugRetry(row, slug);
     apiLog("adminCreate:done", { id: inserted.id });
+    invalidateAllNewsCaches();
     return detailFromWritable(inserted.id, row, inserted.slug);
   }
 
@@ -866,6 +1121,7 @@
       throw formatDbError(result.error);
     }
     apiLog("adminUpdate:done", { id: id });
+    invalidateAllNewsCaches();
     return detailFromWritable(id, row, slug);
   }
 
@@ -873,6 +1129,7 @@
     var sb = await requireSupabase();
     var { error } = await sb.from("news").delete().eq("id", id);
     if (error) throw error;
+    invalidateAllNewsCaches();
   }
 
   async function adminSetStatus(id, status) {
@@ -882,6 +1139,7 @@
     if (safe === "published") patch.published_at = patch.published_at || null; // trigger handles default
     var { data, error } = await sb.from("news").update(patch).eq("id", id).select(SELECT_DETAIL).single();
     if (error) throw error;
+    invalidateAllNewsCaches();
     return rowToDetail(data);
   }
 
@@ -895,6 +1153,9 @@
     listCategories: listCategories,
     incrementView: incrementView,
     peekDetailCache: readDetailCache,
+    invalidateAllNewsCaches: invalidateAllNewsCaches,
+    LIST_CACHE_TTL_MS: LIST_CACHE_TTL_MS,
+    DETAIL_CACHE_TTL_MS: DETAIL_CACHE_TTL_MS,
 
     // admin
     adminList: adminList,

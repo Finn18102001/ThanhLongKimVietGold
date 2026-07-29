@@ -2,6 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { IMMUTABLE_CACHE_CONTROL } = require("../lib/immutable-cache");
+const { publicCacheVersion } = require("../lib/http-cache");
 
 function trimEnv(v) {
   return String(v || "").trim();
@@ -60,6 +61,7 @@ module.exports = function registerRoutes(app, ROOT) {
     res.setHeader("Cache-Control", "no-store");
     const { url, anonKey, imageCdn } = supabasePublicFromProcessEnv();
     const payload = { url, anonKey };
+    const cacheVersion = publicCacheVersion();
     res.send(
       "window.__TLKV_SUPABASE__=" +
         JSON.stringify(payload) +
@@ -72,6 +74,9 @@ module.exports = function registerRoutes(app, ROOT) {
         ";" +
         "window.__TLKV_IMAGE_CDN__=" +
         JSON.stringify(imageCdn) +
+        ";" +
+        "window.__TLKV_PUBLIC_CACHE_VERSION__=" +
+        JSON.stringify(cacheVersion) +
         ";" +
         imageCdnScript
     );

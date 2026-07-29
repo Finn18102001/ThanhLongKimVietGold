@@ -2,8 +2,11 @@
   const STORAGE_KEY = "tlkv_products_v1";
   /** Session-scoped products list (same tab; TTL). */
   const SESSION_CACHE_KEY = "tlkv_products_session_v1";
-  /** 2 minutes — products change rarely vs gold prices. */
-  const SESSION_CACHE_TTL_MS = 120000;
+  /**
+   * Product structure changes rarely. Gold price updates do NOT need a products refetch —
+   * derived prices patch via tlkv:gold-rows-updated.
+   */
+  const SESSION_CACHE_TTL_MS = 15 * 60 * 1000;
 
   function getSupabaseClient() {
     if (global.TLKVSupabase && global.TLKVSupabase.getSupabaseClient) {

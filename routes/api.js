@@ -85,6 +85,10 @@ module.exports = function apiRouter(_ROOT) {
     });
   });
 
+  // Same-origin public reads with Cache-Control (CDN / Cloudflare in front of origin).
+  // Does NOT cache browser→Supabase /rest/v1/* — that traffic never hits Express.
+  router.use("/public", require("./api-public")());
+
   // News image upload — server-side transcode with sharp (Phase B).
   // Mounted at /api/news/* so the browser admin CMS can POST to /api/news/upload-image.
   router.use("/news", require("./api-news-image")());
