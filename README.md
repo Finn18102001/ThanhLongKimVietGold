@@ -1,11 +1,14 @@
 ## Thăng Long Kim Việt — demo site
 
+> **Quy chuẩn phát triển:** mọi task / bug / refactor phải tuân theo
+> [`ENGINEERING-PLAYBOOK.md`](./ENGINEERING-PLAYBOOK.md) — quy trình chuẩn, naming convention,
+> rule cache/RLS nghiêm ngặt và Definition of Done. Đọc trước khi code.
+
 ### Chạy local (khuyến nghị)
 
 Cài dependency và bật Express (router gọn: public / admin / api):
 
-```bash
-cd /Users/eco0692_anhnt/Documents/ThanhLongKimVietGold
+```bash 
 npm install
 npm start
 ```
