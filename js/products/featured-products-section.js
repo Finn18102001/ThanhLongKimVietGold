@@ -559,6 +559,9 @@
     try {
       state.mountedRoot = root;
       bindGoldPriceListener();
+      if (global.TLKVGold && typeof global.TLKVGold.ensureGoldPriceLiveUpdates === "function") {
+        global.TLKVGold.ensureGoldPriceLiveUpdates();
+      }
       var brands = await loadFeaturedBrands(limit);
       host.classList.remove("is-loading");
       host.removeAttribute("aria-busy");

@@ -3,12 +3,11 @@
   /** Session-scoped gold payload (survives soft reload in same tab). */
   const SESSION_CACHE_KEY = "tlkv_gold_table_session_v1";
   /**
-   * Hard TTL — giá vàng ~1 lần/ngày; session cache cắt PostgREST lặp lại trong tab.
-   * Freshness khi đổi giá: Realtime/poll/admin → refreshGoldTableAfterChange (xoá + fetch + ghi lại).
-   * Safety: tab không có push vẫn soft-revalidate khi hiện lại sau SESSION_CACHE_SOFT_MS.
+   * Hard TTL — cắt PostgREST lặp trong tab. Freshness không dựa vào TTL:
+   * Realtime → invalidate → force fetch; F5/tab-visible → so sánh gold_meta.price_version.
    */
   const SESSION_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
-  /** Soft age — khi tab visible lại mà cache già hơn mức này → refetch nền (trang SP không Realtime). */
+  /** Soft age — fallback khi chưa so được price_version (tab không push). */
   const SESSION_CACHE_SOFT_MS = 5 * 60 * 1000;
   const GOLD_PUSH_LOG = "[TLKV gold-push]";
 
@@ -27,7 +26,17 @@
     }
   }
 
-  function readGoldSessionCache() {
+  function parsePriceVersion(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  }
+
+  function rememberGoldPriceVersion(version, verified) {
+    __goldPriceVersion = parsePriceVersion(version);
+    if (verified) __goldVersionVerifiedThisLoad = true;
+  }
+
+  function readGoldSessionWrapper() {
     const ss = getSessionStorage();
     if (!ss) return null;
     try {
@@ -39,7 +48,13 @@
         ss.removeItem(SESSION_CACHE_KEY);
         return null;
       }
-      return normalizePayload(wrapped && wrapped.payload);
+      const payload = normalizePayload(wrapped && wrapped.payload);
+      if (!payload) return null;
+      return {
+        savedAt: savedAt,
+        priceVersion: parsePriceVersion(wrapped && wrapped.priceVersion),
+        payload: payload,
+      };
     } catch (_) {
       try {
         ss.removeItem(SESSION_CACHE_KEY);
@@ -48,13 +63,22 @@
     }
   }
 
+  function readGoldSessionCache() {
+    const wrapped = readGoldSessionWrapper();
+    return wrapped ? wrapped.payload : null;
+  }
+
   function writeGoldSessionCache(payload) {
     const ss = getSessionStorage();
     if (!ss || !payload) return;
     try {
       ss.setItem(
         SESSION_CACHE_KEY,
-        JSON.stringify({ savedAt: Date.now(), payload: payload })
+        JSON.stringify({
+          savedAt: Date.now(),
+          priceVersion: __goldPriceVersion,
+          payload: payload,
+        })
       );
     } catch (_) {}
   }
@@ -86,6 +110,10 @@
   let __goldTableCache = null;
   /** wall-clock ms when __goldTableCache / session entry was last written */
   let __goldTableCacheSavedAt = 0;
+  /** gold_meta.price_version last written to cache (0 = unknown). */
+  let __goldPriceVersion = 0;
+  /** This document load already compared cache vs remote price_version (or did a full fetch). */
+  let __goldVersionVerifiedThisLoad = false;
   let __goldTableFetchInFlight = null;
   let __goldChangeRefreshInFlight = null;
   let __goldRefreshDebounceTimer = null;
@@ -104,20 +132,13 @@
 
   function peekGoldTableCache() {
     if (__goldTableCache) return __goldTableCache;
-    const fromSession = readGoldSessionCache();
+    const fromSession = readGoldSessionWrapper();
     if (fromSession) {
-      __goldTableCache = fromSession;
-      try {
-        const ss = getSessionStorage();
-        const raw = ss && ss.getItem(SESSION_CACHE_KEY);
-        const wrapped = raw ? JSON.parse(raw) : null;
-        const savedAt = Number(wrapped && wrapped.savedAt);
-        __goldTableCacheSavedAt = Number.isFinite(savedAt) ? savedAt : Date.now();
-      } catch (_) {
-        __goldTableCacheSavedAt = Date.now();
-      }
-      global.__TLKV_LAST_GOLD_ROWS = fromSession.rows;
-      return fromSession;
+      __goldTableCache = fromSession.payload;
+      __goldTableCacheSavedAt = fromSession.savedAt;
+      __goldPriceVersion = fromSession.priceVersion;
+      global.__TLKV_LAST_GOLD_ROWS = fromSession.payload.rows;
+      return fromSession.payload;
     }
     return null;
   }
@@ -131,6 +152,8 @@
   function invalidateGoldTableCache() {
     __goldTableCache = null;
     __goldTableCacheSavedAt = 0;
+    __goldPriceVersion = 0;
+    __goldVersionVerifiedThisLoad = false;
     clearGoldSessionCache();
   }
 
@@ -152,14 +175,19 @@
     }
   }
 
-  /** Xoá cache → fetch → ghi lại → báo UI. Poll / tab-visible / soft-revalidate. */
+  /** Realtime/poll: invalidate → force fetch → ghi cache + price_version → update UI. */
   function refreshGoldTableAfterChange(reason) {
     if (__goldChangeRefreshInFlight) return __goldChangeRefreshInFlight;
     if (typeof console !== "undefined" && console.log) {
-      console.log(GOLD_PUSH_LOG + " client: refresh after change →", reason || "unknown");
+      console.log(
+        GOLD_PUSH_LOG + " client: invalidate → fetch → cache/UI →",
+        reason || "unknown"
+      );
     }
     __goldChangeRefreshInFlight = getGoldTable({ forceRefresh: true })
       .then(function (data) {
+        const rows = (data && data.rows) || [];
+        dispatchGoldRowsUpdated(rows);
         emitGoldTableChanged(data || undefined);
         return data;
       })
@@ -332,12 +360,17 @@
     });
   }
 
-  /** One visibility/pagehide binding: Realtime pause/resume OR soft-revalidate (catalog/SP). */
+  /** One visibility/pagehide binding: Realtime pause/resume OR price_version revalidate. */
   function ensureGoldLifecycle() {
     if (__goldRealtimeLifecycleBound || typeof global.addEventListener !== "function") return;
     __goldRealtimeLifecycleBound = true;
     global.addEventListener("pagehide", function () {
       stopGoldTableRealtime({ permanent: true });
+    });
+    global.addEventListener("pageshow", function (ev) {
+      if (!(ev && ev.persisted)) return;
+      __goldVersionVerifiedThisLoad = false;
+      revalidateGoldCacheAgainstVersion("pageshow-bfcache", { silent: false });
     });
     var doc = typeof document !== "undefined" ? document : null;
     if (!doc || typeof doc.addEventListener !== "function") return;
@@ -350,7 +383,7 @@
         resumeGoldPushAfterVisible();
         return;
       }
-      softRevalidateGoldCacheIfStale("tab-visible-no-push");
+      revalidateGoldCacheAgainstVersion("tab-visible-no-push", { silent: false });
     });
   }
 
@@ -771,9 +804,20 @@
     return row;
   }
 
-  const GOLD_META_SELECT = "id, header_time, footer_note, unit_line, brand_italic";
+  const GOLD_META_SELECT = "id, header_time, footer_note, unit_line, brand_italic, price_version";
+  const GOLD_META_VERSION_SELECT = "id, price_version";
   const GOLD_ROWS_SELECT =
     "id, brand, product, purity, buy, sell, metal, highlight, previous_buy, previous_sell, sort_order";
+
+  async function fetchGoldPriceVersion(sb) {
+    const { data, error } = await sb
+      .from("gold_meta")
+      .select(GOLD_META_VERSION_SELECT)
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw error;
+    return parsePriceVersion(data && data.price_version);
+  }
 
   async function fetchGoldFromSupabase(sb) {
     const { data: metaRow, error: e1 } = await sb
@@ -787,6 +831,7 @@
       .select(GOLD_ROWS_SELECT)
       .order("sort_order", { ascending: true });
     if (e2) throw e2;
+    rememberGoldPriceVersion(metaRow && metaRow.price_version, true);
     const meta = normalizeMeta(metaRowToApp(metaRow));
     const rows = (rowList || []).map(priceRowDbToApp);
     return normalizePayload({ meta: meta, rows: rows });
@@ -1296,11 +1341,19 @@
         );
       }
       return persistGoldToSupabase(sb, payload).then(function () {
-        setGoldTableCache(payload);
-        markGoldLocalWriteThrough();
-        console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local (cross-tab qua Realtime)");
-        global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
-        notifyGoldTableChanged("admin-save");
+        return fetchGoldPriceVersion(sb)
+          .catch(function () {
+            return __goldPriceVersion + 1;
+          })
+          .then(function (ver) {
+            rememberGoldPriceVersion(ver, true);
+            setGoldTableCache(payload);
+            markGoldLocalWriteThrough();
+            dispatchGoldRowsUpdated((payload && payload.rows) || []);
+            console.log(GOLD_PUSH_LOG + " client: saveToStorage() persisted → dispatch local (cross-tab qua Realtime)");
+            global.dispatchEvent(new CustomEvent("tlkv:gold-table-changed", { detail: payload }));
+            notifyGoldTableChanged("admin-save");
+          });
       });
     });
   }
@@ -1392,26 +1445,99 @@
     throw new Error("fetchDefaultJson đã tắt — dùng Supabase (gold_meta + gold_price_rows).");
   }
 
+  async function fetchAndCacheGoldTable() {
+    const sb = await getSupabaseClient();
+    if (!sb) {
+      throw new Error(
+        "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
+      );
+    }
+    const data = await fetchGoldFromSupabase(sb);
+    return setGoldTableCache(data) || data;
+  }
+
+  /**
+   * Compare session cache vs gold_meta.price_version.
+   * Match → keep cache. Mismatch / unknown → invalidate + full fetch.
+   */
+  async function revalidateGoldCacheAgainstVersion(reason, opts) {
+    const silent = !!(opts && opts.silent);
+    const cached = peekGoldTableCache();
+    const cachedVersion = __goldPriceVersion;
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: check price_version →", reason || "unknown", {
+        cachedVersion: cachedVersion,
+      });
+    }
+    const sb = await getSupabaseClient();
+    if (!sb) {
+      __goldVersionVerifiedThisLoad = true;
+      return cached;
+    }
+    let remoteVersion = 0;
+    try {
+      remoteVersion = await fetchGoldPriceVersion(sb);
+    } catch (err) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(GOLD_PUSH_LOG + " client: price_version check failed → force fetch", err);
+      }
+      invalidateGoldTableCache();
+      const data = await fetchAndCacheGoldTable();
+      if (!silent) {
+        dispatchGoldRowsUpdated((data && data.rows) || []);
+        emitGoldTableChanged(data || undefined);
+      }
+      return data;
+    }
+    const cachedNow = peekGoldTableCache();
+    const cachedVersionNow = __goldPriceVersion;
+    if (cachedNow && cachedVersionNow > 0 && remoteVersion === cachedVersionNow) {
+      rememberGoldPriceVersion(remoteVersion, true);
+      if (typeof console !== "undefined" && console.log) {
+        console.log(GOLD_PUSH_LOG + " client: price_version match", remoteVersion);
+      }
+      return cachedNow;
+    }
+    if (typeof console !== "undefined" && console.log) {
+      console.log(GOLD_PUSH_LOG + " client: price_version mismatch → invalidate + fetch", {
+        cachedVersion: cachedVersionNow,
+        remoteVersion: remoteVersion,
+      });
+    }
+    invalidateGoldTableCache();
+    const data = await fetchAndCacheGoldTable();
+    if (!silent) {
+      dispatchGoldRowsUpdated((data && data.rows) || []);
+      emitGoldTableChanged(data || undefined);
+    }
+    return data;
+  }
+
   async function getGoldTable(options) {
     ensureGoldLifecycle();
     const opts = options && typeof options === "object" ? options : {};
-    if (opts.forceRefresh !== true) {
+    const forceRefresh = opts.forceRefresh === true;
+
+    if (!forceRefresh) {
       const cached = peekGoldTableCache();
-      if (cached) return cached;
+      if (cached && __goldVersionVerifiedThisLoad) return cached;
       if (__goldTableFetchInFlight) return __goldTableFetchInFlight;
+      if (cached) {
+        __goldTableFetchInFlight = revalidateGoldCacheAgainstVersion("session-hydrate", {
+          silent: true,
+        });
+        try {
+          return await __goldTableFetchInFlight;
+        } finally {
+          __goldTableFetchInFlight = null;
+        }
+      }
     } else {
       invalidateGoldTableCache();
     }
-    __goldTableFetchInFlight = (async function () {
-      const sb = await getSupabaseClient();
-      if (!sb) {
-        throw new Error(
-          "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
-        );
-      }
-      const data = await fetchGoldFromSupabase(sb);
-      return setGoldTableCache(data) || data;
-    })();
+
+    if (__goldTableFetchInFlight) return __goldTableFetchInFlight;
+    __goldTableFetchInFlight = fetchAndCacheGoldTable();
     try {
       return await __goldTableFetchInFlight;
     } finally {
@@ -1673,9 +1799,16 @@ function applyMetaToDom(meta) {
   }
 
   function getLastGoldRows() {
-    const cached = peekGoldTableCache();
+    if (!__goldVersionVerifiedThisLoad) return null;
+    const cached = __goldTableCache;
     const rows = cached && Array.isArray(cached.rows) ? cached.rows : global.__TLKV_LAST_GOLD_ROWS;
     return Array.isArray(rows) ? rows : null;
+  }
+
+  /** Bật Realtime giá trên mọi trang hiển thị giá (catalog / chi tiết / featured). */
+  function ensureGoldPriceLiveUpdates() {
+    if (global.__TLKV_GOLD_PUSH_MANUAL === true) return;
+    startGoldPush();
   }
 
   global.TLKVGold = {
@@ -1689,6 +1822,7 @@ function applyMetaToDom(meta) {
     refreshGoldTableAfterChange,
     scheduleRefreshGoldTableAfterChange,
     softRevalidateGoldCacheIfStale,
+    revalidateGoldCacheAgainstVersion,
     markGoldLocalWriteThrough,
     getLastGoldRows,
     parseGoldMoneyToInt,
@@ -1700,6 +1834,7 @@ function applyMetaToDom(meta) {
     stopGoldTableRealtime,
     startGoldPush,
     startGoldPushWhenVisible,
+    ensureGoldPriceLiveUpdates,
     notifyGoldTableChanged,
     clearStorage,
     normalizePayload,

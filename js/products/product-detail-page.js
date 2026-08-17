@@ -131,6 +131,9 @@
     if (!root || !parsed) return;
 
     bindGoldPriceListener();
+    if (global.TLKVGold && typeof global.TLKVGold.ensureGoldPriceLiveUpdates === "function") {
+      global.TLKVGold.ensureGoldPriceLiveUpdates();
+    }
     if (global.TLKVSkeleton && typeof global.TLKVSkeleton.productDetail === "function") {
       global.TLKVSkeleton.productDetail(root);
     }

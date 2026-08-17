@@ -285,6 +285,9 @@
   async function mountCatalogArchive() {
     STATE = global.TLKVCatalogFilters.readUrlState();
     bindGoldPriceListener();
+    if (global.TLKVGold && typeof global.TLKVGold.ensureGoldPriceLiveUpdates === "function") {
+      global.TLKVGold.ensureGoldPriceLiveUpdates();
+    }
     await populateFilterSelects();
     bindToolbar();
     await loadAndRender();

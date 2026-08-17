@@ -669,6 +669,9 @@
     state.filter = readFilterFromUrl();
     bindFilterToolbar();
     bindListeners();
+    if (global.TLKVGold && typeof global.TLKVGold.ensureGoldPriceLiveUpdates === "function") {
+      global.TLKVGold.ensureGoldPriceLiveUpdates();
+    }
     await loadAndRender();
   }
 
