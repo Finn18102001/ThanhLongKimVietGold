@@ -47,7 +47,7 @@ export function StockCountWorkspace({
     [categories],
   );
 
-  function formatScope(scopeType: "ALL" | "CATEGORY", scopeValue: string | null) {
+  function formatScope(scopeType: string, scopeValue: string | null) {
     if (scopeType === "ALL") return "Toàn kho";
     return categoryNameById[scopeValue ?? ""] ?? scopeValue ?? "Danh mục";
   }
