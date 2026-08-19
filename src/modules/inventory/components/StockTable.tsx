@@ -82,7 +82,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               setQuery(event.target.value);
               setPage(0);
             }}
-            placeholder="Tìm sản phẩm, mã SKU..."
+            placeholder="Tìm sản phẩm, mã hàng..."
             className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
           />
         </label>
@@ -107,7 +107,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Sản phẩm</th>
-              <th className="py-2 pr-3 font-medium">SKU</th>
+              <th className="py-2 pr-3 font-medium">Mã hàng</th>
               <th className="py-2 pr-3 font-medium">Danh mục</th>
               <th className="py-2 pr-3 font-medium">Tồn kho</th>
               <th className="py-2 pr-3 font-medium">Đơn vị</th>
@@ -120,7 +120,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
             {pageRows.length === 0 ? (
               <tr>
                 <td className="py-6 text-[var(--tlkv-muted)]" colSpan={8}>
-                  Không có SKU khớp bộ lọc.
+                  Không có mã hàng khớp bộ lọc.
                 </td>
               </tr>
             ) : (

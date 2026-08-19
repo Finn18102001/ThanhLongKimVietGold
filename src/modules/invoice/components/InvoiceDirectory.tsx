@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { Eye, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
@@ -25,6 +26,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [pending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
 
   const currentPage = Math.floor(page.offset / page.limit) + 1;
   const pageCount = Math.max(1, Math.ceil(page.total / page.limit));
@@ -65,6 +67,14 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
     });
   }
 
+  useEffect(() => {
+    const q = searchParams.get("q")?.trim();
+    if (!q) return;
+    setQuery(q);
+    refresh({ query: q, offset: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- áp dụng theo ?q= trên URL
+  }, [searchParams]);
+
   async function openDetail(invoiceNo: string) {
     try {
       setDetail(await fetchInvoiceDetail(invoiceNo));
@@ -75,14 +85,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
   }
 
   return (
-    <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
-      <div>
-        <h1 className="text-[18px] font-semibold">Hóa đơn</h1>
-        <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-          Danh sách hóa đơn bán hàng đã phát hành. Không xóa. Giá là snapshot lúc chốt.
-        </p>
-      </div>
-
+    <>
       <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_160px_160px_170px]">
         <label className="relative">
           <MagnifyingGlass
@@ -274,7 +277,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
       </div>
 
       {detail ? <InvoiceDrawer invoice={detail} onClose={() => setDetail(null)} /> : null}
-    </section>
+    </>
   );
 }
 

@@ -5,7 +5,7 @@ export function SettingsPage() {
     <ModulePlaceholder
       moduleId="settings"
       title="Cài đặt"
-      summary="Cấu hình hệ thống chỉ dành cho quản trị. Mọi thay đổi nhạy cảm phải có audit log."
+      summary="Cấu hình hệ thống chỉ dành cho quản trị viên. Mọi thay đổi quan trọng đều được ghi vào nhật ký hệ thống."
     />
   );
 }

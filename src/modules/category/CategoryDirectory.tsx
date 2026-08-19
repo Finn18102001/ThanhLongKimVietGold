@@ -34,7 +34,7 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
         <div>
           <h1 className="text-[18px] font-semibold">Danh mục POS</h1>
           <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-            Nhóm SKU cho POS / kiểm kê. Không thay CRUD sản phẩm website.
+            Nhóm mã hàng dùng trên quầy và kiểm kê. Không thay đổi sản phẩm trên website.
           </p>
         </div>
         <button
@@ -64,7 +64,7 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
           {rows.length === 0 ? (
             <tr>
               <td colSpan={6} className="py-8 text-[var(--tlkv-muted)]">
-                Chưa có danh mục POS. Tạo mới để gán SKU.
+                Chưa có danh mục POS. Tạo mới để gán mã hàng.
               </td>
             </tr>
           ) : (

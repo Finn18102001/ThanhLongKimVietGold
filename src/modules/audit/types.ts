@@ -17,12 +17,12 @@ export type AuditListPage = {
 };
 
 export const AUDIT_MODULE_OPTIONS = [
-  { value: "", label: "Tất cả module" },
-  { value: "sale", label: "SALE" },
-  { value: "invoice", label: "INVOICE" },
-  { value: "return", label: "RETURN" },
-  { value: "stock_adjustment", label: "INVENTORY" },
-  { value: "stock_count", label: "STOCK COUNT" },
-  { value: "customer", label: "CUSTOMER" },
-  { value: "category", label: "CATEGORY" },
+  { value: "", label: "Tất cả phân hệ" },
+  { value: "sale", label: "Bán hàng" },
+  { value: "invoice", label: "Hóa đơn" },
+  { value: "return", label: "Trả hàng" },
+  { value: "stock_adjustment", label: "Kho hàng" },
+  { value: "stock_count", label: "Kiểm kê" },
+  { value: "customer", label: "Khách hàng" },
+  { value: "category", label: "Danh mục" },
 ] as const;

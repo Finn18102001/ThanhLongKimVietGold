@@ -96,3 +96,23 @@ export function mapCustomerDetail(payload: {
     history: (payload.history ?? []).map(mapHistory),
   };
 }
+
+type CustomerStatsJson = {
+  total_customers: number;
+  new_customers_30d: number;
+  total_spending_dong: number;
+  total_orders: number;
+  avg_order_dong: number;
+};
+
+export function mapCustomerDirectoryStats(
+  payload: CustomerStatsJson,
+): import("./types").CustomerDirectoryStats {
+  return {
+    totalCustomers: Number(payload.total_customers ?? 0),
+    newCustomers30d: Number(payload.new_customers_30d ?? 0),
+    totalSpendingDong: Number(payload.total_spending_dong ?? 0),
+    totalOrders: Number(payload.total_orders ?? 0),
+    avgOrderDong: Number(payload.avg_order_dong ?? 0),
+  };
+}

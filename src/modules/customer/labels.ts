@@ -1,11 +1,24 @@
 import type { CustomerGender, CustomerGroup } from "./types";
 
 export const GROUP_LABEL: Record<CustomerGroup, string> = {
-  RETAIL: "Khách lẻ",
+  RETAIL: "Khách mới",
   MEMBER: "Thành viên",
   LOYAL: "Thành viên thân thiết",
-  VIP: "VIP",
+  VIP: "Khách VIP",
 };
+
+export function groupBadgeClass(group: CustomerGroup): string {
+  switch (group) {
+    case "VIP":
+      return "bg-[var(--tlkv-violet-soft)] text-[var(--tlkv-violet)]";
+    case "LOYAL":
+      return "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]";
+    case "MEMBER":
+      return "bg-[var(--tlkv-blue-soft)] text-[var(--tlkv-blue)]";
+    default:
+      return "bg-[var(--tlkv-slate-soft)] text-[var(--tlkv-slate)]";
+  }
+}
 
 export const GENDER_LABEL: Record<CustomerGender, string> = {
   MALE: "Nam",

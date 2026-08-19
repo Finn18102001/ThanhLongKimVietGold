@@ -17,7 +17,7 @@ export function InventoryKpis({
 }) {
   return (
     <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <Kpi icon={Cube} label="Tổng số SKU" value={skuCount} tone="bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]" />
+      <Kpi icon={Cube} label="Tổng mã hàng" value={skuCount} tone="bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]" />
       <Kpi icon={Package} label="Tổng tồn kho" value={totalQty} tone="bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]" />
       <Kpi icon={Wallet} label="Giá trị tồn (bảng giá hiện tại)" value={valueLabel} tone="bg-[var(--tlkv-violet-soft)] text-[var(--tlkv-violet)]" />
       <Kpi icon={Warning} label={lowStockHint} value={lowStock} tone="bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]" />

@@ -105,11 +105,11 @@ export function CategoryFormModal({
       </div>
 
       <div className="mt-4">
-        <p className="text-[13px] font-semibold">Gán sản phẩm (SKU POS)</p>
+        <p className="text-[13px] font-semibold">Gán sản phẩm (mã hàng POS)</p>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Tìm SKU..."
+          placeholder="Tìm mã hàng..."
           className="mt-2 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
         />
         <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-[var(--tlkv-line)]">
@@ -137,7 +137,7 @@ export function CategoryFormModal({
             );
           })}
         </div>
-        <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Đã chọn {selected.length} SKU</p>
+        <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Đã chọn {selected.length} mã hàng</p>
       </div>
     </Modal>
   );

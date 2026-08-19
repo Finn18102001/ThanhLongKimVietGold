@@ -43,7 +43,8 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
           <div>
             <h1 className="text-[18px] font-semibold">Báo cáo doanh thu</h1>
             <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-              Chỉ lấy sale COMPLETED. Trừ hoàn trả COMPLETED. Backend là nguồn số liệu.
+              Chỉ tính các đơn bán đã hoàn tất. Trừ các phiếu trả hàng đã xử lý xong. Số liệu lấy
+              trực tiếp từ hệ thống, không nhập tay.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -81,29 +82,38 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
         {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
 
         <div className={`mt-4 grid grid-cols-1 gap-3 md:grid-cols-4 ${pending ? "opacity-60" : ""}`}>
-          <Kpi label="Doanh thu gross" value={formatDong(snapshot.totalRevenueDong)} />
+          <Kpi label="Doanh thu trước hoàn" value={formatDong(snapshot.totalRevenueDong)} />
           <Kpi label="Số hóa đơn" value={String(snapshot.invoiceCount)} />
           <Kpi label="TB / hóa đơn" value={formatDong(snapshot.avgInvoiceDong)} />
-          <Kpi label="Doanh thu net" value={formatDong(snapshot.netRevenueDong)} hint={`Hoàn: ${formatDong(snapshot.returnsTotalDong)}`} />
+          <Kpi
+            label="Doanh thu sau hoàn"
+            value={formatDong(snapshot.netRevenueDong)}
+            hint={`Đã trừ hoàn: ${formatDong(snapshot.returnsTotalDong)}`}
+          />
         </div>
       </section>
 
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
         <h2 className="text-[15px] font-semibold">Doanh thu theo ngày</h2>
-        <div className="mt-4 flex h-48 items-end gap-2">
+        <div className="mt-4 flex h-[192px] items-end gap-2">
           {snapshot.daily.length === 0 ? (
             <p className="text-[13px] text-[var(--tlkv-muted)]">Không có dữ liệu trong khoảng thời gian.</p>
           ) : (
-            snapshot.daily.map((row) => (
-              <div key={row.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t-md bg-[var(--tlkv-red-soft)]"
-                  style={{ height: `${Math.max(8, (row.revenueDong / maxRevenue) * 100)}%` }}
-                  title={formatDong(row.revenueDong)}
-                />
-                <span className="text-[10px] text-[var(--tlkv-muted)]">{row.date.slice(8, 10)}/{row.date.slice(5, 7)}</span>
-              </div>
-            ))
+            snapshot.daily.map((row) => {
+              const height = Math.max(8, Math.round((row.revenueDong / maxRevenue) * 160));
+              return (
+                <div key={row.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <div
+                    className="w-full max-w-10 rounded-t-md bg-[var(--tlkv-red)]"
+                    style={{ height }}
+                    title={formatDong(row.revenueDong)}
+                  />
+                  <span className="text-[10px] text-[var(--tlkv-muted)]">
+                    {row.date.slice(8, 10)}/{row.date.slice(5, 7)}
+                  </span>
+                </div>
+              );
+            })
           )}
         </div>
       </section>
@@ -113,7 +123,7 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
         <table className="mt-3 w-full text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
-              <th className="py-2 font-medium">SKU</th>
+              <th className="py-2 font-medium">Mã hàng</th>
               <th className="py-2 font-medium">Sản phẩm</th>
               <th className="py-2 font-medium">SL bán</th>
               <th className="py-2 text-right font-medium">Doanh thu</th>

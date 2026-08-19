@@ -49,7 +49,7 @@ export function PosPaymentSuccess({
           <CheckCircle size={64} weight="fill" className="text-[var(--tlkv-green)]" />
           <h2 className="mt-3 text-[20px] font-bold">Thanh toán thành công</h2>
           <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-            Hóa đơn đã phát hành. Sale hoàn tất. Kho đã xuất.
+            Hóa đơn đã phát hành. Đơn bán hoàn tất. Kho đã trừ.
           </p>
         </div>
 
@@ -65,7 +65,7 @@ export function PosPaymentSuccess({
         </dl>
 
         <div className="mt-4 rounded-lg bg-[var(--tlkv-green-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-green)]">
-          Hóa đơn nội bộ đã ISSUED. Giá là snapshot lúc chốt.
+          Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn.
         </div>
 
         <ol className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px]">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import { ledgerTypeLabel } from "../labels";
 import { adjustStock } from "../actions";
 import type { StockRow } from "../types";
 
@@ -22,14 +23,14 @@ export function AdjustForm({ rows }: { rows: StockRow[] }) {
         tone: "success",
         title: "Điều chỉnh kho thành công",
         reason: `Đã ${direction} ${Math.abs(quantity)} chiếc ${sku?.name ?? ""}.`,
-        detail: `Lý do: ${reason}. Loại sổ: ${quantity > 0 ? "STOCK_ADJUSTMENT_IN" : "STOCK_ADJUSTMENT_OUT"}. Tồn trước (hiển thị): ${sku?.quantity ?? 0} → sau: ${(sku?.quantity ?? 0) + quantity}.`,
+        detail: `Lý do: ${reason}. Loại biến động: ${ledgerTypeLabel(quantity > 0 ? "STOCK_ADJUSTMENT_IN" : "STOCK_ADJUSTMENT_OUT")}. Tồn trước (hiển thị): ${sku?.quantity ?? 0} → sau: ${(sku?.quantity ?? 0) + quantity}.`,
       });
     } catch (error) {
       setAlert({
         tone: "error",
         title: "Điều chỉnh kho thất bại",
         reason: error instanceof Error ? error.message : "Không ghi được điều chỉnh.",
-        detail: "Tồn kho không đổi. Không có dòng sổ cái.",
+        detail: "Tồn kho không đổi. Không có bản ghi biến động.",
       });
     } finally {
       setPending(false);
@@ -40,11 +41,11 @@ export function AdjustForm({ rows }: { rows: StockRow[] }) {
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
       <h1 className="text-[15px] font-semibold">Điều chỉnh kho</h1>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-        Không sửa tồn trực tiếp. Số dương = tăng, số âm = giảm. Bắt buộc có lý do.
+        Không được sửa số tồn trực tiếp. Nhập số dương để tăng, số âm để giảm. Phải ghi rõ lý do.
       </p>
       <form action={onSubmit} className="mt-4 grid max-w-xl grid-cols-1 gap-3">
         <label className="text-sm">
-          SKU
+          Mã hàng
           <select name="sku_id" required className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3">
             {rows.map((row) => (
               <option key={row.skuId} value={row.skuId}>

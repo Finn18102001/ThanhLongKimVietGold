@@ -17,7 +17,7 @@ export async function HistoryPage() {
             <thead className="text-[12px] text-[var(--tlkv-muted)]">
               <tr className="border-b border-[var(--tlkv-line)]">
                 <th className="py-2 pr-3 font-medium">Thời gian</th>
-                <th className="py-2 pr-3 font-medium">SKU</th>
+                <th className="py-2 pr-3 font-medium">Mã hàng</th>
                 <th className="py-2 pr-3 font-medium">Loại</th>
                 <th className="py-2 pr-3 font-medium">SL</th>
                 <th className="py-2 pr-3 font-medium">Trước → Sau</th>

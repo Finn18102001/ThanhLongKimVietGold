@@ -4,6 +4,15 @@ export const CUSTOMER_GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 export type CustomerGroup = (typeof CUSTOMER_GROUPS)[number];
 export type CustomerGender = (typeof CUSTOMER_GENDERS)[number];
 export type CustomerSort = "newest" | "name" | "total";
+export type CustomerActivityFilter = "" | "purchased" | "never";
+
+export type CustomerDirectoryStats = {
+  totalCustomers: number;
+  newCustomers30d: number;
+  totalSpendingDong: number;
+  totalOrders: number;
+  avgOrderDong: number;
+};
 
 export type CustomerRecord = {
   id: string;

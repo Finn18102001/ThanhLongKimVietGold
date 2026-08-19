@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   ChartLine,
-  FilePlus,
   Package,
   Sliders,
   Storefront,
@@ -23,12 +22,6 @@ const ACTIONS = [
     label: "Nhập hàng",
     icon: Package,
     className: "bg-[var(--tlkv-green)] text-white hover:opacity-90",
-  },
-  {
-    href: ROUTES.invoiceCreate,
-    label: "Tạo hóa đơn",
-    icon: FilePlus,
-    className: "bg-[var(--tlkv-violet)] text-white hover:opacity-90",
   },
   {
     href: ROUTES.customerCreate,

@@ -5,6 +5,9 @@
   --tlkv-red-hover: #a81624;
   --tlkv-red-soft: #fde8ea;
   --tlkv-red-bar: #f3b4ba;
+  /* Màu thương hiệu header website thanglongkimviet.vn */
+  --tlkv-brand-header-red: #9b0102;
+  --tlkv-brand-gold: rgb(240, 229, 87);
   --tlkv-bg: #f3f4f6;
   --tlkv-surface: #ffffff;
   --tlkv-text: #1f2937;
@@ -74,4 +77,123 @@ body {
     box-shadow: none !important;
     max-width: none !important;
   }
+}
+
+/* ----- Brand lockup (giống header website) ----- */
+.brand-lockup {
+  background: var(--tlkv-brand-header-red);
+}
+
+.brand-lockup__link {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.brand-lockup__link:hover {
+  opacity: 0.9;
+}
+
+.brand-lockup__mark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-lockup__img {
+  width: auto;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  transform: scale(1.18);
+  transform-origin: center center;
+}
+
+.brand-lockup__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3125rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.brand-lockup__line {
+  display: block;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tlkv-brand-gold);
+  -webkit-text-stroke: 0.5px #000;
+  paint-order: stroke fill;
+  white-space: nowrap;
+}
+
+.brand-lockup--sidebar {
+  padding: 1rem 1.125rem;
+  min-height: 96px;
+}
+
+.brand-lockup--sidebar .brand-lockup__mark {
+  width: 64px;
+  height: 72px;
+}
+
+.brand-lockup--sidebar .brand-lockup__line:first-child {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.brand-lockup--sidebar .brand-lockup__line--accent {
+  font-size: 20px;
+  letter-spacing: 0.12em;
+}
+
+.brand-lockup--login {
+  padding: 1.375rem 1.5rem;
+  justify-content: center;
+}
+
+.brand-lockup--login .brand-lockup__link {
+  justify-content: center;
+}
+
+.brand-lockup--login .brand-lockup__mark {
+  width: 68px;
+  height: 78px;
+}
+
+.brand-lockup--login .brand-lockup__line:first-child {
+  font-size: 15px;
+}
+
+.brand-lockup--login .brand-lockup__line--accent {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+
+.brand-lockup--invoice {
+  display: inline-flex;
+  padding: 0.75rem 1.125rem;
+  border-radius: 8px;
+}
+
+.brand-lockup--invoice .brand-lockup__mark {
+  width: 72px;
+  height: 82px;
+}
+
+.brand-lockup--invoice .brand-lockup__line:first-child {
+  font-size: 16px;
+}
+
+.brand-lockup--invoice .brand-lockup__line--accent {
+  font-size: 24px;
+  letter-spacing: 0.12em;
 }

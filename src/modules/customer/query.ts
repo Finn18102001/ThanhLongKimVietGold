@@ -1,10 +1,25 @@
 import { createServerSupabase } from "@/shared/supabase/server";
-import { mapCustomer, mapCustomerDetail, mapCustomerList } from "./map";
-import type { CustomerDetail, CustomerListPage, CustomerRecord, CustomerSort } from "./types";
+import { mapCustomer, mapCustomerDetail, mapCustomerDirectoryStats, mapCustomerList } from "./map";
+import type {
+  CustomerActivityFilter,
+  CustomerDetail,
+  CustomerDirectoryStats,
+  CustomerListPage,
+  CustomerRecord,
+  CustomerSort,
+} from "./types";
+
+export async function getCustomerDirectoryStats(): Promise<CustomerDirectoryStats> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_customer_directory_stats");
+  if (error) throw new Error(error.message);
+  return mapCustomerDirectoryStats(data as Parameters<typeof mapCustomerDirectoryStats>[0]);
+}
 
 export async function listCustomers(input?: {
   query?: string;
   group?: string | null;
+  activity?: CustomerActivityFilter;
   sort?: CustomerSort;
   limit?: number;
   offset?: number;
@@ -14,8 +29,9 @@ export async function listCustomers(input?: {
     p_query: input?.query ?? "",
     p_group: input?.group || null,
     p_sort: input?.sort ?? "newest",
-    p_limit: input?.limit ?? 8,
+    p_limit: input?.limit ?? 20,
     p_offset: input?.offset ?? 0,
+    p_activity: input?.activity || null,
   });
   if (error) throw new Error(error.message);
   return mapCustomerList(

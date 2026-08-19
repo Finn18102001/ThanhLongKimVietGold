@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { formatChi } from "./labels";
 import { PAYMENT_LABEL } from "./types";
 import type { InvoiceDetail } from "./types";
@@ -10,15 +11,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   return (
     <article className="invoice-print mx-auto max-w-[820px] bg-white p-8 text-[13px] text-[var(--tlkv-text)]">
       <div className="flex items-start justify-between gap-6">
-        <div className="flex items-start gap-3">
-          <Image src="/brand/logo-dragon.png" alt="" width={48} height={48} className="h-12 w-12 object-contain" />
-          <div>
-            <p className="text-[15px] font-bold tracking-[0.04em] text-[var(--tlkv-red)]">
-              THĂNG LONG KIM VIỆT
-            </p>
-            <p className="text-[12px] text-[var(--tlkv-muted)]">thanglongkimviet.vn</p>
-          </div>
-        </div>
+        <BrandLockup variant="invoice" />
         <div className="text-right">
           <h1 className="text-[22px] font-bold tracking-wide">HÓA ĐƠN BÁN HÀNG</h1>
           <p className="mt-1 text-[13px]">
@@ -123,7 +116,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       </div>
       <p className="mt-8 text-center text-[13px] italic">Cảm ơn quý khách và hẹn gặp lại!</p>
       <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
-        Lưu ý: Hóa đơn nội bộ này là snapshot lúc chốt. Giá không tính lại khi bảng vàng đổi.
+        Lưu ý: Giá trên hóa đơn này là giá tại thời điểm bán. Không tự cập nhật khi bảng giá vàng
+        thay đổi.
       </p>
     </article>
   );

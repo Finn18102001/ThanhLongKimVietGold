@@ -77,7 +77,8 @@ export function StockCountWorkspace({
           <div>
             <h1 className="text-[18px] font-semibold">Kiểm kê kho</h1>
             <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-              Snapshot tồn hệ thống → nhập thực tế → duyệt → điều chỉnh kho qua sổ cái.
+              Lấy số tồn trên hệ thống → đếm thực tế → duyệt → hệ thống tự điều chỉnh kho nếu có
+              chênh lệch.
             </p>
           </div>
           <button
@@ -115,7 +116,7 @@ export function StockCountWorkspace({
               </select>
             ) : (
               <div className="h-10 rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[13px] text-[var(--tlkv-muted)]">
-                Tất cả SKU đang active
+                Tất cả mã hàng đang kinh doanh
               </div>
             )}
             <button
@@ -266,7 +267,8 @@ export function StockCountWorkspace({
                           setAlert({
                             tone: "success",
                             title: "Đã duyệt kiểm kê",
-                            reason: "Chênh lệch đã ghi điều chỉnh kho và sổ cái.",
+                            reason:
+                              "Chênh lệch đã được cập nhật vào kho và ghi vào lịch sử biến động.",
                           });
                         } catch (err) {
                           setAlert({
@@ -299,8 +301,8 @@ export function StockCountWorkspace({
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead className="text-[12px] text-[var(--tlkv-muted)]">
                 <tr className="border-b border-[var(--tlkv-line)]">
-                  <th className="py-2 font-medium">SKU</th>
-                  <th className="py-2 font-medium">Tồn HT</th>
+                  <th className="py-2 font-medium">Mã hàng</th>
+                  <th className="py-2 font-medium">Tồn hệ thống</th>
                   <th className="py-2 font-medium">Thực tế</th>
                   <th className="py-2 font-medium">Lệch</th>
                   <th className="py-2 font-medium">Trạng thái</th>

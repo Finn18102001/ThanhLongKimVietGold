@@ -63,8 +63,8 @@ export function PosCheckoutDialog({
       <div className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-amber)]">
         <Warning size={18} className="mt-0.5 shrink-0" />
         <p>
-          Kiểm tra khách hàng và số lượng trước khi chốt. Kho chưa trừ. Backend sẽ kiểm tra lại tồn,
-          giá và quyền, rồi phát hành hóa đơn và xuất kho trong một giao dịch.
+          Kiểm tra khách hàng và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra
+          tồn kho, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước.
         </p>
       </div>
 

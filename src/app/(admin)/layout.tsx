@@ -1,10 +1,12 @@
-import { GoldPriceWidget } from "@/modules/pricing/GoldPriceWidget";
-import { getGoldPriceQuote } from "@/modules/pricing/query";
 import { AdminShell } from "@/shared/layout/AdminShell";
 import { formatViDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+
+type DashboardMeta = {
+  businessDate: string;
+};
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerSupabase();
@@ -15,7 +17,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/login");
   }
 
-  const { error: adminError } = await supabase.rpc("pos_get_dashboard");
+  const { data: dashboardData, error: adminError } = await supabase.rpc("pos_get_dashboard");
   if (adminError) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--tlkv-bg)] p-6">
@@ -29,12 +31,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     );
   }
 
-  const quote = await getGoldPriceQuote();
+  const businessDate = (dashboardData as DashboardMeta).businessDate;
 
   return (
     <AdminShell
-      businessDateLabel={formatViDate(quote.quotedAt.slice(0, 10))}
-      goldPriceSlot={<GoldPriceWidget quote={quote} />}
+      businessDateLabel={formatViDate(businessDate)}
       userEmail={user.email ?? ""}
       userName={user.email?.split("@")[0] ?? "Admin"}
     >

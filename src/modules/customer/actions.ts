@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/shared/supabase/server";
-import { mapCustomer, mapCustomerDetail, mapCustomerList } from "./map";
+import { mapCustomer, mapCustomerDetail, mapCustomerDirectoryStats, mapCustomerList } from "./map";
 import type {
+  CustomerActivityFilter,
   CustomerDetail,
+  CustomerDirectoryStats,
   CustomerInput,
   CustomerListPage,
   CustomerRecord,
@@ -33,6 +35,7 @@ function customerArgs(input: CustomerInput) {
 export async function searchCustomers(input: {
   query?: string;
   group?: string | null;
+  activity?: CustomerActivityFilter;
   sort?: CustomerSort;
   limit?: number;
   offset?: number;
@@ -42,8 +45,9 @@ export async function searchCustomers(input: {
     p_query: input.query ?? "",
     p_group: input.group || null,
     p_sort: input.sort ?? "newest",
-    p_limit: input.limit ?? 5,
+    p_limit: input.limit ?? 20,
     p_offset: input.offset ?? 0,
+    p_activity: input.activity || null,
   });
   if (error) throw new Error(error.message);
   return mapCustomerList(
@@ -54,6 +58,27 @@ export async function searchCustomers(input: {
       offset: number;
     },
   );
+}
+
+export async function fetchCustomerDirectoryStats(): Promise<CustomerDirectoryStats> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_customer_directory_stats");
+  if (error) throw new Error(error.message);
+  return mapCustomerDirectoryStats(data as Parameters<typeof mapCustomerDirectoryStats>[0]);
+}
+
+export async function exportCustomers(input: {
+  query?: string;
+  group?: string | null;
+  activity?: CustomerActivityFilter;
+  sort?: CustomerSort;
+}): Promise<CustomerListPage> {
+  const first = await searchCustomers({ ...input, limit: 1, offset: 0 });
+  const total = Math.min(first.total, 5000);
+  if (total === 0) {
+    return { items: [], total: 0, limit: 0, offset: 0 };
+  }
+  return searchCustomers({ ...input, limit: total, offset: 0 });
 }
 
 export async function fetchCustomer(id: string): Promise<CustomerDetail> {

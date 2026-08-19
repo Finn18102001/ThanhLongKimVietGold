@@ -1,4 +1,5 @@
 import { formatDong } from "@/shared/lib/money";
+import { addVnCalendarDays, formatVnIsoDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { formatTrendHint, trendFrom } from "./trend";
 import type { DashboardSnapshot } from "./types";
@@ -29,9 +30,9 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const soldTrend = trendFrom(rpc.kpis.soldToday, rpc.kpis.soldYesterday);
   const invoiceTrend = trendFrom(rpc.kpis.invoicesToday, rpc.kpis.invoicesYesterday);
 
-  const from = new Date(`${rpc.businessDate}T00:00:00+07:00`);
-  from.setDate(from.getDate() - 6);
-  const fromIso = from.toISOString();
+  const rangeStart = addVnCalendarDays(rpc.businessDate, -6);
+  const rangeEnd = rpc.businessDate;
+  const fromIso = `${rangeStart}T00:00:00+07:00`;
 
   const [{ data: sales }, { data: stockRows }, { data: invoices }] = await Promise.all([
     supabase
@@ -57,15 +58,14 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
   const seriesMap = new Map<string, number>();
   for (let i = 0; i < 7; i += 1) {
-    const d = new Date(from);
-    d.setDate(from.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = addVnCalendarDays(rangeStart, i);
     seriesMap.set(key, 0);
   }
   const bestMap = new Map<string, { name: string; quantitySold: number; revenueDong: number }>();
 
   for (const sale of sales ?? []) {
-    const day = String(sale.completed_at).slice(0, 10);
+    const day = formatVnIsoDate(String(sale.completed_at));
+    if (!seriesMap.has(day)) continue;
     seriesMap.set(day, (seriesMap.get(day) ?? 0) + Number(sale.total_dong));
     const items = (sale.pos_sale_items ?? []) as Array<{
       quantity: number;
@@ -132,7 +132,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       isoDate,
       label: `${isoDate.slice(8, 10)}/${isoDate.slice(5, 7)}`,
       amountDong,
-      isCurrent: isoDate === rpc.businessDate,
+      isCurrent: isoDate === rangeEnd,
     })),
     bestSellers: [...bestMap.values()]
       .sort((a, b) => b.quantitySold - a.quantitySold)

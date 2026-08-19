@@ -97,7 +97,7 @@ export function ReturnPage() {
           tone: "error",
           title: "Không hoàn tất trả hàng",
           reason: err instanceof Error ? err.message : "Lỗi",
-          detail: "Sale gốc không đổi. Có thể thử lại cùng phiên.",
+          detail: "Đơn bán gốc không thay đổi. Bạn có thể thử lại.",
         });
       }
     });
@@ -108,7 +108,8 @@ export function ReturnPage() {
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
         <h1 className="text-[18px] font-semibold">Trả hàng</h1>
         <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-          Tìm hóa đơn → chọn dòng trả → hoàn tiền. Sale gốc giữ nguyên, kho ghi CUSTOMER_RETURN.
+          Tìm hóa đơn, chọn sản phẩm trả và hoàn tiền. Đơn bán gốc vẫn giữ nguyên; hàng trả được
+          nhập lại kho.
         </p>
         <div className="mt-4 flex gap-2">
           <label className="relative flex-1">
@@ -245,7 +246,7 @@ export function ReturnPage() {
               className="mt-3 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px]"
             />
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-[13px] text-[var(--tlkv-muted)]">Tổng hoàn (snapshot giá bán)</p>
+              <p className="text-[13px] text-[var(--tlkv-muted)]">Tổng hoàn (theo giá lúc bán)</p>
               <p className="text-[22px] font-bold text-[var(--tlkv-red)]">{formatDong(returnTotal)}</p>
             </div>
             <button

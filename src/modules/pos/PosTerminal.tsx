@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Barcode, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
 import type { CustomerRecord } from "@/modules/customer/types";
@@ -26,6 +26,7 @@ export function PosTerminal({
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
@@ -45,6 +46,14 @@ export function PosTerminal({
     paymentMethod: "CASH" | "TRANSFER" | "CARD";
   } | null>(null);
   const returnToReview = useRef(false);
+
+  useEffect(() => {
+    const q = searchParams.get("q")?.trim();
+    if (!q) return;
+    setQuery(q);
+    setPageIndex(0);
+    searchRef.current?.focus();
+  }, [searchParams]);
 
   const groups = useMemo(() => {
     const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
@@ -130,7 +139,7 @@ export function PosTerminal({
       setAlert({
         tone: "error",
         title: "Không thêm được sản phẩm",
-        reason: `SKU ${item.sku} chưa gắn bảng giá, không thể bán.`,
+        reason: `Mã hàng ${item.sku} chưa có giá bán, không thể thêm vào đơn.`,
       });
       return;
     }
@@ -246,7 +255,8 @@ export function PosTerminal({
         tone: "error",
         title: "Không hoàn tất được giao dịch",
         reason: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
-        detail: "Sale chưa COMPLETED. Hóa đơn chưa ISSUED. Kho chưa trừ. Có thể thử lại cùng đơn này.",
+        detail:
+          "Đơn chưa hoàn tất. Hóa đơn chưa phát hành. Kho chưa trừ. Bạn có thể thử lại với cùng đơn này.",
       });
     } finally {
       setPending(false);
@@ -267,7 +277,7 @@ export function PosTerminal({
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tìm sản phẩm (mã, tên, SKU...)"
+              placeholder="Tìm sản phẩm (mã, tên...)"
               className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-white pr-14 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
             <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded bg-[var(--tlkv-bg)] px-1.5 text-[10px] text-[var(--tlkv-muted)]">

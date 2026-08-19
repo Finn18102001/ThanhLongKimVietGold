@@ -38,7 +38,8 @@ export function AuditDirectory({ initial }: { initial: AuditListPage }) {
       <div>
         <h1 className="text-[18px] font-semibold">Nhật ký hệ thống</h1>
         <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-          Append-only. Ghi nhận sale, return, điều chỉnh kho, kiểm kê, hóa đơn, danh mục.
+          Ghi lại mọi thao tác quan trọng: bán hàng, trả hàng, điều chỉnh kho, kiểm kê, hóa đơn,
+          danh mục. Không thể sửa hay xóa bản ghi.
         </p>
       </div>
 
@@ -49,7 +50,7 @@ export function AuditDirectory({ initial }: { initial: AuditListPage }) {
             setQuery(event.target.value);
             refresh({ query: event.target.value, offset: 0 });
           }}
-          placeholder="Tìm action, user, module..."
+          placeholder="Tìm thao tác, người dùng, phân hệ..."
           className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
         />
         <select
@@ -91,9 +92,9 @@ export function AuditDirectory({ initial }: { initial: AuditListPage }) {
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 font-medium">Thời gian</th>
-              <th className="py-2 font-medium">User</th>
-              <th className="py-2 font-medium">Module</th>
-              <th className="py-2 font-medium">Action</th>
+              <th className="py-2 font-medium">Người thực hiện</th>
+              <th className="py-2 font-medium">Phân hệ</th>
+              <th className="py-2 font-medium">Thao tác</th>
               <th className="py-2 font-medium">Tham chiếu</th>
               <th className="py-2 font-medium">Thao tác</th>
             </tr>
@@ -102,7 +103,7 @@ export function AuditDirectory({ initial }: { initial: AuditListPage }) {
             {page.items.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-[var(--tlkv-muted)]">
-                  Không có bản ghi audit.
+                  Không có bản ghi nhật ký.
                 </td>
               </tr>
             ) : (

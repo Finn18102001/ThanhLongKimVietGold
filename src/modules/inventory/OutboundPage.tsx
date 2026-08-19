@@ -6,9 +6,9 @@ export function OutboundPage() {
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
       <h1 className="text-[15px] font-semibold">Xuất hàng</h1>
       <p className="mt-2 text-[13.5px] leading-relaxed">
-        Xuất kho bán hàng chỉ xảy ra khi hóa đơn phát hành thành công và sale hoàn tất
-        trong cùng một giao dịch backend. Không trừ kho lúc thêm giỏ, không trừ kho chỉ vì
-        thanh toán.
+        Xuất kho bán hàng chỉ xảy ra khi hóa đơn phát hành thành công và đơn bán hoàn tất — hai
+        việc này diễn ra cùng lúc trong hệ thống. Thêm vào giỏ hoặc thanh toán riêng lẻ chưa làm
+        giảm tồn kho.
       </p>
       <p className="mt-2 text-[13px] text-[var(--tlkv-muted)]">
         Xuất kho không gắn bán hàng (hỏng, mất) dùng Điều chỉnh kho với số âm và lý do bắt buộc.

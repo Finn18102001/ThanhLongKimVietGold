@@ -5,7 +5,7 @@ export function ProductPage() {
     <ModulePlaceholder
       moduleId="product"
       title="Sản phẩm"
-      summary="Catalog / SKU tách khỏi tồn kho. POS lấy giá từ bảng giá hiện tại rồi snapshot vào dòng bán."
+      summary="Danh mục sản phẩm và mã hàng tách riêng với tồn kho. Giá trên quầy lấy từ bảng giá hiện tại và được ghi cố định vào từng dòng khi bán."
     />
   );
 }

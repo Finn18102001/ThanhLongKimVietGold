@@ -13,8 +13,8 @@ export async function DashboardPage() {
     <div className="flex flex-col gap-4">
       {snapshot.isPreview ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-[13px] text-amber-800">
-          Dashboard đang hiển thị dữ liệu minh họa. Số liệu thật chỉ được lấy từ
-          giao dịch đã hoàn tất sau khi module Reporting / POS / Inventory kết nối.
+          Bảng điều khiển đang hiển thị số liệu minh họa. Số thật sẽ hiện khi hệ thống đã có đơn
+          bán hoàn tất.
         </p>
       ) : null}
 
