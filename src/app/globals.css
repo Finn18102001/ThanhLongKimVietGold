@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --tlkv-red: #c41a2b;
+  --tlkv-red-hover: #a81624;
+  --tlkv-red-soft: #fde8ea;
+  --tlkv-red-bar: #f3b4ba;
+  --tlkv-bg: #f3f4f6;
+  --tlkv-surface: #ffffff;
+  --tlkv-text: #1f2937;
+  --tlkv-muted: #6b7280;
+  --tlkv-faint: #9ca3af;
+  --tlkv-line: #e5e7eb;
+  --tlkv-green: #16a34a;
+  --tlkv-green-soft: #dcfce7;
+  --tlkv-amber: #d97706;
+  --tlkv-amber-soft: #ffedd5;
+  --tlkv-violet: #7c3aed;
+  --tlkv-violet-soft: #ede9fe;
+  --tlkv-blue: #2563eb;
+  --tlkv-blue-soft: #dbeafe;
+  --tlkv-slate: #475569;
+  --tlkv-slate-soft: #e2e8f0;
+  --tlkv-radius: 12px;
+  --tlkv-shadow: 0 1px 2px rgb(31 41 55 / 0.05), 0 1px 3px rgb(31 41 55 / 0.04);
+  --background: var(--tlkv-bg);
+  --foreground: var(--tlkv-text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-tlkv-red: var(--tlkv-red);
+  --color-tlkv-red-soft: var(--tlkv-red-soft);
+  --color-tlkv-bg: var(--tlkv-bg);
+  --color-tlkv-line: var(--tlkv-line);
+  --font-sans: var(--font-be-vietnam);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--tlkv-bg);
+  color: var(--tlkv-text);
+  font-family: var(--font-be-vietnam), system-ui, sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  header,
+  aside,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .invoice-print {
+    box-shadow: none !important;
+    max-width: none !important;
+  }
+}

@@ -1,0 +1,114 @@
+import { formatDong } from "@/shared/lib/money";
+import type { DashboardSnapshot } from "./types";
+
+/**
+ * Preview snapshot for Dashboard UI only.
+ * Not a source of truth. Replace via reporting query from COMPLETED sales.
+ */
+export const PREVIEW_DASHBOARD: DashboardSnapshot = {
+  isPreview: true,
+  businessDate: "2026-08-15",
+  kpis: [
+    {
+      id: "revenue",
+      label: "Doanh thu hôm nay",
+      valueLabel: formatDong(128_450_000),
+      trendPercent: 12.5,
+      trendDirection: "up",
+      hint: "so với hôm qua",
+    },
+    {
+      id: "sold",
+      label: "Số sản phẩm đã bán",
+      valueLabel: "176",
+      trendPercent: 8.3,
+      trendDirection: "up",
+      hint: "so với hôm qua",
+    },
+    {
+      id: "stock",
+      label: "Tồn kho",
+      valueLabel: "1.245",
+      trendPercent: null,
+      trendDirection: "flat",
+      hint: "không đổi",
+    },
+    {
+      id: "invoices",
+      label: "Số hóa đơn",
+      valueLabel: "52",
+      trendPercent: 15.2,
+      trendDirection: "up",
+      hint: "so với hôm qua",
+    },
+  ],
+  revenueSeries: [
+    { isoDate: "2026-08-09", label: "09/08", amountDong: 72_000_000, isCurrent: false },
+    { isoDate: "2026-08-10", label: "10/08", amountDong: 88_000_000, isCurrent: false },
+    { isoDate: "2026-08-11", label: "11/08", amountDong: 64_000_000, isCurrent: false },
+    { isoDate: "2026-08-12", label: "12/08", amountDong: 96_000_000, isCurrent: false },
+    { isoDate: "2026-08-13", label: "13/08", amountDong: 81_000_000, isCurrent: false },
+    { isoDate: "2026-08-14", label: "14/08", amountDong: 110_000_000, isCurrent: false },
+    { isoDate: "2026-08-15", label: "15/08", amountDong: 128_450_000, isCurrent: true },
+  ],
+  bestSellers: [
+    { rank: 1, name: "Nhẫn tròn trơn 9999", quantitySold: 24, revenueDong: 86_400_000 },
+    { rank: 2, name: "Dây chuyền vàng 18K", quantitySold: 18, revenueDong: 54_000_000 },
+    { rank: 3, name: "Nhẫn kim tiền 1 chỉ", quantitySold: 15, revenueDong: 48_750_000 },
+    { rank: 4, name: "Bông tai vàng 24K", quantitySold: 12, revenueDong: 22_800_000 },
+    { rank: 5, name: "Lắc tay Rồng Thăng Long", quantitySold: 9, revenueDong: 31_500_000 },
+  ],
+  stockAlerts: [
+    { productName: "Nhẫn tròn 0.5 chỉ", sku: "NT-05", quantity: 2, level: "low" },
+    { productName: "Dây chuyền Kim Gia Bảo", sku: "KGB-DC", quantity: 1, level: "low" },
+    { productName: "Bông lúa vàng 0.1 chỉ", sku: "BLV-01", quantity: 3, level: "low" },
+    { productName: "Nhẫn tròn Kim Việt 2 chỉ", sku: "NTKV-2", quantity: 2, level: "low" },
+  ],
+  recentInvoices: [
+    {
+      id: "HD000125",
+      customerName: "Nguyễn Thị Hoa",
+      totalDong: 18_500_000,
+      paymentMethod: "Tiền mặt",
+      issuedAt: "2026-08-15T16:42:00+07:00",
+      staffName: "Trần Minh Tuấn",
+      status: "COMPLETED",
+    },
+    {
+      id: "HD000124",
+      customerName: "Phạm Văn Đức",
+      totalDong: 12_800_000,
+      paymentMethod: "Chuyển khoản",
+      issuedAt: "2026-08-15T15:18:00+07:00",
+      staffName: "Lê Thu Hà",
+      status: "COMPLETED",
+    },
+    {
+      id: "HD000123",
+      customerName: "Võ Thanh Tâm",
+      totalDong: 9_600_000,
+      paymentMethod: "Thẻ",
+      issuedAt: "2026-08-15T14:05:00+07:00",
+      staffName: "Trần Minh Tuấn",
+      status: "COMPLETED",
+    },
+    {
+      id: "HD000122",
+      customerName: "Đặng Quốc Huy",
+      totalDong: 22_400_000,
+      paymentMethod: "Tiền mặt",
+      issuedAt: "2026-08-15T11:51:00+07:00",
+      staffName: "Ngô Mai Anh",
+      status: "COMPLETED",
+    },
+    {
+      id: "HD000121",
+      customerName: "Bùi Thị Lan",
+      totalDong: 8_200_000,
+      paymentMethod: "Chuyển khoản",
+      issuedAt: "2026-08-15T10:12:00+07:00",
+      staffName: "Lê Thu Hà",
+      status: "COMPLETED",
+    },
+  ],
+};
