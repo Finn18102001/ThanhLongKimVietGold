@@ -1,0 +1,31 @@
+---
+description: Inventory ledger, POS completion, money, and invoice integrity rules.
+globs: src/modules/{pos,inventory,invoice,purchase,reporting,dashboard,pricing}/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TLKV — Inventory, POS, money
+
+## Inventory
+
+Never `UPDATE stock = n` from UI. Flow: current → adjustment + reason → ledger row (type, qty, before, after, who, when, reference).
+
+Minimum types: `PURCHASE_RECEIVED`, `SALE`, `CUSTOMER_RETURN`, `SUPPLIER_RETURN`, `STOCK_ADJUSTMENT_IN`, `STOCK_ADJUSTMENT_OUT`.
+
+Purchase increases stock only when status is `RECEIVED`, by **received** qty not expected qty. Stock count creates an adjustment after authorized confirm. Returns append a new transaction; they do not rewrite the original sale.
+
+If current stock disagrees with ledger, that is a data-integrity incident. Do not patch current stock to hide it.
+
+## POS
+
+Cart/create-order does **not** reduce stock. Stock out only after invoice issued successfully AND sale completed, in one backend transaction.
+
+Backend re-checks `current_stock >= qty` at commit (never trust UI stock). Price comes from the current price table; completed sales store a snapshot (`unit_price`, `qty`, `total`). Historical invoices are never repriced.
+
+Idempotency is required for payment, invoice issue, sale complete, inventory out, return.
+
+## Money / time / UI state
+
+Integer dong only. Server timestamps for `created_at` / `completed_at` / `invoice_issued_at` / ledger time.
+
+Do not show `Hoàn thành` unless the backend status is actually completed. Preview fixtures must be labeled as preview.

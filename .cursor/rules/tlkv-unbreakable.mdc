@@ -1,0 +1,31 @@
+---
+description: Unbreakable POS/inventory contracts for Thăng Long Kim Việt. Always apply.
+alwaysApply: true
+---
+
+# TLKV — Unbreakable rules
+
+Full contract: `docs/SYSTEM_DEVELOPMENT_RULES.md`. If a request conflicts with that file, STOP and confirm before coding.
+
+STRICT MODE is ON: module isolation, business rules, data integrity, audit, API contract, DB integrity, security, transaction, concurrency, idempotency.
+
+## 12 rules that must not be broken
+
+1. Do not edit unrelated modules.
+2. New module/feature gets its own boundary and its own router.
+3. Never mutate stock directly. Every change needs a business event + inventory transaction (what/why/when/who/reference/before/after).
+4. Backend is the source of truth. Do not trust frontend `stock`, `final_price`, `total_price`, `user_role`, invoice/completed status, ledger before/after, or revenue.
+5. Do not physically delete completed transactions (invoice, sale, ledger, payment, audit).
+6. No partial money/stock outcomes (invoice success without stock out, stock out without sale, duplicate invoice for one payment).
+7. No floating point for money. Use integer VND (dong) or DECIMAL/NUMERIC.
+8. Server time is the source for business timestamps. Client time is display-only.
+9. Do not invent unconfirmed business rules.
+10. Do not refactor outside the current task scope.
+11. No breaking API/DB contracts without migration and impact review.
+12. Money, stock, and sales must be traceable end-to-end.
+
+## Before writing code
+
+Answer: module, router, business rule, allowed files, forbidden files, dependency, API contract, DB impact, permission, transaction boundary, audit, concurrency, idempotency.
+
+UI running is not Definition of Done.

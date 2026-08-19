@@ -1,0 +1,21 @@
+---
+description: TLKV admin UI language. Match the provided dashboard mock. Use taste-skill without turning this into a marketing landing page.
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# TLKV — Admin UI
+
+Reading this as: jewelry POS admin for in-store operators, matching the Thăng Long Kim Việt dashboard mock (light canvas, vermillion dragon accent), dense operational language, Tailwind + Phosphor.
+
+Dials for this product (override taste-skill landing defaults): `DESIGN_VARIANCE 3` / `MOTION_INTENSITY 2` / `VISUAL_DENSITY 8`.
+
+- Light theme only. Do not auto-invert to dark.
+- One accent: vermillion `--tlkv-red`. Status colors (green/amber/blue/violet) are semantic, not extra brand accents.
+- Font: Be Vietnam Pro (Vietnamese subset). No Inter. No serif.
+- Icons: `@phosphor-icons/react` only, `weight="regular"` / `weight="bold"` for active nav.
+- Match the mock layout: 264px sidebar, KPI row, 3-column middle, invoices + quick actions.
+- Cards exist because the mock uses them; do not “art-direct” this into a bento/hero landing page.
+- UI must reflect business state (loading / empty / error / success). Preview data must be labeled.
+- Quick actions navigate through `src/shared/navigation/routes.ts` only. Do not import another module’s internals.
+- Skills: `.cursor/skills/design-taste-frontend` and `.cursor/skills/image-to-code` for visual work. The user mock is the visual source of truth.

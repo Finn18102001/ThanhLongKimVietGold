@@ -1,0 +1,29 @@
+---
+description: Module isolation, routers, and allowed-file scope for TLKV admin.
+alwaysApply: true
+---
+
+# TLKV — Module isolation
+
+Each feature is a separate module. Do not edit unrelated files. Each module has its own router.
+
+```text
+src/modules/<module>/{router,components,query,types}
+src/app/(admin)/<route>/page.tsx   → thin route only, imports that module
+```
+
+Core modules: `product`, `inventory`, `pos`, `customer`, `invoice`, `purchase`, `stock-out`, `inventory-ledger`, `stock-count`, `reporting`, `search`, `audit`.
+
+Dashboard may **read** reporting/inventory/invoice contracts. It must not complete sales, mutate stock, or issue invoices.
+
+## Allowed vs forbidden
+
+When implementing module A, only touch `src/modules/A/**` and `src/app/(admin)/<A-route>/**`.
+
+Forbidden without explicit approval: other modules, other routers, global config that only serves one module, unrelated UI, unrelated DB schema.
+
+Shared code (`src/shared/**`) is only for generic utilities: money/date format, design system, logger, error types, app navigation contract. Never put inventory/POS/invoice business logic in shared.
+
+Cross-module calls go through a published query/service contract, never through another module's database internals.
+
+If another module must change: stop, list files/contracts/impact/tests, then wait for confirmation.
