@@ -345,7 +345,9 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--st
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(4),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) thead th:nth-child(5) {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif !important;
   font-size: max(13px, calc(1.18rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add))) !important;
+  font-weight: 720 !important;
   white-space: nowrap !important;
 }
 
@@ -356,7 +358,9 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked thead th:nth-child(3),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked thead th:nth-child(4) {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif !important;
   font-size: max(13px, calc(1.18rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add))) !important;
+  font-weight: 720 !important;
   white-space: nowrap !important;
 }
 
@@ -366,30 +370,33 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(4),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5) {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif !important;
   font-size: max(
     17.1px,
     calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
-  font-weight: 800 !important;
+  font-weight: 720 !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(3),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(4) {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif !important;
   font-size: max(
     17.1px,
     calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
-  font-weight: 800 !important;
+  font-weight: 720 !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif !important;
   font-size: max(
     17.1px,
     calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
   line-height: 1 !important;
   vertical-align: middle;
-  font-weight: 800 !important;
+  font-weight: 720 !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .gold-price-trend {
