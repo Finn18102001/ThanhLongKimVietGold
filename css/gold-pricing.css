@@ -400,14 +400,14 @@
 }
 
 .tlkv-gold-dashboard td.price .gold-price-trend {
-  font-size: 0.8125rem;
+  font-size: 0.853125rem;
   line-height: 1;
   margin-left: 0.2rem;
 }
 
 .tlkv-gold-dashboard td.price .gold-price-trend svg {
-  width: 14px;
-  height: 14px;
+  width: 14.7px;
+  height: 14.7px;
 }
 
 .tlkv-gold-dashboard .gold-table-content.gold-table-extended tbody td.gold-brand-cell {
@@ -663,13 +663,13 @@
   }
 
   td.price .gold-price-trend {
-    font-size: 0.625rem !important;
+    font-size: 0.65625rem !important;
     margin-left: 0.1rem !important;
   }
 
   td.price .gold-price-trend svg {
-    width: 11px !important;
-    height: 11px !important;
+    width: 11.55px !important;
+    height: 11.55px !important;
   }
 }
 
@@ -687,13 +687,13 @@
   }
 
   td.price .gold-price-trend {
-    font-size: 0.6875rem !important;
+    font-size: 0.721875rem !important;
     margin-left: 0.12rem !important;
   }
 
   td.price .gold-price-trend svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 12.6px !important;
+    height: 12.6px !important;
   }
 }
 
@@ -719,12 +719,12 @@
   }
 
   .tlkv-gold-dashboard td.price .gold-price-trend {
-    font-size: 0.875rem;
+    font-size: 0.91875rem;
   }
 
   .tlkv-gold-dashboard td.price .gold-price-trend svg {
-    width: 15px;
-    height: 15px;
+    width: 15.75px;
+    height: 15.75px;
   }
 }
 
@@ -1074,12 +1074,12 @@
   .tlkv-gold-dashboard td.price .gold-price-trend {
     flex-shrink: 0 !important;
     margin-left: 0 !important;
-    font-size: 10px !important;
+    font-size: 10.5px !important;
     line-height: 1 !important;
   }
   .tlkv-gold-dashboard td.price .gold-price-trend svg {
-    width: 11px !important;
-    height: 11px !important;
+    width: 11.55px !important;
+    height: 11.55px !important;
   }
 
   .tlkv-gold-dashboard .gold-brand-cell {

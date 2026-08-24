@@ -6,15 +6,15 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
 @media (prefers-color-scheme: dark) {
   html, body {
     color-scheme: only light !important;
-    background-color: #fdfcf8 !important;
-    color: #1a1a1a !important;
+    background-color: rgb(167, 1, 2) !important;
+    color: #ffffff !important;
     -webkit-filter: none !important;
     filter: none !important;
   }
 }
 
 html.tlkv-tv-model-page {
-  --tlkv-tv-greeting-board-bg: rgba(180, 0, 0);
+  --tlkv-tv-greeting-board-bg: rgb(167, 1, 2);
   --tlkv-tv-label-yellow: #fff278;
   /* Cột bảng TV (colgroup): Hàm lượng +1% so với lưới gốc 18/25/7/25/25 → 8% cột 3 */
   --tlkv-tv-col-brand-pct: 17.5%;
@@ -32,9 +32,9 @@ html.tlkv-tv-model-page {
   --tlkv-tv-cell-lh: 1;
   --tlkv-tv-fs-body-bump: 4.5px;
   --tlkv-tv-fs-price-bump: 5.5px;
-  /* +2px toàn bảng / ticker; +4px thêm cho ô MUA/BÁN (trên nền +2px) */
+  /* +2px toàn bảng / ticker; +3.8px thêm cho ô MUA/BÁN (đã −5% từ 4px) */
   --tlkv-tv-fs-table-add: 2px;
-  --tlkv-tv-fs-price-add: 4px;
+  --tlkv-tv-fs-price-add: 3.8px;
   /* Padding ô — giảm ~1–2px top/bottom so với bản trước, vẫn đồng bộ toàn bảng */
   --tlkv-tv-table-pad-x: clamp(3px, 0.38vw, 8px);
   --tlkv-tv-table-pad-y: clamp(1px, 0.14vh, 3px);
@@ -367,8 +367,8 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table tbody td {
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(4),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5) {
   font-size: max(
-    18px,
-    calc(1.36rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+    17.1px,
+    calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
   font-weight: 800 !important;
 }
@@ -376,16 +376,16 @@ body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td:nth-child(5) {
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(3),
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(4) {
   font-size: max(
-    18px,
-    calc(1.36rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+    17.1px,
+    calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
   font-weight: 800 !important;
 }
 
 body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
   font-size: max(
-    18px,
-    calc(1.36rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+    17.1px,
+    calc(1.292rem * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
   ) !important;
   line-height: 1 !important;
   vertical-align: middle;
@@ -608,8 +608,8 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table:not(.tv-gold-table--stacked) td:nth-child(5),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price {
     font-size: max(
-      16px,
-      calc(14px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+      15.2px,
+      calc(13.3px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
     ) !important;
   }
 
@@ -620,8 +620,8 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
 
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
     font-size: max(
-      16px,
-      calc(14px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+      15.2px,
+      calc(13.3px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
     ) !important;
   }
 
@@ -637,8 +637,8 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(3),
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table.tv-gold-table--stacked tbody td:nth-child(4) {
     font-size: max(
-      16px,
-      calc(14px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+      15.2px,
+      calc(13.3px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
     ) !important;
   }
 }
@@ -656,8 +656,8 @@ body.tlkv-tv-model-page .tlkv-tv-marquee__logo {
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price,
   body.tlkv-tv-model-page .tv-inline-section .tv-gold-table td.price .tv-price-text {
     font-size: max(
-      15px,
-      calc(13px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
+      14.25px,
+      calc(12.35px * 1.03 - 10px + var(--tlkv-tv-fs-body-bump) + var(--tlkv-tv-fs-table-add) + var(--tlkv-tv-fs-price-add))
     ) !important;
   }
 }

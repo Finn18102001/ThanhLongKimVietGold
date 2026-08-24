@@ -642,17 +642,24 @@
     svg.setAttribute("xmlns", __GOLD_TREND_SVG_NS);
     svg.setAttribute("aria-hidden", "true");
     svg.setAttribute("focusable", "false");
+    const d = isUp
+      ? "M10 2L10 18M10 2L16 9M10 2L4 9"
+      : "M10 18L10 2M10 18L16 11M10 18L4 11";
+    /* Viền trắng siêu mỏng phía sau (chỉ TV SVG) */
+    const outline = document.createElementNS(__GOLD_TREND_SVG_NS, "path");
+    outline.setAttribute("d", d);
+    outline.setAttribute("stroke", "#ffffff");
+    outline.setAttribute("stroke-width", "6.15");
+    outline.setAttribute("stroke-linecap", "round");
+    outline.setAttribute("stroke-linejoin", "round");
+    outline.setAttribute("opacity", "0.92");
     const path = document.createElementNS(__GOLD_TREND_SVG_NS, "path");
-    if (isUp) {
-      path.setAttribute("d", "M10 2L10 18M10 2L16 9M10 2L4 9");
-      path.setAttribute("stroke", "#00E676");
-    } else {
-      path.setAttribute("d", "M10 18L10 2M10 18L16 11M10 18L4 11");
-      path.setAttribute("stroke", "#FF1744");
-    }
+    path.setAttribute("d", d);
+    path.setAttribute("stroke", isUp ? "#00E676" : "#FF1744");
     path.setAttribute("stroke-width", "5");
     path.setAttribute("stroke-linecap", "round");
     path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(outline);
     svg.appendChild(path);
     return svg;
   }
@@ -1164,7 +1171,7 @@
   const META_DEFAULTS = {
     headerTime: "10h00",
     footerNote: "Cập nhật lúc 10:00 09/04/2026",
-    unitLine: "ĐVT = Đồng/chỉ",
+    unitLine: "ĐVT = Nghìn đồng/chỉ",
     brandItalic: "THĂNG LONG KIM VIỆT",
   };
 
