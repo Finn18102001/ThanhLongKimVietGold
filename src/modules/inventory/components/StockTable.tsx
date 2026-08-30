@@ -103,14 +103,15 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
         </select>
       </div>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-[13px]">
+        <table className="w-full min-w-[1020px] text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Sản phẩm</th>
               <th className="py-2 pr-3 font-medium">Mã hàng</th>
               <th className="py-2 pr-3 font-medium">Danh mục</th>
-              <th className="py-2 pr-3 font-medium">Tồn kho</th>
-              <th className="py-2 pr-3 font-medium">Đơn vị</th>
+              <th className="py-2 pr-3 font-medium">SL tồn</th>
+              <th className="py-2 pr-3 font-medium">TL / chiếc</th>
+              <th className="py-2 pr-3 font-medium">Tổng TL</th>
               <th className="py-2 pr-3 font-medium">Giá hiện tại</th>
               <th className="py-2 pr-3 font-medium">Giá trị tồn</th>
               <th className="py-2 font-medium">Trạng thái</th>
@@ -119,7 +120,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td className="py-6 text-[var(--tlkv-muted)]" colSpan={8}>
+                <td className="py-6 text-[var(--tlkv-muted)]" colSpan={9}>
                   Không có mã hàng khớp bộ lọc.
                 </td>
               </tr>
@@ -132,7 +133,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                   <tr key={row.skuId} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                     <td className="py-3 pr-3">
                       <div className="flex items-center gap-3">
-                        <span className="relative h-11 w-11 overflow-hidden rounded-lg bg-[#f8f1e7]">
+                        <span className="relative h-11 w-11 overflow-hidden rounded-lg bg-[var(--tlkv-bg)]">
                           {row.imageUrl ? (
                             <Image
                               src={row.imageUrl}
@@ -143,28 +144,31 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                               className="object-cover"
                             />
                           ) : (
-                            <span className="flex h-full w-full items-center justify-center text-[12px] font-semibold">
+                            <span className="flex h-full w-full items-center justify-center text-[12px] font-semibold text-[var(--tlkv-muted)]">
                               {row.name.slice(0, 1)}
                             </span>
                           )}
                         </span>
-                        <span>
-                          <span className="block font-medium">{row.name}</span>
-                          <span className="text-[12px] text-[var(--tlkv-muted)]">
-                            {row.weightChi} chỉ
-                          </span>
-                        </span>
+                        <span className="block font-medium">{row.name}</span>
                       </div>
                     </td>
                     <td className="py-3 pr-3 font-semibold text-[var(--tlkv-red)]">{row.sku}</td>
                     <td className="py-3 pr-3">{row.category}</td>
-                    <td className="py-3 pr-3 font-medium">{row.quantity}</td>
-                    <td className="py-3 pr-3">Chiếc</td>
+                    <td className="py-3 pr-3 font-medium tabular-nums">{row.quantity}</td>
+                    <td className="py-3 pr-3 tabular-nums text-[var(--tlkv-muted)]">
+                      {row.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ
+                    </td>
+                    <td className="py-3 pr-3 font-semibold tabular-nums">
+                      {(row.quantity * row.weightChi).toLocaleString("vi-VN", {
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      chỉ
+                    </td>
                     <td className="py-3 pr-3">
                       {row.unitPriceDong === null ? "Chưa gắn bảng giá" : formatDong(row.unitPriceDong)}
                     </td>
                     <td className="py-3 pr-3 font-medium">
-                      {value === null ? "—" : formatDong(value)}
+                      {value === null ? "-" : formatDong(value)}
                     </td>
                     <td className="py-3">
                       <StatusBadge status={status} />

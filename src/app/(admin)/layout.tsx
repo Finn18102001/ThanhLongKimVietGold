@@ -1,12 +1,12 @@
+import { signOut } from "@/app/login/actions";
+import { PermissionGate } from "@/shared/auth/PermissionGate";
+import { getPosSession } from "@/shared/auth/session";
+import type { StaffRole } from "@/shared/auth/permissions";
 import { AdminShell } from "@/shared/layout/AdminShell";
 import { formatViDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-
-type DashboardMeta = {
-  businessDate: string;
-};
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerSupabase();
@@ -17,29 +17,44 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/login");
   }
 
-  const { data: dashboardData, error: adminError } = await supabase.rpc("pos_get_dashboard");
-  if (adminError) {
+  const session = await getPosSession();
+  if (!session) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--tlkv-bg)] p-6">
-        <div className="max-w-md rounded-[12px] bg-white p-8 shadow-[var(--tlkv-shadow)]">
-          <h1 className="text-xl font-semibold">Không đủ quyền</h1>
-          <p className="mt-2 text-sm text-[var(--tlkv-muted)]">
-            Tài khoản đã đăng nhập nhưng không nằm trong danh sách quản trị POS.
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--tlkv-bg)] px-4">
+        <div className="w-full max-w-md border-t-2 border-[var(--tlkv-red)] bg-white px-8 py-10 shadow-[var(--tlkv-shadow)]">
+          <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--tlkv-faint)] uppercase">
+            Chưa được cấp quyền POS
           </p>
+          <h1 className="mt-3 text-[22px] font-semibold tracking-tight">
+            Tài khoản chưa vào được hệ thống
+          </h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--tlkv-muted)]">
+            Bạn đang đăng nhập{user.email ? ` với ${user.email}` : ""}. Tài khoản này chưa có trong
+            danh sách nhân viên POS (hoặc đã bị tắt). Nhờ quản trị thêm ở mục Nhân viên.
+          </p>
+          <form action={signOut} className="mt-8">
+            <button
+              type="submit"
+              className="h-11 border border-[var(--tlkv-line)] px-5 text-[13px] font-medium hover:bg-[var(--tlkv-bg)]"
+            >
+              Đăng xuất
+            </button>
+          </form>
         </div>
       </div>
     );
   }
 
-  const businessDate = (dashboardData as DashboardMeta).businessDate;
+  const role = session.role as StaffRole;
 
   return (
     <AdminShell
-      businessDateLabel={formatViDate(businessDate)}
-      userEmail={user.email ?? ""}
-      userName={user.email?.split("@")[0] ?? "Admin"}
+      businessDateLabel={formatViDate(session.businessDate)}
+      userEmail={session.email}
+      userName={session.fullName}
+      role={role}
     >
-      {children}
+      <PermissionGate role={role}>{children}</PermissionGate>
     </AdminShell>
   );
 }

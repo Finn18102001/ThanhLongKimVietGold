@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "@/shared/ui/ModulePlaceholder";
+import { EmployeeDirectory } from "./EmployeeDirectory";
+import { listStaff } from "./query";
 
-export function EmployeePage() {
-  return (
-    <ModulePlaceholder
-      moduleId="employee"
-      title="Nhân viên"
-      summary="Thu ngân, quản lý và chủ cửa hàng có quyền khác nhau. Thu ngân không được sửa stock hay xóa hóa đơn."
-    />
-  );
+export async function EmployeePage() {
+  const initial = await listStaff({ limit: 50, offset: 0 });
+  return <EmployeeDirectory initial={initial} />;
 }

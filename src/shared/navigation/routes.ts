@@ -5,6 +5,7 @@
 export const ROUTES = {
   dashboard: "/",
   pos: "/pos",
+  purchase: "/purchase",
   inventory: "/inventory",
   inventoryPurchase: "/inventory/receive",
   inventoryReceive: "/inventory/receive",

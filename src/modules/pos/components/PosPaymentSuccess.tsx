@@ -14,6 +14,8 @@ export function PosPaymentSuccess({
   invoiceNo,
   saleNo,
   totalDong,
+  paidDong,
+  remainingDong,
   paymentMethod,
   onViewInvoice,
   onStay,
@@ -21,11 +23,14 @@ export function PosPaymentSuccess({
   invoiceNo: string;
   saleNo: string;
   totalDong: number;
+  paidDong: number;
+  remainingDong: number;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
   onViewInvoice: () => void;
   onStay: () => void;
 }) {
   const [seconds, setSeconds] = useState(2);
+  const hasReceivable = remainingDong > 0;
 
   useEffect(() => {
     const tick = window.setInterval(() => {
@@ -47,9 +52,13 @@ export function PosPaymentSuccess({
       <div className="w-full max-w-lg rounded-[12px] bg-white p-6 shadow-[0_24px_60px_rgb(31_41_55/0.18)]">
         <div className="flex flex-col items-center text-center">
           <CheckCircle size={64} weight="fill" className="text-[var(--tlkv-green)]" />
-          <h2 className="mt-3 text-[20px] font-bold">Thanh toán thành công</h2>
+          <h2 className="mt-3 text-[20px] font-bold">
+            {hasReceivable ? "Đơn hoàn tất — còn công nợ" : "Thanh toán thành công"}
+          </h2>
           <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-            Hóa đơn đã phát hành. Đơn bán hoàn tất. Kho đã trừ.
+            {hasReceivable
+              ? "Hóa đơn đã phát hành. Kho đã trừ. Phần còn lại ghi nhận phải thu."
+              : "Hóa đơn đã phát hành. Đơn bán hoàn tất. Kho đã trừ."}
           </p>
         </div>
 
@@ -60,12 +69,30 @@ export function PosPaymentSuccess({
           <dd className="text-right font-medium">{saleNo}</dd>
           <dt className="text-[var(--tlkv-muted)]">Hình thức</dt>
           <dd className="text-right">{PAYMENT_LABEL[paymentMethod]}</dd>
-          <dt className="text-[var(--tlkv-muted)]">Số tiền</dt>
+          <dt className="text-[var(--tlkv-muted)]">Tổng đơn</dt>
           <dd className="text-right font-semibold">{formatDong(totalDong)}</dd>
+          <dt className="text-[var(--tlkv-muted)]">Đã thu</dt>
+          <dd className="text-right font-medium">{formatDong(paidDong)}</dd>
+          <dt className="text-[var(--tlkv-muted)]">Còn lại</dt>
+          <dd
+            className={`text-right font-semibold ${
+              hasReceivable ? "text-[var(--tlkv-red)]" : ""
+            }`}
+          >
+            {formatDong(remainingDong)}
+          </dd>
         </dl>
 
-        <div className="mt-4 rounded-lg bg-[var(--tlkv-green-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-green)]">
-          Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn.
+        <div
+          className={`mt-4 rounded-lg px-3 py-2.5 text-[13px] ${
+            hasReceivable
+              ? "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]"
+              : "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]"
+          }`}
+        >
+          {hasReceivable
+            ? "Đơn bán đã chốt và trừ kho. Có thể thu tiếp phần còn lại từ hóa đơn."
+            : "Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn."}
         </div>
 
         <ol className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px]">

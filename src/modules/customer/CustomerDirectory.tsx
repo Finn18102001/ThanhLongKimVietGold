@@ -12,8 +12,10 @@ import { CustomerKpiRow } from "./components/CustomerKpiRow";
 import {
   customerInitials,
   formatPhoneDisplay,
+  GENDER_LABEL,
   GROUP_LABEL,
   groupBadgeClass,
+  TYPE_LABEL,
 } from "./labels";
 import type {
   CustomerActivityFilter,
@@ -164,8 +166,8 @@ export function CustomerDirectory({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
-          <label className="relative">
+        <div className="mt-4 flex flex-col gap-2">
+          <label className="relative w-full max-w-md">
             <MagnifyingGlass
               size={16}
               className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
@@ -177,39 +179,43 @@ export function CustomerDirectory({
                 setQuery(value);
                 refresh({ query: value, offset: 0 });
               }}
-              placeholder="Tìm theo tên, số điện thoại hoặc mã khách hàng"
+              placeholder="Tìm theo tên, SĐT, mã KH, CCCD hoặc MST"
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
           </label>
-          <select
-            value={group}
-            onChange={(event) => {
-              const value = event.target.value as "" | CustomerGroup;
-              setGroup(value);
-              refresh({ group: value, offset: 0 });
-            }}
-            className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-          >
-            <option value="">Nhóm khách hàng: Tất cả</option>
-            {CUSTOMER_GROUPS.map((value) => (
-              <option key={value} value={value}>
-                {GROUP_LABEL[value]}
-              </option>
-            ))}
-          </select>
-          <select
-            value={activity}
-            onChange={(event) => {
-              const value = event.target.value as CustomerActivityFilter;
-              setActivity(value);
-              refresh({ activity: value, offset: 0 });
-            }}
-            className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-          >
-            <option value="">Trạng thái: Tất cả</option>
-            <option value="purchased">Đã mua hàng</option>
-            <option value="never">Chưa mua hàng</option>
-          </select>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <select
+              value={group}
+              onChange={(event) => {
+                const value = event.target.value as "" | CustomerGroup;
+                setGroup(value);
+                refresh({ group: value, offset: 0 });
+              }}
+              aria-label="Nhóm khách hàng"
+              className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            >
+              <option value="">Nhóm khách hàng: Tất cả</option>
+              {CUSTOMER_GROUPS.map((value) => (
+                <option key={value} value={value}>
+                  {GROUP_LABEL[value]}
+                </option>
+              ))}
+            </select>
+            <select
+              value={activity}
+              onChange={(event) => {
+                const value = event.target.value as CustomerActivityFilter;
+                setActivity(value);
+                refresh({ activity: value, offset: 0 });
+              }}
+              aria-label="Trạng thái mua hàng"
+              className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            >
+              <option value="">Trạng thái: Tất cả</option>
+              <option value="purchased">Đã mua hàng</option>
+              <option value="never">Chưa mua hàng</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -411,15 +417,49 @@ function pageNumbers(current: number, total: number): Array<number | "…"> {
 }
 
 function downloadCustomersCsv(rows: CustomerRecord[]) {
-  const header = ["Mã KH", "Tên", "Nhóm", "SĐT", "Tổng chi tiêu", "Số đơn", "Cập nhật"];
+  const header = [
+    "Mã KH",
+    "Loại KH",
+    "Tên hiển thị",
+    "Tên doanh nghiệp",
+    "MST",
+    "Người đại diện",
+    "CCCD",
+    "Quốc tịch",
+    "SĐT",
+    "Email",
+    "Giới tính",
+    "Ngày sinh",
+    "Ngày cấp CCCD",
+    "Nơi cấp CCCD",
+    "Địa chỉ",
+    "Nhóm",
+    "Tổng chi tiêu",
+    "Số đơn",
+    "Ngày tham gia",
+    "Cập nhật",
+  ];
   const lines = rows.map((row) =>
     [
       row.customerNo,
+      TYPE_LABEL[row.customerType],
       row.name,
-      GROUP_LABEL[row.customerGroup],
+      row.businessName ?? "",
+      row.taxCode ?? "",
+      row.representativeName ?? "",
+      row.citizenId ?? "",
+      row.nationality ?? "",
       formatPhoneDisplay(row.phone),
+      row.email ?? "",
+      row.gender ? GENDER_LABEL[row.gender] : "",
+      row.dateOfBirth ? formatViDateOnly(row.dateOfBirth) : "",
+      row.citizenIdIssueDate ? formatViDateOnly(row.citizenIdIssueDate) : "",
+      row.citizenIdIssuePlace ?? "",
+      row.address ?? "",
+      GROUP_LABEL[row.customerGroup],
       row.totalDong,
       row.saleCount,
+      formatViDateOnly(row.createdAt),
       formatViDateOnly(row.lastActivityAt),
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)

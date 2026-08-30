@@ -7,15 +7,25 @@ import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { fetchInvoiceDetail, searchInvoices } from "../actions";
 import {
+  effectivePaymentStatus,
   formatInvoicePhone,
   invoiceStatusLabel,
   paymentBadgeClass,
   paymentLabel,
+  paymentStatusBadgeClass,
+  paymentStatusLabel,
 } from "../labels";
-import type { InvoiceDetail, InvoiceListPage } from "../types";
+import type { InvoiceDetail, InvoiceListPage, PaymentStatus } from "../types";
 import { InvoiceDrawer } from "./InvoiceDrawer";
 
 const PAGE_SIZES = [5, 10, 20] as const;
+const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
+  { value: "", label: "Trạng thái TT: Tất cả" },
+  { value: "PAID", label: "Đã thanh toán" },
+  { value: "PARTIALLY_PAID", label: "Một phần" },
+  { value: "UNPAID", label: "Chưa thanh toán" },
+  { value: "OVERDUE", label: "Quá hạn" },
+];
 
 export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
   const [page, setPage] = useState(initial);
@@ -23,6 +33,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"" | "CASH" | "TRANSFER" | "CARD">("");
+  const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatus>("");
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [pending, startTransition] = useTransition();
@@ -40,6 +51,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
     from?: string;
     to?: string;
     paymentMethod?: "" | "CASH" | "TRANSFER" | "CARD";
+    paymentStatus?: "" | PaymentStatus;
     limit?: number;
     offset?: number;
   }) {
@@ -47,6 +59,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
     const nextFrom = next.from ?? from;
     const nextTo = next.to ?? to;
     const nextPayment = next.paymentMethod ?? paymentMethod;
+    const nextPayStatus = next.paymentStatus ?? paymentStatus;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
     startTransition(async () => {
@@ -56,6 +69,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
           from: nextFrom || null,
           to: nextTo || null,
           paymentMethod: nextPayment || null,
+          paymentStatus: nextPayStatus || null,
           limit: nextLimit,
           offset: nextOffset,
         });
@@ -86,8 +100,8 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
 
   return (
     <>
-      <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_160px_160px_170px]">
-        <label className="relative">
+      <div className="mt-4 flex flex-col gap-2">
+        <label className="relative w-full max-w-md">
           <MagnifyingGlass
             size={16}
             className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
@@ -100,72 +114,97 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
               refresh({ query: value, offset: 0 });
             }}
             placeholder="Tìm mã HĐ, tên khách, SĐT, mã khách"
-            className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-white pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
           />
         </label>
-        <input
-          type="date"
-          value={from}
-          onChange={(event) => {
-            const value = event.target.value;
-            setFrom(value);
-            refresh({ from: value, offset: 0 });
-          }}
-          aria-label="Từ ngày"
-          className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-        />
-        <input
-          type="date"
-          value={to}
-          onChange={(event) => {
-            const value = event.target.value;
-            setTo(value);
-            refresh({ to: value, offset: 0 });
-          }}
-          aria-label="Đến ngày"
-          className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-        />
-        <select
-          value={paymentMethod}
-          onChange={(event) => {
-            const value = event.target.value as "" | "CASH" | "TRANSFER" | "CARD";
-            setPaymentMethod(value);
-            refresh({ paymentMethod: value, offset: 0 });
-          }}
-          className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-        >
-          <option value="">Thanh toán: Tất cả</option>
-          <option value="CASH">Tiền mặt</option>
-          <option value="TRANSFER">Chuyển khoản</option>
-          <option value="CARD">Thẻ</option>
-        </select>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <input
+            type="date"
+            value={from}
+            onChange={(event) => {
+              const value = event.target.value;
+              setFrom(value);
+              refresh({ from: value, offset: 0 });
+            }}
+            aria-label="Từ ngày"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={(event) => {
+              const value = event.target.value;
+              setTo(value);
+              refresh({ to: value, offset: 0 });
+            }}
+            aria-label="Đến ngày"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          />
+          <select
+            value={paymentMethod}
+            onChange={(event) => {
+              const value = event.target.value as "" | "CASH" | "TRANSFER" | "CARD";
+              setPaymentMethod(value);
+              refresh({ paymentMethod: value, offset: 0 });
+            }}
+            aria-label="Hình thức thanh toán"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            <option value="">Hình thức: Tất cả</option>
+            <option value="CASH">Tiền mặt</option>
+            <option value="TRANSFER">Chuyển khoản</option>
+            <option value="CARD">Thẻ</option>
+          </select>
+          <select
+            value={paymentStatus}
+            onChange={(event) => {
+              const value = event.target.value as "" | PaymentStatus;
+              setPaymentStatus(value);
+              refresh({ paymentStatus: value, offset: 0 });
+            }}
+            aria-label="Trạng thái thanh toán"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {PAYMENT_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value || "all"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
 
       <div className={`mt-4 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
-        <table className="w-full min-w-[860px] text-left text-[13px]">
+        <table className="w-full min-w-[980px] text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Mã HĐ</th>
               <th className="py-2 pr-3 font-medium">Khách hàng</th>
-              <th className="py-2 pr-3 font-medium">Tổng tiền</th>
-              <th className="py-2 pr-3 font-medium">Thanh toán</th>
+              <th className="py-2 pr-3 font-medium">Tổng / Còn lại</th>
+              <th className="py-2 pr-3 font-medium">Hình thức</th>
+              <th className="py-2 pr-3 font-medium">Trạng thái TT</th>
               <th className="py-2 pr-3 font-medium">Thời gian</th>
-              <th className="py-2 pr-3 font-medium">Trạng thái</th>
+              <th className="py-2 pr-3 font-medium">Đơn bán</th>
               <th className="py-2 font-medium">Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {page.items.length === 0 ? (
               <tr>
-                <td className="py-8 text-center text-[var(--tlkv-muted)]" colSpan={7}>
+                <td className="py-8 text-center text-[var(--tlkv-muted)]" colSpan={8}>
                   Không có hóa đơn khớp bộ lọc.
                 </td>
               </tr>
             ) : (
               page.items.map((row) => {
                 const phone = formatInvoicePhone(row.customerPhone);
+                const payStatus = effectivePaymentStatus(
+                  row.paymentStatus,
+                  row.remainingDong,
+                  row.dueDate,
+                );
                 return (
                   <tr key={row.id} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                     <td className="py-3 pr-3">
@@ -181,15 +220,29 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                     <td className="py-3 pr-3">
                       <p className="font-medium">{row.customerName}</p>
                       <p className="text-[12px] text-[var(--tlkv-muted)]">
-                        {row.isWalkIn ? "Khách vãng lai" : phone || row.customerNo || "—"}
+                        {row.isWalkIn ? "Khách vãng lai" : phone || row.customerNo || "-"}
                       </p>
                     </td>
-                    <td className="py-3 pr-3 font-semibold">{formatDong(row.totalDong)}</td>
+                    <td className="py-3 pr-3">
+                      <p className="font-semibold">{formatDong(row.totalDong)}</p>
+                      <p className="text-[11px] text-[var(--tlkv-muted)]">
+                        {row.remainingDong > 0
+                          ? `Còn ${formatDong(row.remainingDong)}`
+                          : "Đã đủ"}
+                      </p>
+                    </td>
                     <td className="py-3 pr-3">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${paymentBadgeClass(row.paymentMethod)}`}
                       >
                         {paymentLabel(row.paymentMethod)}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
+                      >
+                        {paymentStatusLabel(payStatus)}
                       </span>
                     </td>
                     <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
@@ -204,10 +257,10 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                       <button
                         type="button"
                         onClick={() => void openDetail(row.invoiceNo)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] font-medium hover:bg-[var(--tlkv-bg)]"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] font-medium transition active:scale-[0.98] hover:bg-[var(--tlkv-bg)]"
                       >
                         <Eye size={14} />
-                        Xem chi tiết
+                        Xem
                       </button>
                     </td>
                   </tr>
@@ -276,7 +329,16 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
         </div>
       </div>
 
-      {detail ? <InvoiceDrawer invoice={detail} onClose={() => setDetail(null)} /> : null}
+      {detail ? (
+        <InvoiceDrawer
+          invoice={detail}
+          onClose={() => setDetail(null)}
+          onUpdated={(next) => {
+            setDetail(next);
+            refresh({ offset: page.offset });
+          }}
+        />
+      ) : null}
     </>
   );
 }

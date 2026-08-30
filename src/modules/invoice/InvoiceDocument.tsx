@@ -1,145 +1,157 @@
-import Image from "next/image";
-import { formatDong, formatDongInWords } from "@/shared/lib/money";
-import { formatViDateTime } from "@/shared/lib/datetime";
-import { BrandLockup } from "@/shared/brand/BrandLockup";
-import { formatChi } from "./labels";
-import { PAYMENT_LABEL } from "./types";
-import type { InvoiceDetail } from "./types";
+import type { CSSProperties, ReactNode } from "react";
+import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
+import { formatViDate } from "@/shared/lib/datetime";
+import { formatChi, invoiceIssuedParts } from "./labels";
+import type { InvoiceDetail, InvoiceLine } from "./types";
+
+/** PDF template canvas in points (Adobe Illustrator source). */
+const PW = 600.945;
+const PH = 430.866;
+
+const ROW_TOP = [222.6, 239.8, 256.2, 273.0];
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   const staffName = invoice.actorEmail.split("@")[0] ?? invoice.actorEmail;
+  const issued = invoiceIssuedParts(invoice.issuedAt);
+  const walkIn = invoice.isWalkIn || invoice.customerPhone === "WALKIN";
+  const phone = walkIn ? "" : invoice.customerPhone;
+  const citizenId = walkIn ? "" : (invoice.customerCitizenId ?? "");
+  const dob = invoice.customerDateOfBirth
+    ? formatViDate(invoice.customerDateOfBirth.slice(0, 10))
+    : "";
+  const lines = invoice.lines.slice(0, 4);
+  const words = formatDongInWords(invoice.totalDong);
+
   return (
-    <article className="invoice-print mx-auto max-w-[820px] bg-white p-8 text-[13px] text-[var(--tlkv-text)]">
-      <div className="flex items-start justify-between gap-6">
-        <BrandLockup variant="invoice" />
-        <div className="text-right">
-          <h1 className="text-[22px] font-bold tracking-wide">HÓA ĐƠN BÁN HÀNG</h1>
-          <p className="mt-1 text-[13px]">
-            Số HĐ: <span className="font-bold text-[var(--tlkv-red)]">{invoice.invoiceNo}</span>
-          </p>
-          <BarcodeMark value={invoice.invoiceNo} />
-          <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-            {formatViDateTime(invoice.issuedAt)}
-          </p>
-        </div>
-      </div>
+    <article
+      className="invoice-print relative mx-auto w-full max-w-[212mm] overflow-hidden bg-white text-[#1f1f1f] aspect-[600.945/430.866]"
+      style={{
+        printColorAdjust: "exact",
+        WebkitPrintColorAdjust: "exact",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/invoice/gold-certificate.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 h-full w-full select-none"
+      />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 border-y border-[var(--tlkv-line)] py-4 sm:grid-cols-2">
-        <div>
-          <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Thông tin khách hàng</p>
-          <p className="mt-1 font-semibold">{invoice.customerName}</p>
-          <p>SĐT: {invoice.isWalkIn || invoice.customerPhone === "WALKIN" ? "—" : invoice.customerPhone}</p>
-          <p>Địa chỉ: {invoice.customerAddress || "—"}</p>
-        </div>
-        <div>
-          <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Thông tin giao dịch</p>
-          <p className="mt-1">Nhân viên bán hàng: {staffName}</p>
-          <p>Hình thức thanh toán: {PAYMENT_LABEL[invoice.paymentMethod] ?? invoice.paymentMethod}</p>
-          <p>Ghi chú: {invoice.note || "—"}</p>
-          <p>Mã bán: {invoice.saleNo}</p>
-        </div>
-      </div>
+      <CertField x={202} y={145.6} w={148} h={12.4} className="font-semibold">
+        {invoice.customerName}
+      </CertField>
+      <CertField x={424} y={145.6} w={128} h={12.4}>
+        {citizenId}
+      </CertField>
+      <CertField x={118} y={163.4} w={164} h={12.4}>
+        {invoice.customerAddress || ""}
+      </CertField>
+      <CertField x={357} y={163.4} w={90} h={12.4}>
+        {phone}
+      </CertField>
+      <CertField x={498} y={163.4} w={58} h={12.4}>
+        {dob}
+      </CertField>
+      <CertField x={98} y={181.4} w={38} h={12.4} align="center">
+        {issued.day}
+      </CertField>
+      <CertField x={208} y={181.4} w={28} h={12.4} align="center">
+        {issued.month}
+      </CertField>
+      <CertField x={294} y={181.4} w={42} h={12.4} align="center">
+        {issued.year}
+      </CertField>
+      <CertField x={416} y={181.4} w={70} h={12.4}>
+        {issued.time}
+      </CertField>
 
-      <table className="mt-4 w-full text-left">
-        <thead>
-          <tr className="bg-[var(--tlkv-red-soft)] text-[11px] font-semibold tracking-wide">
-            <th className="px-2 py-2">STT</th>
-            <th className="px-2 py-2">Sản phẩm</th>
-            <th className="px-2 py-2">Mã SP</th>
-            <th className="px-2 py-2">ĐVT</th>
-            <th className="px-2 py-2 text-right">KL</th>
-            <th className="px-2 py-2 text-right">SL</th>
-            <th className="px-2 py-2 text-right">Đơn giá</th>
-            <th className="px-2 py-2 text-right">Thành tiền</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoice.lines.map((line, index) => (
-            <tr key={`${line.skuId}-${index}`} className="border-b border-[var(--tlkv-line)]">
-              <td className="px-2 py-2">{index + 1}</td>
-              <td className="px-2 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="relative h-9 w-9 overflow-hidden rounded bg-[#f8f1e7]">
-                    {line.imageUrl ? (
-                      <Image src={line.imageUrl} alt="" fill unoptimized sizes="36px" className="object-cover" />
-                    ) : null}
-                  </span>
-                  {line.name}
-                </div>
-              </td>
-              <td className="px-2 py-2">{line.sku}</td>
-              <td className="px-2 py-2">Chiếc</td>
-              <td className="px-2 py-2 text-right">{formatChi(line.weightChi)}</td>
-              <td className="px-2 py-2 text-right">{line.quantity}</td>
-              <td className="px-2 py-2 text-right">{formatDong(line.unitPriceDong)}</td>
-              <td className="px-2 py-2 text-right font-medium">{formatDong(line.totalPriceDong)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {lines.map((line, index) => (
+        <CertificateLine key={`${line.skuId}-${index}`} line={line} top={ROW_TOP[index] ?? 273} />
+      ))}
 
-      <div className="mt-4 flex justify-end">
-        <div className="w-full max-w-xs text-[13px]">
-          <div className="flex justify-between py-0.5">
-            <span>Tạm tính</span>
-            <span>{formatDong(invoice.totalDong)}</span>
-          </div>
-          <div className="flex justify-between py-0.5 text-[var(--tlkv-muted)]">
-            <span>Chiết khấu</span>
-            <span>0 đ</span>
-          </div>
-          <div className="flex justify-between py-0.5 text-[var(--tlkv-muted)]">
-            <span>Thuế VAT (0%)</span>
-            <span>0 đ</span>
-          </div>
-          <div className="mt-1 flex justify-between border-t border-[var(--tlkv-line)] pt-2">
-            <span className="font-semibold">Tổng thanh toán</span>
-            <span className="text-[18px] font-bold text-[var(--tlkv-red)]">
-              {formatDong(invoice.totalDong)}
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-            Bằng chữ: {formatDongInWords(invoice.totalDong)}
-          </p>
-        </div>
-      </div>
+      <CertField x={210} y={287.4} w={116} h={28} size={8} className="leading-tight">
+        {words}
+      </CertField>
+      <CertField
+        x={432}
+        y={292.4}
+        w={120}
+        h={14}
+        align="right"
+        size={11}
+        className="font-bold text-[#9b0102]"
+      >
+        {formatDongCompact(invoice.totalDong)}
+      </CertField>
 
-      <div className="mt-10 grid grid-cols-2 gap-8 text-center text-[12px]">
-        <div>
-          <p className="font-semibold">Khách hàng</p>
-          <p className="mt-10">{invoice.customerName}</p>
-        </div>
-        <div>
-          <p className="font-semibold">Người bán hàng</p>
-          <p className="mt-10">{staffName}</p>
-        </div>
-      </div>
-      <p className="mt-8 text-center text-[13px] italic">Cảm ơn quý khách và hẹn gặp lại!</p>
-      <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
-        Lưu ý: Giá trên hóa đơn này là giá tại thời điểm bán. Không tự cập nhật khi bảng giá vàng
-        thay đổi.
-      </p>
+      <CertField x={42} y={356} w={140} h={14} align="center" size={8.5}>
+        {invoice.customerName}
+      </CertField>
+      <CertField x={175} y={356} w={155} h={14} align="center" size={8.5}>
+        {staffName}
+      </CertField>
     </article>
   );
 }
 
-function BarcodeMark({ value }: { value: string }) {
-  const bars = Array.from(value).flatMap((char, index) => {
-    const code = char.charCodeAt(0);
-    return [2 + (code % 3), 1, 1 + ((code + index) % 2)];
-  });
+function CertificateLine({ line, top }: { line: InvoiceLine; top: number }) {
+  const qtyLabel = line.quantity > 1 ? ` x${line.quantity}` : "";
   return (
-    <svg className="mt-2 ml-auto h-10 w-40" viewBox={`0 0 ${bars.length * 3} 40`} aria-hidden>
-      {bars.map((width, index) => (
-        <rect
-          key={`${value}-${index}`}
-          x={index * 3}
-          y={0}
-          width={width}
-          height={40}
-          fill={index % 2 === 0 ? "#1f2937" : "transparent"}
-        />
-      ))}
-    </svg>
+    <>
+      <CertField x={72} y={top} w={122} h={13} size={8}>
+        {`${line.name}${qtyLabel}`}
+      </CertField>
+      <CertField x={198} y={top} w={62} h={13} align="center" size={8}>
+        {line.purity || ""}
+      </CertField>
+      <CertField x={262} y={top} w={68} h={13} align="center" size={8}>
+        {line.weightChi > 0 ? formatChi(line.weightChi) : ""}
+      </CertField>
+      <CertField x={332} y={top} w={96} h={13} align="right" size={8}>
+        {formatDongCompact(line.unitPriceDong)}
+      </CertField>
+      <CertField x={430} y={top} w={122} h={13} align="right" size={8} className="font-medium">
+        {formatDongCompact(line.totalPriceDong)}
+      </CertField>
+    </>
+  );
+}
+
+function CertField({
+  x,
+  y,
+  w,
+  h,
+  align = "left",
+  size = 9.5,
+  className = "",
+  children,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  align?: "left" | "center" | "right";
+  size?: number;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const style: CSSProperties = {
+    position: "absolute",
+    left: `${(x / PW) * 100}%`,
+    top: `${(y / PH) * 100}%`,
+    width: `${(w / PW) * 100}%`,
+    height: `${(h / PH) * 100}%`,
+    fontSize: `${size}pt`,
+    lineHeight: 1.15,
+    textAlign: align,
+    overflow: "hidden",
+    whiteSpace: size <= 8.5 ? "normal" : "nowrap",
+    textOverflow: "ellipsis",
+  };
+  return (
+    <div style={style} className={className}>
+      {children}
+    </div>
   );
 }

@@ -5,6 +5,8 @@ import type {
   InvoiceListFilter,
   InvoiceListPage,
   InvoiceListRow,
+  PaymentStatus,
+  SalePaymentRecord,
 } from "./types";
 
 function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
@@ -15,6 +17,24 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
 function sanitizeSearch(raw: string): string {
   return raw.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
 }
+
+function asPaymentStatus(raw: string | null | undefined): PaymentStatus {
+  if (raw === "UNPAID" || raw === "PARTIALLY_PAID" || raw === "PAID" || raw === "OVERDUE") {
+    return raw;
+  }
+  return "PAID";
+}
+
+type SaleEmbed = {
+  sale_no: string;
+  payment_method: string;
+  actor_email: string;
+  status: string;
+  payment_status: string | null;
+  paid_dong: number | string | null;
+  remaining_dong: number | string | null;
+  due_date: string | null;
+};
 
 function mapListRow(invoice: {
   id: string;
@@ -27,18 +47,22 @@ function mapListRow(invoice: {
     | { name: string; phone: string; customer_no: string | null; is_walk_in: boolean | null }
     | { name: string; phone: string; customer_no: string | null; is_walk_in: boolean | null }[]
     | null;
-  pos_sales:
-    | { sale_no: string; payment_method: string; actor_email: string; status: string }
-    | { sale_no: string; payment_method: string; actor_email: string; status: string }[]
-    | null;
+  pos_sales: SaleEmbed | SaleEmbed[] | null;
 }): InvoiceListRow {
   const customer = firstEmbed(invoice.pos_customers);
   const sale = firstEmbed(invoice.pos_sales);
+  const totalDong = Number(invoice.total_dong);
+  const paidDong = Number(sale?.paid_dong ?? totalDong);
+  const remainingDong = Number(sale?.remaining_dong ?? 0);
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
     status: invoice.status,
-    totalDong: Number(invoice.total_dong),
+    totalDong,
+    paidDong,
+    remainingDong,
+    dueDate: sale?.due_date ?? null,
+    paymentStatus: asPaymentStatus(sale?.payment_status),
     issuedAt: invoice.issued_at,
     actorEmail: invoice.actor_email,
     customerName: customer?.name ?? "Khách lẻ",
@@ -51,18 +75,23 @@ function mapListRow(invoice: {
   };
 }
 
+const SALE_COLS =
+  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date";
+
 export async function listInvoices(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const supabase = await createServerSupabase();
   const limit = Math.min(Math.max(filter.limit ?? 5, 1), 50);
   const offset = Math.max(filter.offset ?? 0, 0);
   const query = sanitizeSearch(filter.query ?? "");
   const paymentMethod = filter.paymentMethod ?? null;
+  const paymentStatus = filter.paymentStatus ?? null;
   const from = filter.from || null;
   const to = filter.to || null;
 
-  const saleSelect = paymentMethod
-    ? "pos_sales!inner(sale_no, payment_method, actor_email, status)"
-    : "pos_sales(sale_no, payment_method, actor_email, status)";
+  const needsInnerSale = Boolean(paymentMethod || paymentStatus);
+  const saleSelect = needsInnerSale
+    ? `pos_sales!inner(${SALE_COLS})`
+    : `pos_sales(${SALE_COLS})`;
 
   let builder = supabase
     .from("pos_invoices")
@@ -76,6 +105,16 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   if (from) builder = builder.gte("issued_at", `${from}T00:00:00+07:00`);
   if (to) builder = builder.lte("issued_at", `${to}T23:59:59.999+07:00`);
   if (paymentMethod) builder = builder.eq("pos_sales.payment_method", paymentMethod);
+
+  if (paymentStatus === "OVERDUE") {
+    const today = new Date().toISOString().slice(0, 10);
+    builder = builder
+      .gt("pos_sales.remaining_dong", 0)
+      .not("pos_sales.due_date", "is", null)
+      .lt("pos_sales.due_date", today);
+  } else if (paymentStatus) {
+    builder = builder.eq("pos_sales.payment_status", paymentStatus);
+  }
 
   if (query) {
     const { data: customers, error: customerError } = await supabase
@@ -108,7 +147,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const { data: invoice, error } = await supabase
     .from("pos_invoices")
     .select(
-      "id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, pos_customers(name, phone, address, customer_no, is_walk_in), pos_sales(sale_no, payment_method, actor_email, status, note)",
+      `id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, pos_customers(name, phone, address, customer_no, is_walk_in, citizen_id, date_of_birth), pos_sales(${SALE_COLS}, note)`,
     )
     .eq("invoice_no", invoiceNo)
     .maybeSingle();
@@ -118,19 +157,36 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const { data: items, error: itemError } = await supabase
     .from("pos_sale_items")
     .select(
-      "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image))",
+      "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
     )
     .eq("sale_id", invoice.sale_id);
   if (itemError) throw new Error(itemError.message);
 
-  const customer = firstEmbed(invoice.pos_customers);
-  const sale = firstEmbed(invoice.pos_sales);
+  type InvoiceCustomerEmbed = {
+    name: string;
+    phone: string;
+    address: string | null;
+    customer_no: string | null;
+    is_walk_in: boolean | null;
+    citizen_id: string | null;
+    date_of_birth: string | null;
+  };
+  const customer = firstEmbed(
+    invoice.pos_customers as InvoiceCustomerEmbed | InvoiceCustomerEmbed[] | null,
+  );
+  const sale = firstEmbed(invoice.pos_sales as SaleEmbed & { note: string | null } | (SaleEmbed & { note: string | null })[] | null);
+  const totalDong = Number(invoice.total_dong);
 
   const lines: InvoiceLine[] = (items ?? []).map((item) => {
     const sku = firstEmbed(item.pos_skus);
     const product = firstEmbed(
       sku && "products" in sku
         ? (sku.products as { image: string | null } | { image: string | null }[] | null)
+        : null,
+    );
+    const priceRow = firstEmbed(
+      sku && "gold_price_rows" in sku
+        ? (sku.gold_price_rows as { purity: string | null } | { purity: string | null }[] | null)
         : null,
     );
     return {
@@ -141,6 +197,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
       unitPriceDong: Number(item.unit_price_dong),
       totalPriceDong: Number(item.total_price_dong),
       weightChi: Number(item.weight_chi),
+      purity: priceRow?.purity ? String(priceRow.purity) : null,
       imageUrl: product?.image || null,
     };
   });
@@ -148,19 +205,75 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
+    saleId: String(invoice.sale_id),
     status: invoice.status,
-    totalDong: Number(invoice.total_dong),
+    totalDong,
+    paidDong: Number(sale?.paid_dong ?? totalDong),
+    remainingDong: Number(sale?.remaining_dong ?? 0),
+    dueDate: sale?.due_date ?? null,
+    paymentStatus: asPaymentStatus(sale?.payment_status),
     issuedAt: invoice.issued_at,
     actorEmail: invoice.actor_email,
     saleNo: sale?.sale_no ?? "",
     saleStatus: sale?.status ?? "",
     paymentMethod: sale?.payment_method ?? "",
-    note: sale?.note ?? null,
+    note: sale && "note" in sale ? (sale.note as string | null) : null,
     customerName: customer?.name ?? "Khách lẻ",
     customerPhone: customer?.phone ?? "",
     customerAddress: customer?.address ?? null,
+    customerCitizenId: customer?.citizen_id ?? null,
+    customerDateOfBirth: customer?.date_of_birth ?? null,
     customerNo: customer?.customer_no ?? null,
     isWalkIn: Boolean(customer?.is_walk_in),
     lines,
+    payments: await listSalePayments(String(invoice.sale_id)),
   };
+}
+
+export async function listSalePayments(saleId: string): Promise<SalePaymentRecord[]> {
+  if (!saleId) return [];
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_sale_payments", {
+    p_sale_id: saleId,
+  });
+  if (error) {
+    // Fallback direct read when RPC not yet deployed on an env.
+    const { data: rows, error: rowError } = await supabase
+      .from("pos_sale_payments")
+      .select("id, sale_id, amount_dong, payment_method, paid_at, actor_email, note")
+      .eq("sale_id", saleId)
+      .order("paid_at", { ascending: true });
+    if (rowError) throw new Error(error.message);
+    return (rows ?? []).map((row) => ({
+      id: row.id,
+      saleId: row.sale_id,
+      amountDong: Number(row.amount_dong),
+      paymentMethod: row.payment_method,
+      paidAt: row.paid_at,
+      actorEmail: row.actor_email,
+      note: row.note,
+    }));
+  }
+  const items = (
+    data as {
+      items?: Array<{
+        id: string;
+        sale_id: string;
+        amount_dong: number | string;
+        payment_method: string;
+        paid_at: string;
+        actor_email: string;
+        note: string | null;
+      }>;
+    } | null
+  )?.items;
+  return (items ?? []).map((row) => ({
+    id: row.id,
+    saleId: row.sale_id,
+    amountDong: Number(row.amount_dong),
+    paymentMethod: row.payment_method,
+    paidAt: row.paid_at,
+    actorEmail: row.actor_email,
+    note: row.note,
+  }));
 }

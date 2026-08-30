@@ -3,37 +3,39 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import {
-  ArrowsClockwise,
-  CalendarBlank,
-} from "@phosphor-icons/react";
-import { ADMIN_NAV, MAIN_NAV, isNavActive } from "./nav";
+import { ArrowsClockwise, CalendarBlank } from "@phosphor-icons/react";
+import { isNavActive, navForRole } from "./nav";
 import { signOut } from "@/app/login/actions";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { GlobalSearch } from "@/shared/search/GlobalSearch";
+import { roleLabel, type StaffRole } from "@/shared/auth/permissions";
 
 export function AdminShell({
   children,
   businessDateLabel,
   userEmail,
   userName,
+  role,
 }: {
   children: ReactNode;
   businessDateLabel: string;
   userEmail: string;
   userName: string;
+  role: StaffRole;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { main, admin } = navForRole(role);
+  const showAdminSection = admin.length > 0;
 
   return (
     <div className="flex min-h-[100dvh] bg-[var(--tlkv-bg)]">
       <aside className="sticky top-0 flex h-[100dvh] w-[280px] shrink-0 flex-col border-r border-[var(--tlkv-line)] bg-white">
-        <BrandLockup variant="sidebar" href="/" />
+        <BrandLockup variant="sidebar" href={role === "STAFF" ? "/pos" : "/"} />
 
         <nav className="flex-1 overflow-y-auto px-3 pb-3">
           <ul className="space-y-0.5">
-            {MAIN_NAV.map((item) => {
+            {main.map((item) => {
               const active = isNavActive(pathname, item.href);
               const Icon = item.icon;
               return (
@@ -58,34 +60,38 @@ export function AdminShell({
             })}
           </ul>
 
-          <p className="mt-5 mb-2 px-3 text-[11px] font-semibold tracking-[0.14em] text-[var(--tlkv-faint)]">
-            QUẢN TRỊ
-          </p>
-          <ul className="space-y-0.5">
-            {ADMIN_NAV.map((item) => {
-              const active = isNavActive(pathname, item.href);
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
-                      active
-                        ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"
-                        : "font-medium text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
-                    }`}
-                  >
-                    <Icon
-                      size={18}
-                      weight={active ? "bold" : "regular"}
-                      className="shrink-0"
-                    />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          {showAdminSection ? (
+            <>
+              <p className="mt-5 mb-2 px-3 text-[11px] font-semibold tracking-[0.14em] text-[var(--tlkv-faint)]">
+                QUẢN TRỊ
+              </p>
+              <ul className="space-y-0.5">
+                {admin.map((item) => {
+                  const active = isNavActive(pathname, item.href);
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
+                          active
+                            ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"
+                            : "font-medium text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+                        }`}
+                      >
+                        <Icon
+                          size={18}
+                          weight={active ? "bold" : "regular"}
+                          className="shrink-0"
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
         </nav>
       </aside>
 
@@ -97,10 +103,11 @@ export function AdminShell({
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--tlkv-red)] text-sm font-semibold text-white">
               {userName.slice(0, 1).toUpperCase()}
             </div>
-            <div className="leading-tight">
-              <p className="text-[13px] font-semibold">{userName}</p>
-              <p className="max-w-[140px] truncate text-[11px] text-[var(--tlkv-muted)]">
-                {userEmail || "Quản trị viên"}
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-[13px] font-semibold">{userName}</p>
+              <p className="truncate text-[11px] text-[var(--tlkv-muted)]">
+                {roleLabel(role)}
+                {userEmail ? ` · ${userEmail}` : ""}
               </p>
             </div>
             <form action={signOut}>

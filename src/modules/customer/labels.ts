@@ -1,4 +1,4 @@
-import type { CustomerGender, CustomerGroup } from "./types";
+import type { CustomerGender, CustomerGroup, CustomerType } from "./types";
 
 export const GROUP_LABEL: Record<CustomerGroup, string> = {
   RETAIL: "Khách mới",
@@ -26,6 +26,16 @@ export const GENDER_LABEL: Record<CustomerGender, string> = {
   OTHER: "Khác",
 };
 
+export const TYPE_LABEL: Record<CustomerType, string> = {
+  INDIVIDUAL: "Cá nhân",
+  BUSINESS: "Doanh nghiệp",
+};
+
+export const CCCD_DOC_LABEL = {
+  CCCD_FRONT: "CCCD mặt trước",
+  CCCD_BACK: "CCCD mặt sau",
+} as const;
+
 export function formatPhoneDisplay(phone: string): string {
   if (!phone || phone === "WALKIN") return "";
   if (phone.length === 10) {
@@ -35,6 +45,13 @@ export function formatPhoneDisplay(phone: string): string {
     return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
   }
   return phone;
+}
+
+export function maskCitizenId(citizenId: string | null | undefined): string {
+  const value = (citizenId ?? "").trim();
+  if (!value) return "—";
+  if (value.length <= 4) return value;
+  return `${"*".repeat(Math.max(value.length - 4, 4))}${value.slice(-4)}`;
 }
 
 export function customerInitials(name: string): string {

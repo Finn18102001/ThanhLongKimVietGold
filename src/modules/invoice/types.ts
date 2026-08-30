@@ -4,6 +4,16 @@ export const PAYMENT_LABEL: Record<string, string> = {
   CARD: "Thẻ",
 };
 
+/** Spec §14 — independent of sale / invoice transaction status. */
+export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "OVERDUE";
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  UNPAID: "Chưa thanh toán",
+  PARTIALLY_PAID: "Thanh toán một phần",
+  PAID: "Đã thanh toán",
+  OVERDUE: "Quá hạn",
+};
+
 export type InvoiceLine = {
   skuId: string;
   sku: string;
@@ -12,6 +22,7 @@ export type InvoiceLine = {
   unitPriceDong: number;
   totalPriceDong: number;
   weightChi: number;
+  purity: string | null;
   imageUrl: string | null;
 };
 
@@ -20,6 +31,10 @@ export type InvoiceListRow = {
   invoiceNo: string;
   status: string;
   totalDong: number;
+  paidDong: number;
+  remainingDong: number;
+  dueDate: string | null;
+  paymentStatus: PaymentStatus;
   issuedAt: string;
   customerName: string;
   customerPhone: string;
@@ -36,6 +51,7 @@ export type InvoiceListFilter = {
   from?: string | null;
   to?: string | null;
   paymentMethod?: "CASH" | "TRANSFER" | "CARD" | null;
+  paymentStatus?: PaymentStatus | null;
   limit?: number;
   offset?: number;
 };
@@ -50,8 +66,13 @@ export type InvoiceListPage = {
 export type InvoiceDetail = {
   id: string;
   invoiceNo: string;
+  saleId: string;
   status: string;
   totalDong: number;
+  paidDong: number;
+  remainingDong: number;
+  dueDate: string | null;
+  paymentStatus: PaymentStatus;
   issuedAt: string;
   actorEmail: string;
   saleNo: string;
@@ -61,7 +82,20 @@ export type InvoiceDetail = {
   customerName: string;
   customerPhone: string;
   customerAddress: string | null;
+  customerCitizenId: string | null;
+  customerDateOfBirth: string | null;
   customerNo: string | null;
   isWalkIn: boolean;
   lines: InvoiceLine[];
+  payments: SalePaymentRecord[];
+};
+
+export type SalePaymentRecord = {
+  id: string;
+  saleId: string;
+  amountDong: number;
+  paymentMethod: string;
+  paidAt: string;
+  actorEmail: string;
+  note: string | null;
 };

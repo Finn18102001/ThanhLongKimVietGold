@@ -1,39 +1,73 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
-import { fetchReportingSnapshot } from "./actions";
-import type { ReportingSnapshot } from "./types";
-
-function defaultRange() {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(to.getDate() - 6);
-  return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
-  };
-}
+import {
+  fetchReportingSnapshot,
+  fetchStaffSalesReport,
+  fetchTransactionExport,
+} from "./actions";
+import type { ReportingSnapshot, StaffSalesRow, TransactionExportRow } from "./types";
 
 export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [snapshot, setSnapshot] = useState(initial);
+  const [staffRows, setStaffRows] = useState<StaffSalesRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [exporting, setExporting] = useState(false);
 
   const maxRevenue = Math.max(...snapshot.daily.map((row) => row.revenueDong), 1);
 
   function refresh(nextFrom = from, nextTo = to) {
     startTransition(async () => {
       try {
-        setSnapshot(await fetchReportingSnapshot(nextFrom, nextTo));
+        const [nextSnapshot, nextStaff] = await Promise.all([
+          fetchReportingSnapshot(nextFrom, nextTo),
+          fetchStaffSalesReport(nextFrom, nextTo),
+        ]);
+        setSnapshot(nextSnapshot);
+        setStaffRows(nextStaff);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải báo cáo");
       }
     });
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    startTransition(async () => {
+      try {
+        const rows = await fetchStaffSalesReport(initial.from, initial.to);
+        if (!cancelled) {
+          setStaffRows(rows);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Không tải doanh số nhân viên");
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initial.from, initial.to, startTransition]);
+
+  async function exportTransactions() {
+    setExporting(true);
+    try {
+      const rows = await fetchTransactionExport(from, to);
+      downloadTransactionsCsv(rows, from, to);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không xuất được Excel giao dịch");
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -67,6 +101,14 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
               className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
             >
               Lọc
+            </button>
+            <button
+              type="button"
+              disabled={exporting || pending}
+              onClick={() => void exportTransactions()}
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
+            >
+              {exporting ? "Đang xuất..." : "Xuất Excel giao dịch"}
             </button>
             <button
               type="button"
@@ -126,13 +168,14 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
               <th className="py-2 font-medium">Mã hàng</th>
               <th className="py-2 font-medium">Sản phẩm</th>
               <th className="py-2 font-medium">SL bán</th>
+              <th className="py-2 font-medium">Số chỉ</th>
               <th className="py-2 text-right font-medium">Doanh thu</th>
             </tr>
           </thead>
           <tbody>
             {snapshot.topProducts.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-6 text-[var(--tlkv-muted)]">
+                <td colSpan={5} className="py-6 text-[var(--tlkv-muted)]">
                   Chưa có dữ liệu bán.
                 </td>
               </tr>
@@ -141,8 +184,54 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
                 <tr key={row.sku} className="border-b border-[var(--tlkv-line)]">
                   <td className="py-2.5">{row.sku}</td>
                   <td className="py-2.5 font-medium">{row.name}</td>
-                  <td className="py-2.5">{row.quantitySold}</td>
-                  <td className="py-2.5 text-right">{formatDong(row.revenueDong)}</td>
+                  <td className="py-2.5 tabular-nums">{row.quantitySold}</td>
+                  <td className="py-2.5 tabular-nums">
+                    {row.weightChiSold.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} chỉ
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums">{formatDong(row.revenueDong)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
+        <h2 className="text-[15px] font-semibold">Doanh số nhân viên</h2>
+        <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
+          Theo khoảng ngày đang lọc. Chỉ Admin mới xem được số liệu này.
+        </p>
+        <table className={`mt-3 w-full text-left text-[13px] ${pending ? "opacity-60" : ""}`}>
+          <thead className="text-[12px] text-[var(--tlkv-muted)]">
+            <tr className="border-b border-[var(--tlkv-line)]">
+              <th className="py-2 font-medium">Nhân viên</th>
+              <th className="py-2 font-medium">Số hóa đơn</th>
+              <th className="py-2 text-right font-medium">Doanh thu</th>
+              <th className="py-2 text-right font-medium">Đã thu</th>
+              <th className="py-2 text-right font-medium">Còn lại</th>
+            </tr>
+          </thead>
+          <tbody>
+            {staffRows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-6 text-[var(--tlkv-muted)]">
+                  Chưa có doanh số trong khoảng này.
+                </td>
+              </tr>
+            ) : (
+              staffRows.map((row) => (
+                <tr key={row.actorEmail} className="border-b border-[var(--tlkv-line)]">
+                  <td className="py-2.5 font-medium">
+                    {row.actorEmail.split("@")[0] ?? row.actorEmail}
+                  </td>
+                  <td className="py-2.5 tabular-nums">{row.invoiceCount}</td>
+                  <td className="py-2.5 text-right tabular-nums">{formatDong(row.grossDong)}</td>
+                  <td className="py-2.5 text-right tabular-nums">
+                    {formatDong(row.collectedDong)}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums">
+                    {formatDong(row.remainingDong)}
+                  </td>
                 </tr>
               ))
             )}
@@ -161,4 +250,56 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
       {hint ? <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">{hint}</p> : null}
     </div>
   );
+}
+
+const TYPE_LABEL: Record<TransactionExportRow["type"], string> = {
+  SELL: "Bán",
+  BUY: "Mua vào",
+};
+
+function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to: string) {
+  const header = [
+    "Loại",
+    "Mã phiếu",
+    "Số hóa đơn",
+    "Khách hàng",
+    "SĐT",
+    "Tổng tiền",
+    "Đã thanh toán",
+    "Còn lại",
+    "Trạng thái TT",
+    "Hình thức TT",
+    "Hạn thanh toán",
+    "Nhân viên",
+    "Hoàn tất lúc",
+  ];
+  const lines = rows.map((row) =>
+    [
+      TYPE_LABEL[row.type],
+      row.code,
+      row.invoiceNo ?? "",
+      row.customerName,
+      row.customerPhone,
+      row.totalDong,
+      row.paidDong,
+      row.remainingDong,
+      row.paymentStatus,
+      row.paymentMethod ?? "",
+      row.dueDate ?? "",
+      row.actorEmail,
+      row.completedAt,
+    ]
+      .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
+      .join(","),
+  );
+  const csv = `\uFEFF${[header.join(","), ...lines].join("\n")}`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  const fromStamp = from.replaceAll("-", "");
+  const toStamp = to.replaceAll("-", "");
+  anchor.download = `tlkv-giao-dich-${fromStamp}-${toStamp}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

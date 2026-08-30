@@ -1,32 +1,75 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Barcode, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
+import { ArrowsClockwise, Barcode, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
 import type { CustomerRecord } from "@/modules/customer/types";
-import { invoiceDetailPath } from "@/shared/navigation/routes";
+import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
-import { completeSale } from "./actions";
-import type { CartLine, PosCatalogItem } from "./types";
+import {
+  cancelHeldOrder,
+  completeHeldSale,
+  completeSale,
+  getHeldOrder,
+  refreshPosStock,
+  saveHeldOrder,
+} from "./actions";
+import type { CartLine, HeldOrderDetail, HeldOrderListResult, PosCatalogItem } from "./types";
 import { CatalogCard, ProductThumb } from "./components/CatalogCard";
-import { PosCartPanel } from "./components/PosCartPanel";
+import { PosCartPanel, type PosPayMode } from "./components/PosCartPanel";
 import { PosCheckoutDialog } from "./components/PosCheckoutDialog";
+import { PosHeldOrdersTable } from "./components/PosHeldOrdersTable";
 import { PosPaymentSuccess } from "./components/PosPaymentSuccess";
 
 const PAGE_SIZE = 8;
 
+function defaultDueDateIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function resolvePaidDong(payMode: PosPayMode, paidDong: number, displayTotal: number): number {
+  if (payMode === "FULL") return displayTotal;
+  if (payMode === "UNPAID") return 0;
+  return Math.max(0, paidDong);
+}
+
+function customerFromHold(detail: HeldOrderDetail, walkIn: CustomerRecord): CustomerRecord {
+  if (detail.isWalkIn || !detail.customerId || detail.customerId === walkIn.id) {
+    return walkIn;
+  }
+  return {
+    ...walkIn,
+    id: detail.customerId,
+    customerNo: detail.customerNo ?? "",
+    name: detail.customerName,
+    phone: detail.customerPhone,
+    isWalkIn: false,
+    documents: [],
+  };
+}
+
 export function PosTerminal({
-  catalog,
+  catalog: initialCatalog,
   walkIn,
+  initialHeldOrders,
 }: {
   catalog: PosCatalogItem[];
   walkIn: CustomerRecord;
+  initialHeldOrders: HeldOrderListResult;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [catalog, setCatalog] = useState(initialCatalog);
+  const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
@@ -36,13 +79,27 @@ export function PosTerminal({
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD">("CASH");
+  const [payMode, setPayMode] = useState<PosPayMode>("FULL");
+  const [paidDong, setPaidDong] = useState(0);
+  const [dueDate, setDueDate] = useState(defaultDueDateIso);
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
+  const [savingHold, setSavingHold] = useState(false);
+  const [heldList, setHeldList] = useState(initialHeldOrders.items);
+  const [heldVisibleToAll, setHeldVisibleToAll] = useState(initialHeldOrders.visibleToAll);
+  const [heldLoading, setHeldLoading] = useState(false);
+  const [heldBusyId, setHeldBusyId] = useState<string | null>(null);
+  const [activeHeldOrderId, setActiveHeldOrderId] = useState<string | null>(null);
+  const [activeHoldNo, setActiveHoldNo] = useState<string | null>(null);
+  const [replaceHoldId, setReplaceHoldId] = useState<string | null>(null);
+  const [cancelHoldId, setCancelHoldId] = useState<string | null>(null);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [paid, setPaid] = useState<{
     invoiceNo: string;
     saleNo: string;
     totalDong: number;
+    paidDong: number;
+    remainingDong: number;
     paymentMethod: "CASH" | "TRANSFER" | "CARD";
   } | null>(null);
   const returnToReview = useRef(false);
@@ -54,6 +111,50 @@ export function PosTerminal({
     setPageIndex(0);
     searchRef.current?.focus();
   }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function pullStock() {
+      setStockRefreshing(true);
+      try {
+        const map = await refreshPosStock();
+        if (cancelled) return;
+        setCatalog((current) =>
+          current.map((item) => ({
+            ...item,
+            quantity: map[item.skuId] ?? item.quantity,
+          })),
+        );
+      } catch (err) {
+        if (cancelled) return;
+        setAlert({
+          tone: "error",
+          title: "Không làm mới được tồn kho",
+          reason: err instanceof Error ? err.message : "Không tải được số lượng tồn hiện tại.",
+        });
+      } finally {
+        if (!cancelled) setStockRefreshing(false);
+      }
+    }
+
+    void pullStock();
+
+    function onVisibility() {
+      if (document.visibilityState === "visible") void pullStock();
+    }
+    function onFocus() {
+      void pullStock();
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   const groups = useMemo(() => {
     const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
@@ -96,6 +197,9 @@ export function PosTerminal({
     0,
   );
 
+  const effectivePaidDong = resolvePaidDong(payMode, paidDong, displayTotal);
+  const remainingDong = Math.max(0, displayTotal - effectivePaidDong);
+
   const recentItems = recentIds
     .map((id) => catalog.find((item) => item.skuId === id))
     .filter((item): item is PosCatalogItem => Boolean(item));
@@ -122,6 +226,7 @@ export function PosTerminal({
         event.preventDefault();
         if (paid) return;
         if (pickingCustomer) return;
+        if (savingHold) return;
         if (reviewing) void onCheckout();
         else openReview();
       }
@@ -200,56 +305,252 @@ export function PosTerminal({
     setRecentIds((current) => current.filter((id) => id !== skuId));
   }
 
-  function clearOrder() {
-    const hadItems = Object.keys(cart).length > 0;
+  function resetDraft() {
     setCart({});
     setRecentIds([]);
     setNote("");
     setCustomer(walkIn);
+    setPayMode("FULL");
+    setPaidDong(0);
+    setDueDate(defaultDueDateIso());
     setReviewing(false);
+    setPaymentMethod("CASH");
+    setActiveHeldOrderId(null);
+    setActiveHoldNo(null);
     idempotencyKey.current = null;
+  }
+
+  function clearOrder() {
+    const hadItems = Object.keys(cart).length > 0;
+    const holdNo = activeHoldNo;
+    resetDraft();
     if (hadItems) {
       setAlert({
         tone: "success",
-        title: "Đã hủy đơn nháp",
-        reason: "Giỏ hàng đã xóa. Kho không đổi vì đơn chưa hoàn tất.",
+        title: holdNo ? "Đã đóng đơn đang soạn" : "Đã hủy đơn nháp",
+        reason: holdNo
+          ? `Giỏ đã xóa. Đơn ${holdNo} vẫn nằm trong danh sách lưu đơn.`
+          : "Giỏ hàng đã xóa. Kho không đổi vì đơn chưa hoàn tất.",
       });
     }
   }
 
+  async function onSaveHold() {
+    const items = Object.entries(cart)
+      .map(([skuId, quantity]) => {
+        const item = catalog.find((row) => row.skuId === skuId);
+        if (!item || quantity <= 0) return null;
+        return { sku_id: skuId, quantity };
+      })
+      .filter((row): row is { sku_id: string; quantity: number } => row !== null);
+    if (items.length === 0 || pending || savingHold) return;
+    setSavingHold(true);
+    try {
+      const saved = await saveHeldOrder({
+        customerId: customer.id,
+        paymentMethod,
+        note,
+        heldOrderId: activeHeldOrderId,
+        items,
+      });
+      resetDraft();
+      setHeldList((current) => {
+        const next = current.filter((row) => row.id !== saved.id);
+        return [saved, ...next];
+      });
+      setHeldVisibleToAll(saved.visibleToAll);
+      setAlert({
+        tone: "success",
+        title: "Đã lưu đơn",
+        reason: `${saved.holdNo} chưa thanh toán. Kho chưa trừ. Quầy trống để nhận khách tiếp.`,
+      });
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không lưu được đơn",
+        reason: err instanceof Error ? err.message : "Lưu đơn thất bại. Giỏ hàng vẫn giữ nguyên.",
+      });
+    } finally {
+      setSavingHold(false);
+    }
+  }
+
+  function requestResumeHold(id: string) {
+    if (pending || savingHold) return;
+    const hasItems = Object.keys(cart).length > 0;
+    if (hasItems && activeHeldOrderId !== id) {
+      setReplaceHoldId(id);
+      return;
+    }
+    void applyHeldOrder(id);
+  }
+
+  async function applyHeldOrder(id: string) {
+    setHeldBusyId(id);
+    setReplaceHoldId(null);
+    try {
+      const detail = await getHeldOrder(id);
+      const nextCart: Record<string, number> = {};
+      const missing: string[] = [];
+      const overStock: string[] = [];
+      for (const item of detail.items) {
+        const cat = catalog.find((row) => row.skuId === item.skuId);
+        if (!cat || cat.unitPriceDong === null) {
+          missing.push(item.sku);
+          continue;
+        }
+        nextCart[item.skuId] = item.quantity;
+        if (item.quantity > cat.quantity) {
+          overStock.push(`${item.name} (tồn ${cat.quantity}, đơn ${item.quantity})`);
+        }
+      }
+      if (Object.keys(nextCart).length === 0) {
+        setAlert({
+          tone: "error",
+          title: "Không mở được đơn đã lưu",
+          reason: "Không còn sản phẩm nào trên quầy để điền lại giỏ.",
+          detail: missing.length ? `Mã không còn bán: ${missing.join(", ")}.` : undefined,
+        });
+        return;
+      }
+      setCart(nextCart);
+      setRecentIds(Object.keys(nextCart));
+      setCustomer(customerFromHold(detail, walkIn));
+      setNote(detail.note ?? "");
+      setPaymentMethod(detail.paymentMethod);
+      setPayMode("FULL");
+      setPaidDong(0);
+      setDueDate(defaultDueDateIso());
+      setReviewing(false);
+      setActiveHeldOrderId(detail.id);
+      setActiveHoldNo(detail.holdNo);
+      idempotencyKey.current = null;
+      if (missing.length || overStock.length) {
+        setAlert({
+          tone: "error",
+          title: "Đã mở đơn, cần kiểm tra giỏ",
+          reason: missing.length
+            ? `Một số mã không còn trên quầy: ${missing.join(", ")}.`
+            : "Một số dòng vượt tồn hiện tại. Điều chỉnh trước khi thanh toán.",
+          detail: overStock.length ? overStock.join(". ") : undefined,
+        });
+      }
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không mở được đơn đã lưu",
+        reason: err instanceof Error ? err.message : "Không tải được chi tiết đơn lưu.",
+      });
+    } finally {
+      setHeldBusyId(null);
+    }
+  }
+
+  async function confirmCancelHold(id: string) {
+    setHeldBusyId(id);
+    setCancelHoldId(null);
+    try {
+      const result = await cancelHeldOrder(id);
+      setHeldList((current) => current.filter((row) => row.id !== id));
+      if (activeHeldOrderId === id) {
+        resetDraft();
+      }
+      setAlert({
+        tone: "success",
+        title: "Đã hủy đơn lưu",
+        reason: `${result.holdNo} đã đóng. Kho không đổi.`,
+      });
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không hủy được đơn lưu",
+        reason: err instanceof Error ? err.message : "Hủy đơn lưu thất bại.",
+      });
+    } finally {
+      setHeldBusyId(null);
+    }
+  }
+
+  function paymentValidationError(): string | null {
+    if (payMode === "FULL") return null;
+    if (!dueDate) return "Đơn còn nợ phải có ngày hẹn trả.";
+    if (payMode === "PARTIAL") {
+      if (paidDong <= 0) return "Thanh toán một phần cần số tiền thu lớn hơn 0.";
+      if (paidDong >= displayTotal) {
+        return "Số tiền một phần phải nhỏ hơn tổng đơn. Chọn Đủ nếu thu hết.";
+      }
+    }
+    return null;
+  }
+
   function openReview() {
     if (lines.length === 0 || pending) return;
+    const error = paymentValidationError();
+    if (error) {
+      setAlert({
+        tone: "error",
+        title: "Không thể xác nhận thanh toán",
+        reason: error,
+      });
+      return;
+    }
     setReviewing(true);
   }
 
   async function onCheckout() {
     if (lines.length === 0 || pending) return;
+    const error = paymentValidationError();
+    if (error) {
+      setAlert({
+        tone: "error",
+        title: "Không thể xác nhận thanh toán",
+        reason: error,
+      });
+      return;
+    }
     setPending(true);
     if (!idempotencyKey.current) {
       idempotencyKey.current = crypto.randomUUID();
     }
+    const paidToSend = resolvePaidDong(payMode, paidDong, displayTotal);
+    const dueToSend = payMode === "FULL" ? null : dueDate;
+    const payload = {
+      customerId: customer.id,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      paymentMethod,
+      note,
+      idempotencyKey: idempotencyKey.current,
+      paidDong: paidToSend,
+      dueDate: dueToSend,
+      items: lines.map((line) => ({ sku_id: line.skuId, quantity: line.quantity })),
+    };
     try {
-      const result = await completeSale({
-        customerId: customer.id,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        paymentMethod,
-        note,
-        idempotencyKey: idempotencyKey.current,
-        items: lines.map((line) => ({ sku_id: line.skuId, quantity: line.quantity })),
-      });
-      setCart({});
-      setRecentIds([]);
-      setNote("");
-      setCustomer(walkIn);
-      setReviewing(false);
+      const result = activeHeldOrderId
+        ? await completeHeldSale({ ...payload, heldOrderId: activeHeldOrderId })
+        : await completeSale(payload);
+      const closedHoldId = activeHeldOrderId;
+      resetDraft();
+      if (closedHoldId) {
+        setHeldList((current) => current.filter((row) => row.id !== closedHoldId));
+      }
       setPaid({
         invoiceNo: result.invoice_no,
         saleNo: result.sale_no,
         totalDong: Number(result.total_dong),
+        paidDong: Number(result.paid_dong),
+        remainingDong: Number(result.remaining_dong),
         paymentMethod,
       });
       idempotencyKey.current = null;
+      void refreshPosStock().then((map) => {
+        setCatalog((current) =>
+          current.map((item) => ({
+            ...item,
+            quantity: map[item.skuId] ?? item.quantity,
+          })),
+        );
+      });
     } catch (err) {
       setAlert({
         tone: "error",
@@ -263,11 +564,40 @@ export function PosTerminal({
     }
   }
 
+  async function onManualStockRefresh() {
+    setStockRefreshing(true);
+    try {
+      const map = await refreshPosStock();
+      setCatalog((current) =>
+        current.map((item) => ({
+          ...item,
+          quantity: map[item.skuId] ?? item.quantity,
+        })),
+      );
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không làm mới được tồn kho",
+        reason: err instanceof Error ? err.message : "Không tải được số lượng tồn hiện tại.",
+      });
+    } finally {
+      setStockRefreshing(false);
+    }
+  }
+
   return (
     <div className="-mx-6 -my-5 flex min-h-[calc(100dvh-8rem)] flex-col bg-[var(--tlkv-bg)]">
-      <div className="flex flex-1 min-h-0 flex-col gap-4 px-6 py-4">
+      <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-6 py-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[18px] font-semibold">Bán hàng tại quầy (POS)</h1>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-[18px] font-semibold">Bán hàng tại quầy (POS)</h1>
+            <Link
+              href={ROUTES.purchase}
+              className="text-[12px] font-semibold text-[var(--tlkv-red)] hover:underline"
+            >
+              Mua vào →
+            </Link>
+          </div>
           <label className="relative min-w-[240px] flex-1">
             <MagnifyingGlass
               size={16}
@@ -291,6 +621,15 @@ export function PosTerminal({
           >
             <Barcode size={16} />
             Quét mã vạch
+          </button>
+          <button
+            type="button"
+            disabled={stockRefreshing}
+            onClick={() => void onManualStockRefresh()}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium disabled:opacity-60"
+          >
+            <ArrowsClockwise size={16} className={stockRefreshing ? "animate-spin" : undefined} />
+            {stockRefreshing ? "Đang cập nhật tồn..." : "Làm mới tồn kho"}
           </button>
         </div>
 
@@ -391,18 +730,37 @@ export function PosTerminal({
             displayTotal={displayTotal}
             note={note}
             paymentMethod={paymentMethod}
+            payMode={payMode}
+            paidDong={paidDong}
+            dueDate={dueDate}
             pending={pending}
             onOpenCustomer={() => setPickingCustomer(true)}
             onClear={clearOrder}
             onNoteChange={setNote}
             onPaymentChange={setPaymentMethod}
+            onPayModeChange={setPayMode}
+            onPaidDongChange={setPaidDong}
+            onDueDateChange={setDueDate}
             onQty={setQty}
             onRemove={removeLine}
             onCheckout={openReview}
             onCancel={clearOrder}
             onAddMore={() => searchRef.current?.focus()}
+            onSave={() => void onSaveHold()}
+            saving={savingHold}
+            heldHoldNo={activeHoldNo}
           />
         </div>
+
+        <PosHeldOrdersTable
+          items={heldList}
+          visibleToAll={heldVisibleToAll}
+          activeHoldId={activeHeldOrderId}
+          loading={heldLoading}
+          busyId={heldBusyId}
+          onResume={requestResumeHold}
+          onCancel={(id) => setCancelHoldId(id)}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-[var(--tlkv-line)] bg-white px-6 py-2 text-[12px] text-[var(--tlkv-muted)]">
@@ -440,6 +798,9 @@ export function PosTerminal({
           displayTotal={displayTotal}
           paymentMethod={paymentMethod}
           note={note}
+          paidDong={effectivePaidDong}
+          remainingDong={remainingDong}
+          dueDate={payMode === "FULL" ? null : dueDate}
           pending={pending}
           onClose={() => setReviewing(false)}
           onConfirm={() => void onCheckout()}
@@ -456,6 +817,8 @@ export function PosTerminal({
           invoiceNo={paid.invoiceNo}
           saleNo={paid.saleNo}
           totalDong={paid.totalDong}
+          paidDong={paid.paidDong}
+          remainingDong={paid.remainingDong}
           paymentMethod={paid.paymentMethod}
           onStay={() => setPaid(null)}
           onViewInvoice={() => {
@@ -464,6 +827,43 @@ export function PosTerminal({
             router.push(invoiceDetailPath(no));
           }}
         />
+      ) : null}
+
+      {replaceHoldId || cancelHoldId ? (
+        <ResultAlert
+          alert={{
+            tone: "error",
+            title: replaceHoldId ? "Thay giỏ hiện tại?" : "Hủy đơn đã lưu?",
+            reason: replaceHoldId
+              ? "Giỏ đang có sản phẩm. Mở đơn đã lưu sẽ thay toàn bộ giỏ, không gộp."
+              : "Đơn lưu sẽ đóng. Kho không đổi. Nếu đơn này đang mở trên giỏ, giỏ cũng sẽ xóa.",
+          }}
+          onClose={() => {
+            setReplaceHoldId(null);
+            setCancelHoldId(null);
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setReplaceHoldId(null);
+              setCancelHoldId(null);
+            }}
+            className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
+          >
+            Không
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (replaceHoldId) void applyHeldOrder(replaceHoldId);
+              else if (cancelHoldId) void confirmCancelHold(cancelHoldId);
+            }}
+            className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+          >
+            {replaceHoldId ? "Mở đơn" : "Hủy đơn lưu"}
+          </button>
+        </ResultAlert>
       ) : null}
 
       {alert ? (

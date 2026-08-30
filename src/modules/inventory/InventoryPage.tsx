@@ -5,10 +5,15 @@ import { StockTable } from "./components/StockTable";
 import { listLedger, listStock } from "./query";
 import { LOW_STOCK_DISPLAY_QTY, stockStatus } from "./types";
 
+function formatChiTotal(weight: number): string {
+  return `${weight.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} chỉ`;
+}
+
 export async function InventoryPage() {
   const [rows, ledger] = await Promise.all([listStock(), listLedger()]);
   const skuCount = rows.length;
   const totalQty = rows.reduce((sum, row) => sum + row.quantity, 0);
+  const totalWeightChi = rows.reduce((sum, row) => sum + row.quantity * row.weightChi, 0);
   const value = rows.reduce(
     (sum, row) => sum + (row.unitPriceDong === null ? 0 : row.unitPriceDong * row.quantity),
     0,
@@ -19,11 +24,15 @@ export async function InventoryPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-[18px] font-semibold">Kho hàng</h1>
-        <p className="text-[12px] text-[var(--tlkv-muted)]">Kho hàng › Tồn kho hiện tại</p>
+        <p className="text-[12px] text-[var(--tlkv-muted)]">
+          Tồn kho theo mã hàng. Số lượng và tổng trọng lượng lấy từ hệ thống; không sửa tồn tay trên
+          bảng này.
+        </p>
       </div>
       <InventoryKpis
         skuCount={String(skuCount)}
         totalQty={String(totalQty)}
+        totalWeight={formatChiTotal(totalWeightChi)}
         valueLabel={formatDong(value)}
         lowStock={String(lowStock)}
         lowStockHint={`Sắp hết / hết hàng (tồn ≤ ${LOW_STOCK_DISPLAY_QTY})`}

@@ -9,7 +9,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatViDateOnly } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
 import { invoiceDetailPath } from "@/shared/navigation/routes";
@@ -20,8 +20,13 @@ import {
   GENDER_LABEL,
   GROUP_LABEL,
   groupBadgeClass,
+  maskCitizenId,
+  TYPE_LABEL,
 } from "../labels";
-import type { CustomerDetail } from "../types";
+import { getCustomerDebtSummary } from "@/modules/purchase/actions";
+import type { DebtSummary } from "@/modules/purchase/types";
+import type { CustomerDetail, CustomerDocument } from "../types";
+import { CccdDocumentsSection } from "./CccdDocumentsSection";
 
 export function CustomerDetailPanel({
   detail,
@@ -35,7 +40,32 @@ export function CustomerDetailPanel({
   onDeleted?: () => void;
 }) {
   const { customer, history } = detail;
+  const [documents, setDocuments] = useState<CustomerDocument[]>(customer.documents);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [debt, setDebt] = useState<DebtSummary | null>(null);
+
+  useEffect(() => {
+    setDocuments(customer.documents);
+  }, [customer.documents, customer.id]);
+
+  useEffect(() => {
+    if (customer.isWalkIn) {
+      setDebt(null);
+      return;
+    }
+    let cancelled = false;
+    void getCustomerDebtSummary(customer.id)
+      .then((summary) => {
+        if (!cancelled) setDebt(summary);
+      })
+      .catch(() => {
+        if (!cancelled) setDebt(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer.id, customer.isWalkIn]);
+
   const canDelete = !customer.isWalkIn && customer.saleCount === 0 && onDeleted;
   const phone = formatPhoneDisplay(customer.phone);
   const avgOrder =
@@ -67,6 +97,7 @@ export function CustomerDetailPanel({
           >
             {GROUP_LABEL[customer.customerGroup]}
           </span>
+          <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">{TYPE_LABEL[customer.customerType]}</p>
         </div>
 
         <div className="mt-4 flex justify-center gap-2">
@@ -108,6 +139,27 @@ export function CustomerDetailPanel({
         </div>
 
         <section className="mt-5 space-y-2.5 text-[13px]">
+          {customer.customerType === "BUSINESS" ? (
+            <>
+              <InfoRow label="Doanh nghiệp" value={customer.businessName || "—"} />
+              <InfoRow label="MST" value={customer.taxCode || "—"} />
+              <InfoRow label="Đại diện" value={customer.representativeName || "—"} />
+            </>
+          ) : (
+            <>
+              <InfoRow label="CCCD" value={maskCitizenId(customer.citizenId)} />
+              <InfoRow
+                label="Ngày cấp"
+                value={
+                  customer.citizenIdIssueDate
+                    ? formatViDateOnly(customer.citizenIdIssueDate)
+                    : "—"
+                }
+              />
+              <InfoRow label="Nơi cấp" value={customer.citizenIdIssuePlace || "—"} />
+              <InfoRow label="Quốc tịch" value={customer.nationality || "—"} />
+            </>
+          )}
           <InfoRow label="Ngày sinh" value={customer.dateOfBirth ? formatViDateOnly(customer.dateOfBirth) : "—"} />
           <InfoRow
             label="Giới tính"
@@ -120,20 +172,42 @@ export function CustomerDetailPanel({
           <InfoRow label="Ghi chú" value={customer.note || "—"} />
         </section>
 
+        {!customer.isWalkIn && customer.customerType === "INDIVIDUAL" ? (
+          <CccdDocumentsSection
+            customerId={customer.id}
+            documents={documents}
+            onUpdated={setDocuments}
+          />
+        ) : null}
+
         <section className="mt-5">
           <h3 className="text-[13px] font-semibold">Tổng quan giao dịch</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <MiniStat label="Tổng chi tiêu" value={formatDong(customer.totalDong)} />
-            <MiniStat label="Số đơn hàng" value={String(customer.saleCount)} />
+            <MiniStat label="Số đơn bán" value={String(debt?.saleCount ?? customer.saleCount)} />
             <MiniStat label="TB / đơn" value={formatDong(avgOrder)} />
-            <MiniStat
-              label="Mua gần nhất"
-              value={
-                customer.saleCount > 0 ? formatViDateOnly(customer.lastActivityAt) : "—"
-              }
-            />
+            <MiniStat label="Số đơn mua vào" value={String(debt?.buyCount ?? 0)} />
           </div>
         </section>
+
+        {!customer.isWalkIn ? (
+          <section className="mt-5">
+            <h3 className="text-[13px] font-semibold">Công nợ 2 chiều</h3>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <MiniStat
+                label="Khách còn nợ"
+                value={formatDong(debt?.receivableDong ?? 0)}
+              />
+              <MiniStat
+                label="Cửa hàng còn nợ"
+                value={formatDong(debt?.payableDong ?? 0)}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
+              Receivable và payable tách riêng. Không gộp thành một số nợ.
+            </p>
+          </section>
+        ) : null}
 
         <section className="mt-5">
           <div className="flex items-center justify-between gap-2">

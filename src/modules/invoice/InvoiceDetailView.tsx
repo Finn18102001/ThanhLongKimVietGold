@@ -80,7 +80,13 @@ export function InvoiceDetailView({ invoice }: { invoice: InvoiceDetail }) {
           </button>
         </div>
       </div>
-      <div className="rounded-[12px] bg-white shadow-[var(--tlkv-shadow)] print:shadow-none">
+      <div className="overflow-x-auto rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
+        {invoice.lines.length > 4 ? (
+          <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
+            Giấy đảm bảo vàng in tối đa 4 dòng hàng. Đơn này có {invoice.lines.length} dòng; các
+            dòng sau dòng 4 không in trên mẫu.
+          </p>
+        ) : null}
         <InvoiceDocument invoice={invoice} />
       </div>
       {alert ? (

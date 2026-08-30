@@ -1,19 +1,30 @@
 import { createServerSupabase } from "@/shared/supabase/server";
-import { browseGroupFromProduct, type PosCatalogItem } from "./types";
+import { mapHeldOrderList } from "./heldOrderMap";
+import { browseGroupFromProduct, type HeldOrderListResult, type PosCatalogItem } from "./types";
 
-type ProductEmbed = { image: string | null; category: string | null } | { image: string | null; category: string | null }[] | null;
+type ProductEmbed =
+  | { image: string | null; category: string | null }
+  | { image: string | null; category: string | null }[]
+  | null;
+
+type CatalogMeta = Omit<PosCatalogItem, "quantity">;
 
 function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-export async function listPosCatalog(): Promise<PosCatalogItem[]> {
+/**
+ * Catalog meta (image, sku, name, price) — no stock.
+ * Not using unstable_cache: createServerSupabase is cookie-bound.
+ * Client keeps meta in memory; only stock is refreshed on tab focus.
+ */
+async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity), products!pos_skus_catalog_product_id_fkey(image, category)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category)",
     )
     .eq("is_active", true)
     .order("name");
@@ -21,7 +32,6 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
 
   return (data ?? []).map((row) => {
     const price = firstEmbed(row.gold_price_rows);
-    const stock = firstEmbed(row.pos_inventory_stock);
     const product = firstEmbed(row.products as ProductEmbed);
     const sell = price?.sell === undefined ? null : Number(price.sell);
     const unitPriceDong =
@@ -34,11 +44,55 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       skuId: row.id,
       sku: row.sku,
       name: row.name,
-      quantity: Number(stock?.quantity ?? 0),
       unitPriceDong,
       imageUrl: product?.image || null,
       category,
       browseGroup: browseGroupFromProduct(row.name, category),
     };
   });
+}
+
+async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, number>> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_sku_stock", {
+    p_sku_ids: skuIds?.length ? skuIds : null,
+  });
+  if (error) {
+    let builder = supabase.from("pos_inventory_stock").select("sku_id, quantity");
+    if (skuIds?.length) builder = builder.in("sku_id", skuIds);
+    const { data: rows, error: stockError } = await builder;
+    if (stockError) throw new Error(error.message);
+    const map: Record<string, number> = {};
+    for (const row of rows ?? []) {
+      map[row.sku_id] = Number(row.quantity ?? 0);
+    }
+    return map;
+  }
+  const items = (
+    data as { items?: Array<{ sku_id: string; quantity: number | string }> } | null
+  )?.items;
+  const map: Record<string, number> = {};
+  for (const row of items ?? []) {
+    map[row.sku_id] = Number(row.quantity ?? 0);
+  }
+  return map;
+}
+
+export async function listPosCatalog(): Promise<PosCatalogItem[]> {
+  const [meta, stock] = await Promise.all([fetchPosCatalogMeta(), fetchPosStockMap()]);
+  return meta.map((item) => ({
+    ...item,
+    quantity: stock[item.skuId] ?? 0,
+  }));
+}
+
+export async function listPosStockOnly(skuIds?: string[]): Promise<Record<string, number>> {
+  return fetchPosStockMap(skuIds);
+}
+
+export async function listHeldOrders(): Promise<HeldOrderListResult> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_held_orders");
+  if (error) throw new Error(error.message);
+  return mapHeldOrderList(data);
 }

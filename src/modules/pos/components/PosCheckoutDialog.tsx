@@ -20,6 +20,9 @@ export function PosCheckoutDialog({
   displayTotal,
   paymentMethod,
   note,
+  paidDong,
+  remainingDong,
+  dueDate,
   pending,
   onClose,
   onConfirm,
@@ -30,6 +33,9 @@ export function PosCheckoutDialog({
   displayTotal: number;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
   note: string;
+  paidDong: number;
+  remainingDong: number;
+  dueDate: string | null;
   pending: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -144,6 +150,26 @@ export function PosCheckoutDialog({
               <span>VAT (0%)</span>
               <span>0 đ</span>
             </div>
+            <div className="flex justify-between">
+              <span>Đã thu</span>
+              <span className="font-medium">{formatDong(paidDong)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Còn lại</span>
+              <span className="font-semibold text-[var(--tlkv-red)]">
+                {formatDong(remainingDong)}
+              </span>
+            </div>
+            {remainingDong > 0 ? (
+              <div className="flex justify-between">
+                <span>Hẹn trả</span>
+                <span className="font-medium">
+                  {dueDate
+                    ? new Date(`${dueDate}T00:00:00`).toLocaleDateString("vi-VN")
+                    : "-"}
+                </span>
+              </div>
+            ) : null}
           </div>
           <p className="mt-3 text-[12px] text-[var(--tlkv-muted)]">Tổng cộng</p>
           <p className="text-[20px] font-bold text-[var(--tlkv-red)]">{formatDong(displayTotal)}</p>

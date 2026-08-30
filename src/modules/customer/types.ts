@@ -1,8 +1,12 @@
 export const CUSTOMER_GROUPS = ["RETAIL", "MEMBER", "LOYAL", "VIP"] as const;
 export const CUSTOMER_GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
+export const CUSTOMER_TYPES = ["INDIVIDUAL", "BUSINESS"] as const;
+export const CCCD_DOCUMENT_TYPES = ["CCCD_FRONT", "CCCD_BACK"] as const;
 
 export type CustomerGroup = (typeof CUSTOMER_GROUPS)[number];
 export type CustomerGender = (typeof CUSTOMER_GENDERS)[number];
+export type CustomerType = (typeof CUSTOMER_TYPES)[number];
+export type CccdDocumentType = (typeof CCCD_DOCUMENT_TYPES)[number];
 export type CustomerSort = "newest" | "name" | "total";
 export type CustomerActivityFilter = "" | "purchased" | "never";
 
@@ -12,6 +16,17 @@ export type CustomerDirectoryStats = {
   totalSpendingDong: number;
   totalOrders: number;
   avgOrderDong: number;
+};
+
+export type CustomerDocument = {
+  id: string;
+  documentType: CccdDocumentType;
+  storagePath: string;
+  mimeType: string | null;
+  byteSize: number | null;
+  uploadedBy: string;
+  uploadedAt: string;
+  signedUrl?: string | null;
 };
 
 export type CustomerRecord = {
@@ -27,6 +42,14 @@ export type CustomerRecord = {
   customerGroup: CustomerGroup;
   dateOfBirth: string | null;
   isWalkIn: boolean;
+  customerType: CustomerType;
+  nationality: string | null;
+  citizenId: string | null;
+  citizenIdIssueDate: string | null;
+  citizenIdIssuePlace: string | null;
+  businessName: string | null;
+  representativeName: string | null;
+  documents: CustomerDocument[];
   createdAt: string;
   updatedAt: string;
   totalDong: number;
@@ -67,4 +90,11 @@ export type CustomerInput = {
   gender?: CustomerGender | null;
   customerGroup?: CustomerGroup;
   dateOfBirth?: string | null;
+  customerType?: CustomerType;
+  nationality?: string | null;
+  citizenId?: string | null;
+  citizenIdIssueDate?: string | null;
+  citizenIdIssuePlace?: string | null;
+  businessName?: string | null;
+  representativeName?: string | null;
 };

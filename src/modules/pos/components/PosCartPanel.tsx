@@ -7,47 +7,78 @@ import type { CustomerRecord } from "@/modules/customer/types";
 import type { CartLine } from "../types";
 import { ProductThumb } from "./CatalogCard";
 
+export type PosPayMode = "FULL" | "PARTIAL" | "UNPAID";
+
 export function PosCartPanel({
   customer,
   lines,
   displayTotal,
   note,
   paymentMethod,
+  payMode,
+  paidDong,
+  dueDate,
   pending,
   onOpenCustomer,
   onClear,
   onNoteChange,
   onPaymentChange,
+  onPayModeChange,
+  onPaidDongChange,
+  onDueDateChange,
   onQty,
   onRemove,
   onCheckout,
   onCancel,
   onAddMore,
+  onSave,
+  saving,
+  heldHoldNo,
 }: {
   customer: CustomerRecord;
   lines: CartLine[];
   displayTotal: number;
   note: string;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  payMode: PosPayMode;
+  paidDong: number;
+  dueDate: string;
   pending: boolean;
+  saving?: boolean;
+  heldHoldNo?: string | null;
   onOpenCustomer: () => void;
   onClear: () => void;
   onNoteChange: (value: string) => void;
   onPaymentChange: (value: "CASH" | "TRANSFER" | "CARD") => void;
+  onPayModeChange: (value: PosPayMode) => void;
+  onPaidDongChange: (value: number) => void;
+  onDueDateChange: (value: string) => void;
   onQty: (skuId: string, quantity: number) => void;
   onRemove: (skuId: string) => void;
   onCheckout: () => void;
   onCancel: () => void;
   onAddMore: () => void;
+  onSave: () => void;
 }) {
+  const effectivePaid =
+    payMode === "FULL" ? displayTotal : payMode === "UNPAID" ? 0 : Math.max(0, paidDong);
+  const remainingDong = Math.max(0, displayTotal - effectivePaid);
+
   return (
     <aside className="flex min-h-0 flex-col rounded-[12px] bg-white shadow-[var(--tlkv-shadow)]">
       <div className="flex items-center justify-between border-b border-[var(--tlkv-line)] px-4 py-3">
         <div>
           <h2 className="text-[15px] font-semibold">Đơn hàng ({lines.length})</h2>
-          <span className="mt-1 inline-flex rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-amber)]">
-            Nháp · chưa trừ kho
-          </span>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <span className="inline-flex rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-amber)]">
+              Nháp, chưa trừ kho
+            </span>
+            {heldHoldNo ? (
+              <span className="inline-flex rounded-full bg-[var(--tlkv-red-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-red)]">
+                {heldHoldNo}
+              </span>
+            ) : null}
+          </div>
         </div>
         <button
           type="button"
@@ -83,7 +114,7 @@ export function PosCartPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {lines.length === 0 ? (
           <p className="px-4 py-6 text-[13px] text-[var(--tlkv-muted)]">
-            Chưa chọn sản phẩm. Thêm từ lưới bên trái — kho chưa trừ.
+            Chưa chọn sản phẩm. Thêm từ lưới bên trái. Kho chưa trừ.
           </p>
         ) : (
           <table className="w-full text-left text-[12px]">
@@ -189,19 +220,96 @@ export function PosCartPanel({
             <option value="CARD">Thẻ</option>
           </select>
         </label>
+
+        <fieldset className="mt-3">
+          <legend className="text-[13px]">Trạng thái thu</legend>
+          <div className="mt-1 grid grid-cols-3 gap-1.5">
+            {(
+              [
+                { value: "FULL" as const, label: "Đủ" },
+                { value: "PARTIAL" as const, label: "Một phần" },
+                { value: "UNPAID" as const, label: "Chờ TT" },
+              ] as const
+            ).map((option) => {
+              const active = payMode === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onPayModeChange(option.value)}
+                  className={`h-9 rounded-lg text-[12px] font-semibold ${
+                    active
+                      ? "bg-[var(--tlkv-red)] text-white"
+                      : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {payMode === "PARTIAL" ? (
+          <label className="mt-3 block text-[13px]">
+            Số tiền thu (VND)
+            <input
+              type="text"
+              inputMode="numeric"
+              value={paidDong > 0 ? String(paidDong) : ""}
+              onChange={(event) => {
+                const digits = event.target.value.replace(/[^\d]/g, "");
+                onPaidDongChange(digits ? Number(digits) : 0);
+              }}
+              placeholder="Nhập số đã thu"
+              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            />
+          </label>
+        ) : null}
+
+        {payMode !== "FULL" ? (
+          <>
+            <label className="mt-3 block text-[13px]">
+              Ngày hẹn trả
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(event) => onDueDateChange(event.target.value)}
+                required
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+              />
+            </label>
+            <div className="mt-2 flex items-center justify-between text-[13px]">
+              <span className="text-[var(--tlkv-muted)]">Còn phải thu</span>
+              <span className="font-semibold text-[var(--tlkv-red)]">
+                {formatDong(remainingDong)}
+              </span>
+            </div>
+          </>
+        ) : null}
+
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="h-10 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium hover:bg-[var(--tlkv-bg)]"
+            disabled={pending || saving}
+            className="h-10 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium hover:bg-[var(--tlkv-bg)] active:scale-[0.98] disabled:opacity-40"
           >
             Hủy đơn F8
           </button>
           <button
             type="button"
-            disabled={pending || lines.length === 0}
+            disabled={pending || saving || lines.length === 0}
+            onClick={onSave}
+            className="h-10 rounded-lg border border-[var(--tlkv-red)] text-[13px] font-semibold text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)] active:scale-[0.98] disabled:opacity-40"
+          >
+            {saving ? "Đang lưu..." : "Lưu đơn"}
+          </button>
+          <button
+            type="button"
+            disabled={pending || saving || lines.length === 0}
             onClick={onCheckout}
-            className="h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white disabled:opacity-40"
+            className="col-span-2 h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
           >
             Xác nhận F9
           </button>

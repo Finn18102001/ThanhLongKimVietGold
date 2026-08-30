@@ -18,9 +18,9 @@ export default async function LoginPage({
       <div className="w-full max-w-md overflow-hidden rounded-[12px] bg-white shadow-[var(--tlkv-shadow)]">
         <BrandLockup variant="login" />
         <form action={signIn} className="p-8 pt-6">
-          <h1 className="text-2xl font-semibold text-center">Đăng nhập quản trị</h1>
+          <h1 className="text-2xl font-semibold text-center">Đăng nhập POS</h1>
           <p className="mt-2 text-sm text-center text-[var(--tlkv-muted)]">
-            Chỉ tài khoản admin mới được bán hàng, nhập kho và xem sổ tồn.
+            Dùng tài khoản quản trị hoặc nhân viên đã được cấp trong hệ thống.
           </p>
           {params.error ? (
             <p className="mt-4 rounded-lg bg-[var(--tlkv-red-soft)] px-3 py-2 text-sm text-[var(--tlkv-red)]">

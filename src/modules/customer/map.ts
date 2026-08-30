@@ -1,11 +1,24 @@
 import type {
+  CccdDocumentType,
   CustomerDetail,
+  CustomerDocument,
   CustomerGender,
   CustomerGroup,
   CustomerHistoryItem,
   CustomerListPage,
   CustomerRecord,
+  CustomerType,
 } from "./types";
+
+type DocumentJson = {
+  id: string;
+  document_type: CccdDocumentType;
+  storage_path: string;
+  mime_type: string | null;
+  byte_size: number | null;
+  uploaded_by: string;
+  uploaded_at: string;
+};
 
 type CustomerJson = {
   id: string;
@@ -20,6 +33,14 @@ type CustomerJson = {
   customer_group: CustomerGroup;
   date_of_birth: string | null;
   is_walk_in: boolean;
+  customer_type?: CustomerType | null;
+  nationality?: string | null;
+  citizen_id?: string | null;
+  citizen_id_issue_date?: string | null;
+  citizen_id_issue_place?: string | null;
+  business_name?: string | null;
+  representative_name?: string | null;
+  documents?: DocumentJson[] | null;
   created_at: string;
   updated_at: string;
   total_dong: number;
@@ -38,6 +59,18 @@ type HistoryJson = {
   payment_method: string;
 };
 
+function mapDocument(row: DocumentJson): CustomerDocument {
+  return {
+    id: row.id,
+    documentType: row.document_type,
+    storagePath: row.storage_path,
+    mimeType: row.mime_type,
+    byteSize: row.byte_size == null ? null : Number(row.byte_size),
+    uploadedBy: row.uploaded_by,
+    uploadedAt: row.uploaded_at,
+  };
+}
+
 export function mapCustomer(row: CustomerJson): CustomerRecord {
   return {
     id: row.id,
@@ -52,6 +85,14 @@ export function mapCustomer(row: CustomerJson): CustomerRecord {
     customerGroup: row.customer_group,
     dateOfBirth: row.date_of_birth,
     isWalkIn: row.is_walk_in,
+    customerType: row.customer_type === "BUSINESS" ? "BUSINESS" : "INDIVIDUAL",
+    nationality: row.nationality ?? null,
+    citizenId: row.citizen_id ?? null,
+    citizenIdIssueDate: row.citizen_id_issue_date ?? null,
+    citizenIdIssuePlace: row.citizen_id_issue_place ?? null,
+    businessName: row.business_name ?? null,
+    representativeName: row.representative_name ?? null,
+    documents: (row.documents ?? []).map(mapDocument),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     totalDong: Number(row.total_dong ?? 0),

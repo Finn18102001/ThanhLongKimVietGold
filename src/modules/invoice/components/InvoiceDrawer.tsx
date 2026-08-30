@@ -1,30 +1,102 @@
 "use client";
 
+import { useState } from "react";
 import { Printer, X } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { invoiceDetailPath } from "@/shared/navigation/routes";
+import { collectSalePayment } from "../actions";
 import {
+  effectivePaymentStatus,
   formatChi,
   formatInvoicePhone,
   invoiceStatusLabel,
   paymentBadgeClass,
   paymentLabel,
+  paymentStatusBadgeClass,
+  paymentStatusLabel,
 } from "../labels";
-import type { InvoiceDetail } from "../types";
+import type { InvoiceDetail, PaymentStatus } from "../types";
+
+const FIELD =
+  "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
 
 export function InvoiceDrawer({
   invoice,
   onClose,
+  onUpdated,
 }: {
   invoice: InvoiceDetail;
   onClose: () => void;
+  onUpdated?: (next: InvoiceDetail) => void;
 }) {
   const staffName = invoice.actorEmail.split("@")[0] ?? invoice.actorEmail;
   const phone = formatInvoicePhone(invoice.customerPhone);
+  const payStatus = effectivePaymentStatus(
+    invoice.paymentStatus,
+    invoice.remainingDong,
+    invoice.dueDate,
+  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [amountText, setAmountText] = useState(
+    invoice.remainingDong > 0 ? String(invoice.remainingDong) : "",
+  );
+  const [method, setMethod] = useState<"CASH" | "TRANSFER" | "CARD">(
+    (invoice.paymentMethod as "CASH" | "TRANSFER" | "CARD") || "CASH",
+  );
+  const [note, setNote] = useState("");
 
   function openPrintView() {
     window.open(invoiceDetailPath(invoice.invoiceNo), "_blank", "noopener,noreferrer");
+  }
+
+  async function onCollect() {
+    const amount = Number(amountText.replace(/[^\d]/g, ""));
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError("Nhập số tiền thu hợp lệ (VND nguyên).");
+      return;
+    }
+    if (amount > invoice.remainingDong) {
+      setError(`Không vượt số còn lại (${formatDong(invoice.remainingDong)}).`);
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      const result = await collectSalePayment({
+        saleId: invoice.saleId,
+        amountDong: amount,
+        paymentMethod: method,
+        note: note || undefined,
+        dueDate: invoice.dueDate,
+      });
+      onUpdated?.({
+        ...invoice,
+        paidDong: result.paidDong,
+        remainingDong: result.remainingDong,
+        paymentStatus: result.paymentStatus as PaymentStatus,
+        dueDate: result.dueDate,
+        payments: [
+          ...invoice.payments,
+          {
+            id: crypto.randomUUID(),
+            saleId: invoice.saleId,
+            amountDong: amount,
+            paymentMethod: method,
+            paidAt: new Date().toISOString(),
+            actorEmail: invoice.actorEmail,
+            note: note || null,
+          },
+        ],
+      });
+      setAmountText(result.remainingDong > 0 ? String(result.remainingDong) : "");
+      setNote("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Thu tiền thất bại.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -66,20 +138,52 @@ export function InvoiceDrawer({
             <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Thông tin khách hàng</p>
             <p className="mt-1 text-[14px] font-semibold">{invoice.customerName}</p>
             <p className="text-[13px] text-[var(--tlkv-muted)]">
-              {invoice.customerNo ?? "—"}
+              {invoice.customerNo ?? "-"}
               {invoice.isWalkIn ? " · Khách vãng lai" : phone ? ` · ${phone}` : ""}
             </p>
             <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-              Địa chỉ: {invoice.customerAddress || "—"}
+              Địa chỉ: {invoice.customerAddress || "-"}
             </p>
           </section>
 
           <section className="mt-3 rounded-[12px] border border-[var(--tlkv-line)] p-3">
             <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Thông tin thanh toán</p>
             <div className="mt-2 flex items-center justify-between text-[13px]">
+              <span>Trạng thái TT</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
+              >
+                {paymentStatusLabel(payStatus)}
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
               <span>Hình thức</span>
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentBadgeClass(invoice.paymentMethod)}`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentBadgeClass(invoice.paymentMethod)}`}
+              >
                 {paymentLabel(invoice.paymentMethod)}
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Tổng HĐ</span>
+              <span className="font-medium">{formatDong(invoice.totalDong)}</span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Đã thanh toán</span>
+              <span className="font-medium">{formatDong(invoice.paidDong)}</span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Còn lại</span>
+              <span className="font-semibold text-[var(--tlkv-red)]">
+                {formatDong(invoice.remainingDong)}
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Hẹn trả</span>
+              <span className="font-medium">
+                {invoice.dueDate
+                  ? new Date(`${invoice.dueDate}T00:00:00`).toLocaleDateString("vi-VN")
+                  : "-"}
               </span>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-[13px]">
@@ -87,8 +191,80 @@ export function InvoiceDrawer({
               <span className="font-medium">{staffName}</span>
             </div>
             <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-              Ghi chú: {invoice.note || "—"}
+              Ghi chú: {invoice.note || "-"}
             </p>
+          </section>
+
+          {invoice.remainingDong > 0 ? (
+            <section className="mt-3 rounded-[12px] border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)]/40 p-3">
+              <p className="text-[12px] font-semibold text-[var(--tlkv-amber)]">Thu tiền còn lại</p>
+              <label className="mt-2 block text-[13px]">
+                Số tiền thu (VND)
+                <input
+                  value={amountText}
+                  onChange={(e) => setAmountText(e.target.value.replace(/[^\d]/g, ""))}
+                  inputMode="numeric"
+                  className={FIELD}
+                />
+              </label>
+              <label className="mt-2 block text-[13px]">
+                Hình thức
+                <select
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value as "CASH" | "TRANSFER" | "CARD")}
+                  className={FIELD}
+                >
+                  <option value="CASH">Tiền mặt</option>
+                  <option value="TRANSFER">Chuyển khoản</option>
+                  <option value="CARD">Thẻ</option>
+                </select>
+              </label>
+              <label className="mt-2 block text-[13px]">
+                Ghi chú
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className={FIELD}
+                  placeholder="Tùy chọn"
+                />
+              </label>
+              {error ? <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{error}</p> : null}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void onCollect()}
+                className="mt-3 h-10 w-full rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white disabled:opacity-40"
+              >
+                {pending ? "Đang thu..." : "Xác nhận thu tiền"}
+              </button>
+            </section>
+          ) : null}
+
+          <section className="mt-3 rounded-[12px] border border-[var(--tlkv-line)] p-3">
+            <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Lịch sử thanh toán</p>
+            {invoice.payments.length === 0 ? (
+              <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Chưa có lần thu nào.</p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {invoice.payments.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-start justify-between gap-2 border-b border-[var(--tlkv-line)] pb-2 text-[12px] last:border-b-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="font-medium">{formatDong(p.amountDong)}</p>
+                      <p className="text-[var(--tlkv-muted)]">
+                        {paymentLabel(p.paymentMethod)} · {formatViDateTime(p.paidAt)}
+                      </p>
+                      {p.note ? <p className="text-[var(--tlkv-muted)]">{p.note}</p> : null}
+                    </div>
+                    <span className="shrink-0 text-[var(--tlkv-muted)]">
+                      {(p.actorEmail.split("@")[0] ?? p.actorEmail)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <table className="mt-4 w-full text-left text-[12px]">
@@ -127,14 +303,6 @@ export function InvoiceDrawer({
             <div className="flex justify-between">
               <span>Tổng tiền hàng</span>
               <span>{formatDong(invoice.totalDong)}</span>
-            </div>
-            <div className="flex justify-between text-[var(--tlkv-muted)]">
-              <span>Chiết khấu</span>
-              <span>0 đ</span>
-            </div>
-            <div className="flex justify-between text-[var(--tlkv-muted)]">
-              <span>Thuế VAT (0%)</span>
-              <span>0 đ</span>
             </div>
             <div className="mt-2 flex items-start justify-between border-t border-[var(--tlkv-line)] pt-2">
               <span className="font-semibold">Tổng thanh toán</span>
