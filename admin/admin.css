@@ -36,7 +36,7 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   display: none !important;
 }
 .admin-wrap {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 24px 16px;
 }
@@ -120,6 +120,134 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   margin-right: 0;
   flex: 0 0 auto;
 }
+.admin-gold-list {
+  background: #fff;
+  border: 1px solid #ece8e4;
+  border-radius: 12px;
+  padding: 20px 18px 12px;
+  box-shadow: 0 10px 28px rgba(51, 14, 10, 0.08);
+  margin-bottom: 20px;
+}
+.admin-gold-list-head h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 750;
+  color: #330e0a;
+}
+.admin-gold-list-head p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #71717a;
+}
+.admin-table--gold-rows {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: 10px;
+}
+.admin-table--gold-rows th,
+.admin-table--gold-rows td {
+  border: none;
+  border-bottom: 1px solid #ececec;
+  padding: 11px 12px;
+  vertical-align: middle;
+}
+.admin-table--gold-rows thead th {
+  background: #8b1d1d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.admin-table--gold-rows thead th:first-child {
+  border-top-left-radius: 10px;
+}
+.admin-table--gold-rows thead th:last-child {
+  border-top-right-radius: 10px;
+}
+.admin-table--gold-rows tbody tr:nth-child(odd) td,
+.admin-table--gold-rows tbody tr.row-silver:nth-child(odd) td,
+.admin-table--gold-rows tbody tr.row-highlight:nth-child(odd) td {
+  background: #fff;
+  color: #18181b;
+}
+.admin-table--gold-rows tbody tr:nth-child(even) td,
+.admin-table--gold-rows tbody tr.row-silver:nth-child(even) td,
+.admin-table--gold-rows tbody tr.row-highlight:nth-child(even) td {
+  background: #f6f6f7;
+  color: #18181b;
+}
+.admin-table--gold-rows tbody tr.row-silver td .btn-edit,
+.admin-table--gold-rows tbody tr.row-silver td .btn-del,
+.admin-table--gold-rows tbody tr.row-silver td .admin-btn-inline-secondary,
+.admin-table--gold-rows tbody tr.row-highlight td .btn-edit,
+.admin-table--gold-rows tbody tr.row-highlight td .btn-del,
+.admin-table--gold-rows tbody tr.row-highlight td .admin-btn-inline-secondary {
+  filter: none;
+}
+.admin-th-center,
+.admin-gold-center-cell {
+  text-align: center;
+}
+.admin-th-num,
+.admin-gold-num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-gold-id-cell {
+  color: #52525b;
+  white-space: nowrap;
+}
+.admin-gold-brand-cell {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.admin-gold-product-cell {
+  min-width: 160px;
+}
+.admin-table--gold-rows td.admin-cell-actions {
+  display: table-cell;
+  text-align: center;
+  white-space: nowrap;
+  background-clip: padding-box;
+}
+.admin-table--gold-rows td.admin-cell-actions button {
+  display: inline-block;
+  vertical-align: middle;
+}
+.admin-table--gold-rows td.admin-cell-actions button + button {
+  margin-left: 8px;
+}
+.admin-table--gold-rows button.btn-edit,
+.admin-table--gold-rows button.btn-del,
+.admin-table--gold-rows button.admin-btn-inline-secondary {
+  background: transparent;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  color: #3f3f46;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+}
+.admin-table--gold-rows button.btn-del {
+  color: #b91c1c;
+}
+.admin-table--gold-rows button.btn-edit:hover,
+.admin-table--gold-rows button.admin-btn-inline-secondary:hover {
+  background: rgb(24 24 27 / 0.04);
+}
+.admin-table--gold-rows button.btn-del:hover {
+  background: rgb(185 28 28 / 0.06);
+}
+.admin-table--gold-rows button.btn-edit:active,
+.admin-table--gold-rows button.btn-del:active,
+.admin-table--gold-rows button.admin-btn-inline-secondary:active {
+  transform: translateY(1px);
+}
 .admin-table--gold-rows .admin-gold-inline-input {
   width: 100%;
   min-width: 64px;
@@ -137,6 +265,122 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
 .admin-gold-table-host {
   position: relative;
   padding-bottom: 56px;
+}
+.admin-th-capital,
+.admin-gold-pct-cell,
+.admin-gold-amount-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-th-capital {
+  min-width: 88px;
+}
+.admin-gold-pct-cell {
+  font-weight: 650;
+  color: #330e0a;
+}
+.admin-gold-pct-cell.is-zero {
+  font-weight: 500;
+  color: #71717a;
+}
+.admin-table--gold-rows tfoot td {
+  border-top: 2px solid #8b1d1d;
+  border-bottom: none;
+  background: #f8ecec;
+  color: #330e0a;
+  font-weight: 700;
+}
+.admin-gold-total-row td:first-child {
+  letter-spacing: 0.01em;
+}
+.admin-gold-capital {
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding: 20px 18px 16px;
+  border: 1px solid #ece8e4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(51, 14, 10, 0.08);
+}
+.admin-gold-capital-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 750;
+  color: #8b1d1d;
+}
+.admin-gold-capital-total {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 650;
+  color: #8b1d1d;
+  font-variant-numeric: tabular-nums;
+}
+.admin-gold-capital-total strong {
+  font-weight: 750;
+}
+.admin-gold-capital-groups {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 768px) {
+  .admin-gold-capital-groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  .admin-gold-capital-groups {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.admin-gold-capital-item {
+  min-width: 0;
+  padding: 12px 12px 14px;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  background: #fafafa;
+}
+.admin-gold-capital-item-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+}
+.admin-gold-capital-item-pct {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 750;
+  color: #330e0a;
+  font-variant-numeric: tabular-nums;
+}
+.admin-gold-capital-item-amount {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #52525b;
+  font-variant-numeric: tabular-nums;
+}
+.admin-gold-capital-bar {
+  margin-top: 10px;
+  height: 3px;
+  border-radius: 999px;
+  background: #f1e6e6;
+  overflow: hidden;
+}
+.admin-gold-capital-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8b1d1d;
+  max-width: 100%;
+}
+.admin-gold-capital-warn {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #b45309;
 }
 .admin-btn-thay-doi {
   position: absolute;

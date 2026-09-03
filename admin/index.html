@@ -99,27 +99,45 @@
           </form>
         </div>
 
-        <h2>Danh sách dòng (bảng giá)</h2>
-        <div id="admin-gold-table-host" class="admin-gold-table-host">
-          <div class="admin-table-wrap">
-            <table class="admin-table admin-table--gold-rows">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Thương hiệu</th>
-                  <th>Sản phẩm</th>
-                  <th>Hàm lượng</th>
-                  <th>Mua</th>
-                  <th>Bán</th>
-                  <th>Loại</th>
-                  <th class="admin-th-actions">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="admin-rows"></tbody>
-            </table>
+        <div class="admin-gold-list">
+          <div class="admin-gold-list-head">
+            <h2>Danh sách dòng (bảng giá)</h2>
+            <p>Quản lý và theo dõi bảng giá các dòng sản phẩm</p>
           </div>
-          <button type="button" id="btn-gold-thay-doi" class="admin-btn-thay-doi" hidden>Thay đổi</button>
+          <div id="admin-gold-table-host" class="admin-gold-table-host">
+            <div class="admin-table-wrap">
+              <table class="admin-table admin-table--gold-rows">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Thương hiệu</th>
+                    <th>Sản phẩm</th>
+                    <th class="admin-th-center">Hàm lượng</th>
+                    <th class="admin-th-num">Mua</th>
+                    <th class="admin-th-num">Bán</th>
+                    <th class="admin-th-center">Loại</th>
+                    <th class="admin-th-actions">Thao tác</th>
+                    <th class="admin-th-capital">% vốn</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-rows"></tbody>
+                <tfoot>
+                  <tr id="admin-gold-total-row" class="admin-gold-total-row">
+                    <td colspan="7">Tổng vốn hàng</td>
+                    <td class="admin-gold-amount-cell" id="admin-gold-total-amount">0đ</td>
+                    <td class="admin-gold-pct-cell" id="admin-gold-total-pct">0.0%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <button type="button" id="btn-gold-thay-doi" class="admin-btn-thay-doi" hidden>Thay đổi</button>
+          </div>
         </div>
+        <section id="admin-gold-capital-alloc" class="admin-gold-capital" hidden>
+          <h3 class="admin-gold-capital-title">Phân bổ vốn tồn kho</h3>
+          <p class="admin-gold-capital-total" id="admin-gold-capital-total-label">Tổng vốn hàng: 0đ</p>
+          <div id="admin-gold-capital-groups" class="admin-gold-capital-groups"></div>
+        </section>
         <p class="hint">
           Mỗi dòng một hàng (dễ sửa nhanh). Bấm <strong>Sửa</strong> trên một hoặc nhiều dòng để chỉnh <strong>Sản phẩm
             / Hàm lượng / Mua / Bán</strong>, rồi bấm <strong>Thay đổi</strong> (góc phải bảng) để lưu tất cả — giờ hiển
@@ -493,6 +511,7 @@
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/utils/image-optimizer.js"></script>
   <script src="/js/gold-data.js"></script>
+  <script src="/js/admin/gold-inventory-capital.js"></script>
   <script src="/js/products/product-price-engine.js?v=20260824d"></script>
   <script src="/js/products/constants.js"></script>
   <script src="/js/products/product-crud.js"></script>

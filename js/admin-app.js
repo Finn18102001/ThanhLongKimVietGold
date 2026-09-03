@@ -53,6 +53,8 @@ function showToast(message, type = 'success') {
   var productHistPage = 1;
   /** Các id dòng đang sửa inline (có thể nhiều dòng cùng lúc). */
   var goldInlineEditRowIds = Object.create(null);
+  var goldSkuStocksCache = null;
+  var goldCapitalSnapshot = null;
   function goldInlineEditHasAny() {
     return Object.keys(goldInlineEditRowIds).length > 0;
   }
@@ -589,6 +591,122 @@ function showToast(message, type = 'success') {
     return window.TLKVGold.getGoldTable({ forceRefresh: forceRefresh === true });
   }
 
+  async function ensureGoldCapitalStocks(force) {
+    if (!force && goldSkuStocksCache) return goldSkuStocksCache;
+    var Cap = window.TLKVGoldInventoryCapital;
+    if (!sb || !Cap || typeof Cap.fetchSkuStocks !== "function") {
+      goldSkuStocksCache = [];
+      return goldSkuStocksCache;
+    }
+    try {
+      goldSkuStocksCache = await Cap.fetchSkuStocks(sb);
+    } catch (err) {
+      console.warn("[TLKV capital] Không đọc được tồn kho POS:", err);
+      goldSkuStocksCache = [];
+    }
+    return goldSkuStocksCache;
+  }
+
+  function renderGoldCapitalAllocation(snapshot, loadError) {
+    var section = $("admin-gold-capital-alloc");
+    var host = $("admin-gold-capital-groups");
+    var totalEl = $("admin-gold-capital-total-label");
+    var Cap = window.TLKVGoldInventoryCapital;
+    if (!section || !host || !Cap) return;
+    section.hidden = false;
+    if (totalEl) {
+      totalEl.innerHTML =
+        "Tổng vốn hàng: <strong>" + Cap.formatDong(snapshot ? snapshot.totalDong : 0) + "</strong>";
+    }
+    host.innerHTML = "";
+    if (loadError) {
+      var warn = document.createElement("p");
+      warn.className = "admin-gold-capital-warn";
+      warn.textContent = "Chưa đọc được số lượng tồn kho. % vốn đang là 0 cho đến khi tải được kho.";
+      host.appendChild(warn);
+    }
+    var groups = (snapshot && snapshot.groups) || Cap.CAPITAL_GROUPS.map(function (g) {
+      return { id: g.id, label: g.label, valueDong: 0, percent: 0 };
+    });
+    groups.forEach(function (group) {
+      var item = document.createElement("article");
+      item.className = "admin-gold-capital-item";
+      item.setAttribute("data-group", group.id);
+      var name = document.createElement("span");
+      name.className = "admin-gold-capital-item-name";
+      name.textContent = group.label;
+      var pct = document.createElement("span");
+      pct.className = "admin-gold-capital-item-pct";
+      pct.textContent = Cap.formatPercent(group.percent);
+      var amount = document.createElement("span");
+      amount.className = "admin-gold-capital-item-amount";
+      amount.textContent = Cap.formatDong(group.valueDong);
+      var bar = document.createElement("div");
+      bar.className = "admin-gold-capital-bar";
+      bar.setAttribute("aria-hidden", "true");
+      var fill = document.createElement("span");
+      fill.style.width = Math.max(0, Math.min(100, Number(group.percent) || 0)) + "%";
+      bar.appendChild(fill);
+      item.appendChild(name);
+      item.appendChild(pct);
+      item.appendChild(amount);
+      item.appendChild(bar);
+      host.appendChild(item);
+    });
+  }
+
+  function applyGoldCapitalToTable(data) {
+    var Cap = window.TLKVGoldInventoryCapital;
+    var tb = $("admin-rows");
+    if (!Cap || !tb) return;
+    var parse =
+      window.TLKVGold && typeof window.TLKVGold.parseGoldMoneyToInt === "function"
+        ? window.TLKVGold.parseGoldMoneyToInt
+        : function (value) {
+            var n = Number(value);
+            return Number.isFinite(n) ? Math.round(n) : null;
+          };
+    var parentAt =
+      window.TLKVGold && typeof window.TLKVGold.variantParentProduct === "function"
+        ? function (rows, index) {
+            return window.TLKVGold.variantParentProduct(rows, index);
+          }
+        : null;
+    goldCapitalSnapshot = Cap.calculateInventoryCapital({
+      rows: (data && data.rows) || [],
+      skuStocks: goldSkuStocksCache || [],
+      parsePrice: parse,
+      parentProductAt: parentAt,
+    });
+    var byId = Object.create(null);
+    goldCapitalSnapshot.rows.forEach(function (row) {
+      byId[row.id] = row;
+    });
+    var trs = tb.getElementsByTagName("tr");
+    for (var i = 0; i < trs.length; i++) {
+      var tr = trs[i];
+      var cell = tr.querySelector(".admin-gold-pct-cell");
+      if (!cell) continue;
+      var row = byId[tr.getAttribute("data-row-id")];
+      if (!row || !row.group) {
+        cell.textContent = "-";
+        cell.classList.add("is-zero");
+        cell.removeAttribute("title");
+        continue;
+      }
+      cell.textContent = Cap.formatPercent(row.percent);
+      cell.title = Cap.formatDong(row.valueDong);
+      cell.classList.toggle("is-zero", !(row.valueDong > 0));
+    }
+    var amountEl = $("admin-gold-total-amount");
+    var pctEl = $("admin-gold-total-pct");
+    if (amountEl) amountEl.textContent = Cap.formatDong(goldCapitalSnapshot.totalDong);
+    if (pctEl) {
+      pctEl.textContent = goldCapitalSnapshot.totalDong > 0 ? "100.0%" : "0.0%";
+    }
+    renderGoldCapitalAllocation(goldCapitalSnapshot, false);
+  }
+
   function applyGoldMetaForm(data) {
     var m = (data && data.meta) || {};
     var el = function (id) {
@@ -617,10 +735,12 @@ function showToast(message, type = 'success') {
       if (r.highlight === true) tr.classList.add("row-highlight");
 
       var tdId = document.createElement("td");
+      tdId.className = "admin-gold-id-cell";
       tdId.textContent = r.id;
       tr.appendChild(tdId);
 
       var tdBrand = document.createElement("td");
+      tdBrand.className = "admin-gold-brand-cell";
       tdBrand.textContent = r.brand;
       tr.appendChild(tdBrand);
 
@@ -635,9 +755,11 @@ function showToast(message, type = 'success') {
       } else {
         tdProd.textContent = productShown;
       }
+      tdProd.className = "admin-gold-product-cell";
       tr.appendChild(tdProd);
 
       var tdPur = document.createElement("td");
+      tdPur.className = "admin-gold-center-cell";
       if (isEditing) {
         var inPur = document.createElement("input");
         inPur.type = "text";
@@ -651,6 +773,7 @@ function showToast(message, type = 'success') {
       tr.appendChild(tdPur);
 
       var tdBuy = document.createElement("td");
+      tdBuy.className = "admin-gold-num-cell";
       if (isEditing) {
         var inBuy = document.createElement("input");
         inBuy.type = "text";
@@ -664,6 +787,7 @@ function showToast(message, type = 'success') {
       tr.appendChild(tdBuy);
 
       var tdSell = document.createElement("td");
+      tdSell.className = "admin-gold-num-cell";
       if (isEditing) {
         var inSell = document.createElement("input");
         inSell.type = "text";
@@ -672,11 +796,13 @@ function showToast(message, type = 'success') {
         inSell.value = r.sell;
         tdSell.appendChild(inSell);
       } else {
-        tdSell.textContent = r.sell;
+        var sellText = String(r.sell == null ? "" : r.sell).trim();
+        tdSell.textContent = !sellText || sellText === "0" ? "-" : sellText;
       }
       tr.appendChild(tdSell);
 
       var tdMetal = document.createElement("td");
+      tdMetal.className = "admin-gold-center-cell";
       tdMetal.textContent = r.metal;
       tr.appendChild(tdMetal);
 
@@ -710,9 +836,15 @@ function showToast(message, type = 'success') {
         tdAct.appendChild(bDel);
       }
       tr.appendChild(tdAct);
+
+      var tdPct = document.createElement("td");
+      tdPct.className = "admin-gold-pct-cell is-zero";
+      tdPct.textContent = "0.0%";
+      tr.appendChild(tdPct);
       tb.appendChild(tr);
     }
 
+    applyGoldCapitalToTable(data);
     setGoldThayDoiVisible(goldInlineEditHasAny());
   }
 
@@ -722,8 +854,10 @@ function showToast(message, type = 'success') {
     if (goldAdminRefreshInFlight) return goldAdminRefreshInFlight;
     goldAdminRefreshInFlight = getGoldAdminData(opts.forceRefresh === true)
       .then(function (data) {
-        return Promise.all([refreshMetaForm(data || {}), refreshTable(data || {})]).then(function () {
-          return data;
+        return ensureGoldCapitalStocks(true).then(function () {
+          return Promise.all([refreshMetaForm(data || {}), refreshTable(data || {})]).then(function () {
+            return data;
+          });
         });
       })
       .catch(function (err) {
@@ -731,7 +865,7 @@ function showToast(message, type = 'success') {
         var tbErr = $("admin-rows");
         if (tbErr) {
           tbErr.innerHTML =
-            "<tr><td colspan=\"8\">Không tải bảng giá từ Supabase: " +
+            "<tr><td colspan=\"9\">Không tải bảng giá từ Supabase: " +
             escapeHtml(err && err.message ? err.message : String(err)) +
             "</td></tr>";
         }
