@@ -64,6 +64,11 @@ export type CustomerHistoryItem = {
   saleNo: string;
   issuedAt: string;
   totalDong: number;
+  paidDong: number;
+  remainingDong: number;
+  paymentStatus: string;
+  transactionType: string;
+  fulfillmentStatus: string;
   status: string;
   paymentMethod: string;
 };

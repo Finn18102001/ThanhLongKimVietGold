@@ -5,7 +5,7 @@ import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { Modal } from "@/shared/ui/Modal";
 import { deleteCustomer } from "../actions";
-import { customerInitials, formatPhoneDisplay, GROUP_LABEL } from "../labels";
+import { customerInitials, formatPhoneDisplay, GROUP_LABEL, historyPayLabel } from "../labels";
 import type { CustomerDetail } from "../types";
 import { useState } from "react";
 
@@ -141,7 +141,7 @@ export function CustomerDetailModal({
                     <td className="py-2.5 font-medium">{formatDong(row.totalDong)}</td>
                     <td className="py-2.5">
                       <span className="rounded-full bg-[var(--tlkv-green-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-green)]">
-                        Hoàn thành
+                        {historyPayLabel(row)}
                       </span>
                     </td>
                   </tr>

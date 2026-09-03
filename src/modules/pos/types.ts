@@ -3,6 +3,7 @@ export type PosCatalogItem = {
   sku: string;
   name: string;
   quantity: number;
+  weightChi: number;
   unitPriceDong: number | null;
   imageUrl: string | null;
   category: string;
@@ -14,8 +15,24 @@ export type CartLine = {
   sku: string;
   name: string;
   quantity: number;
+  weightChi: number;
+  stock: number;
+  referenceUnitPriceDong: number;
+  priceAdjustmentPerChi: number;
   unitPriceDong: number;
   imageUrl: string | null;
+};
+
+export type PosOperatorOption = {
+  id: string;
+  staffNo: string;
+  fullName: string;
+};
+
+export type PosSaleContext = {
+  staffId: string | null;
+  isShared: boolean;
+  operators: PosOperatorOption[];
 };
 
 /**

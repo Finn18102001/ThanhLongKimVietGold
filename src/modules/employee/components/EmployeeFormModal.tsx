@@ -28,6 +28,7 @@ export function EmployeeFormModal({
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [role, setRole] = useState<StaffRole>(initial?.role ?? "STAFF");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [isShared, setIsShared] = useState(initial?.isShared ?? false);
 
   async function onSubmit(formData: FormData) {
     setPending(true);
@@ -48,6 +49,7 @@ export function EmployeeFormModal({
         note: String(formData.get("note") ?? ""),
         password: String(formData.get("password") ?? "") || undefined,
         isActive,
+        isShared,
       };
 
       const saved = initial
@@ -173,6 +175,14 @@ export function EmployeeFormModal({
                   />
                 </label>
               )}
+              <label className="flex items-center gap-2 text-[13px] sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={isShared}
+                  onChange={(event) => setIsShared(event.target.checked)}
+                />
+                Tài khoản POS dùng chung (phải chọn NV đứng quầy khi chốt đơn)
+              </label>
               <label className="text-[13px] sm:col-span-2">
                 Ghi chú
                 <textarea

@@ -20,6 +20,7 @@ import {
   GENDER_LABEL,
   GROUP_LABEL,
   groupBadgeClass,
+  historyPayLabel,
   maskCitizenId,
   TYPE_LABEL,
 } from "../labels";
@@ -247,7 +248,7 @@ export function CustomerDetailPanel({
                     <div className="text-right">
                       <p className="text-[13px] font-semibold">{formatDong(row.totalDong)}</p>
                       <span className="mt-1 inline-flex rounded-full bg-[var(--tlkv-green-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-green)]">
-                        Hoàn tất
+                        {historyPayLabel(row)}
                       </span>
                     </div>
                   </div>

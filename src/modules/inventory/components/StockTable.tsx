@@ -20,10 +20,16 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<StockFilter>("ALL");
   const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
   const [page, setPage] = useState(0);
 
   const categories = useMemo(
     () => Array.from(new Set(rows.map((row) => row.category).filter(Boolean))),
+    [rows],
+  );
+
+  const brands = useMemo(
+    () => Array.from(new Set(rows.map((row) => row.brandName).filter(Boolean))) as string[],
     [rows],
   );
 
@@ -33,14 +39,18 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
       const status = stockStatus(row.quantity);
       const matchesTab = tab === "ALL" || status === tab;
       const matchesCategory = !category || row.category === category;
+      const matchesBrand =
+        !brand ||
+        (brand === "__none__" ? !row.brandName : row.brandName === brand);
       const matchesQuery =
         !q ||
         row.name.toLowerCase().includes(q) ||
         row.sku.toLowerCase().includes(q) ||
-        row.category.toLowerCase().includes(q);
-      return matchesTab && matchesCategory && matchesQuery;
+        row.category.toLowerCase().includes(q) ||
+        (row.brandName ?? "").toLowerCase().includes(q);
+      return matchesTab && matchesCategory && matchesBrand && matchesQuery;
     });
-  }, [rows, query, tab, category]);
+  }, [rows, query, tab, category, brand]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -101,6 +111,22 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
             </option>
           ))}
         </select>
+        <select
+          value={brand}
+          onChange={(event) => {
+            setBrand(event.target.value);
+            setPage(0);
+          }}
+          className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+        >
+          <option value="">Tất cả thương hiệu</option>
+          <option value="__none__">Không brand</option>
+          {brands.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[1020px] text-left text-[13px]">
@@ -108,11 +134,13 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Sản phẩm</th>
               <th className="py-2 pr-3 font-medium">Mã hàng</th>
+              <th className="py-2 pr-3 font-medium">Thương hiệu</th>
               <th className="py-2 pr-3 font-medium">Danh mục</th>
               <th className="py-2 pr-3 font-medium">SL tồn</th>
               <th className="py-2 pr-3 font-medium">TL / chiếc</th>
               <th className="py-2 pr-3 font-medium">Tổng TL</th>
               <th className="py-2 pr-3 font-medium">Giá hiện tại</th>
+              <th className="py-2 pr-3 font-medium">Giá vốn gần nhất</th>
               <th className="py-2 pr-3 font-medium">Giá trị tồn</th>
               <th className="py-2 font-medium">Trạng thái</th>
             </tr>
@@ -120,7 +148,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td className="py-6 text-[var(--tlkv-muted)]" colSpan={9}>
+                <td className="py-6 text-[var(--tlkv-muted)]" colSpan={11}>
                   Không có mã hàng khớp bộ lọc.
                 </td>
               </tr>
@@ -153,6 +181,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                       </div>
                     </td>
                     <td className="py-3 pr-3 font-semibold text-[var(--tlkv-red)]">{row.sku}</td>
+                    <td className="py-3 pr-3">{row.brandName || "Không brand"}</td>
                     <td className="py-3 pr-3">{row.category}</td>
                     <td className="py-3 pr-3 font-medium tabular-nums">{row.quantity}</td>
                     <td className="py-3 pr-3 tabular-nums text-[var(--tlkv-muted)]">
@@ -166,6 +195,9 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                     </td>
                     <td className="py-3 pr-3">
                       {row.unitPriceDong === null ? "Chưa gắn bảng giá" : formatDong(row.unitPriceDong)}
+                    </td>
+                    <td className="py-3 pr-3">
+                      {row.lastCostDong == null ? "—" : formatDong(row.lastCostDong)}
                     </td>
                     <td className="py-3 pr-3 font-medium">
                       {value === null ? "-" : formatDong(value)}

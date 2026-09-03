@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PurchaseWorkspace } from "./PurchaseWorkspace";
 import { listBuys, listMarketGoldRefs, listPurchaseCatalog } from "./query";
 
@@ -8,6 +9,8 @@ export async function PurchasePage() {
     listBuys(30),
   ]);
   return (
-    <PurchaseWorkspace catalog={catalog} marketRefs={marketRefs} recentBuys={recentBuys} />
+    <Suspense fallback={<p className="px-6 py-4 text-[13px] text-[var(--tlkv-muted)]">Đang tải mua vào...</p>}>
+      <PurchaseWorkspace catalog={catalog} marketRefs={marketRefs} recentBuys={recentBuys} />
+    </Suspense>
   );
 }

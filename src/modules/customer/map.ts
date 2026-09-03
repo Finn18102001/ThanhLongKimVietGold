@@ -55,6 +55,11 @@ type HistoryJson = {
   sale_no: string;
   issued_at: string;
   total_dong: number;
+  paid_dong?: number;
+  remaining_dong?: number;
+  payment_status?: string;
+  transaction_type?: string;
+  fulfillment_status?: string;
   status: string;
   payment_method: string;
 };
@@ -103,12 +108,20 @@ export function mapCustomer(row: CustomerJson): CustomerRecord {
 }
 
 export function mapHistory(row: HistoryJson): CustomerHistoryItem {
+  const totalDong = Number(row.total_dong ?? 0);
+  const paidDong = Number(row.paid_dong ?? 0);
+  const remainingDong = Number(row.remaining_dong ?? Math.max(0, totalDong - paidDong));
   return {
     invoiceId: row.invoice_id,
     invoiceNo: row.invoice_no,
     saleNo: row.sale_no,
     issuedAt: row.issued_at,
-    totalDong: Number(row.total_dong ?? 0),
+    totalDong,
+    paidDong,
+    remainingDong,
+    paymentStatus: row.payment_status ?? (remainingDong > 0 ? "PARTIALLY_PAID" : "PAID"),
+    transactionType: row.transaction_type ?? "SALE",
+    fulfillmentStatus: row.fulfillment_status ?? "DELIVERED",
     status: row.status,
     paymentMethod: row.payment_method,
   };

@@ -5,8 +5,11 @@ export type StockRow = {
   quantity: number;
   weightChi: number;
   unitPriceDong: number | null;
+  lastCostDong: number | null;
   imageUrl: string | null;
   category: string;
+  brandId: string | null;
+  brandName: string | null;
 };
 
 export type LedgerRow = {
@@ -22,6 +25,25 @@ export type LedgerRow = {
   actorEmail: string;
   referenceType: string;
   referenceId: string;
+  costPriceDong: number | null;
+  brandName: string | null;
+};
+
+export type BrandOption = {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+};
+
+/** Sentinel for "no brand" filter. Must match pos_list_ledger. */
+export const NO_BRAND_ID = "00000000-0000-0000-0000-000000000000";
+
+export type LedgerListPage = {
+  items: LedgerRow[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export type StockStatus = "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";

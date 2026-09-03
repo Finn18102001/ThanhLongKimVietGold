@@ -15,9 +15,12 @@ type SaleResult = {
   payment_status: string;
   due_date: string | null;
   status: string;
+  transaction_type?: string;
+  fulfillment_status?: string;
+  pickup_due_at?: string | null;
 };
 
-export async function completeSale(input: {
+type CompleteSaleInput = {
   customerId: string;
   customerName: string;
   customerPhone: string;
@@ -26,11 +29,14 @@ export async function completeSale(input: {
   idempotencyKey?: string;
   paidDong?: number | null;
   dueDate?: string | null;
-  items: Array<{ sku_id: string; quantity: number }>;
-}) {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_complete_sale", {
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+  charges?: Array<{ name: string; amount_dong: number; reason?: string }>;
+  operatorStaffId?: string | null;
+  pickupDueAt?: string | null;
+  items: Array<{ sku_id: string; quantity: number; price_adjustment_per_chi?: number }>;
+};
+
+function rpcSalePayload(input: CompleteSaleInput) {
+  return {
     p_customer_id: input.customerId,
     p_customer_name: input.customerName,
     p_customer_phone: input.customerPhone,
@@ -39,6 +45,17 @@ export async function completeSale(input: {
     p_items: input.items,
     p_paid_dong: input.paidDong ?? null,
     p_due_date: input.dueDate || null,
+    p_charges: input.charges ?? [],
+    p_operator_staff_id: input.operatorStaffId || null,
+    p_pickup_due_at: input.pickupDueAt || null,
+  };
+}
+
+export async function completeSale(input: CompleteSaleInput) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_complete_sale", {
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    ...rpcSalePayload(input),
   });
   if (error) {
     throw new Error(error.message);
@@ -94,30 +111,14 @@ export async function cancelHeldOrder(id: string): Promise<{ ok: boolean; holdNo
   return { ok: payload.ok !== false, holdNo: payload.hold_no ?? "" };
 }
 
-export async function completeHeldSale(input: {
-  heldOrderId: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  paymentMethod: "CASH" | "TRANSFER" | "CARD";
-  note?: string;
-  idempotencyKey?: string;
-  paidDong?: number | null;
-  dueDate?: string | null;
-  items: Array<{ sku_id: string; quantity: number }>;
-}): Promise<SaleResult> {
+export async function completeHeldSale(
+  input: CompleteSaleInput & { heldOrderId: string },
+): Promise<SaleResult> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_complete_held_sale", {
     p_held_order_id: input.heldOrderId,
     p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    p_customer_id: input.customerId,
-    p_customer_name: input.customerName,
-    p_customer_phone: input.customerPhone,
-    p_payment_method: input.paymentMethod,
-    p_note: input.note || null,
-    p_items: input.items,
-    p_paid_dong: input.paidDong ?? null,
-    p_due_date: input.dueDate || null,
+    ...rpcSalePayload(input),
   });
   if (error) throw new Error(error.message);
   revalidatePath("/");
@@ -143,4 +144,49 @@ export async function refreshPosStock(skuIds?: string[]): Promise<Record<string,
     map[row.sku_id] = Number(row.quantity ?? 0);
   }
   return map;
+}
+
+export async function fulfillPreorder(input: {
+  saleId: string;
+  operatorStaffId?: string | null;
+  idempotencyKey?: string;
+}): Promise<{ fulfillmentStatus: string; remainingDong: number; paymentStatus: string }> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
+    p_sale_id: input.saleId,
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    p_operator_staff_id: input.operatorStaffId || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/invoices");
+  revalidatePath("/inventory");
+  revalidatePath("/pos");
+  const payload = data as {
+    fulfillment_status: string;
+    remaining_dong: number;
+    payment_status: string;
+  };
+  return {
+    fulfillmentStatus: payload.fulfillment_status,
+    remainingDong: Number(payload.remaining_dong ?? 0),
+    paymentStatus: payload.payment_status,
+  };
+}
+
+export async function cancelPreorder(input: {
+  saleId: string;
+  reason?: string;
+  idempotencyKey?: string;
+}): Promise<{ fulfillmentStatus: string }> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_cancel_preorder", {
+    p_sale_id: input.saleId,
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    p_reason: input.reason || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/invoices");
+  revalidatePath("/pos");
+  const payload = data as { fulfillment_status: string };
+  return { fulfillmentStatus: payload.fulfillment_status };
 }

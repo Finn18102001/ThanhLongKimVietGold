@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
-import { Eye, MagnifyingGlass } from "@phosphor-icons/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { DownloadSimple, Eye, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
-import { fetchInvoiceDetail, searchInvoices } from "../actions";
+import { downloadCsv } from "@/shared/lib/csv";
+import { ROUTES } from "@/shared/navigation/routes";
+import { exportInvoiceCsv, fetchInvoiceDetail, searchInvoices } from "../actions";
 import {
+  documentTypeLabel,
   effectivePaymentStatus,
   formatInvoicePhone,
-  invoiceStatusLabel,
   paymentBadgeClass,
   paymentLabel,
   paymentStatusBadgeClass,
   paymentStatusLabel,
 } from "../labels";
-import type { InvoiceDetail, InvoiceListPage, PaymentStatus } from "../types";
+import type { DocumentType, InvoiceDetail, InvoiceListPage, InvoiceListRow, PaymentStatus } from "../types";
 import { InvoiceDrawer } from "./InvoiceDrawer";
 
 const PAGE_SIZES = [5, 10, 20] as const;
@@ -26,16 +28,24 @@ const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
   { value: "UNPAID", label: "Chưa thanh toán" },
   { value: "OVERDUE", label: "Quá hạn" },
 ];
+const DOCUMENT_TYPE_OPTIONS: { value: "" | DocumentType; label: string }[] = [
+  { value: "", label: "Loại: Tất cả" },
+  { value: "SALE_TO_CUSTOMER", label: "Bán cho khách" },
+  { value: "PURCHASE_FROM_CUSTOMER", label: "Mua từ khách" },
+  { value: "STOCK_RECEIPT", label: "Nhập hàng" },
+];
 
 export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
+  const router = useRouter();
   const [page, setPage] = useState(initial);
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"" | "CASH" | "TRANSFER" | "CARD">("");
   const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatus>("");
+  const [documentType, setDocumentType] = useState<"" | DocumentType>("");
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
 
@@ -50,16 +60,16 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
     query?: string;
     from?: string;
     to?: string;
-    paymentMethod?: "" | "CASH" | "TRANSFER" | "CARD";
     paymentStatus?: "" | PaymentStatus;
+    documentType?: "" | DocumentType;
     limit?: number;
     offset?: number;
   }) {
     const nextQuery = next.query ?? query;
     const nextFrom = next.from ?? from;
     const nextTo = next.to ?? to;
-    const nextPayment = next.paymentMethod ?? paymentMethod;
     const nextPayStatus = next.paymentStatus ?? paymentStatus;
+    const nextDocumentType = next.documentType ?? documentType;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
     startTransition(async () => {
@@ -68,8 +78,8 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
           query: nextQuery,
           from: nextFrom || null,
           to: nextTo || null,
-          paymentMethod: nextPayment || null,
           paymentStatus: nextPayStatus || null,
+          documentType: nextDocumentType || null,
           limit: nextLimit,
           offset: nextOffset,
         });
@@ -98,26 +108,119 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
     }
   }
 
+  function openRow(row: InvoiceListRow) {
+    if (row.documentType === "PURCHASE_FROM_CUSTOMER") {
+      router.push(`${ROUTES.purchase}?buy=${row.id}`);
+      return;
+    }
+    if (row.documentType === "STOCK_RECEIPT") {
+      router.push(ROUTES.inventoryReceive);
+      return;
+    }
+    void openDetail(row.invoiceNo);
+  }
+
+  async function onExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const result = await exportInvoiceCsv({
+        query,
+        from: from || null,
+        to: to || null,
+        paymentStatus: paymentStatus || null,
+        documentType: documentType || null,
+      });
+      downloadCsv(
+        "chung-tu.csv",
+        [
+          "Loại",
+          "Số chứng từ",
+          "Đối tác",
+          "SĐT",
+          "Tổng",
+          "Đã trả",
+          "Còn lại",
+          "Trạng thái TT",
+          "Hình thức",
+          "Thời gian",
+          "Tham chiếu",
+        ],
+        result.items.map((row) => [
+          documentTypeLabel(row.documentType),
+          row.invoiceNo,
+          row.customerName,
+          row.customerPhone,
+          row.totalDong,
+          row.paidDong,
+          row.remainingDong,
+          paymentStatusLabel(row.paymentStatus),
+          paymentLabel(row.paymentMethod),
+          formatViDateTime(row.issuedAt),
+          row.saleNo,
+        ]),
+      );
+      if (result.total !== page.total) {
+        setError(
+          `Export ${result.total} dòng, danh sách đang hiện tổng ${page.total}. Tải lại bộ lọc rồi xuất lại.`,
+        );
+      } else {
+        setError(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không xuất được CSV.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
       <div className="mt-4 flex flex-col gap-2">
-        <label className="relative w-full max-w-md">
-          <MagnifyingGlass
-            size={16}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
-          />
-          <input
-            value={query}
-            onChange={(event) => {
-              const value = event.target.value;
-              setQuery(value);
-              refresh({ query: value, offset: 0 });
-            }}
-            placeholder="Tìm mã HĐ, tên khách, SĐT, mã khách"
-            className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-white pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-          />
-        </label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="relative w-full max-w-md">
+            <MagnifyingGlass
+              size={16}
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
+            />
+            <input
+              value={query}
+              onChange={(event) => {
+                const value = event.target.value;
+                setQuery(value);
+                refresh({ query: value, offset: 0 });
+              }}
+              placeholder="Tìm số chứng từ, tên khách, SĐT"
+              className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-white pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void onExport()}
+            disabled={exporting || page.total === 0}
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-40"
+          >
+            <DownloadSimple size={16} />
+            {exporting ? "Đang xuất..." : "Xuất CSV"}
+          </button>
+        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <select
+            value={documentType}
+            onChange={(event) => {
+              const value = event.target.value as "" | DocumentType;
+              setDocumentType(value);
+              refresh({ documentType: value, offset: 0 });
+            }}
+            aria-label="Loại chứng từ"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value || "all"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
           <input
             type="date"
             value={from}
@@ -141,21 +244,6 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
             className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
           />
           <select
-            value={paymentMethod}
-            onChange={(event) => {
-              const value = event.target.value as "" | "CASH" | "TRANSFER" | "CARD";
-              setPaymentMethod(value);
-              refresh({ paymentMethod: value, offset: 0 });
-            }}
-            aria-label="Hình thức thanh toán"
-            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-          >
-            <option value="">Hình thức: Tất cả</option>
-            <option value="CASH">Tiền mặt</option>
-            <option value="TRANSFER">Chuyển khoản</option>
-            <option value="CARD">Thẻ</option>
-          </select>
-          <select
             value={paymentStatus}
             onChange={(event) => {
               const value = event.target.value as "" | PaymentStatus;
@@ -177,16 +265,16 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
       {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
 
       <div className={`mt-4 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
-        <table className="w-full min-w-[980px] text-left text-[13px]">
+        <table className="w-full min-w-[1080px] text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
-              <th className="py-2 pr-3 font-medium">Mã HĐ</th>
-              <th className="py-2 pr-3 font-medium">Khách hàng</th>
+              <th className="py-2 pr-3 font-medium">Số chứng từ</th>
+              <th className="py-2 pr-3 font-medium">Loại</th>
+              <th className="py-2 pr-3 font-medium">Đối tác</th>
               <th className="py-2 pr-3 font-medium">Tổng / Còn lại</th>
               <th className="py-2 pr-3 font-medium">Hình thức</th>
               <th className="py-2 pr-3 font-medium">Trạng thái TT</th>
               <th className="py-2 pr-3 font-medium">Thời gian</th>
-              <th className="py-2 pr-3 font-medium">Đơn bán</th>
               <th className="py-2 font-medium">Thao tác</th>
             </tr>
           </thead>
@@ -194,7 +282,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
             {page.items.length === 0 ? (
               <tr>
                 <td className="py-8 text-center text-[var(--tlkv-muted)]" colSpan={8}>
-                  Không có hóa đơn khớp bộ lọc.
+                  Không có chứng từ khớp bộ lọc.
                 </td>
               </tr>
             ) : (
@@ -206,17 +294,20 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                   row.dueDate,
                 );
                 return (
-                  <tr key={row.id} className="border-b border-[var(--tlkv-line)] last:border-b-0">
+                  <tr key={`${row.documentType}-${row.id}`} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                     <td className="py-3 pr-3">
                       <button
                         type="button"
-                        onClick={() => void openDetail(row.invoiceNo)}
+                        onClick={() => openRow(row)}
                         className="font-semibold text-[var(--tlkv-red)] hover:underline"
                       >
                         {row.invoiceNo}
                       </button>
-                      <p className="text-[11px] text-[var(--tlkv-muted)]">{row.saleNo}</p>
+                      {row.saleNo && row.saleNo !== row.invoiceNo ? (
+                        <p className="text-[11px] text-[var(--tlkv-muted)]">{row.saleNo}</p>
+                      ) : null}
                     </td>
+                    <td className="py-3 pr-3 text-[12px]">{documentTypeLabel(row.documentType)}</td>
                     <td className="py-3 pr-3">
                       <p className="font-medium">{row.customerName}</p>
                       <p className="text-[12px] text-[var(--tlkv-muted)]">
@@ -248,15 +339,10 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                     <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
                       {formatViDateTime(row.issuedAt)}
                     </td>
-                    <td className="py-3 pr-3">
-                      <span className="rounded-full bg-[var(--tlkv-green-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--tlkv-green)]">
-                        {invoiceStatusLabel(row.status, row.saleStatus)}
-                      </span>
-                    </td>
                     <td className="py-3">
                       <button
                         type="button"
-                        onClick={() => void openDetail(row.invoiceNo)}
+                        onClick={() => openRow(row)}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] font-medium transition active:scale-[0.98] hover:bg-[var(--tlkv-bg)]"
                       >
                         <Eye size={14} />
@@ -273,7 +359,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--tlkv-muted)]">
         <p>
-          Hiển thị {fromRow} - {toRow} trong {page.total} hóa đơn
+          Hiển thị {fromRow} - {toRow} trong {page.total} chứng từ
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button

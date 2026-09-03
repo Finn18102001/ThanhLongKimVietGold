@@ -7,6 +7,7 @@ import type {
   InvoiceListRow,
   PaymentStatus,
   SalePaymentRecord,
+  DocumentType,
 } from "./types";
 
 function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
@@ -18,11 +19,20 @@ function sanitizeSearch(raw: string): string {
   return raw.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function asPaymentStatus(raw: string | null | undefined): PaymentStatus {
-  if (raw === "UNPAID" || raw === "PARTIALLY_PAID" || raw === "PAID" || raw === "OVERDUE") {
+function asPaymentStatus(
+  raw: string | null | undefined,
+  paidDong: number,
+  remainingDong: number,
+  totalDong: number,
+): PaymentStatus {
+  if (raw === "OVERDUE") return "OVERDUE";
+  if (remainingDong > 0 && paidDong <= 0) return "UNPAID";
+  if (remainingDong > 0 && paidDong > 0) return "PARTIALLY_PAID";
+  if (remainingDong <= 0 && totalDong >= 0) return "PAID";
+  if (raw === "UNPAID" || raw === "PARTIALLY_PAID" || raw === "PAID") {
     return raw;
   }
-  return "PAID";
+  return remainingDong > 0 ? "PARTIALLY_PAID" : "PAID";
 }
 
 type SaleEmbed = {
@@ -34,6 +44,10 @@ type SaleEmbed = {
   paid_dong: number | string | null;
   remaining_dong: number | string | null;
   due_date: string | null;
+  transaction_type?: string | null;
+  fulfillment_status?: string | null;
+  pickup_due_at?: string | null;
+  operator_staff_id?: string | null;
 };
 
 function mapListRow(invoice: {
@@ -52,8 +66,10 @@ function mapListRow(invoice: {
   const customer = firstEmbed(invoice.pos_customers);
   const sale = firstEmbed(invoice.pos_sales);
   const totalDong = Number(invoice.total_dong);
-  const paidDong = Number(sale?.paid_dong ?? totalDong);
-  const remainingDong = Number(sale?.remaining_dong ?? 0);
+  const paidDong = Number(sale?.paid_dong ?? 0);
+  const remainingDong = Number(
+    sale?.remaining_dong ?? Math.max(0, totalDong - paidDong),
+  );
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
@@ -62,7 +78,7 @@ function mapListRow(invoice: {
     paidDong,
     remainingDong,
     dueDate: sale?.due_date ?? null,
-    paymentStatus: asPaymentStatus(sale?.payment_status),
+    paymentStatus: asPaymentStatus(sale?.payment_status, paidDong, remainingDong, totalDong),
     issuedAt: invoice.issued_at,
     actorEmail: invoice.actor_email,
     customerName: customer?.name ?? "Khách lẻ",
@@ -72,11 +88,14 @@ function mapListRow(invoice: {
     paymentMethod: sale?.payment_method ?? "",
     saleNo: sale?.sale_no ?? "",
     saleStatus: sale?.status ?? "",
+    transactionType: sale?.transaction_type === "PREORDER" ? "PREORDER" : "SALE",
+    fulfillmentStatus: sale?.fulfillment_status ?? "DELIVERED",
+    documentType: "SALE_TO_CUSTOMER",
   };
 }
 
 const SALE_COLS =
-  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date";
+  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id";
 
 export async function listInvoices(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const supabase = await createServerSupabase();
@@ -85,10 +104,12 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const query = sanitizeSearch(filter.query ?? "");
   const paymentMethod = filter.paymentMethod ?? null;
   const paymentStatus = filter.paymentStatus ?? null;
+  const transactionType = filter.transactionType ?? null;
+  const fulfillment = filter.fulfillment ?? null;
   const from = filter.from || null;
   const to = filter.to || null;
 
-  const needsInnerSale = Boolean(paymentMethod || paymentStatus);
+  const needsInnerSale = Boolean(paymentMethod || paymentStatus || transactionType || fulfillment);
   const saleSelect = needsInnerSale
     ? `pos_sales!inner(${SALE_COLS})`
     : `pos_sales(${SALE_COLS})`;
@@ -114,6 +135,15 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
       .lt("pos_sales.due_date", today);
   } else if (paymentStatus) {
     builder = builder.eq("pos_sales.payment_status", paymentStatus);
+  }
+
+  if (transactionType) {
+    builder = builder.eq("pos_sales.transaction_type", transactionType);
+  }
+  if (fulfillment === "UNFULFILLED") {
+    builder = builder.in("pos_sales.fulfillment_status", ["UNFULFILLED", "READY"]);
+  } else if (fulfillment === "FULFILLED") {
+    builder = builder.eq("pos_sales.fulfillment_status", "FULFILLED");
   }
 
   if (query) {
@@ -157,7 +187,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const { data: items, error: itemError } = await supabase
     .from("pos_sale_items")
     .select(
-      "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
+      "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
     )
     .eq("sale_id", invoice.sale_id);
   if (itemError) throw new Error(itemError.message);
@@ -191,8 +221,12 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     );
     return {
       skuId: item.sku_id,
-      sku: sku && "sku" in sku ? String(sku.sku) : "",
-      name: sku && "name" in sku ? String(sku.name) : "",
+      sku:
+        (item as { sku_snapshot?: string }).sku_snapshot ||
+        (sku && "sku" in sku ? String(sku.sku) : ""),
+      name:
+        (item as { product_name_snapshot?: string }).product_name_snapshot ||
+        (sku && "name" in sku ? String(sku.name) : ""),
       quantity: Number(item.quantity),
       unitPriceDong: Number(item.unit_price_dong),
       totalPriceDong: Number(item.total_price_dong),
@@ -202,16 +236,35 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     };
   });
 
+  const paidDong = Number(sale?.paid_dong ?? 0);
+  const remainingDong = Number(sale?.remaining_dong ?? Math.max(0, totalDong - paidDong));
+
+  const { data: chargeRows } = await supabase
+    .from("pos_sale_charges")
+    .select("id, name, amount_dong, reason")
+    .eq("sale_id", invoice.sale_id)
+    .order("created_at", { ascending: true });
+
+  let operatorName: string | null = null;
+  if (sale?.operator_staff_id) {
+    const { data: operator } = await supabase
+      .from("pos_staff")
+      .select("full_name")
+      .eq("id", sale.operator_staff_id)
+      .maybeSingle();
+    operatorName = operator?.full_name ?? null;
+  }
+
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
     saleId: String(invoice.sale_id),
     status: invoice.status,
     totalDong,
-    paidDong: Number(sale?.paid_dong ?? totalDong),
-    remainingDong: Number(sale?.remaining_dong ?? 0),
+    paidDong,
+    remainingDong,
     dueDate: sale?.due_date ?? null,
-    paymentStatus: asPaymentStatus(sale?.payment_status),
+    paymentStatus: asPaymentStatus(sale?.payment_status, paidDong, remainingDong, totalDong),
     issuedAt: invoice.issued_at,
     actorEmail: invoice.actor_email,
     saleNo: sale?.sale_no ?? "",
@@ -226,7 +279,18 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     customerNo: customer?.customer_no ?? null,
     isWalkIn: Boolean(customer?.is_walk_in),
     lines,
+    charges: (chargeRows ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      amountDong: Number(row.amount_dong),
+      reason: row.reason,
+    })),
     payments: await listSalePayments(String(invoice.sale_id)),
+    transactionType: sale?.transaction_type === "PREORDER" ? "PREORDER" : "SALE",
+    fulfillmentStatus: sale?.fulfillment_status ?? "DELIVERED",
+    pickupDueAt: sale?.pickup_due_at ?? null,
+    operatorStaffId: sale?.operator_staff_id ?? null,
+    operatorName,
   };
 }
 
@@ -252,6 +316,7 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
       paidAt: row.paid_at,
       actorEmail: row.actor_email,
       note: row.note,
+      receivedByName: row.actor_email.split("@")[0] ?? row.actor_email,
     }));
   }
   const items = (
@@ -264,6 +329,7 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
         paid_at: string;
         actor_email: string;
         note: string | null;
+        received_by_name?: string | null;
       }>;
     } | null
   )?.items;
@@ -275,5 +341,129 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
     paidAt: row.paid_at,
     actorEmail: row.actor_email,
     note: row.note,
+    receivedByName: row.received_by_name ?? row.actor_email.split("@")[0] ?? row.actor_email,
   }));
+}
+
+function asDocumentType(raw: string): DocumentType {
+  if (raw === "PURCHASE_FROM_CUSTOMER" || raw === "STOCK_RECEIPT" || raw === "SALE_TO_CUSTOMER") {
+    return raw;
+  }
+  return "SALE_TO_CUSTOMER";
+}
+
+export async function listDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
+  const supabase = await createServerSupabase();
+  const limit = Math.min(Math.max(filter.limit ?? 5, 1), 50);
+  const offset = Math.max(filter.offset ?? 0, 0);
+  const { data, error } = await supabase.rpc("pos_list_documents", {
+    p_document_type: filter.documentType ?? null,
+    p_payment_status: filter.paymentStatus ?? null,
+    p_from: filter.from || null,
+    p_to: filter.to || null,
+    p_q: sanitizeSearch(filter.query ?? "") || null,
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) throw new Error(error.message);
+  const raw = data as {
+    items?: Array<Record<string, unknown>>;
+    total?: number;
+    limit?: number;
+    offset?: number;
+  } | null;
+  return {
+    items: (raw?.items ?? []).map((row) => {
+      const documentType = asDocumentType(String(row.documentType ?? "SALE_TO_CUSTOMER"));
+      const totalDong = Number(row.totalDong ?? 0);
+      const paidDong = Number(row.paidDong ?? 0);
+      const remainingDong = Number(row.remainingDong ?? 0);
+      return {
+        id: String(row.id),
+        invoiceNo: String(row.documentNo ?? ""),
+        status: "ISSUED",
+        totalDong,
+        paidDong,
+        remainingDong,
+        dueDate: null,
+        paymentStatus: asPaymentStatus(
+          String(row.paymentStatus ?? ""),
+          paidDong,
+          remainingDong,
+          totalDong,
+        ),
+        issuedAt: String(row.issuedAt ?? ""),
+        actorEmail: "",
+        customerName: String(row.partyName ?? ""),
+        customerPhone: String(row.partyPhone ?? ""),
+        customerNo: null,
+        isWalkIn: false,
+        paymentMethod: String(row.paymentMethod ?? ""),
+        saleNo: String(row.refNo ?? ""),
+        saleStatus: "COMPLETED",
+        transactionType: "SALE" as const,
+        fulfillmentStatus: "DELIVERED",
+        documentType,
+      };
+    }),
+    total: Number(raw?.total ?? 0),
+    limit: Number(raw?.limit ?? limit),
+    offset: Number(raw?.offset ?? offset),
+  };
+}
+
+export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_export_documents", {
+    p_document_type: filter.documentType ?? null,
+    p_payment_status: filter.paymentStatus ?? null,
+    p_from: filter.from || null,
+    p_to: filter.to || null,
+    p_q: sanitizeSearch(filter.query ?? "") || null,
+  });
+  if (error) throw new Error(error.message);
+  const raw = data as {
+    items?: Array<Record<string, unknown>>;
+    total?: number;
+    limit?: number;
+    offset?: number;
+  } | null;
+  return {
+    items: (raw?.items ?? []).map((row) => {
+      const documentType = asDocumentType(String(row.documentType ?? "SALE_TO_CUSTOMER"));
+      const totalDong = Number(row.totalDong ?? 0);
+      const paidDong = Number(row.paidDong ?? 0);
+      const remainingDong = Number(row.remainingDong ?? 0);
+      return {
+        id: String(row.id),
+        invoiceNo: String(row.documentNo ?? ""),
+        status: "ISSUED",
+        totalDong,
+        paidDong,
+        remainingDong,
+        dueDate: null,
+        paymentStatus: asPaymentStatus(
+          String(row.paymentStatus ?? ""),
+          paidDong,
+          remainingDong,
+          totalDong,
+        ),
+        issuedAt: String(row.issuedAt ?? ""),
+        actorEmail: "",
+        customerName: String(row.partyName ?? ""),
+        customerPhone: String(row.partyPhone ?? ""),
+        customerNo: null,
+        isWalkIn: false,
+        paymentMethod: String(row.paymentMethod ?? ""),
+        saleNo: String(row.refNo ?? ""),
+        saleStatus: "COMPLETED",
+        transactionType: "SALE" as const,
+        fulfillmentStatus: "DELIVERED",
+        documentType,
+      };
+    }),
+    total: Number(raw?.total ?? 0),
+    limit: Number(raw?.limit ?? 0),
+    offset: Number(raw?.offset ?? 0),
+  };
 }

@@ -78,6 +78,7 @@ export function CatalogBuyModal({
       referencePriceDongPerChi: reference,
       priceRowId: item.priceRowId,
       imageUrl: item.imageUrl,
+      brandName: item.brandName,
     });
   }
 

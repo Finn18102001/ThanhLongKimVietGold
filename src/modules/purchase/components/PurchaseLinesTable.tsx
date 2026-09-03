@@ -41,6 +41,7 @@ export function PurchaseLinesTable({
               <th className="px-3 py-2 font-medium">#</th>
               <th className="py-2 font-medium">Ảnh</th>
               <th className="py-2 font-medium">Tên</th>
+              <th className="py-2 font-medium">Thương hiệu</th>
               <th className="py-2 font-medium">Tuổi</th>
               <th className="py-2 font-medium">SL</th>
               <th className="py-2 font-medium">TL</th>
@@ -63,6 +64,7 @@ export function PurchaseLinesTable({
                   <td className="py-2.5 pr-2">
                     <p className="font-medium">{line.productName}</p>
                     <p className="text-[10px] text-[var(--tlkv-muted)]">
+                      {line.brandName ? `${line.brandName} · ` : ""}
                       {line.isMarketGold
                         ? "Vàng thị trường"
                         : line.kind === "catalog"
@@ -71,6 +73,7 @@ export function PurchaseLinesTable({
                       {exception ? " · Ngoại lệ ±300k" : ""}
                     </p>
                   </td>
+                  <td className="py-2.5 pr-2 text-[11px]">{line.brandName || "—"}</td>
                   <td className="py-2.5 pr-2">
                     <input
                       value={line.goldAge}

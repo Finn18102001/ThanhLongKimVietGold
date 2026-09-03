@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ClockCounterClockwise, Warning } from "@phosphor-icons/react";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, ClockCounterClockwise, Printer, Warning } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
@@ -23,6 +24,7 @@ import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
 import { PurchaseInvoicePreview } from "./components/PurchaseInvoicePreview";
 import { PurchaseLinesTable } from "./components/PurchaseLinesTable";
 import { PurchasePaymentPanel } from "./components/PurchasePaymentPanel";
+import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
 import {
   defaultDueDateIso,
   parseDongInput,
@@ -89,6 +91,7 @@ export function PurchaseWorkspace({
   const [pending, setPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [success, setSuccess] = useState<{
+    buyId: string;
     buyNo: string;
     totalDong: number;
     paidDong: number;
@@ -233,6 +236,7 @@ export function PurchaseWorkspace({
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
       setSuccess({
+        buyId: result.buyId,
         buyNo: result.buyNo,
         totalDong: result.totalDong,
         paidDong: result.paidDong,
@@ -304,6 +308,13 @@ export function PurchaseWorkspace({
     }
   }
 
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const buyId = searchParams.get("buy");
+    if (buyId) void openDetail(buyId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open from invoice directory
+  }, [searchParams]);
+
   async function onCollectPayment() {
     if (!detail || collectPending) return;
     if (collectAmount <= 0) {
@@ -370,7 +381,7 @@ export function PurchaseWorkspace({
 
   return (
     <div className="-mx-6 -my-5 flex min-h-[calc(100dvh-8rem)] flex-col bg-[var(--tlkv-bg)]">
-      <div className="flex flex-1 min-h-0 flex-col gap-4 px-6 py-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-4 print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-[18px] font-semibold">Mua hàng từ khách</h1>
@@ -408,13 +419,23 @@ export function PurchaseWorkspace({
               Tổng {formatDong(success.totalDong)} · Đã trả {formatDong(success.paidDong)} · Còn phải
               trả {formatDong(success.remainingDong)}
             </p>
-            <button
-              type="button"
-              onClick={resetDraft}
-              className="mt-2 text-[12px] font-semibold text-[var(--tlkv-red)]"
-            >
-              Tạo phiếu mua mới
-            </button>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void openDetail(success.buyId)}
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--tlkv-red)]"
+              >
+                <Printer size={14} />
+                In phiếu mua
+              </button>
+              <button
+                type="button"
+                onClick={resetDraft}
+                className="text-[12px] font-semibold text-[var(--tlkv-red)]"
+              >
+                Tạo phiếu mua mới
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -726,13 +747,23 @@ export function PurchaseWorkspace({
             if (!collectPending) setDetail(null);
           }}
           footer={
-            <button
-              type="button"
-              onClick={() => setDetail(null)}
-              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
-            >
-              Đóng
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+              >
+                <Printer size={16} />
+                In phiếu
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetail(null)}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
+              >
+                Đóng
+              </button>
+            </div>
           }
         >
           {detailLoading || !detail ? (
@@ -775,6 +806,7 @@ export function PurchaseWorkspace({
                   <thead className="text-[11px] text-[var(--tlkv-muted)]">
                     <tr className="border-b border-[var(--tlkv-line)]">
                       <th className="py-1.5 font-medium">Tên</th>
+                      <th className="py-1.5 font-medium">Brand</th>
                       <th className="py-1.5 font-medium">SL</th>
                       <th className="py-1.5 font-medium">TL</th>
                       <th className="py-1.5 text-right font-medium">Tiền</th>
@@ -791,6 +823,7 @@ export function PurchaseWorkspace({
                             </span>
                           ) : null}
                         </td>
+                        <td className="py-2">{item.brandName || "—"}</td>
                         <td className="py-2">{item.quantity}</td>
                         <td className="py-2">{formatChi(item.weightChi)}</td>
                         <td className="py-2 text-right font-medium">
@@ -877,6 +910,11 @@ export function PurchaseWorkspace({
       )}
 
       {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
+      {detail ? (
+        <div className="hidden print:block">
+          <PurchaseVoucherDocument buy={detail} />
+        </div>
+      ) : null}
     </div>
   );
 }

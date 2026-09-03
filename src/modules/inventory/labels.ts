@@ -15,6 +15,15 @@ export const LEDGER_TYPE_LABEL: Record<string, string> = {
   STOCK_ADJUSTMENT_OUT: "Điều chỉnh giảm",
 };
 
+export const LEDGER_TYPE_OPTIONS = [
+  { value: "", label: "Tất cả loại" },
+  { value: "PURCHASE_RECEIVED", label: "Nhập hàng / mua từ khách" },
+  { value: "SALE", label: "Xuất bán" },
+  { value: "STOCK_ADJUSTMENT_IN", label: "Điều chỉnh tăng" },
+  { value: "STOCK_ADJUSTMENT_OUT", label: "Điều chỉnh giảm" },
+  { value: "CUSTOMER_RETURN", label: "Khách trả" },
+] as const;
+
 export function ledgerTypeLabel(type: string): string {
   return LEDGER_TYPE_LABEL[type] ?? type;
 }

@@ -9,6 +9,7 @@ type StaffJson = {
   phone: string | null;
   role: StaffRole;
   is_active: boolean;
+  is_shared?: boolean;
   note: string | null;
   created_at: string;
   updated_at: string;
@@ -24,6 +25,7 @@ export function mapStaff(row: StaffJson): StaffRecord {
     phone: row.phone,
     role: row.role,
     isActive: row.is_active,
+    isShared: Boolean(row.is_shared),
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

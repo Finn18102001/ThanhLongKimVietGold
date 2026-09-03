@@ -91,6 +91,7 @@ export function MarketGoldModal({
       referencePriceDongPerChi: 0,
       priceRowId: form.priceRowId || null,
       imageUrl: null,
+      brandName: "Vàng thị trường",
     });
   }
 

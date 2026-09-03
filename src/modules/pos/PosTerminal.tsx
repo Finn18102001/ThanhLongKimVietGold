@@ -16,12 +16,27 @@ import {
   refreshPosStock,
   saveHeldOrder,
 } from "./actions";
-import type { CartLine, HeldOrderDetail, HeldOrderListResult, PosCatalogItem } from "./types";
+import {
+  chargesTotalDong,
+  clampAdjustmentPerChi,
+  lineActualUnitDong,
+  lineTotalDong,
+  type PosChargeDraft,
+} from "./money";
+import type {
+  CartLine,
+  HeldOrderDetail,
+  HeldOrderListResult,
+  PosCatalogItem,
+  PosSaleContext,
+} from "./types";
 import { CatalogCard, ProductThumb } from "./components/CatalogCard";
 import { PosCartPanel, type PosPayMode } from "./components/PosCartPanel";
 import { PosCheckoutDialog } from "./components/PosCheckoutDialog";
 import { PosHeldOrdersTable } from "./components/PosHeldOrdersTable";
 import { PosPaymentSuccess } from "./components/PosPaymentSuccess";
+
+type CartQtyMap = Record<string, { quantity: number; adj: number }>;
 
 const PAGE_SIZE = 8;
 
@@ -38,6 +53,30 @@ function resolvePaidDong(payMode: PosPayMode, paidDong: number, displayTotal: nu
   if (payMode === "FULL") return displayTotal;
   if (payMode === "UNPAID") return 0;
   return Math.max(0, paidDong);
+}
+
+function defaultPickupDueAt(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toCartLine(item: PosCatalogItem, quantity: number, adj: number): CartLine | null {
+  if (item.unitPriceDong === null || quantity <= 0) return null;
+  const clamped = clampAdjustmentPerChi(adj);
+  return {
+    skuId: item.skuId,
+    sku: item.sku,
+    name: item.name,
+    quantity,
+    weightChi: item.weightChi,
+    stock: item.quantity,
+    referenceUnitPriceDong: item.unitPriceDong,
+    priceAdjustmentPerChi: clamped,
+    unitPriceDong: lineActualUnitDong(item.unitPriceDong, clamped, item.weightChi),
+    imageUrl: item.imageUrl,
+  };
 }
 
 function customerFromHold(detail: HeldOrderDetail, walkIn: CustomerRecord): CustomerRecord {
@@ -59,10 +98,12 @@ export function PosTerminal({
   catalog: initialCatalog,
   walkIn,
   initialHeldOrders,
+  saleContext,
 }: {
   catalog: PosCatalogItem[];
   walkIn: CustomerRecord;
   initialHeldOrders: HeldOrderListResult;
+  saleContext: PosSaleContext;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
@@ -73,7 +114,10 @@ export function PosTerminal({
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<CartQtyMap>({});
+  const [charges, setCharges] = useState<PosChargeDraft[]>([]);
+  const [operatorStaffId, setOperatorStaffId] = useState("");
+  const [pickupDueAt, setPickupDueAt] = useState(defaultPickupDueAt);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [customer, setCustomer] = useState(walkIn);
   const [pickingCustomer, setPickingCustomer] = useState(false);
@@ -101,6 +145,8 @@ export function PosTerminal({
     paidDong: number;
     remainingDong: number;
     paymentMethod: "CASH" | "TRANSFER" | "CARD";
+    transactionType?: string;
+    fulfillmentStatus?: string;
   } | null>(null);
   const returnToReview = useRef(false);
 
@@ -178,24 +224,29 @@ export function PosTerminal({
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
 
   const lines: CartLine[] = Object.entries(cart)
-    .map(([skuId, quantity]) => {
+    .map(([skuId, entry]) => {
       const item = catalog.find((row) => row.skuId === skuId);
-      if (!item || item.unitPriceDong === null || quantity <= 0) return null;
-      return {
-        skuId: item.skuId,
-        sku: item.sku,
-        name: item.name,
-        quantity,
-        unitPriceDong: item.unitPriceDong,
-        imageUrl: item.imageUrl,
-      };
+      if (!item) return null;
+      return toCartLine(item, entry.quantity, entry.adj);
     })
     .filter((line): line is CartLine => line !== null);
 
-  const displayTotal = lines.reduce(
-    (sum, line) => sum + line.unitPriceDong * line.quantity,
+  const merchandiseTotal = lines.reduce(
+    (sum, line) =>
+      sum +
+      lineTotalDong(
+        line.referenceUnitPriceDong,
+        line.priceAdjustmentPerChi,
+        line.weightChi,
+        line.quantity,
+      ),
     0,
   );
+  const extraDong = chargesTotalDong(charges);
+  const displayTotal = merchandiseTotal + extraDong;
+  const isPreorder = lines.some((line) => line.stock <= 0);
+  const operatorName =
+    saleContext.operators.find((op) => op.id === operatorStaffId)?.fullName ?? null;
 
   const effectivePaidDong = resolvePaidDong(payMode, paidDong, displayTotal);
   const remainingDong = Math.max(0, displayTotal - effectivePaidDong);
@@ -248,28 +299,22 @@ export function PosTerminal({
       });
       return;
     }
-    const inCart = cart[item.skuId] ?? 0;
-    if (item.quantity <= 0) {
+    const inCart = cart[item.skuId]?.quantity ?? 0;
+    if (item.quantity > 0 && inCart + 1 > item.quantity) {
       setAlert({
         tone: "error",
         title: "Không đủ số lượng tồn kho",
-        reason: `Sản phẩm "${item.name}" đang hết hàng.`,
-        detail: `Tồn kho hiện tại: 0. Bạn đang chọn: 1.`,
-      });
-      return;
-    }
-    if (inCart + 1 > item.quantity) {
-      setAlert({
-        tone: "error",
-        title: "Không đủ số lượng tồn kho",
-        reason: `Không thể hoàn tất dòng hàng vượt tồn.`,
+        reason: `Không thể bán vượt tồn. Hết hàng thì thêm để đặt hàng, không được đặt khi còn tồn nhưng thiếu SL.`,
         detail: `Tồn kho hiện tại: ${item.quantity}. Bạn đang chọn: ${inCart + 1}.`,
       });
       return;
     }
     setCart((current) => ({
       ...current,
-      [item.skuId]: inCart + 1,
+      [item.skuId]: {
+        quantity: inCart + 1,
+        adj: current[item.skuId]?.adj ?? 0,
+      },
     }));
     setRecentIds((current) => [item.skuId, ...current.filter((id) => id !== item.skuId)].slice(0, 8));
   }
@@ -281,7 +326,7 @@ export function PosTerminal({
       removeLine(skuId);
       return;
     }
-    if (quantity > item.quantity) {
+    if (item.quantity > 0 && quantity > item.quantity) {
       setAlert({
         tone: "error",
         title: "Không đủ số lượng tồn kho",
@@ -292,8 +337,22 @@ export function PosTerminal({
     }
     setCart((current) => ({
       ...current,
-      [skuId]: quantity,
+      [skuId]: {
+        quantity,
+        adj: current[skuId]?.adj ?? 0,
+      },
     }));
+  }
+
+  function setAdj(skuId: string, adj: number) {
+    setCart((current) => {
+      const entry = current[skuId];
+      if (!entry) return current;
+      return {
+        ...current,
+        [skuId]: { ...entry, adj: clampAdjustmentPerChi(adj) },
+      };
+    });
   }
 
   function removeLine(skuId: string) {
@@ -307,6 +366,9 @@ export function PosTerminal({
 
   function resetDraft() {
     setCart({});
+    setCharges([]);
+    setOperatorStaffId("");
+    setPickupDueAt(defaultPickupDueAt());
     setRecentIds([]);
     setNote("");
     setCustomer(walkIn);
@@ -337,10 +399,10 @@ export function PosTerminal({
 
   async function onSaveHold() {
     const items = Object.entries(cart)
-      .map(([skuId, quantity]) => {
+      .map(([skuId, entry]) => {
         const item = catalog.find((row) => row.skuId === skuId);
-        if (!item || quantity <= 0) return null;
-        return { sku_id: skuId, quantity };
+        if (!item || entry.quantity <= 0) return null;
+        return { sku_id: skuId, quantity: entry.quantity };
       })
       .filter((row): row is { sku_id: string; quantity: number } => row !== null);
     if (items.length === 0 || pending || savingHold) return;
@@ -390,7 +452,7 @@ export function PosTerminal({
     setReplaceHoldId(null);
     try {
       const detail = await getHeldOrder(id);
-      const nextCart: Record<string, number> = {};
+      const nextCart: CartQtyMap = {};
       const missing: string[] = [];
       const overStock: string[] = [];
       for (const item of detail.items) {
@@ -399,8 +461,8 @@ export function PosTerminal({
           missing.push(item.sku);
           continue;
         }
-        nextCart[item.skuId] = item.quantity;
-        if (item.quantity > cat.quantity) {
+        nextCart[item.skuId] = { quantity: item.quantity, adj: 0 };
+        if (cat.quantity > 0 && item.quantity > cat.quantity) {
           overStock.push(`${item.name} (tồn ${cat.quantity}, đơn ${item.quantity})`);
         }
       }
@@ -472,8 +534,21 @@ export function PosTerminal({
   }
 
   function paymentValidationError(): string | null {
+    if (saleContext.isShared && !operatorStaffId) {
+      return "Tài khoản dùng chung phải chọn nhân viên đứng quầy.";
+    }
+    if (isPreorder && !pickupDueAt) {
+      return "Đơn đặt hàng phải có thời điểm hẹn trả hàng.";
+    }
+    for (const charge of charges) {
+      const named = charge.name.trim();
+      if (!named && charge.amountDong <= 0 && !charge.reason.trim()) continue;
+      if (!named) return "Khoản thu thêm phải có tên.";
+      if (charge.amountDong <= 0) return "Khoản thu thêm phải lớn hơn 0. Không dùng khoản âm để giảm giá.";
+      if (!charge.reason.trim()) return `Khoản "${named}" cần lý do.`;
+    }
     if (payMode === "FULL") return null;
-    if (!dueDate) return "Đơn còn nợ phải có ngày hẹn trả.";
+    if (!dueDate) return "Đơn còn nợ phải có ngày hẹn trả tiền.";
     if (payMode === "PARTIAL") {
       if (paidDong <= 0) return "Thanh toán một phần cần số tiền thu lớn hơn 0.";
       if (paidDong >= displayTotal) {
@@ -514,6 +589,13 @@ export function PosTerminal({
     }
     const paidToSend = resolvePaidDong(payMode, paidDong, displayTotal);
     const dueToSend = payMode === "FULL" ? null : dueDate;
+    const chargePayload = charges
+      .filter((row) => row.name.trim() && row.amountDong > 0)
+      .map((row) => ({
+        name: row.name.trim(),
+        amount_dong: row.amountDong,
+        reason: row.reason.trim(),
+      }));
     const payload = {
       customerId: customer.id,
       customerName: customer.name,
@@ -523,7 +605,14 @@ export function PosTerminal({
       idempotencyKey: idempotencyKey.current,
       paidDong: paidToSend,
       dueDate: dueToSend,
-      items: lines.map((line) => ({ sku_id: line.skuId, quantity: line.quantity })),
+      charges: chargePayload,
+      operatorStaffId: saleContext.isShared ? operatorStaffId : null,
+      pickupDueAt: isPreorder ? new Date(pickupDueAt).toISOString() : null,
+      items: lines.map((line) => ({
+        sku_id: line.skuId,
+        quantity: line.quantity,
+        price_adjustment_per_chi: line.priceAdjustmentPerChi,
+      })),
     };
     try {
       const result = activeHeldOrderId
@@ -541,6 +630,8 @@ export function PosTerminal({
         paidDong: Number(result.paid_dong),
         remainingDong: Number(result.remaining_dong),
         paymentMethod,
+        transactionType: result.transaction_type,
+        fulfillmentStatus: result.fulfillment_status,
       });
       idempotencyKey.current = null;
       void refreshPosStock().then((map) => {
@@ -727,6 +818,8 @@ export function PosTerminal({
           <PosCartPanel
             customer={customer}
             lines={lines}
+            merchandiseTotal={merchandiseTotal}
+            charges={charges}
             displayTotal={displayTotal}
             note={note}
             paymentMethod={paymentMethod}
@@ -734,6 +827,11 @@ export function PosTerminal({
             paidDong={paidDong}
             dueDate={dueDate}
             pending={pending}
+            isPreorder={isPreorder}
+            isShared={saleContext.isShared}
+            operators={saleContext.operators}
+            operatorStaffId={operatorStaffId}
+            pickupDueAt={pickupDueAt}
             onOpenCustomer={() => setPickingCustomer(true)}
             onClear={clearOrder}
             onNoteChange={setNote}
@@ -742,7 +840,11 @@ export function PosTerminal({
             onPaidDongChange={setPaidDong}
             onDueDateChange={setDueDate}
             onQty={setQty}
+            onAdj={setAdj}
             onRemove={removeLine}
+            onChargesChange={setCharges}
+            onOperatorChange={setOperatorStaffId}
+            onPickupDueAtChange={setPickupDueAt}
             onCheckout={openReview}
             onCancel={clearOrder}
             onAddMore={() => searchRef.current?.focus()}
@@ -795,6 +897,7 @@ export function PosTerminal({
         <PosCheckoutDialog
           customer={customer}
           lines={lines}
+          charges={charges}
           displayTotal={displayTotal}
           paymentMethod={paymentMethod}
           note={note}
@@ -802,6 +905,9 @@ export function PosTerminal({
           remainingDong={remainingDong}
           dueDate={payMode === "FULL" ? null : dueDate}
           pending={pending}
+          isPreorder={isPreorder}
+          operatorName={operatorName}
+          pickupDueAt={isPreorder ? pickupDueAt : null}
           onClose={() => setReviewing(false)}
           onConfirm={() => void onCheckout()}
           onChangeCustomer={() => {
@@ -820,6 +926,8 @@ export function PosTerminal({
           paidDong={paid.paidDong}
           remainingDong={paid.remainingDong}
           paymentMethod={paid.paymentMethod}
+          transactionType={paid.transactionType}
+          fulfillmentStatus={paid.fulfillmentStatus}
           onStay={() => setPaid(null)}
           onViewInvoice={() => {
             const no = paid.invoiceNo;

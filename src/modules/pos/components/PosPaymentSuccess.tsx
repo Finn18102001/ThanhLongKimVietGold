@@ -17,6 +17,8 @@ export function PosPaymentSuccess({
   paidDong,
   remainingDong,
   paymentMethod,
+  transactionType,
+  fulfillmentStatus,
   onViewInvoice,
   onStay,
 }: {
@@ -26,11 +28,15 @@ export function PosPaymentSuccess({
   paidDong: number;
   remainingDong: number;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  transactionType?: string;
+  fulfillmentStatus?: string;
   onViewInvoice: () => void;
   onStay: () => void;
 }) {
   const [seconds, setSeconds] = useState(2);
   const hasReceivable = remainingDong > 0;
+  const isPreorder = transactionType === "PREORDER";
+  const unfulfilled = isPreorder && fulfillmentStatus !== "FULFILLED";
 
   useEffect(() => {
     const tick = window.setInterval(() => {
@@ -47,19 +53,27 @@ export function PosPaymentSuccess({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const title = isPreorder
+    ? hasReceivable
+      ? "Đã đặt hàng, còn công nợ"
+      : "Đã đặt hàng"
+    : hasReceivable
+      ? "Đơn đã chốt, còn công nợ"
+      : "Thanh toán thành công";
+
+  const subtitle = isPreorder
+    ? "Hóa đơn đã phát hành. Chưa trả hàng. Kho chưa trừ."
+    : hasReceivable
+      ? "Hóa đơn đã phát hành. Kho đã trừ. Phần còn lại ghi nhận phải thu."
+      : "Hóa đơn đã phát hành. Đơn bán đã chốt. Kho đã trừ.";
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4">
       <div className="w-full max-w-lg rounded-[12px] bg-white p-6 shadow-[0_24px_60px_rgb(31_41_55/0.18)]">
         <div className="flex flex-col items-center text-center">
           <CheckCircle size={64} weight="fill" className="text-[var(--tlkv-green)]" />
-          <h2 className="mt-3 text-[20px] font-bold">
-            {hasReceivable ? "Đơn hoàn tất — còn công nợ" : "Thanh toán thành công"}
-          </h2>
-          <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-            {hasReceivable
-              ? "Hóa đơn đã phát hành. Kho đã trừ. Phần còn lại ghi nhận phải thu."
-              : "Hóa đơn đã phát hành. Đơn bán hoàn tất. Kho đã trừ."}
-          </p>
+          <h2 className="mt-3 text-[20px] font-bold">{title}</h2>
+          <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">{subtitle}</p>
         </div>
 
         <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 rounded-[12px] bg-[var(--tlkv-bg)] p-4 text-[13px]">
@@ -81,25 +95,35 @@ export function PosPaymentSuccess({
           >
             {formatDong(remainingDong)}
           </dd>
+          {isPreorder ? (
+            <>
+              <dt className="text-[var(--tlkv-muted)]">Hàng</dt>
+              <dd className="text-right font-medium">
+                {unfulfilled ? "Chưa trả hàng" : "Đã trả hàng"}
+              </dd>
+            </>
+          ) : null}
         </dl>
 
         <div
           className={`mt-4 rounded-lg px-3 py-2.5 text-[13px] ${
-            hasReceivable
+            isPreorder || hasReceivable
               ? "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]"
               : "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]"
           }`}
         >
-          {hasReceivable
-            ? "Đơn bán đã chốt và trừ kho. Có thể thu tiếp phần còn lại từ hóa đơn."
-            : "Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn."}
+          {isPreorder
+            ? "Thanh toán và giao hàng độc lập. Có thể thu tiếp hoặc giao hàng sau từ hóa đơn."
+            : hasReceivable
+              ? "Đơn bán đã chốt và trừ kho. Có thể thu tiếp phần còn lại từ hóa đơn."
+              : "Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn."}
         </div>
 
         <ol className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px]">
           <Step icon={Wallet} label="Thanh toán" done />
           <Step icon={SealCheck} label="Xác thực" done />
           <Step icon={FileText} label="Hóa đơn" done />
-          <Step icon={CheckCircle} label="Hoàn tất" done />
+          <Step icon={CheckCircle} label={isPreorder ? "Đặt hàng" : "Đã chốt"} done />
         </ol>
 
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[var(--tlkv-line)]">

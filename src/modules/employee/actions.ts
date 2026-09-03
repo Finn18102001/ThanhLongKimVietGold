@@ -85,8 +85,18 @@ export async function createStaff(input: StaffInput): Promise<StaffRecord> {
     note: input.note ?? null,
     password: input.password,
   });
+  const staff = mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
+  if (input.isShared) {
+    const supabase = await createServerSupabase();
+    const shared = await supabase.rpc("pos_set_staff_shared", {
+      p_id: staff.id,
+      p_is_shared: true,
+    });
+    if (shared.error) throw new Error(shared.error.message);
+    staff.isShared = true;
+  }
   revalidateStaffViews();
-  return mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
+  return staff;
 }
 
 export async function updateStaff(id: string, input: StaffInput): Promise<StaffRecord> {
@@ -100,6 +110,13 @@ export async function updateStaff(id: string, input: StaffInput): Promise<StaffR
     p_is_active: input.isActive ?? null,
   });
   if (error) throw new Error(error.message);
+  if (input.isShared !== undefined) {
+    const shared = await supabase.rpc("pos_set_staff_shared", {
+      p_id: id,
+      p_is_shared: input.isShared,
+    });
+    if (shared.error) throw new Error(shared.error.message);
+  }
   revalidateStaffViews();
   return mapStaff((data as { staff: Parameters<typeof mapStaff>[0] }).staff);
 }

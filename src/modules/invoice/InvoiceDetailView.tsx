@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, DownloadSimple, EnvelopeSimple, Plus, Printer } from "@phosphor-icons/react";
 import { ROUTES } from "@/shared/navigation/routes";
+import { formatDong } from "@/shared/lib/money";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
-import { InvoiceDocument } from "./InvoiceDocument";
+import { InvoiceDocument, invoiceCertificateRowCount } from "./InvoiceDocument";
 import type { InvoiceDetail } from "./types";
 
 export function InvoiceDetailView({ invoice }: { invoice: InvoiceDetail }) {
@@ -81,14 +82,77 @@ export function InvoiceDetailView({ invoice }: { invoice: InvoiceDetail }) {
         </div>
       </div>
       <div className="overflow-x-auto rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
-        {invoice.lines.length > 4 ? (
+        {invoiceCertificateRowCount(invoice) > 4 ? (
           <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
-            Giấy đảm bảo vàng in tối đa 4 dòng hàng. Đơn này có {invoice.lines.length} dòng; các
-            dòng sau dòng 4 không in trên mẫu.
+            Giấy đảm bảo vàng in tối đa 4 dòng (sản phẩm và khoản thu thêm). Đơn này có{" "}
+            {invoiceCertificateRowCount(invoice)} dòng; các dòng sau dòng 4 không in trên mẫu.
           </p>
         ) : null}
         <InvoiceDocument invoice={invoice} />
       </div>
+      <section className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:shadow-none">
+        <h2 className="text-[14px] font-semibold">Thanh toán và giao hàng</h2>
+        <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+          Trạng thái bán, thu tiền và trả hàng độc lập. Hóa đơn đã phát hành không có nghĩa đã thu đủ.
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] md:grid-cols-3">
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Tổng</dt>
+            <dd className="font-semibold">{formatDong(invoice.totalDong)}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Đã thanh toán</dt>
+            <dd className="font-semibold">{formatDong(invoice.paidDong)}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Còn lại</dt>
+            <dd className="font-semibold text-[var(--tlkv-red)]">
+              {formatDong(invoice.remainingDong)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Hẹn trả tiền</dt>
+            <dd className="font-medium">
+              {invoice.dueDate
+                ? new Date(`${invoice.dueDate}T00:00:00`).toLocaleDateString("vi-VN")
+                : "-"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Hẹn trả hàng</dt>
+            <dd className="font-medium">
+              {invoice.pickupDueAt
+                ? new Date(invoice.pickupDueAt).toLocaleString("vi-VN")
+                : "-"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--tlkv-muted)]">Hàng</dt>
+            <dd className="font-medium">
+              {invoice.transactionType === "PREORDER"
+                ? invoice.fulfillmentStatus === "FULFILLED"
+                  ? "Đã trả hàng"
+                  : invoice.fulfillmentStatus === "CANCELLED"
+                    ? "Đã hủy đặt"
+                    : "Chưa trả hàng"
+                : "Đã giao"}
+            </dd>
+          </div>
+        </dl>
+        {invoice.charges.length > 0 ? (
+          <ul className="mt-3 space-y-1 text-[13px]">
+            {invoice.charges.map((charge) => (
+              <li key={charge.id} className="flex justify-between gap-3">
+                <span>
+                  {charge.name}
+                  {charge.reason ? ` (${charge.reason})` : ""}
+                </span>
+                <span className="font-medium">{formatDong(charge.amountDong)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
       {alert ? (
         <ResultAlert alert={alert} onClose={() => setAlert(null)}>
           <button

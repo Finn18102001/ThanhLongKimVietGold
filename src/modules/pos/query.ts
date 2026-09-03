@@ -44,6 +44,7 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
       skuId: row.id,
       sku: row.sku,
       name: row.name,
+      weightChi: Number(row.weight_chi ?? 0),
       unitPriceDong,
       imageUrl: product?.image || null,
       category,
@@ -95,4 +96,18 @@ export async function listHeldOrders(): Promise<HeldOrderListResult> {
   const { data, error } = await supabase.rpc("pos_list_held_orders");
   if (error) throw new Error(error.message);
   return mapHeldOrderList(data);
+}
+
+export async function listPosOperators(): Promise<import("./types").PosOperatorOption[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_sale_operators");
+  if (error) throw new Error(error.message);
+  const items = (
+    data as { items?: Array<{ id: string; staff_no: string; full_name: string }> } | null
+  )?.items;
+  return (items ?? []).map((row) => ({
+    id: row.id,
+    staffNo: row.staff_no,
+    fullName: row.full_name,
+  }));
 }

@@ -5,6 +5,7 @@ import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import { Modal } from "@/shared/ui/Modal";
 import type { CustomerRecord } from "@/modules/customer/types";
+import { chargesTotalDong, lineTotalDong, type PosChargeDraft } from "../money";
 import type { CartLine } from "../types";
 import { ProductThumb } from "./CatalogCard";
 
@@ -17,6 +18,7 @@ const PAYMENT_LABEL = {
 export function PosCheckoutDialog({
   customer,
   lines,
+  charges,
   displayTotal,
   paymentMethod,
   note,
@@ -24,12 +26,16 @@ export function PosCheckoutDialog({
   remainingDong,
   dueDate,
   pending,
+  isPreorder,
+  operatorName,
+  pickupDueAt,
   onClose,
   onConfirm,
   onChangeCustomer,
 }: {
   customer: CustomerRecord;
   lines: CartLine[];
+  charges: PosChargeDraft[];
   displayTotal: number;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
   note: string;
@@ -37,13 +43,19 @@ export function PosCheckoutDialog({
   remainingDong: number;
   dueDate: string | null;
   pending: boolean;
+  isPreorder: boolean;
+  operatorName: string | null;
+  pickupDueAt: string | null;
   onClose: () => void;
   onConfirm: () => void;
   onChangeCustomer: () => void;
 }) {
+  const extraDong = chargesTotalDong(charges);
+  const merch = displayTotal - extraDong;
+
   return (
     <Modal
-      title="Xác nhận đơn hàng"
+      title={isPreorder ? "Xác nhận đặt hàng" : "Xác nhận đơn hàng"}
       wide
       onClose={onClose}
       footer={
@@ -61,7 +73,11 @@ export function PosCheckoutDialog({
             onClick={onConfirm}
             className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
           >
-            {pending ? "Đang chốt..." : "Xác nhận & thanh toán F9"}
+            {pending
+              ? "Đang chốt..."
+              : isPreorder
+                ? "Đặt hàng F9"
+                : "Xác nhận & thanh toán F9"}
           </button>
         </>
       }
@@ -69,8 +85,9 @@ export function PosCheckoutDialog({
       <div className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-amber)]">
         <Warning size={18} className="mt-0.5 shrink-0" />
         <p>
-          Kiểm tra khách hàng và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra
-          tồn kho, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước.
+          {isPreorder
+            ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
+            : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
         </p>
       </div>
 
@@ -119,16 +136,35 @@ export function PosCheckoutDialog({
                       </span>
                       <span>
                         <span className="block font-medium">{line.name}</span>
-                        <span className="text-[12px] text-[var(--tlkv-muted)]">{line.sku}</span>
+                        <span className="text-[12px] text-[var(--tlkv-muted)]">
+                          {line.sku}
+                          {line.stock <= 0 ? " · Đặt hàng" : ""}
+                        </span>
                       </span>
                     </div>
                   </td>
                   <td className="py-2.5">{line.quantity}</td>
                   <td className="py-2.5 text-right font-medium">
-                    {formatDong(line.unitPriceDong * line.quantity)}
+                    {formatDong(
+                      lineTotalDong(
+                        line.referenceUnitPriceDong,
+                        line.priceAdjustmentPerChi,
+                        line.weightChi,
+                        line.quantity,
+                      ),
+                    )}
                   </td>
                 </tr>
               ))}
+              {charges
+                .filter((row) => row.name.trim() && row.amountDong > 0)
+                .map((row) => (
+                  <tr key={row.clientKey} className="border-b border-[var(--tlkv-line)] last:border-b-0">
+                    <td className="py-2.5 font-medium">{row.name}</td>
+                    <td className="py-2.5">1</td>
+                    <td className="py-2.5 text-right font-medium">{formatDong(row.amountDong)}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -136,19 +172,18 @@ export function PosCheckoutDialog({
         <aside className="rounded-[12px] bg-[var(--tlkv-bg)] p-3">
           <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Thanh toán</p>
           <p className="mt-1 text-[13px] font-medium">{PAYMENT_LABEL[paymentMethod]}</p>
+          {operatorName ? (
+            <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">NV quầy: {operatorName}</p>
+          ) : null}
           {note ? <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Ghi chú: {note}</p> : null}
           <div className="mt-3 space-y-1 text-[13px]">
             <div className="flex justify-between">
-              <span>Tạm tính</span>
-              <span>{formatDong(displayTotal)}</span>
+              <span>Tiền hàng</span>
+              <span>{formatDong(merch)}</span>
             </div>
-            <div className="flex justify-between text-[var(--tlkv-muted)]">
-              <span>Chiết khấu</span>
-              <span>0 đ</span>
-            </div>
-            <div className="flex justify-between text-[var(--tlkv-muted)]">
-              <span>VAT (0%)</span>
-              <span>0 đ</span>
+            <div className="flex justify-between">
+              <span>Khoản thu thêm</span>
+              <span>{formatDong(extraDong)}</span>
             </div>
             <div className="flex justify-between">
               <span>Đã thu</span>
@@ -162,11 +197,19 @@ export function PosCheckoutDialog({
             </div>
             {remainingDong > 0 ? (
               <div className="flex justify-between">
-                <span>Hẹn trả</span>
+                <span>Hẹn trả tiền</span>
                 <span className="font-medium">
                   {dueDate
                     ? new Date(`${dueDate}T00:00:00`).toLocaleDateString("vi-VN")
                     : "-"}
+                </span>
+              </div>
+            ) : null}
+            {isPreorder ? (
+              <div className="flex justify-between">
+                <span>Hẹn trả hàng</span>
+                <span className="font-medium">
+                  {pickupDueAt ? new Date(pickupDueAt).toLocaleString("vi-VN") : "-"}
                 </span>
               </div>
             ) : null}

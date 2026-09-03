@@ -12,6 +12,7 @@ export type StaffRecord = {
   role: StaffRole;
   isActive: boolean;
   note: string | null;
+  isShared: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,4 +32,5 @@ export type StaffInput = {
   note?: string | null;
   password?: string;
   isActive?: boolean;
+  isShared?: boolean;
 };

@@ -7,11 +7,13 @@ export const PAYMENT_LABEL: Record<string, string> = {
 /** Spec §14 — independent of sale / invoice transaction status. */
 export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "OVERDUE";
 
+export type DocumentType = "SALE_TO_CUSTOMER" | "PURCHASE_FROM_CUSTOMER" | "STOCK_RECEIPT";
+
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   UNPAID: "Chưa thanh toán",
   PARTIALLY_PAID: "Thanh toán một phần",
-  PAID: "Đã thanh toán",
-  OVERDUE: "Quá hạn",
+  PAID: "Đã thanh toán đủ",
+  OVERDUE: "Quá hạn thanh toán",
 };
 
 export type InvoiceLine = {
@@ -44,6 +46,9 @@ export type InvoiceListRow = {
   saleNo: string;
   saleStatus: string;
   actorEmail: string;
+  transactionType: "SALE" | "PREORDER";
+  fulfillmentStatus: string;
+  documentType: DocumentType;
 };
 
 export type InvoiceListFilter = {
@@ -52,6 +57,9 @@ export type InvoiceListFilter = {
   to?: string | null;
   paymentMethod?: "CASH" | "TRANSFER" | "CARD" | null;
   paymentStatus?: PaymentStatus | null;
+  transactionType?: "SALE" | "PREORDER" | null;
+  fulfillment?: "UNFULFILLED" | "FULFILLED" | null;
+  documentType?: DocumentType | null;
   limit?: number;
   offset?: number;
 };
@@ -87,7 +95,20 @@ export type InvoiceDetail = {
   customerNo: string | null;
   isWalkIn: boolean;
   lines: InvoiceLine[];
+  charges: InvoiceCharge[];
   payments: SalePaymentRecord[];
+  transactionType: "SALE" | "PREORDER";
+  fulfillmentStatus: string;
+  pickupDueAt: string | null;
+  operatorStaffId: string | null;
+  operatorName: string | null;
+};
+
+export type InvoiceCharge = {
+  id: string;
+  name: string;
+  amountDong: number;
+  reason: string | null;
 };
 
 export type SalePaymentRecord = {
@@ -98,4 +119,5 @@ export type SalePaymentRecord = {
   paidAt: string;
   actorEmail: string;
   note: string | null;
+  receivedByName: string | null;
 };

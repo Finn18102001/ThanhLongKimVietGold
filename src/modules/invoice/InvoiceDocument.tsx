@@ -2,16 +2,65 @@ import type { CSSProperties, ReactNode } from "react";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatViDate } from "@/shared/lib/datetime";
 import { formatChi, invoiceIssuedParts } from "./labels";
-import type { InvoiceDetail, InvoiceLine } from "./types";
+import type { InvoiceCharge, InvoiceDetail } from "./types";
 
 /** PDF template canvas in points (Adobe Illustrator source). */
 const PW = 600.945;
 const PH = 430.866;
 
-const ROW_TOP = [222.6, 239.8, 256.2, 273.0];
+/** Data-row boxes from the PNG table grid (canvas points). */
+const ROW_BOX = [
+  { y: 221.8, h: 15.8 },
+  { y: 238.6, h: 15.8 },
+  { y: 255.6, h: 15.6 },
+  { y: 272.4, h: 15.8 },
+];
+
+/** Vertical dividers: STT 59.8 | item 79.2 | purity 192.2 | weight 259.4 | unit 326.4 | amount 408.5 | 555.3 */
+const COL = {
+  item: { x: 86, w: 100 },
+  purity: { x: 196, w: 60 },
+  weight: { x: 263, w: 60 },
+  unit: { x: 330, w: 74 },
+  amount: { x: 414, w: 136 },
+};
+
+type CertRow = {
+  key: string;
+  name: string;
+  purity: string;
+  weightLabel: string;
+  unitPriceDong: number;
+  totalPriceDong: number;
+};
+
+function toCertRows(invoice: InvoiceDetail): CertRow[] {
+  const products: CertRow[] = invoice.lines.map((line, index) => ({
+    key: `line-${line.skuId}-${index}`,
+    name: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
+    purity: line.purity || "",
+    weightLabel: line.weightChi > 0 ? formatChi(line.weightChi) : "",
+    unitPriceDong: line.unitPriceDong,
+    totalPriceDong: line.totalPriceDong,
+  }));
+  const extras: CertRow[] = (invoice.charges ?? []).map((charge: InvoiceCharge) => ({
+    key: `charge-${charge.id}`,
+    name: charge.name,
+    purity: "",
+    weightLabel: "",
+    unitPriceDong: charge.amountDong,
+    totalPriceDong: charge.amountDong,
+  }));
+  return [...products, ...extras];
+}
+
+export function invoiceCertificateRowCount(invoice: InvoiceDetail): number {
+  return invoice.lines.length + (invoice.charges?.length ?? 0);
+}
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
-  const staffName = invoice.actorEmail.split("@")[0] ?? invoice.actorEmail;
+  const staffName =
+    invoice.operatorName || invoice.actorEmail.split("@")[0] || invoice.actorEmail;
   const issued = invoiceIssuedParts(invoice.issuedAt);
   const walkIn = invoice.isWalkIn || invoice.customerPhone === "WALKIN";
   const phone = walkIn ? "" : invoice.customerPhone;
@@ -19,8 +68,9 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   const dob = invoice.customerDateOfBirth
     ? formatViDate(invoice.customerDateOfBirth.slice(0, 10))
     : "";
-  const lines = invoice.lines.slice(0, 4);
-  const words = formatDongInWords(invoice.totalDong);
+  const rows = toCertRows(invoice).slice(0, 4);
+  const paidDong = Math.max(0, invoice.paidDong);
+  const words = formatDongInWords(paidDong);
 
   return (
     <article
@@ -65,23 +115,23 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         {issued.time}
       </CertField>
 
-      {lines.map((line, index) => (
-        <CertificateLine key={`${line.skuId}-${index}`} line={line} top={ROW_TOP[index] ?? 273} />
+      {rows.map((row, index) => (
+        <CertificateLine key={row.key} row={row} box={ROW_BOX[index] ?? ROW_BOX[3]} />
       ))}
 
-      <CertField x={210} y={287.4} w={116} h={28} size={8} className="leading-tight">
+      <CertField x={208} y={289.2} w={118} h={11.2} size={8} className="leading-tight">
         {words}
       </CertField>
       <CertField
-        x={432}
-        y={292.4}
-        w={120}
-        h={14}
-        align="right"
+        x={414}
+        y={289.2}
+        w={136}
+        h={11.2}
+        align="center"
         size={11}
         className="font-bold text-[#9b0102]"
       >
-        {formatDongCompact(invoice.totalDong)}
+        {formatDongCompact(paidDong)}
       </CertField>
 
       <CertField x={42} y={356} w={140} h={14} align="center" size={8.5}>
@@ -94,24 +144,38 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   );
 }
 
-function CertificateLine({ line, top }: { line: InvoiceLine; top: number }) {
-  const qtyLabel = line.quantity > 1 ? ` x${line.quantity}` : "";
+function CertificateLine({
+  row,
+  box,
+}: {
+  row: CertRow;
+  box: { y: number; h: number };
+}) {
+  const { y, h } = box;
   return (
     <>
-      <CertField x={72} y={top} w={122} h={13} size={8}>
-        {`${line.name}${qtyLabel}`}
+      <CertField x={COL.item.x} y={y} w={COL.item.w} h={h} align="center" size={8}>
+        {row.name}
       </CertField>
-      <CertField x={198} y={top} w={62} h={13} align="center" size={8}>
-        {line.purity || ""}
+      <CertField x={COL.purity.x} y={y} w={COL.purity.w} h={h} align="center" size={8}>
+        {row.purity}
       </CertField>
-      <CertField x={262} y={top} w={68} h={13} align="center" size={8}>
-        {line.weightChi > 0 ? formatChi(line.weightChi) : ""}
+      <CertField x={COL.weight.x} y={y} w={COL.weight.w} h={h} align="center" size={8}>
+        {row.weightLabel}
       </CertField>
-      <CertField x={332} y={top} w={96} h={13} align="right" size={8}>
-        {formatDongCompact(line.unitPriceDong)}
+      <CertField x={COL.unit.x} y={y} w={COL.unit.w} h={h} align="center" size={8}>
+        {formatDongCompact(row.unitPriceDong)}
       </CertField>
-      <CertField x={430} y={top} w={122} h={13} align="right" size={8} className="font-medium">
-        {formatDongCompact(line.totalPriceDong)}
+      <CertField
+        x={COL.amount.x}
+        y={y}
+        w={COL.amount.w}
+        h={h}
+        align="center"
+        size={8}
+        className="font-medium"
+      >
+        {formatDongCompact(row.totalPriceDong)}
       </CertField>
     </>
   );
@@ -136,6 +200,8 @@ function CertField({
   className?: string;
   children?: ReactNode;
 }) {
+  const justify =
+    align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   const style: CSSProperties = {
     position: "absolute",
     left: `${(x / PW) * 100}%`,
@@ -144,10 +210,15 @@ function CertField({
     height: `${(h / PH) * 100}%`,
     fontSize: `${size}pt`,
     lineHeight: 1.15,
-    textAlign: align,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: justify,
     overflow: "hidden",
     whiteSpace: size <= 8.5 ? "normal" : "nowrap",
     textOverflow: "ellipsis",
+    paddingLeft: align === "left" ? "0.15em" : 0,
+    paddingRight: align === "right" ? "0.15em" : 0,
+    boxSizing: "border-box",
   };
   return (
     <div style={style} className={className}>

@@ -46,8 +46,32 @@ export function invoiceIssuedParts(isoDateTime: string): {
 }
 
 export function invoiceStatusLabel(status: string, saleStatus: string): string {
-  if (saleStatus === "COMPLETED" || status === "ISSUED") return "Hoàn thành";
+  if (status === "ISSUED") return "Đã phát hành";
+  if (saleStatus === "COMPLETED") return "Đã chốt giao dịch";
   return status;
+}
+
+export function fulfillmentLabel(
+  transactionType: string | null | undefined,
+  fulfillmentStatus: string | null | undefined,
+): string {
+  if (transactionType === "PREORDER") {
+    if (fulfillmentStatus === "FULFILLED") return "Đã trả hàng";
+    if (fulfillmentStatus === "CANCELLED") return "Đã hủy đặt";
+    if (fulfillmentStatus === "READY") return "Sẵn sàng giao";
+    return "Chưa trả hàng";
+  }
+  return "Đã giao";
+}
+
+export function transactionTypeLabel(transactionType: string | null | undefined): string {
+  return transactionType === "PREORDER" ? "Đặt hàng" : "Bán ngay";
+}
+
+export function documentTypeLabel(type: string | null | undefined): string {
+  if (type === "PURCHASE_FROM_CUSTOMER") return "Mua từ khách";
+  if (type === "STOCK_RECEIPT") return "Nhập hàng";
+  return "Bán cho khách";
 }
 
 export function paymentLabel(method: string): string {
@@ -71,18 +95,20 @@ export function paymentStatusLabel(status: PaymentStatus | string): string {
   return PAYMENT_STATUS_LABEL[status as PaymentStatus] ?? status;
 }
 
-/** Display status: OVERDUE when remaining + past due date. */
+/** Display status: amounts win over a stale PAID flag. */
 export function effectivePaymentStatus(
   status: PaymentStatus | string,
   remainingDong: number,
   dueDate: string | null,
   todayIso = new Date().toISOString().slice(0, 10),
+  paidDong?: number,
 ): PaymentStatus {
   if (remainingDong > 0 && dueDate && dueDate < todayIso) return "OVERDUE";
-  if (status === "UNPAID" || status === "PARTIALLY_PAID" || status === "PAID" || status === "OVERDUE") {
+  if (remainingDong <= 0) return "PAID";
+  if ((paidDong ?? 0) <= 0) return "UNPAID";
+  if (status === "UNPAID" || status === "PARTIALLY_PAID" || status === "OVERDUE") {
     return status;
   }
-  if (remainingDong <= 0) return "PAID";
   return "PARTIALLY_PAID";
 }
 

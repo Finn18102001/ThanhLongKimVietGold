@@ -41,7 +41,8 @@ export function CatalogCard({
   item: PosCatalogItem;
   onAdd: (item: PosCatalogItem) => void;
 }) {
-  const disabled = item.quantity <= 0 || item.unitPriceDong === null;
+  const disabled = item.unitPriceDong === null;
+  const outOfStock = item.quantity <= 0;
   return (
     <button
       type="button"
@@ -51,6 +52,11 @@ export function CatalogCard({
     >
       <div className="relative aspect-square bg-[#f8f1e7]">
         <ProductThumb name={item.name} imageUrl={item.imageUrl} size={320} />
+        {outOfStock ? (
+          <span className="absolute top-2 left-2 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
+            Hết hàng
+          </span>
+        ) : null}
       </div>
       <div className="p-3">
         <p className="line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">{item.name}</p>
@@ -58,8 +64,13 @@ export function CatalogCard({
         <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">
           {item.unitPriceDong === null ? "Chưa có giá" : formatDong(item.unitPriceDong)}
         </p>
-        <p className="mt-1 text-[12px] font-medium text-[var(--tlkv-green)]">
+        <p
+          className={`mt-1 text-[12px] font-medium ${
+            outOfStock ? "text-[var(--tlkv-amber)]" : "text-[var(--tlkv-green)]"
+          }`}
+        >
           SL tồn: {item.quantity}
+          {outOfStock ? " · Đặt hàng" : ""}
         </p>
       </div>
     </button>

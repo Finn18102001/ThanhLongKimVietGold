@@ -27,6 +27,7 @@ export type PurchaseCatalogItem = {
   imageUrl: string | null;
   browseGroup: string;
   category: string;
+  brandName: string | null;
   weightChi: number;
   /** Giá niêm yết website / chỉ (gold_price_rows.sell). */
   referenceSellDongPerChi: number;
@@ -42,6 +43,7 @@ type BuyLineBase = {
   productName: string;
   goldType: string;
   goldAge: string;
+  brandName?: string | null;
   quantity: number;
   weightChi: number;
   /** Giá giao dịch / chỉ (integer VND). */
@@ -105,6 +107,8 @@ export type BuyDetailItem = {
   productName: string;
   goldType: string | null;
   goldAge: string | null;
+  brandId: string | null;
+  brandName: string | null;
   quantity: number;
   weightChi: number;
   unitPriceDong: number;
@@ -129,6 +133,10 @@ export type BuyDetail = {
   customerName: string;
   customerPhone: string;
   customerNo: string | null;
+  customerCitizenId: string | null;
+  customerAddress: string | null;
+  customerBankAccount: string | null;
+  customerBankHolder: string | null;
   totalDong: number;
   paidDong: number;
   remainingDong: number;

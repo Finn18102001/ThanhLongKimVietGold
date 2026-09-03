@@ -21,7 +21,7 @@ export async function listStock(): Promise<StockRow[]> {
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity), products!pos_skus_catalog_product_id_fkey(image, category)",
+      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(name)",
     )
     .eq("is_active", true)
     .order("name");
@@ -31,6 +31,9 @@ export async function listStock(): Promise<StockRow[]> {
     const price = firstEmbed(row.gold_price_rows);
     const stock = firstEmbed(row.pos_inventory_stock);
     const product = firstEmbed(row.products as { image: string | null; category: string | null }[] | { image: string | null; category: string | null } | null);
+    const brand = firstEmbed(
+      (row as { brands?: { name: string } | { name: string }[] | null }).brands,
+    );
     return {
       skuId: row.id,
       sku: row.sku,
@@ -43,8 +46,14 @@ export async function listStock(): Promise<StockRow[]> {
         Number(row.board_unit_chi),
         Number(row.labor_fee_dong),
       ),
+      lastCostDong:
+        stock && "last_cost_dong" in stock && stock.last_cost_dong != null
+          ? Number(stock.last_cost_dong)
+          : null,
       imageUrl: product?.image || null,
       category: product?.category ?? "Khác",
+      brandId: (row as { brand_id?: string | null }).brand_id ?? null,
+      brandName: brand?.name ?? null,
     };
   });
 }
@@ -75,6 +84,8 @@ export async function listLedger(): Promise<LedgerRow[]> {
       actorEmail: row.actor_email,
       referenceType: row.reference_type,
       referenceId: row.reference_id,
+      costPriceDong: null,
+      brandName: null,
     };
   });
 }

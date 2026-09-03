@@ -42,7 +42,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, weight_chi, board_unit_chi, price_row_id, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity)",
+      "id, weight_chi, board_unit_chi, price_row_id, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), brands!pos_skus_brand_id_fkey(name)",
     )
     .in("id", skuIds);
   if (error) throw new Error(error.message);
@@ -52,6 +52,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
     buy: number | string | null;
     product: string | null;
     purity: string | null;
+    brand: string | null;
   };
 
   const byId = new Map<
@@ -64,11 +65,15 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       buyPerChi: number;
       goldTypeHint: string | null;
       goldAgeHint: string | null;
+      brandName: string | null;
     }
   >();
 
   for (const row of data ?? []) {
     const price = firstEmbed(row.gold_price_rows as PriceEmbed | PriceEmbed[] | null);
+    const brandEmbed = firstEmbed(
+      (row as { brands?: { name: string } | { name: string }[] | null }).brands,
+    );
     const sell = asNumber(price?.sell);
     const buy = asNumber(price?.buy);
     const boardUnit = asNumber(row.board_unit_chi);
@@ -84,6 +89,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       buyPerChi,
       goldTypeHint: price?.product ? String(price.product) : null,
       goldAgeHint: price?.purity != null ? String(price.purity) : null,
+      brandName: brandEmbed?.name || (price?.brand ? String(price.brand) : null),
     });
   }
 
@@ -100,6 +106,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       imageUrl: item.imageUrl,
       browseGroup: item.browseGroup,
       category: item.category,
+      brandName: enrich?.brandName ?? null,
       weightChi: enrich?.weightChi ?? 0,
       referenceSellDongPerChi: sellPerChi,
       suggestedBuyDongPerChi: buyPerChi > 0 ? buyPerChi : sellPerChi,

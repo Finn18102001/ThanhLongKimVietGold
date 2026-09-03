@@ -5,16 +5,18 @@ import { Printer, X } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { invoiceDetailPath } from "@/shared/navigation/routes";
-import { collectSalePayment } from "../actions";
+import { collectSalePayment, cancelInvoicePreorder, fulfillInvoicePreorder } from "../actions";
 import {
   effectivePaymentStatus,
   formatChi,
   formatInvoicePhone,
+  fulfillmentLabel,
   invoiceStatusLabel,
   paymentBadgeClass,
   paymentLabel,
   paymentStatusBadgeClass,
   paymentStatusLabel,
+  transactionTypeLabel,
 } from "../labels";
 import type { InvoiceDetail, PaymentStatus } from "../types";
 
@@ -87,6 +89,7 @@ export function InvoiceDrawer({
             paidAt: new Date().toISOString(),
             actorEmail: invoice.actorEmail,
             note: note || null,
+            receivedByName: null,
           },
         ],
       });
@@ -94,6 +97,40 @@ export function InvoiceDrawer({
       setNote("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Thu tiền thất bại.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onFulfill() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await fulfillInvoicePreorder({ saleId: invoice.saleId });
+      onUpdated?.({
+        ...invoice,
+        fulfillmentStatus: result.fulfillmentStatus,
+        remainingDong: result.remainingDong,
+        paymentStatus: result.paymentStatus as PaymentStatus,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Giao hàng thất bại.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onCancelOrder() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await cancelInvoicePreorder({ saleId: invoice.saleId });
+      onUpdated?.({
+        ...invoice,
+        fulfillmentStatus: result.fulfillmentStatus,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hủy đặt hàng thất bại.");
     } finally {
       setPending(false);
     }
@@ -128,6 +165,14 @@ export function InvoiceDrawer({
             </div>
             <span className="rounded-full bg-[var(--tlkv-green-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--tlkv-green)]">
               {invoiceStatusLabel(invoice.status, invoice.saleStatus)}
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <span className="rounded-full bg-[var(--tlkv-slate-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-slate)]">
+              {transactionTypeLabel(invoice.transactionType)}
+            </span>
+            <span className="rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
+              {fulfillmentLabel(invoice.transactionType, invoice.fulfillmentStatus)}
             </span>
           </div>
           <p className="mt-2 text-[13px] text-[var(--tlkv-muted)]">
@@ -187,13 +232,57 @@ export function InvoiceDrawer({
               </span>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-[13px]">
-              <span>Nhân viên</span>
+              <span>NV đứng quầy</span>
+              <span className="font-medium">{invoice.operatorName || "-"}</span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Nhân viên đăng nhập</span>
               <span className="font-medium">{staffName}</span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[13px]">
+              <span>Hẹn trả hàng</span>
+              <span className="font-medium">
+                {invoice.pickupDueAt
+                  ? formatViDateTime(invoice.pickupDueAt)
+                  : "-"}
+              </span>
             </div>
             <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
               Ghi chú: {invoice.note || "-"}
             </p>
           </section>
+
+          {invoice.transactionType === "PREORDER" &&
+          invoice.fulfillmentStatus !== "FULFILLED" &&
+          invoice.fulfillmentStatus !== "CANCELLED" ? (
+            <section className="mt-3 rounded-[12px] border border-[var(--tlkv-line)] p-3">
+              <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">Giao hàng đặt trước</p>
+              <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+                Kho chưa trừ. Giao hàng sẽ trừ tồn một lần. Hủy đặt không hoàn tiền tự động.
+              </p>
+              {error && invoice.remainingDong <= 0 ? (
+                <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{error}</p>
+              ) : null}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void onCancelOrder()}
+                  className="h-10 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium disabled:opacity-40"
+                >
+                  Hủy đặt
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void onFulfill()}
+                  className="h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white disabled:opacity-40"
+                >
+                  Giao hàng
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           {invoice.remainingDong > 0 ? (
             <section className="mt-3 rounded-[12px] border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)]/40 p-3">
@@ -259,7 +348,7 @@ export function InvoiceDrawer({
                       {p.note ? <p className="text-[var(--tlkv-muted)]">{p.note}</p> : null}
                     </div>
                     <span className="shrink-0 text-[var(--tlkv-muted)]">
-                      {(p.actorEmail.split("@")[0] ?? p.actorEmail)}
+                      {p.receivedByName || (p.actorEmail.split("@")[0] ?? p.actorEmail)}
                     </span>
                   </li>
                 ))}
@@ -296,22 +385,43 @@ export function InvoiceDrawer({
                   </td>
                 </tr>
               ))}
+              {invoice.charges.map((charge) => (
+                <tr key={charge.id} className="border-b border-[var(--tlkv-line)] last:border-b-0">
+                  <td className="py-2 align-top">+</td>
+                  <td className="py-2 pr-2">
+                    <p className="font-medium">{charge.name}</p>
+                    {charge.reason ? (
+                      <p className="text-[11px] text-[var(--tlkv-muted)]">{charge.reason}</p>
+                    ) : null}
+                  </td>
+                  <td className="py-2 text-right align-top">1</td>
+                  <td className="py-2 text-right align-top font-medium">
+                    {formatDong(charge.amountDong)}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
           <div className="mt-4 space-y-1 text-[13px]">
             <div className="flex justify-between">
-              <span>Tổng tiền hàng</span>
+              <span>Tổng đơn</span>
               <span>{formatDong(invoice.totalDong)}</span>
             </div>
+            <div className="flex justify-between">
+              <span>Còn lại</span>
+              <span className="font-medium text-[var(--tlkv-red)]">
+                {formatDong(invoice.remainingDong)}
+              </span>
+            </div>
             <div className="mt-2 flex items-start justify-between border-t border-[var(--tlkv-line)] pt-2">
-              <span className="font-semibold">Tổng thanh toán</span>
+              <span className="font-semibold">Đã thanh toán</span>
               <div className="text-right">
                 <p className="text-[20px] leading-none font-bold text-[var(--tlkv-red)]">
-                  {formatDong(invoice.totalDong)}
+                  {formatDong(invoice.paidDong)}
                 </p>
                 <p className="mt-1 max-w-[220px] text-[11px] text-[var(--tlkv-muted)]">
-                  {formatDongInWords(invoice.totalDong)}
+                  {formatDongInWords(invoice.paidDong)}
                 </p>
               </div>
             </div>

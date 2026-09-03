@@ -4,7 +4,14 @@ import { Minus, Plus, Trash } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
-import type { CartLine } from "../types";
+import {
+  chargesTotalDong,
+  clampAdjustmentPerChi,
+  lineTotalDong,
+  PRICE_ADJ_LIMIT_PER_CHI,
+  type PosChargeDraft,
+} from "../money";
+import type { CartLine, PosOperatorOption } from "../types";
 import { ProductThumb } from "./CatalogCard";
 
 export type PosPayMode = "FULL" | "PARTIAL" | "UNPAID";
@@ -12,6 +19,8 @@ export type PosPayMode = "FULL" | "PARTIAL" | "UNPAID";
 export function PosCartPanel({
   customer,
   lines,
+  merchandiseTotal,
+  charges,
   displayTotal,
   note,
   paymentMethod,
@@ -19,6 +28,11 @@ export function PosCartPanel({
   paidDong,
   dueDate,
   pending,
+  isPreorder,
+  isShared,
+  operators,
+  operatorStaffId,
+  pickupDueAt,
   onOpenCustomer,
   onClear,
   onNoteChange,
@@ -27,7 +41,11 @@ export function PosCartPanel({
   onPaidDongChange,
   onDueDateChange,
   onQty,
+  onAdj,
   onRemove,
+  onChargesChange,
+  onOperatorChange,
+  onPickupDueAtChange,
   onCheckout,
   onCancel,
   onAddMore,
@@ -37,6 +55,8 @@ export function PosCartPanel({
 }: {
   customer: CustomerRecord;
   lines: CartLine[];
+  merchandiseTotal: number;
+  charges: PosChargeDraft[];
   displayTotal: number;
   note: string;
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
@@ -44,6 +64,11 @@ export function PosCartPanel({
   paidDong: number;
   dueDate: string;
   pending: boolean;
+  isPreorder: boolean;
+  isShared: boolean;
+  operators: PosOperatorOption[];
+  operatorStaffId: string;
+  pickupDueAt: string;
   saving?: boolean;
   heldHoldNo?: string | null;
   onOpenCustomer: () => void;
@@ -54,15 +79,36 @@ export function PosCartPanel({
   onPaidDongChange: (value: number) => void;
   onDueDateChange: (value: string) => void;
   onQty: (skuId: string, quantity: number) => void;
+  onAdj: (skuId: string, adjustmentPerChi: number) => void;
   onRemove: (skuId: string) => void;
+  onChargesChange: (charges: PosChargeDraft[]) => void;
+  onOperatorChange: (staffId: string) => void;
+  onPickupDueAtChange: (value: string) => void;
   onCheckout: () => void;
   onCancel: () => void;
   onAddMore: () => void;
   onSave: () => void;
 }) {
+  const extraDong = chargesTotalDong(charges);
   const effectivePaid =
     payMode === "FULL" ? displayTotal : payMode === "UNPAID" ? 0 : Math.max(0, paidDong);
   const remainingDong = Math.max(0, displayTotal - effectivePaid);
+
+  function addCharge() {
+    onChargesChange([
+      ...charges,
+      {
+        clientKey: crypto.randomUUID(),
+        name: "",
+        amountDong: 0,
+        reason: "",
+      },
+    ]);
+  }
+
+  function patchCharge(key: string, patch: Partial<PosChargeDraft>) {
+    onChargesChange(charges.map((row) => (row.clientKey === key ? { ...row, ...patch } : row)));
+  }
 
   return (
     <aside className="flex min-h-0 flex-col rounded-[12px] bg-white shadow-[var(--tlkv-shadow)]">
@@ -73,6 +119,11 @@ export function PosCartPanel({
             <span className="inline-flex rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-amber)]">
               Nháp, chưa trừ kho
             </span>
+            {isPreorder ? (
+              <span className="inline-flex rounded-full bg-[var(--tlkv-blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-blue)]">
+                Đặt hàng
+              </span>
+            ) : null}
             {heldHoldNo ? (
               <span className="inline-flex rounded-full bg-[var(--tlkv-red-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-red)]">
                 {heldHoldNo}
@@ -114,60 +165,93 @@ export function PosCartPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {lines.length === 0 ? (
           <p className="px-4 py-6 text-[13px] text-[var(--tlkv-muted)]">
-            Chưa chọn sản phẩm. Thêm từ lưới bên trái. Kho chưa trừ.
+            Chưa chọn sản phẩm. Thêm từ lưới bên trái. Kho chưa trừ. Hết hàng vẫn thêm được để đặt hàng.
           </p>
         ) : (
-          <table className="w-full text-left text-[12px]">
-            <thead className="sticky top-0 bg-white text-[11px] text-[var(--tlkv-muted)]">
-              <tr className="border-b border-[var(--tlkv-line)]">
-                <th className="px-3 py-2 font-medium">Sản phẩm</th>
-                <th className="py-2 font-medium">SL</th>
-                <th className="py-2 pr-3 text-right font-medium">Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line) => (
-                <tr key={line.skuId} className="border-b border-[var(--tlkv-line)]">
-                  <td className="px-3 py-2.5">
-                    <div className="flex gap-2">
-                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                        <ProductThumb name={line.name} imageUrl={line.imageUrl} />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{line.name}</span>
-                        <span className="text-[11px] text-[var(--tlkv-muted)]">{line.sku}</span>
-                        <span className="block text-[11px] text-[var(--tlkv-muted)]">
-                          {formatDong(line.unitPriceDong)}
-                        </span>
-                      </span>
+          <ul className="divide-y divide-[var(--tlkv-line)]">
+            {lines.map((line) => {
+              const lineTotal = lineTotalDong(
+                line.referenceUnitPriceDong,
+                line.priceAdjustmentPerChi,
+                line.weightChi,
+                line.quantity,
+              );
+              const out = line.stock <= 0;
+              return (
+                <li key={line.skuId} className="px-3 py-2.5">
+                  <div className="flex gap-2">
+                    <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+                      <ProductThumb name={line.name} imageUrl={line.imageUrl} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-[12px] font-medium">{line.name}</p>
+                          <p className="text-[11px] text-[var(--tlkv-muted)]">
+                            {line.sku}
+                            {out ? " · Hết hàng, đặt hàng" : ` · Tồn ${line.stock}`}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Xóa dòng"
+                          onClick={() => onRemove(line.skuId)}
+                          className="text-[var(--tlkv-muted)] hover:text-[var(--tlkv-red)]"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <div className="flex h-7 w-[76px] items-center rounded-md border border-[var(--tlkv-line)]">
+                          <button
+                            type="button"
+                            aria-label="Giảm"
+                            onClick={() => onQty(line.skuId, line.quantity - 1)}
+                            className="flex h-7 w-6 items-center justify-center"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="w-5 text-center text-[12px] font-semibold">
+                            {line.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Tăng"
+                            onClick={() => onQty(line.skuId, line.quantity + 1)}
+                            className="flex h-7 w-6 items-center justify-center"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                        <p className="text-[12px] font-semibold">{formatDong(lineTotal)}</p>
+                      </div>
+                      <label className="mt-1.5 block text-[11px] text-[var(--tlkv-muted)]">
+                        Điều chỉnh /chỉ (±{PRICE_ADJ_LIMIT_PER_CHI.toLocaleString("vi-VN")}đ)
+                        <input
+                          type="number"
+                          step={1000}
+                          min={-PRICE_ADJ_LIMIT_PER_CHI}
+                          max={PRICE_ADJ_LIMIT_PER_CHI}
+                          value={line.priceAdjustmentPerChi}
+                          onChange={(event) =>
+                            onAdj(
+                              line.skuId,
+                              clampAdjustmentPerChi(Number(event.target.value) || 0),
+                            )
+                          }
+                          className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                        />
+                      </label>
+                      <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+                        Bảng {formatDong(line.referenceUnitPriceDong)} · GD{" "}
+                        {formatDong(line.unitPriceDong)}
+                      </p>
                     </div>
-                  </td>
-                  <td className="py-2.5">
-                    <div className="flex h-7 w-[76px] items-center rounded-md border border-[var(--tlkv-line)]">
-                      <button type="button" aria-label="Giảm" onClick={() => onQty(line.skuId, line.quantity - 1)} className="flex h-7 w-6 items-center justify-center">
-                        <Minus size={12} />
-                      </button>
-                      <span className="w-5 text-center text-[12px] font-semibold">{line.quantity}</span>
-                      <button type="button" aria-label="Tăng" onClick={() => onQty(line.skuId, line.quantity + 1)} className="flex h-7 w-6 items-center justify-center">
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-3 text-right">
-                    <p className="font-semibold">{formatDong(line.unitPriceDong * line.quantity)}</p>
-                    <button
-                      type="button"
-                      aria-label="Xóa dòng"
-                      onClick={() => onRemove(line.skuId)}
-                      className="mt-1 text-[var(--tlkv-muted)] hover:text-[var(--tlkv-red)]"
-                    >
-                      <Trash size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
         {lines.length > 0 ? (
           <div className="px-4 pt-2">
@@ -180,7 +264,72 @@ export function PosCartPanel({
             </button>
           </div>
         ) : null}
+
         <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[12px] font-semibold">Khoản thu thêm</p>
+            <button
+              type="button"
+              onClick={addCharge}
+              className="text-[12px] font-medium text-[var(--tlkv-red)]"
+            >
+              + Thêm khoản
+            </button>
+          </div>
+          {charges.length === 0 ? (
+            <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+              Phí gia công, hộp, vận chuyển... Không gộp vào giá sản phẩm.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {charges.map((row) => (
+                <li key={row.clientKey} className="rounded-lg border border-[var(--tlkv-line)] p-2">
+                  <label className="block text-[11px] text-[var(--tlkv-muted)]">
+                    Tên khoản
+                    <input
+                      value={row.name}
+                      onChange={(event) => patchCharge(row.clientKey, { name: event.target.value })}
+                      className="mt-0.5 h-8 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                    />
+                  </label>
+                  <label className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+                    Số tiền (VND)
+                    <input
+                      inputMode="numeric"
+                      value={row.amountDong > 0 ? String(row.amountDong) : ""}
+                      onChange={(event) => {
+                        const digits = event.target.value.replace(/[^\d]/g, "");
+                        patchCharge(row.clientKey, { amountDong: digits ? Number(digits) : 0 });
+                      }}
+                      className="mt-0.5 h-8 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                    />
+                  </label>
+                  <label className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+                    Lý do
+                    <input
+                      value={row.reason}
+                      onChange={(event) =>
+                        patchCharge(row.clientKey, { reason: event.target.value })
+                      }
+                      className="mt-0.5 h-8 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChargesChange(charges.filter((item) => item.clientKey !== row.clientKey))
+                    }
+                    className="mt-1 text-[11px] text-[var(--tlkv-red)]"
+                  >
+                    Xóa khoản
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="px-4 pb-3">
           <textarea
             value={note}
             onChange={(event) => onNoteChange(event.target.value)}
@@ -192,9 +341,8 @@ export function PosCartPanel({
       </div>
 
       <div className="border-t border-[var(--tlkv-line)] px-4 py-3">
-        <Row label="Tạm tính" value={formatDong(displayTotal)} />
-        <Row label="Chiết khấu" value="0 đ" muted />
-        <Row label="Thuế VAT (0%)" value="0 đ" muted />
+        <Row label="Tiền hàng" value={formatDong(merchandiseTotal)} />
+        <Row label="Khoản thu thêm" value={formatDong(extraDong)} muted={extraDong === 0} />
         <div className="mt-2 flex items-start justify-between">
           <span className="text-[13px] font-semibold">Tổng cộng</span>
           <div className="text-right">
@@ -206,6 +354,41 @@ export function PosCartPanel({
             </p>
           </div>
         </div>
+
+        {isShared ? (
+          <label className="mt-3 block text-[13px]">
+            Nhân viên đứng quầy
+            <select
+              value={operatorStaffId}
+              onChange={(event) => onOperatorChange(event.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            >
+              <option value="">Chọn nhân viên</option>
+              {operators.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.fullName} ({op.staffNo})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {isPreorder ? (
+          <label className="mt-3 block text-[13px]">
+            Hẹn trả hàng
+            <input
+              type="datetime-local"
+              value={pickupDueAt}
+              onChange={(event) => onPickupDueAtChange(event.target.value)}
+              required
+              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            />
+            <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+              Đơn đặt hàng. Kho chưa trừ đến khi giao.
+            </span>
+          </label>
+        ) : null}
+
         <label className="mt-3 block text-[13px]">
           Hình thức thanh toán
           <select
@@ -270,7 +453,7 @@ export function PosCartPanel({
         {payMode !== "FULL" ? (
           <>
             <label className="mt-3 block text-[13px]">
-              Ngày hẹn trả
+              Ngày hẹn trả tiền
               <input
                 type="date"
                 value={dueDate}
@@ -311,7 +494,7 @@ export function PosCartPanel({
             onClick={onCheckout}
             className="col-span-2 h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
           >
-            Xác nhận F9
+            {isPreorder ? "Đặt hàng F9" : "Xác nhận F9"}
           </button>
         </div>
       </div>

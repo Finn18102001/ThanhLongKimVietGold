@@ -54,6 +54,31 @@ export function maskCitizenId(citizenId: string | null | undefined): string {
   return `${"*".repeat(Math.max(value.length - 4, 4))}${value.slice(-4)}`;
 }
 
+export function historyPayLabel(row: {
+  remainingDong: number;
+  paidDong: number;
+  paymentStatus: string;
+  transactionType: string;
+  fulfillmentStatus: string;
+}): string {
+  const pay =
+    row.remainingDong <= 0
+      ? "Đã thanh toán đủ"
+      : row.paidDong <= 0
+        ? "Chưa thanh toán"
+        : "Thanh toán một phần";
+  if (row.transactionType === "PREORDER") {
+    const goods =
+      row.fulfillmentStatus === "FULFILLED"
+        ? "Đã trả hàng"
+        : row.fulfillmentStatus === "CANCELLED"
+          ? "Đã hủy đặt"
+          : "Chưa trả hàng";
+    return `${pay} · ${goods}`;
+  }
+  return pay;
+}
+
 export function customerInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "K";
