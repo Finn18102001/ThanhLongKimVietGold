@@ -586,6 +586,7 @@
         var res = await sb
           .from("brands")
           .select("id, name, slug, logo_url, sort_order, is_active")
+          .eq("is_active", true)
           .order("sort_order", { ascending: true });
         if (res.error) throw res.error;
         return res.data || [];
@@ -600,6 +601,7 @@
       var res = await sb
         .from("categories")
         .select("id, name, slug, sort_order, is_active")
+        .eq("is_active", true)
         .order("sort_order", { ascending: true });
       if (res.error) throw res.error;
       return res.data || [];
@@ -642,7 +644,10 @@
       return [];
     }
     var data = await global.TLKVProducts.getProducts();
-    return (data && data.items) || [];
+    // Public website only — never surface products with Hiển thị = off.
+    return ((data && data.items) || []).filter(function (p) {
+      return p && p.isActive !== false;
+    });
   }
 
   var DEFAULT_BRAND_SLUGS = ["thang-long-kim-viet", "bao-tin-minh-chau", "bao-tin-manh-hai"];

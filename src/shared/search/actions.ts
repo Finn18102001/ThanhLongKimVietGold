@@ -26,7 +26,6 @@ export async function globalSearch(raw: string): Promise<GlobalSearchResponse> {
     supabase
       .from("pos_skus")
       .select("id, sku, name")
-      .eq("is_active", true)
       .or(`sku.ilike.%${query}%,name.ilike.%${query}%`)
       .order("name")
       .limit(5),

@@ -18,6 +18,9 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
  * Catalog meta (image, sku, name, price) — no stock.
  * Not using unstable_cache: createServerSupabase is cookie-bound.
  * Client keeps meta in memory; only stock is refreshed on tab focus.
+ *
+ * POS lists every SKU in DB. Website "Hiển thị" (`products.is_active`) must not
+ * hide items here — store can sell catalog-hidden products.
  */
 async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   const supabase = await createServerSupabase();
@@ -26,7 +29,6 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
     .select(
       "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category)",
     )
-    .eq("is_active", true)
     .order("name");
   if (error) throw new Error(error.message);
 
