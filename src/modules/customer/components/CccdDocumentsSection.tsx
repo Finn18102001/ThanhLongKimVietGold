@@ -2,6 +2,7 @@
 
 import { ImageSquare, UploadSimple } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
+import { fileToBase64, IMAGE_PRESET_CCCD, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { auditViewCccd, uploadCustomerCccd } from "../actions";
 import { CCCD_DOC_LABEL } from "../labels";
 import type { CccdDocumentType, CustomerDocument } from "../types";
@@ -32,12 +33,14 @@ export function CccdDocumentsSection({
     setPendingType(type);
     setError(null);
     try {
-      const base64 = await fileToBase64(file);
+      // Same Product/News client pipeline before private CCCD storage upload.
+      const optimized = await optimizeImageFile(file, IMAGE_PRESET_CCCD);
+      const base64 = await fileToBase64(optimized.file);
       const saved = await uploadCustomerCccd({
         customerId,
         documentType: type,
-        fileName: file.name,
-        contentType: file.type,
+        fileName: optimized.file.name,
+        contentType: optimized.file.type || "image/webp",
         base64,
       });
       const next = documents.filter((doc) => doc.documentType !== type).concat(saved);
@@ -139,17 +142,4 @@ export function CccdDocumentsSection({
       ) : null}
     </section>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("Không đọc được file"));
-    reader.readAsDataURL(file);
-  });
 }

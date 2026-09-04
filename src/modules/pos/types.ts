@@ -8,6 +8,14 @@ export type PosCatalogItem = {
   imageUrl: string | null;
   category: string;
   browseGroup: string;
+  brandId: string | null;
+  brandName: string | null;
+};
+
+export type PosBrandOption = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 export type CartLine = {

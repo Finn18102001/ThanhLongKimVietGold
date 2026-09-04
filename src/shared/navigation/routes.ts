@@ -18,6 +18,7 @@ export const ROUTES = {
   invoices: "/invoices",
   invoiceCreate: "/invoices?action=create",
   returns: "/returns",
+  cashflow: "/cashflow",
   reports: "/reports",
   reportsRevenue: "/reports?view=revenue",
   products: "/products",

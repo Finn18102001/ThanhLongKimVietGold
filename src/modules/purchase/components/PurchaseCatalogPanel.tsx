@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import type { PurchaseCatalogItem } from "../types";
 import { PurchaseCatalogCard } from "./PurchaseCatalogCard";
@@ -17,6 +17,7 @@ export function PurchaseCatalogPanel({
   onOpenMarket: () => void;
 }) {
   const [group, setGroup] = useState("Tất cả");
+  const [brandName, setBrandName] = useState("all");
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
 
@@ -25,18 +26,35 @@ export function PurchaseCatalogPanel({
     return ["Tất cả", ...unique];
   }, [catalog]);
 
+  const brandOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(catalog.map((item) => item.brandName?.trim()).filter(Boolean) as string[]),
+    ).sort((a, b) => a.localeCompare(b, "vi"));
+    return names;
+  }, [catalog]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return catalog.filter((item) => {
+      const matchesBrand =
+        brandName === "all" ||
+        (brandName === "none"
+          ? !item.brandName
+          : (item.brandName || "").trim() === brandName);
       const matchesGroup = group === "Tất cả" || item.browseGroup === group;
       const matchesQuery =
         !q ||
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q);
-      return matchesGroup && matchesQuery;
+        item.category.toLowerCase().includes(q) ||
+        (item.brandName || "").toLowerCase().includes(q);
+      return matchesBrand && matchesGroup && matchesQuery;
     });
-  }, [catalog, group, query]);
+  }, [brandName, catalog, group, query]);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [brandName, group, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(pageIndex, pageCount - 1);
@@ -56,21 +74,36 @@ export function PurchaseCatalogPanel({
         </button>
       </div>
 
-      <label className="relative mt-3 block">
-        <MagnifyingGlass
-          size={16}
-          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
-        />
-        <input
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPageIndex(0);
-          }}
-          placeholder="Tìm sản phẩm (mã, tên...)"
-          className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-        />
-      </label>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <label className="relative min-w-[220px] flex-1">
+          <MagnifyingGlass
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm kiếm: nhập tên sản phẩm hoặc mã hàng..."
+            className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          />
+        </label>
+        <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px]">
+          <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Thương hiệu</span>
+          <select
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+            className="max-w-[200px] bg-transparent text-[13px] font-medium outline-none"
+          >
+            <option value="all">Tất cả thương hiệu</option>
+            {brandOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+            <option value="none">Không thương hiệu</option>
+          </select>
+        </label>
+      </div>
 
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         {groups.map((item) => {
@@ -79,10 +112,7 @@ export function PurchaseCatalogPanel({
             <button
               key={item}
               type="button"
-              onClick={() => {
-                setGroup(item);
-                setPageIndex(0);
-              }}
+              onClick={() => setGroup(item)}
               className={`h-9 shrink-0 rounded-full px-3 text-[13px] font-medium ${
                 active
                   ? "bg-[var(--tlkv-red)] text-white"

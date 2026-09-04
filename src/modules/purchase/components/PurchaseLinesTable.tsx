@@ -1,11 +1,19 @@
 "use client";
 
-import { Trash } from "@phosphor-icons/react";
+import { Minus, Plus, Trash } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatChi } from "../labels";
-import { lineHasPriceException, lineTotalDong, type BuyLine } from "../types";
+import {
+  PRICE_EXCEPTION_THRESHOLD_DONG,
+  clampBuyUnitPriceDong,
+  lineHasPriceException,
+  lineTotalDong,
+  type BuyLine,
+} from "../types";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 import { PurchaseProductThumb } from "./PurchaseCatalogCard";
+
+const STEP = 10_000;
 
 export function PurchaseLinesTable({
   lines,
@@ -29,13 +37,22 @@ export function PurchaseLinesTable({
     );
   }
 
+  function setUnitPrice(line: BuyLine, next: number) {
+    const clamped = clampBuyUnitPriceDong(
+      next,
+      line.referencePriceDongPerChi,
+      line.isMarketGold,
+    );
+    onChangeLine(line.localId, { unitPriceDong: clamped });
+  }
+
   return (
     <section className="rounded-[12px] bg-white shadow-[var(--tlkv-shadow)]">
       <div className="border-b border-[var(--tlkv-line)] px-4 py-3">
         <h2 className="text-[15px] font-semibold">Danh sách mua ({lines.length})</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-[12px]">
+        <table className="w-full min-w-[760px] text-left text-[12px]">
           <thead className="text-[11px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="px-3 py-2 font-medium">#</th>
@@ -70,8 +87,15 @@ export function PurchaseLinesTable({
                         : line.kind === "catalog"
                           ? line.sku
                           : ""}
-                      {exception ? " · Ngoại lệ ±300k" : ""}
+                      {exception
+                        ? ` · Ngoài ±${(PRICE_EXCEPTION_THRESHOLD_DONG / 1000).toFixed(0)}k`
+                        : ""}
                     </p>
+                    {exception ? (
+                      <p className="text-[10px] font-medium text-[var(--tlkv-red)]">
+                        Chỉnh giá trong khoảng cho phép trước khi chốt
+                      </p>
+                    ) : null}
                   </td>
                   <td className="py-2.5 pr-2 text-[11px]">{line.brandName || "—"}</td>
                   <td className="py-2.5 pr-2">
@@ -105,16 +129,45 @@ export function PurchaseLinesTable({
                     />
                   </td>
                   <td className="py-2.5 pr-2">
-                    <input
-                      value={String(line.unitPriceDong)}
-                      onChange={(e) =>
-                        onChangeLine(line.localId, {
-                          unitPriceDong: parseDongInput(e.target.value),
-                        })
-                      }
-                      inputMode="numeric"
-                      className={`${purchaseInputClass} h-8 w-[110px]`}
-                    />
+                    <div className="flex items-center gap-0.5">
+                      {!line.isMarketGold ? (
+                        <button
+                          type="button"
+                          aria-label="Giảm giá"
+                          onClick={() => setUnitPrice(line, line.unitPriceDong - STEP)}
+                          className="flex h-8 w-7 items-center justify-center rounded-md border border-[var(--tlkv-line)]"
+                        >
+                          <Minus size={11} />
+                        </button>
+                      ) : null}
+                      <input
+                        value={String(line.unitPriceDong)}
+                        onChange={(e) => {
+                          const raw = parseDongInput(e.target.value);
+                          if (line.isMarketGold) {
+                            onChangeLine(line.localId, { unitPriceDong: raw });
+                            return;
+                          }
+                          onChangeLine(line.localId, { unitPriceDong: raw });
+                        }}
+                        onBlur={() => {
+                          if (line.isMarketGold) return;
+                          setUnitPrice(line, line.unitPriceDong);
+                        }}
+                        inputMode="numeric"
+                        className={`${purchaseInputClass} h-8 w-[100px] ${exception ? "border-[var(--tlkv-red)]" : ""}`}
+                      />
+                      {!line.isMarketGold ? (
+                        <button
+                          type="button"
+                          aria-label="Tăng giá"
+                          onClick={() => setUnitPrice(line, line.unitPriceDong + STEP)}
+                          className="flex h-8 w-7 items-center justify-center rounded-md border border-[var(--tlkv-line)]"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="py-2.5 pr-2 text-right font-semibold">
                     {formatDong(lineTotalDong(line))}

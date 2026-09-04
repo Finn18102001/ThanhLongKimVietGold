@@ -40,6 +40,7 @@ function customerArgs(input: CustomerInput) {
     p_citizen_id: input.citizenId ?? null,
     p_citizen_id_issue_date: input.citizenIdIssueDate || null,
     p_citizen_id_issue_place: input.citizenIdIssuePlace ?? null,
+    p_citizen_id_expiry_date: input.citizenIdExpiryDate || null,
     p_business_name: input.businessName ?? null,
     p_representative_name: input.representativeName ?? null,
   };

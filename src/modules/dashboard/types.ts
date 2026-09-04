@@ -3,7 +3,7 @@ import type { Dong } from "@/shared/lib/money";
 export type TrendDirection = "up" | "down" | "flat";
 
 export type DashboardKpi = {
-  id: "revenue" | "sold" | "stock" | "invoices";
+  id: "revenue" | "sold" | "stock" | "invoices" | "purchaseValue" | "purchaseQty" | "purchaseVouchers";
   label: string;
   valueLabel: string;
   trendPercent: number | null;
@@ -15,6 +15,7 @@ export type RevenuePoint = {
   isoDate: string;
   label: string;
   amountDong: Dong;
+  purchaseDong: Dong;
   isCurrent: boolean;
 };
 
@@ -44,10 +45,17 @@ export type RecentInvoice = {
   status: InvoiceStatus;
 };
 
+export type PurchaseTodayStats = {
+  totalDong: Dong;
+  quantity: number;
+  voucherCount: number;
+};
+
 export type DashboardSnapshot = {
   isPreview: boolean;
   businessDate: string;
   kpis: DashboardKpi[];
+  purchaseToday: PurchaseTodayStats;
   revenueSeries: RevenuePoint[];
   bestSellers: BestSeller[];
   stockAlerts: StockAlert[];

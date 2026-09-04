@@ -1,6 +1,6 @@
 import { createServerSupabase } from "@/shared/supabase/server";
 import { mapHeldOrderList } from "./heldOrderMap";
-import { browseGroupFromProduct, type HeldOrderListResult, type PosCatalogItem } from "./types";
+import { browseGroupFromProduct, type HeldOrderListResult, type PosBrandOption, type PosCatalogItem } from "./types";
 
 type ProductEmbed =
   | { image: string | null; category: string | null }
@@ -27,7 +27,7 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   if (error) throw new Error(error.message);
@@ -35,6 +35,10 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   return (data ?? []).map((row) => {
     const price = firstEmbed(row.gold_price_rows);
     const product = firstEmbed(row.products as ProductEmbed);
+    const brand = firstEmbed(
+      (row as { brands?: { id: string; name: string } | { id: string; name: string }[] | null })
+        .brands,
+    );
     const sell = price?.sell === undefined ? null : Number(price.sell);
     const unitPriceDong =
       sell && sell > 0
@@ -51,8 +55,20 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
       imageUrl: product?.image || null,
       category,
       browseGroup: browseGroupFromProduct(row.name, category),
+      brandId: brand?.id ?? row.brand_id ?? null,
+      brandName: brand?.name ?? null,
     };
   });
+}
+
+export async function listPosBrands(): Promise<PosBrandOption[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_brands");
+  if (error) throw new Error(error.message);
+  const rows = (data as Array<{ id: string; name: string; slug: string; isActive?: boolean }> | null) ?? [];
+  return rows
+    .filter((row) => row.isActive !== false)
+    .map((row) => ({ id: row.id, name: row.name, slug: row.slug }));
 }
 
 async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, number>> {

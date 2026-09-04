@@ -2,192 +2,306 @@ import type { CSSProperties, ReactNode } from "react";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatViDate } from "@/shared/lib/datetime";
 import { formatChi, invoiceIssuedParts } from "./labels";
+import {
+  GOLD_CERTIFICATE,
+  type InvoicePrintPayload,
+  type PrinterProfile,
+} from "./print-template";
 import type { InvoiceCharge, InvoiceDetail } from "./types";
 
-/** PDF template canvas in points (Adobe Illustrator source). */
-const PW = 600.945;
-const PH = 430.866;
-
-/** Data-row boxes from the PNG table grid (canvas points). */
-const ROW_BOX = [
-  { y: 221.8, h: 15.8 },
-  { y: 238.6, h: 15.8 },
-  { y: 255.6, h: 15.6 },
-  { y: 272.4, h: 15.8 },
-];
-
-/** Vertical dividers: STT 59.8 | item 79.2 | purity 192.2 | weight 259.4 | unit 326.4 | amount 408.5 | 555.3 */
-const COL = {
-  item: { x: 86, w: 100 },
-  purity: { x: 196, w: 60 },
-  weight: { x: 263, w: 60 },
-  unit: { x: 330, w: 74 },
-  amount: { x: 414, w: 136 },
-};
-
-type CertRow = {
-  key: string;
-  name: string;
-  purity: string;
-  weightLabel: string;
-  unitPriceDong: number;
-  totalPriceDong: number;
-};
-
-function toCertRows(invoice: InvoiceDetail): CertRow[] {
-  const products: CertRow[] = invoice.lines.map((line, index) => ({
-    key: `line-${line.skuId}-${index}`,
-    name: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
-    purity: line.purity || "",
-    weightLabel: line.weightChi > 0 ? formatChi(line.weightChi) : "",
-    unitPriceDong: line.unitPriceDong,
-    totalPriceDong: line.totalPriceDong,
-  }));
-  const extras: CertRow[] = (invoice.charges ?? []).map((charge: InvoiceCharge) => ({
-    key: `charge-${charge.id}`,
-    name: charge.name,
-    purity: "",
-    weightLabel: "",
-    unitPriceDong: charge.amountDong,
-    totalPriceDong: charge.amountDong,
-  }));
-  return [...products, ...extras];
-}
+const T = GOLD_CERTIFICATE;
 
 export function invoiceCertificateRowCount(invoice: InvoiceDetail): number {
   return invoice.lines.length + (invoice.charges?.length ?? 0);
 }
 
-export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
+export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPayload {
   const staffName =
     invoice.operatorName || invoice.actorEmail.split("@")[0] || invoice.actorEmail;
   const issued = invoiceIssuedParts(invoice.issuedAt);
   const walkIn = invoice.isWalkIn || invoice.customerPhone === "WALKIN";
   const phone = walkIn ? "" : invoice.customerPhone;
   const citizenId = walkIn ? "" : (invoice.customerCitizenId ?? "");
-  const dob = invoice.customerDateOfBirth
+  const birthDate = invoice.customerDateOfBirth
     ? formatViDate(invoice.customerDateOfBirth.slice(0, 10))
     : "";
-  const rows = toCertRows(invoice).slice(0, 4);
   const paidDong = Math.max(0, invoice.paidDong);
-  const words = formatDongInWords(paidDong);
+
+  const productItems = invoice.lines.map((line, index) => ({
+    stt: index + 1,
+    productName: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
+    purity: line.purity || "",
+    weightLabel: line.weightChi > 0 ? formatChi(line.weightChi) : "",
+    unitPriceDong: line.unitPriceDong,
+    amountDong: line.totalPriceDong,
+  }));
+  const chargeItems = (invoice.charges ?? []).map((charge: InvoiceCharge, index) => ({
+    stt: productItems.length + index + 1,
+    productName: charge.name,
+    purity: "",
+    weightLabel: "",
+    unitPriceDong: charge.amountDong,
+    amountDong: charge.amountDong,
+  }));
+
+  return {
+    customerName: invoice.customerName || "",
+    citizenId,
+    address: invoice.customerAddress || "",
+    phone,
+    birthDate,
+    day: issued.day,
+    month: issued.month,
+    year: issued.year,
+    time: issued.time,
+    staffName,
+    cashierName: "",
+    controllerName: "",
+    totalAmountDong: paidDong,
+    amountInWords: formatDongInWords(paidDong),
+    items: [...productItems, ...chargeItems].slice(0, T.table.maxRows),
+  };
+}
+
+type InvoiceDocumentProps = {
+  invoice?: InvoiceDetail;
+  /** Override payload (test print). When set, `invoice` is ignored for field values. */
+  payload?: InvoicePrintPayload;
+  printer?: PrinterProfile;
+  /** Show phôi background on screen (always hidden when printing). */
+  showTemplateBackground?: boolean;
+  /** Show P1–P4 marks (test / calibration). */
+  showCalibrationMarks?: boolean;
+};
+
+export function InvoiceDocument({
+  invoice,
+  payload: payloadProp,
+  printer = { name: "Mặc định", offsetX: 0, offsetY: 0, scale: 1 },
+  showTemplateBackground = true,
+  showCalibrationMarks = false,
+}: InvoiceDocumentProps) {
+  const payload =
+    payloadProp ?? (invoice ? invoiceToPrintPayload(invoice) : null);
+  if (!payload) return null;
+
+  const ox = printer.offsetX;
+  const oy = printer.offsetY;
+  const scale = printer.scale > 0 ? printer.scale : 1;
 
   return (
     <article
-      className="invoice-print relative mx-auto w-full max-w-[212mm] overflow-hidden bg-white text-[#1f1f1f] aspect-[600.945/430.866]"
+      className="invoice-print-page relative mx-auto overflow-hidden bg-white text-[#1f1f1f]"
       style={{
+        width: `${T.widthMm}mm`,
+        maxWidth: "100%",
+        aspectRatio: `${T.widthMm} / ${T.heightMm}`,
+        transform: scale !== 1 ? `scale(${scale})` : undefined,
+        transformOrigin: "top left",
         printColorAdjust: "exact",
         WebkitPrintColorAdjust: "exact",
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/invoice/gold-certificate.png"
-        alt=""
-        className="pointer-events-none absolute inset-0 h-full w-full select-none"
-      />
+      {showTemplateBackground ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/invoice/gold-certificate.png"
+          alt=""
+          className="invoice-template-background pointer-events-none absolute inset-0 h-full w-full select-none"
+        />
+      ) : null}
 
-      <CertField x={202} y={145.6} w={148} h={12.4} className="font-semibold">
-        {invoice.customerName}
-      </CertField>
-      <CertField x={424} y={145.6} w={128} h={12.4}>
-        {citizenId}
-      </CertField>
-      <CertField x={118} y={163.4} w={164} h={12.4}>
-        {invoice.customerAddress || ""}
-      </CertField>
-      <CertField x={357} y={163.4} w={90} h={12.4}>
-        {phone}
-      </CertField>
-      <CertField x={498} y={163.4} w={58} h={12.4}>
-        {dob}
-      </CertField>
-      <CertField x={98} y={181.4} w={38} h={12.4} align="center">
-        {issued.day}
-      </CertField>
-      <CertField x={208} y={181.4} w={28} h={12.4} align="center">
-        {issued.month}
-      </CertField>
-      <CertField x={294} y={181.4} w={42} h={12.4} align="center">
-        {issued.year}
-      </CertField>
-      <CertField x={416} y={181.4} w={70} h={12.4}>
-        {issued.time}
-      </CertField>
+      <PrintField field={T.fields.customerName} ox={ox} oy={oy} className="font-semibold">
+        {payload.customerName}
+      </PrintField>
+      <PrintField field={T.fields.citizenId} ox={ox} oy={oy}>
+        {payload.citizenId}
+      </PrintField>
+      <PrintField field={T.fields.address} ox={ox} oy={oy}>
+        {payload.address}
+      </PrintField>
+      <PrintField field={T.fields.phone} ox={ox} oy={oy}>
+        {payload.phone}
+      </PrintField>
+      <PrintField field={T.fields.birthDate} ox={ox} oy={oy}>
+        {payload.birthDate}
+      </PrintField>
+      <PrintField field={T.fields.day} ox={ox} oy={oy}>
+        {payload.day}
+      </PrintField>
+      <PrintField field={T.fields.month} ox={ox} oy={oy}>
+        {payload.month}
+      </PrintField>
+      <PrintField field={T.fields.year} ox={ox} oy={oy}>
+        {payload.year}
+      </PrintField>
+      <PrintField field={T.fields.time} ox={ox} oy={oy}>
+        {payload.time}
+      </PrintField>
 
-      {rows.map((row, index) => (
-        <CertificateLine key={row.key} row={row} box={ROW_BOX[index] ?? ROW_BOX[3]} />
-      ))}
+      {payload.items.map((item, index) => {
+        const y = T.table.startY + index * T.table.rowHeight;
+        const h = T.table.rowHeight;
+        return (
+          <div key={`item-${index}-${item.productName}`}>
+            <PrintBox
+              x={T.columns.productName.x}
+              y={y}
+              w={T.columns.productName.w}
+              h={h}
+              ox={ox}
+              oy={oy}
+              align="center"
+              size={8}
+            >
+              {item.productName}
+            </PrintBox>
+            <PrintBox x={T.columns.purity.x} y={y} w={T.columns.purity.w} h={h} ox={ox} oy={oy} align="center" size={8}>
+              {item.purity}
+            </PrintBox>
+            <PrintBox x={T.columns.weight.x} y={y} w={T.columns.weight.w} h={h} ox={ox} oy={oy} align="center" size={8}>
+              {item.weightLabel}
+            </PrintBox>
+            <PrintBox
+              x={T.columns.unitPrice.x}
+              y={y}
+              w={T.columns.unitPrice.w}
+              h={h}
+              ox={ox}
+              oy={oy}
+              align="center"
+              size={8}
+            >
+              {formatDongCompact(item.unitPriceDong)}
+            </PrintBox>
+            <PrintBox
+              x={T.columns.amount.x}
+              y={y}
+              w={T.columns.amount.w}
+              h={h}
+              ox={ox}
+              oy={oy}
+              align="center"
+              size={8}
+              className="font-medium"
+            >
+              {formatDongCompact(item.amountDong)}
+            </PrintBox>
+          </div>
+        );
+      })}
 
-      <CertField x={208} y={289.2} w={118} h={11.2} size={8} className="leading-tight">
-        {words}
-      </CertField>
-      <CertField
-        x={414}
-        y={289.2}
-        w={136}
-        h={11.2}
-        align="center"
-        size={11}
-        className="font-bold text-[#9b0102]"
-      >
-        {formatDongCompact(paidDong)}
-      </CertField>
+      <PrintField field={T.fields.amountInWords} ox={ox} oy={oy}>
+        {payload.amountInWords}
+      </PrintField>
+      <PrintField field={T.fields.totalAmount} ox={ox} oy={oy} className="font-bold text-[#9b0102]">
+        {formatDongCompact(payload.totalAmountDong)}
+      </PrintField>
 
-      <CertField x={42} y={356} w={140} h={14} align="center" size={8.5}>
-        {invoice.customerName}
-      </CertField>
-      <CertField x={175} y={356} w={155} h={14} align="center" size={8.5}>
-        {staffName}
-      </CertField>
+      <PrintField field={T.fields.customerSign} ox={ox} oy={oy}>
+        {payload.customerName}
+      </PrintField>
+      <PrintField field={T.fields.staffSign} ox={ox} oy={oy}>
+        {payload.staffName}
+      </PrintField>
+      {payload.cashierName ? (
+        <PrintField field={T.fields.cashierSign} ox={ox} oy={oy}>
+          {payload.cashierName}
+        </PrintField>
+      ) : null}
+      {payload.controllerName ? (
+        <PrintField field={T.fields.controllerSign} ox={ox} oy={oy}>
+          {payload.controllerName}
+        </PrintField>
+      ) : null}
+
+      {showCalibrationMarks
+        ? T.calibrationMarks.map((mark) => (
+            <div
+              key={mark.id}
+              className="invoice-print-field pointer-events-none"
+              style={{
+                position: "absolute",
+                left: `calc(${mark.x}mm + ${ox}mm)`,
+                top: `calc(${mark.y}mm + ${oy}mm)`,
+                width: "4mm",
+                height: "4mm",
+                marginLeft: "-2mm",
+                marginTop: "-2mm",
+                border: "0.3mm solid #9b0102",
+                borderRadius: "50%",
+                boxSizing: "border-box",
+                fontSize: "6pt",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#9b0102",
+                fontWeight: 700,
+              }}
+              aria-hidden
+            >
+              {mark.id}
+            </div>
+          ))
+        : null}
     </article>
   );
 }
 
-function CertificateLine({
-  row,
-  box,
+type FieldBox = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fontSizePt: number;
+  align: "left" | "center" | "right";
+  weight?: string;
+  color?: string;
+};
+
+function PrintField({
+  field,
+  ox,
+  oy,
+  className = "",
+  children,
 }: {
-  row: CertRow;
-  box: { y: number; h: number };
+  field: FieldBox;
+  ox: number;
+  oy: number;
+  className?: string;
+  children?: ReactNode;
 }) {
-  const { y, h } = box;
   return (
-    <>
-      <CertField x={COL.item.x} y={y} w={COL.item.w} h={h} align="center" size={8}>
-        {row.name}
-      </CertField>
-      <CertField x={COL.purity.x} y={y} w={COL.purity.w} h={h} align="center" size={8}>
-        {row.purity}
-      </CertField>
-      <CertField x={COL.weight.x} y={y} w={COL.weight.w} h={h} align="center" size={8}>
-        {row.weightLabel}
-      </CertField>
-      <CertField x={COL.unit.x} y={y} w={COL.unit.w} h={h} align="center" size={8}>
-        {formatDongCompact(row.unitPriceDong)}
-      </CertField>
-      <CertField
-        x={COL.amount.x}
-        y={y}
-        w={COL.amount.w}
-        h={h}
-        align="center"
-        size={8}
-        className="font-medium"
-      >
-        {formatDongCompact(row.totalPriceDong)}
-      </CertField>
-    </>
+    <PrintBox
+      x={field.x}
+      y={field.y}
+      w={field.w}
+      h={field.h}
+      ox={ox}
+      oy={oy}
+      align={field.align}
+      size={field.fontSizePt}
+      weight={field.weight}
+      color={field.color}
+      className={className}
+    >
+      {children}
+    </PrintBox>
   );
 }
 
-function CertField({
+function PrintBox({
   x,
   y,
   w,
   h,
+  ox,
+  oy,
   align = "left",
   size = 9.5,
+  weight,
+  color,
   className = "",
   children,
 }: {
@@ -195,34 +309,45 @@ function CertField({
   y: number;
   w: number;
   h: number;
+  ox: number;
+  oy: number;
   align?: "left" | "center" | "right";
   size?: number;
+  weight?: string;
+  color?: string;
   className?: string;
   children?: ReactNode;
 }) {
+  const text = children == null || children === "" ? null : children;
+  if (text == null) return null;
+
   const justify =
     align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   const style: CSSProperties = {
     position: "absolute",
-    left: `${(x / PW) * 100}%`,
-    top: `${(y / PH) * 100}%`,
-    width: `${(w / PW) * 100}%`,
-    height: `${(h / PH) * 100}%`,
+    left: `calc(${x}mm + ${ox}mm)`,
+    top: `calc(${y}mm + ${oy}mm)`,
+    width: `${w}mm`,
+    height: `${h}mm`,
     fontSize: `${size}pt`,
+    fontFamily: "Arial, Helvetica, sans-serif",
+    fontWeight: weight ?? 400,
+    color: color,
     lineHeight: 1.15,
     display: "flex",
-    alignItems: "center",
+    alignItems: size <= 8.5 ? "flex-start" : "center",
     justifyContent: justify,
     overflow: "hidden",
     whiteSpace: size <= 8.5 ? "normal" : "nowrap",
-    textOverflow: "ellipsis",
+    textOverflow: size <= 8.5 ? "clip" : "ellipsis",
+    paddingTop: size <= 8.5 ? "0.1mm" : 0,
     paddingLeft: align === "left" ? "0.15em" : 0,
     paddingRight: align === "right" ? "0.15em" : 0,
     boxSizing: "border-box",
   };
   return (
-    <div style={style} className={className}>
-      {children}
+    <div style={style} className={`invoice-print-field ${className}`.trim()}>
+      {text}
     </div>
   );
 }

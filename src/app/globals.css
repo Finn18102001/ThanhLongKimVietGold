@@ -64,7 +64,7 @@ body {
   }
 
   @page gold-certificate {
-    size: 212mm 152mm;
+    size: 205mm 148mm;
     margin: 0;
   }
 
@@ -73,7 +73,10 @@ body {
     margin: 12mm;
   }
 
+  html,
   body {
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
   }
 
@@ -89,6 +92,12 @@ body {
     margin: 0 !important;
   }
 
+  /* Phôi background: visible on screen, never on paper */
+  .invoice-template-background {
+    display: none !important;
+  }
+
+  .invoice-print-page,
   .invoice-print {
     page: gold-certificate;
     position: absolute !important;
@@ -96,9 +105,11 @@ body {
     left: 0 !important;
     box-shadow: none !important;
     max-width: none !important;
-    width: 212mm !important;
-    height: 152mm !important;
+    width: 205mm !important;
+    height: 148mm !important;
     aspect-ratio: auto !important;
+    background: transparent !important;
+    overflow: hidden !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }

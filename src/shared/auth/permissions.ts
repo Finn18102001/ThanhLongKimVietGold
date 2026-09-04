@@ -21,6 +21,7 @@ export const STAFF_ALLOWED_HREFS = new Set<string>([
 /** Spec §26 — ADMIN sees all main + quản trị items. */
 export const ADMIN_ONLY_HREFS = new Set<string>([
   ROUTES.dashboard,
+  ROUTES.cashflow,
   ROUTES.reports,
   ROUTES.reportsRevenue,
   ROUTES.products,

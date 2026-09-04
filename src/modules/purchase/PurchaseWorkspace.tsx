@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ClockCounterClockwise, Printer, Warning } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
-import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
+import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
@@ -18,12 +18,9 @@ import {
   getBuy,
   getCustomerDebtSummary,
 } from "./actions";
-import { CatalogBuyModal } from "./components/CatalogBuyModal";
 import { MarketGoldModal } from "./components/MarketGoldModal";
+import { PurchaseCartPanel } from "./components/PurchaseCartPanel";
 import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
-import { PurchaseInvoicePreview } from "./components/PurchaseInvoicePreview";
-import { PurchaseLinesTable } from "./components/PurchaseLinesTable";
-import { PurchasePaymentPanel } from "./components/PurchasePaymentPanel";
 import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
 import {
   defaultDueDateIso,
@@ -38,6 +35,7 @@ import {
   paymentStatusLabel,
 } from "./labels";
 import {
+  clampBuyUnitPriceDong,
   lineHasPriceException,
   lineTotalDong,
   toBuyItemPayload,
@@ -45,6 +43,7 @@ import {
   type BuyLine,
   type BuyListRow,
   type BuyPayMode,
+  type CatalogBuyLine,
   type DebtSummary,
   type MarketGoldRef,
   type PaymentMethod,
@@ -62,26 +61,14 @@ export function PurchaseWorkspace({
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
-  /** Client-only draft meta — avoid SSR/client UUID/Date hydration mismatch. */
-  const [draftMeta, setDraftMeta] = useState<{ id: string; startedAt: string } | null>(null);
-
-  useEffect(() => {
-    setDraftMeta({
-      id: crypto.randomUUID().slice(0, 8).toUpperCase(),
-      startedAt: new Date().toISOString(),
-    });
-  }, []);
 
   const [recentBuys, setRecentBuys] = useState(initialBuys);
   const [lines, setLines] = useState<BuyLine[]>([]);
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [debt, setDebt] = useState<DebtSummary | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
-  const [catalogPick, setCatalogPick] = useState<PurchaseCatalogItem | null>(null);
   const [showMarket, setShowMarket] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
-  const [approveException, setApproveException] = useState(false);
-  const [exceptionReason, setExceptionReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [payMode, setPayMode] = useState<BuyPayMode>("FULL");
   const [paidDong, setPaidDong] = useState(0);
@@ -135,12 +122,81 @@ export function PurchaseWorkspace({
     setLines((prev) =>
       prev.map((line) => {
         if (line.localId !== localId) return line;
-        if (line.kind === "catalog") {
-          return { ...line, ...patch, kind: "catalog", isMarketGold: false as const };
+        const merged = { ...line, ...patch };
+        if (merged.kind === "catalog") {
+          const unitPriceDong =
+            patch.unitPriceDong !== undefined
+              ? clampBuyUnitPriceDong(
+                  patch.unitPriceDong,
+                  merged.referencePriceDongPerChi,
+                  false,
+                )
+              : merged.unitPriceDong;
+          return {
+            ...merged,
+            kind: "catalog" as const,
+            isMarketGold: false as const,
+            unitPriceDong,
+            quantity: Math.max(1, Math.trunc(merged.quantity) || 1),
+          };
         }
-        return { ...line, ...patch, kind: "market", isMarketGold: true as const };
+        return {
+          ...merged,
+          kind: "market" as const,
+          isMarketGold: true as const,
+          quantity: Math.max(1, Math.trunc(merged.quantity) || 1),
+        };
       }),
     );
+  }
+
+  /** Click catalog → add/bump line on cart (POS-like; edit qty/price on invoice). */
+  function addCatalogItem(item: PurchaseCatalogItem) {
+    const reference = item.referenceSellDongPerChi;
+    if (reference <= 0) {
+      setAlert({
+        tone: "error",
+        title: "Chưa có giá",
+        reason: "Sản phẩm chưa có giá niêm yết / chỉ.",
+      });
+      return;
+    }
+    const suggested =
+      item.suggestedBuyDongPerChi > 0 ? item.suggestedBuyDongPerChi : reference;
+    const unit = clampBuyUnitPriceDong(suggested, reference, false);
+    const weight = item.weightChi > 0 ? item.weightChi : 1;
+
+    setLines((prev) => {
+      const existing = prev.find(
+        (line): line is CatalogBuyLine =>
+          line.kind === "catalog" && line.skuId === item.skuId,
+      );
+      if (existing) {
+        return prev.map((line) =>
+          line.localId === existing.localId
+            ? { ...existing, quantity: existing.quantity + 1 }
+            : line,
+        );
+      }
+      const next: CatalogBuyLine = {
+        kind: "catalog",
+        isMarketGold: false,
+        localId: crypto.randomUUID(),
+        skuId: item.skuId,
+        sku: item.sku,
+        productName: item.name,
+        goldType: item.goldTypeHint || item.browseGroup || "Catalog",
+        goldAge: item.goldAgeHint || "",
+        quantity: 1,
+        weightChi: weight,
+        unitPriceDong: unit,
+        referencePriceDongPerChi: reference,
+        priceRowId: item.priceRowId,
+        imageUrl: item.imageUrl,
+        brandName: item.brandName,
+      };
+      return [...prev, next];
+    });
   }
 
   function resetDraft() {
@@ -149,13 +205,7 @@ export function PurchaseWorkspace({
     setPayMode("FULL");
     setPaidDong(0);
     setDueDate(defaultDueDateIso());
-    setApproveException(false);
-    setExceptionReason("");
     setSuccess(null);
-    setDraftMeta({
-      id: crypto.randomUUID().slice(0, 8).toUpperCase(),
-      startedAt: new Date().toISOString(),
-    });
     idempotencyKey.current = null;
   }
 
@@ -184,19 +234,12 @@ export function PurchaseWorkspace({
       });
       return;
     }
-    if (anyCatalogException && approveException && !exceptionReason.trim()) {
+    if (anyCatalogException) {
       setAlert({
         tone: "error",
-        title: "Thiếu lý do ngoại lệ",
-        reason: "Khi duyệt ngoại lệ giá ±300.000đ/chỉ, phải nhập lý do.",
-      });
-      return;
-    }
-    if (anyCatalogException && !approveException) {
-      setAlert({
-        tone: "error",
-        title: "Cần duyệt ngoại lệ giá",
-        reason: "Có dòng catalog vượt ±300.000đ/chỉ. Tick duyệt ngoại lệ hoặc chỉnh giá.",
+        title: "Giá ngoài khoảng ±300.000đ",
+        reason:
+          "Có dòng catalog vượt ±300.000đ/chỉ so với giá niêm yết. Chỉnh giá (nhập trực tiếp hoặc ±) về trong khoảng trước khi chốt. Không cho thanh toán khi ngoài khoảng.",
       });
       return;
     }
@@ -230,9 +273,8 @@ export function PurchaseWorkspace({
         note: note.trim() || null,
         paidDong: effectivePaid,
         dueDate: remainingDong > 0 ? dueDate : null,
-        approvePriceException: anyCatalogException ? approveException : false,
-        priceExceptionReason:
-          anyCatalogException && approveException ? exceptionReason.trim() : null,
+        approvePriceException: false,
+        priceExceptionReason: null,
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
       setSuccess({
@@ -383,14 +425,7 @@ export function PurchaseWorkspace({
     <div className="-mx-6 -my-5 flex min-h-[calc(100dvh-8rem)] flex-col bg-[var(--tlkv-bg)]">
       <div className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-4 print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[18px] font-semibold">Mua hàng từ khách</h1>
-            <p className="mt-0.5 text-[12px] text-[var(--tlkv-muted)]">
-              Nháp {draftMeta?.id ?? "…"} ·{" "}
-              {draftMeta ? formatViDateTime(draftMeta.startedAt) : "…"} · Catalog ±300k
-              · Vàng TT nhập tay
-            </p>
-          </div>
+          <h1 className="text-[18px] font-semibold">Mua hàng từ khách</h1>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -439,115 +474,40 @@ export function PurchaseWorkspace({
           </div>
         ) : null}
 
-        {anyCatalogException ? (
-          <div className="flex items-start gap-2 rounded-[12px] border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)] px-4 py-3 text-[12px] font-medium text-[var(--tlkv-amber)]">
-            <Warning size={16} className="mt-0.5 shrink-0" />
-            Có dòng sản phẩm đang bán vượt ngưỡng ±300.000đ/chỉ. Duyệt ngoại lệ ở khung thanh toán
-            trước khi chốt.
-          </div>
-        ) : null}
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="flex min-h-0 flex-col gap-4">
-            <div className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)]">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tlkv-red-soft)] text-[12px] font-bold text-[var(--tlkv-red)]">
-                    {customer ? customerInitials(customer.name) : "?"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold">
-                      {customer ? customer.name : "Chưa chọn khách hàng"}
-                    </p>
-                    <p className="text-[12px] text-[var(--tlkv-muted)]">
-                      {customer
-                        ? formatPhoneDisplay(customer.phone) || customer.customerNo
-                        : "Bắt buộc khách thật (không dùng khách lẻ)"}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPickingCustomer(true)}
-                  className="h-9 shrink-0 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-semibold hover:bg-[var(--tlkv-bg)]"
-                >
-                  {customer ? "Đổi khách" : "Chọn khách"}
-                </button>
-              </div>
-              {debt && customer ? (
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-4">
-                  <DebtChip label="Cửa hàng nợ KH" value={formatDong(debt.payableDong)} />
-                  <DebtChip label="KH nợ cửa hàng" value={formatDong(debt.receivableDong)} />
-                  <DebtChip label="Số lần mua vào" value={String(debt.buyCount)} />
-                  <DebtChip label="Số lần bán ra" value={String(debt.saleCount)} />
-                </div>
-              ) : null}
-            </div>
-
             <PurchaseCatalogPanel
               catalog={catalog}
-              onPickCatalog={setCatalogPick}
+              onPickCatalog={addCatalogItem}
               onOpenMarket={() => setShowMarket(true)}
             />
-
-            <PurchaseLinesTable
-              lines={lines}
-              onChangeLine={onChangeLine}
-              onRemove={(id) => setLines((prev) => prev.filter((l) => l.localId !== id))}
-            />
-
-            <PurchasePaymentPanel
-              totalDong={totalDong}
-              effectivePaid={effectivePaid}
-              remainingDong={remainingDong}
-              paymentMethod={paymentMethod}
-              onPaymentMethod={setPaymentMethod}
-              payMode={payMode}
-              onPayMode={setPayMode}
-              paidDong={paidDong}
-              onPaidDong={setPaidDong}
-              dueDate={dueDate}
-              onDueDate={setDueDate}
-              note={note}
-              onNote={setNote}
-              anyCatalogException={anyCatalogException}
-              approveException={approveException}
-              onApproveException={setApproveException}
-              exceptionReason={exceptionReason}
-              onExceptionReason={setExceptionReason}
-            />
-
-            <div className="flex flex-wrap items-center justify-end gap-2 pb-2">
-              <button
-                type="button"
-                onClick={resetDraft}
-                className="h-11 rounded-lg border border-[var(--tlkv-line)] bg-white px-4 text-[13px] font-medium hover:bg-[var(--tlkv-bg)]"
-              >
-                Xóa nháp
-              </button>
-              <button
-                type="button"
-                disabled={pending || lines.length === 0}
-                onClick={openReview}
-                className="h-11 rounded-lg bg-[var(--tlkv-red)] px-5 text-[13px] font-semibold text-white disabled:opacity-40"
-              >
-                Xác nhận giao dịch (F9)
-              </button>
-            </div>
           </div>
 
-          <div className="hidden lg:block">
-            <PurchaseInvoicePreview
-              customer={customer}
-              lines={lines}
-              totalDong={totalDong}
-              effectivePaid={effectivePaid}
-              remainingDong={remainingDong}
-              paymentMethod={paymentMethod}
-              payMode={payMode}
-              dueDate={dueDate}
-            />
-          </div>
+          <PurchaseCartPanel
+            customer={customer}
+            debt={debt}
+            lines={lines}
+            totalDong={totalDong}
+            effectivePaid={effectivePaid}
+            remainingDong={remainingDong}
+            paymentMethod={paymentMethod}
+            onPaymentMethod={setPaymentMethod}
+            payMode={payMode}
+            onPayMode={setPayMode}
+            paidDong={paidDong}
+            onPaidDong={setPaidDong}
+            dueDate={dueDate}
+            onDueDate={setDueDate}
+            note={note}
+            onNote={setNote}
+            pending={pending}
+            anyCatalogException={anyCatalogException}
+            onOpenCustomer={() => setPickingCustomer(true)}
+            onClear={resetDraft}
+            onChangeLine={onChangeLine}
+            onRemove={(id) => setLines((prev) => prev.filter((l) => l.localId !== id))}
+            onCheckout={openReview}
+          />
         </div>
       </div>
 
@@ -555,20 +515,6 @@ export function PurchaseWorkspace({
         <CustomerSelectModal
           onClose={() => setPickingCustomer(false)}
           onSelect={(c) => void onSelectCustomer(c)}
-        />
-      ) : null}
-
-      {catalogPick ? (
-        <CatalogBuyModal
-          item={catalogPick}
-          onClose={() => setCatalogPick(null)}
-          onAdd={(line) => {
-            setLines((prev) => [...prev, line]);
-            if (lineHasPriceException(line)) {
-              setApproveException(true);
-            }
-            setCatalogPick(null);
-          }}
         />
       ) : null}
 
@@ -729,9 +675,8 @@ export function PurchaseWorkspace({
                 <PreviewRow label="Hẹn trả" value={formatViDate(dueDate)} />
               ) : null}
               {anyCatalogException ? (
-                <p className="mt-2 text-[11px] font-medium text-[var(--tlkv-amber)]">
-                  Có ngoại lệ giá ±300k
-                  {approveException ? " (đã tick duyệt)" : " (chưa tick duyệt)"}
+                <p className="mt-2 text-[11px] font-medium text-[var(--tlkv-red)]">
+                  Có dòng ngoài khoảng ±300k - không cho chốt. Quay lại chỉnh giá.
                 </p>
               ) : null}
             </div>

@@ -47,6 +47,7 @@ export type CustomerRecord = {
   citizenId: string | null;
   citizenIdIssueDate: string | null;
   citizenIdIssuePlace: string | null;
+  citizenIdExpiryDate: string | null;
   businessName: string | null;
   representativeName: string | null;
   documents: CustomerDocument[];
@@ -105,6 +106,7 @@ export type CustomerInput = {
   citizenId?: string | null;
   citizenIdIssueDate?: string | null;
   citizenIdIssuePlace?: string | null;
+  citizenIdExpiryDate?: string | null;
   businessName?: string | null;
   representativeName?: string | null;
 };

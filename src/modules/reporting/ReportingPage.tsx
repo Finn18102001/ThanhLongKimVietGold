@@ -1,6 +1,6 @@
-import { getReportingSnapshot } from "./query";
+import { getPurchaseReportSnapshot, getReportingSnapshot } from "./query";
 import { ReportingWorkspace } from "./ReportingWorkspace";
-import type { ReportingSnapshot } from "./types";
+import type { PurchaseReportSnapshot, ReportingSnapshot } from "./types";
 
 export async function ReportingPage() {
   const to = new Date();
@@ -21,11 +21,32 @@ export async function ReportingPage() {
     topProducts: [],
   };
 
+  let initialPurchase: PurchaseReportSnapshot = {
+    from: fromIso,
+    to: toIso,
+    totalPurchaseDong: 0,
+    quantityPurchased: 0,
+    voucherCount: 0,
+    totalSellDong: 0,
+    quantitySold: 0,
+    daily: [],
+    topProducts: [],
+    topBrands: [],
+    history: [],
+    filterOptions: { brands: [], products: [], staff: [] },
+  };
+
   try {
     initial = await getReportingSnapshot(fromIso, toIso);
   } catch {
     // Migration chưa apply
   }
 
-  return <ReportingWorkspace initial={initial} />;
+  try {
+    initialPurchase = await getPurchaseReportSnapshot({ from: fromIso, to: toIso });
+  } catch {
+    // Buy tables / RLS chưa sẵn sàng
+  }
+
+  return <ReportingWorkspace initial={initial} initialPurchase={initialPurchase} />;
 }

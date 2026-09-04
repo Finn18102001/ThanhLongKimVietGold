@@ -127,3 +127,78 @@ export function paymentStatusBadgeClass(status: PaymentStatus | string): string 
   }
   return "bg-[var(--tlkv-slate-soft)] text-[var(--tlkv-slate)]";
 }
+
+/** Customer req §7: aggregate from payment × gold delivery (not staff-picked). */
+export type InvoiceLifecycleStatus =
+  | "PARTIAL"
+  | "AWAITING_GOLD"
+  | "AWAITING_PAYMENT"
+  | "COMPLETED";
+
+export function isPaymentSettled(
+  remainingDong: number,
+  paymentStatus?: PaymentStatus | string,
+): boolean {
+  if (remainingDong <= 0) return true;
+  return paymentStatus === "PAID";
+}
+
+export function isGoldDelivered(
+  transactionType: string | null | undefined,
+  fulfillmentStatus: string | null | undefined,
+): boolean {
+  if (transactionType === "PREORDER") {
+    return fulfillmentStatus === "FULFILLED";
+  }
+  // Immediate sale / delivered default
+  if (!fulfillmentStatus || fulfillmentStatus === "DELIVERED" || fulfillmentStatus === "FULFILLED") {
+    return true;
+  }
+  if (fulfillmentStatus === "CANCELLED") return false;
+  return false;
+}
+
+export function invoiceLifecycleStatus(
+  remainingDong: number,
+  transactionType: string | null | undefined,
+  fulfillmentStatus: string | null | undefined,
+  paymentStatus?: PaymentStatus | string,
+): InvoiceLifecycleStatus {
+  const paid = isPaymentSettled(remainingDong, paymentStatus);
+  const delivered = isGoldDelivered(transactionType, fulfillmentStatus);
+  if (paid && delivered) return "COMPLETED";
+  if (paid && !delivered) return "AWAITING_GOLD";
+  if (!paid && delivered) return "AWAITING_PAYMENT";
+  return "PARTIAL";
+}
+
+export function invoiceLifecycleLabel(status: InvoiceLifecycleStatus): string {
+  switch (status) {
+    case "PARTIAL":
+      return "1 phần";
+    case "AWAITING_GOLD":
+      return "Chưa trả vàng";
+    case "AWAITING_PAYMENT":
+      return "Chưa thanh toán đủ";
+    case "COMPLETED":
+      return "Hoàn thành";
+  }
+}
+
+export function invoiceLifecycleBadgeClass(status: InvoiceLifecycleStatus): string {
+  if (status === "COMPLETED") {
+    return "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]";
+  }
+  if (status === "AWAITING_GOLD") {
+    return "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]";
+  }
+  if (status === "AWAITING_PAYMENT") {
+    return "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]";
+  }
+  return "bg-[var(--tlkv-slate-soft)] text-[var(--tlkv-slate)]";
+}
+
+/** Incomplete = not fully paid+delivered; may still collect payment / fulfill. */
+export function isInvoiceIncomplete(status: InvoiceLifecycleStatus): boolean {
+  return status !== "COMPLETED";
+}

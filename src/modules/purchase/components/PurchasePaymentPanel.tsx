@@ -136,33 +136,11 @@ export function PurchasePaymentPanel({
       </label>
 
       {anyCatalogException ? (
-        <div className="mt-3 rounded-lg border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)] px-3 py-2.5">
-          <p className="flex items-start gap-1.5 text-[12px] font-medium text-[var(--tlkv-amber)]">
+        <div className="mt-3 rounded-lg border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)] px-3 py-2.5">
+          <p className="flex items-start gap-1.5 text-[12px] font-medium text-[var(--tlkv-red)]">
             <Warning size={14} className="mt-0.5 shrink-0" />
-            Có dòng catalog vượt ngưỡng ±300.000đ/chỉ
+            Có dòng catalog ngoài khoảng ±300.000đ/chỉ. Chỉnh giá về trong khoảng trước khi chốt - không cho thanh toán khi ngoài khoảng.
           </p>
-          <label className="mt-2 flex items-start gap-2 text-[12px]">
-            <input
-              type="checkbox"
-              checked={approveException}
-              onChange={(e) => onApproveException(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>Quản trị duyệt ngoại lệ</span>
-          </label>
-          {approveException ? (
-            <textarea
-              value={exceptionReason}
-              onChange={(e) => onExceptionReason(e.target.value)}
-              rows={2}
-              className={`${purchaseInputClass} mt-2`}
-              placeholder="Lý do duyệt ngoại lệ giá..."
-            />
-          ) : (
-            <p className="mt-1.5 text-[11px] text-[var(--tlkv-muted)]">
-              Backend chỉ chấp nhận khi tài khoản admin duyệt kèm lý do.
-            </p>
-          )}
         </div>
       ) : null}
     </section>

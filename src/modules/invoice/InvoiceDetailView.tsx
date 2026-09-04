@@ -7,26 +7,79 @@ import { ROUTES } from "@/shared/navigation/routes";
 import { formatDong } from "@/shared/lib/money";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { InvoiceDocument, invoiceCertificateRowCount } from "./InvoiceDocument";
+import { PrintCalibrationPanel } from "./PrintCalibrationPanel";
+import { loadPrinterProfile } from "./print-storage";
+import {
+  createTestPrintPayload,
+  DEFAULT_PRINTER_PROFILE,
+  type PrinterProfile,
+} from "./print-template";
+import {
+  effectivePaymentStatus,
+  invoiceLifecycleBadgeClass,
+  invoiceLifecycleLabel,
+  invoiceLifecycleStatus,
+  paymentStatusLabel,
+} from "./labels";
 import type { InvoiceDetail } from "./types";
 
-export function InvoiceDetailView({ invoice }: { invoice: InvoiceDetail }) {
+export function InvoiceDetailView({
+  invoice,
+  isAdmin = false,
+}: {
+  invoice: InvoiceDetail;
+  isAdmin?: boolean;
+}) {
   const router = useRouter();
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
+  const [printer, setPrinter] = useState<PrinterProfile>(DEFAULT_PRINTER_PROFILE);
+  const [testMode, setTestMode] = useState(false);
+
+  useEffect(() => {
+    setPrinter(loadPrinterProfile());
+  }, []);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "F9") {
         event.preventDefault();
-        window.print();
+        setTestMode(false);
+        window.setTimeout(() => window.print(), 0);
       }
     }
+    function onAfterPrint() {
+      setTestMode(false);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
   }, []);
 
   function printInvoice() {
-    window.print();
+    setTestMode(false);
+    window.setTimeout(() => window.print(), 0);
   }
+
+  function printTest() {
+    setTestMode(true);
+    window.setTimeout(() => window.print(), 50);
+  }
+
+  const rowCount = invoiceCertificateRowCount(invoice);
+  const payStatus = effectivePaymentStatus(
+    invoice.paymentStatus,
+    invoice.remainingDong,
+    invoice.dueDate,
+  );
+  const lifecycle = invoiceLifecycleStatus(
+    invoice.remainingDong,
+    invoice.transactionType,
+    invoice.fulfillmentStatus,
+    payStatus,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -81,20 +134,54 @@ export function InvoiceDetailView({ invoice }: { invoice: InvoiceDetail }) {
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
-        {invoiceCertificateRowCount(invoice) > 4 ? (
+
+      {isAdmin ? (
+        <PrintCalibrationPanel
+          profile={printer}
+          onChange={setPrinter}
+          onTestPrint={printTest}
+        />
+      ) : null}
+
+      <div className="overflow-x-auto rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:overflow-visible print:rounded-none print:bg-transparent print:p-0 print:shadow-none">
+        {rowCount > 4 ? (
           <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
-            Giấy đảm bảo vàng in tối đa 4 dòng (sản phẩm và khoản thu thêm). Đơn này có{" "}
-            {invoiceCertificateRowCount(invoice)} dòng; các dòng sau dòng 4 không in trên mẫu.
+            Giấy đảm bảo vàng in tối đa 4 dòng (sản phẩm và khoản thu thêm). Đơn này có {rowCount}{" "}
+            dòng; các dòng sau dòng 4 không in trên mẫu.
           </p>
         ) : null}
-        <InvoiceDocument invoice={invoice} />
+        <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
+          Màn hình hiển thị đủ phôi + dữ liệu để căn. Khi in chỉ xuất lớp dữ liệu lên phôi in sẵn
+          205 × 148 mm (không in nền/logo/khung).
+        </p>
+        {testMode ? (
+          <InvoiceDocument
+            payload={createTestPrintPayload()}
+            printer={printer}
+            showTemplateBackground
+            showCalibrationMarks
+          />
+        ) : (
+          <InvoiceDocument invoice={invoice} printer={printer} showTemplateBackground />
+        )}
       </div>
-      <section className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:shadow-none">
+
+      <section className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:hidden">
         <h2 className="text-[14px] font-semibold">Thanh toán và giao hàng</h2>
         <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-          Trạng thái bán, thu tiền và trả hàng độc lập. Hóa đơn đã phát hành không có nghĩa đã thu đủ.
+          Trạng thái tổng hợp tự động từ thanh toán × trả vàng. Hóa đơn chưa hoàn thành vẫn thu thêm /
+          giao hàng được.
         </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
+          >
+            {invoiceLifecycleLabel(lifecycle)}
+          </span>
+          <span className="text-[12px] text-[var(--tlkv-muted)]">
+            TT: {paymentStatusLabel(payStatus)}
+          </span>
+        </div>
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] md:grid-cols-3">
           <div>
             <dt className="text-[var(--tlkv-muted)]">Tổng</dt>

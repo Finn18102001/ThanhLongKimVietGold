@@ -27,6 +27,7 @@ import type {
   CartLine,
   HeldOrderDetail,
   HeldOrderListResult,
+  PosBrandOption,
   PosCatalogItem,
   PosSaleContext,
 } from "./types";
@@ -96,11 +97,13 @@ function customerFromHold(detail: HeldOrderDetail, walkIn: CustomerRecord): Cust
 
 export function PosTerminal({
   catalog: initialCatalog,
+  brands,
   walkIn,
   initialHeldOrders,
   saleContext,
 }: {
   catalog: PosCatalogItem[];
+  brands: PosBrandOption[];
   walkIn: CustomerRecord;
   initialHeldOrders: HeldOrderListResult;
   saleContext: PosSaleContext;
@@ -112,6 +115,7 @@ export function PosTerminal({
   const [catalog, setCatalog] = useState(initialCatalog);
   const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
+  const [brandId, setBrandId] = useState("all");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
   const [cart, setCart] = useState<CartQtyMap>({});
@@ -210,15 +214,23 @@ export function PosTerminal({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return catalog.filter((item) => {
+      const matchesBrand =
+        brandId === "all" ||
+        (brandId === "none" ? !item.brandId : item.brandId === brandId);
       const matchesGroup = group === "Tất cả" || item.browseGroup === group;
       const matchesQuery =
         !q ||
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q);
-      return matchesGroup && matchesQuery;
+        item.category.toLowerCase().includes(q) ||
+        (item.brandName || "").toLowerCase().includes(q);
+      return matchesBrand && matchesGroup && matchesQuery;
     });
-  }, [catalog, group, query]);
+  }, [brandId, catalog, group, query]);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [brandId, group, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -698,12 +710,28 @@ export function PosTerminal({
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tìm sản phẩm (mã, tên...)"
+              placeholder="Tìm kiếm: nhập tên sản phẩm hoặc mã hàng..."
               className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-white pr-14 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
             <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded bg-[var(--tlkv-bg)] px-1.5 text-[10px] text-[var(--tlkv-muted)]">
               F2
             </kbd>
+          </label>
+          <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-white px-3 text-[13px]">
+            <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Thương hiệu</span>
+            <select
+              value={brandId}
+              onChange={(event) => setBrandId(event.target.value)}
+              className="max-w-[200px] bg-transparent text-[13px] font-medium outline-none"
+            >
+              <option value="all">Tất cả thương hiệu</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+              <option value="none">Không thương hiệu</option>
+            </select>
           </label>
           <button
             type="button"

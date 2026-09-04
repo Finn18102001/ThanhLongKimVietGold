@@ -1,17 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Warning } from "@phosphor-icons/react";
+import { CheckCircle, Minus, Plus, Warning } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { Modal } from "@/shared/ui/Modal";
 import {
   PRICE_EXCEPTION_THRESHOLD_DONG,
+  buyUnitPriceBounds,
+  clampBuyUnitPriceDong,
   isPriceException,
   type CatalogBuyLine,
   type PurchaseCatalogItem,
 } from "../types";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 import { PurchaseProductThumb } from "./PurchaseCatalogCard";
+
+const STEP = 10_000;
 
 export function CatalogBuyModal({
   item,
@@ -38,9 +42,16 @@ export function CatalogBuyModal({
   const [error, setError] = useState<string | null>(null);
 
   const reference = item.referenceSellDongPerChi;
+  const bounds = buyUnitPriceBounds(reference);
   const unit = parseDongInput(unitPrice);
-  const exception = unitPrice !== "" && isPriceException(unit, reference, false);
+  const outOfRange = unitPrice !== "" && isPriceException(unit, reference, false);
   const diff = unit - reference;
+
+  function setClampedUnit(next: number) {
+    const clamped = clampBuyUnitPriceDong(next, reference, false);
+    setUnitPrice(String(clamped));
+    setError(null);
+  }
 
   function submit() {
     const w = parseWeightInput(weightChi);
@@ -61,7 +72,12 @@ export function CatalogBuyModal({
       setError("Nhập giá mua / chỉ (số nguyên VND).");
       return;
     }
-    // Exception allowed on line; checkout still requires admin approve tick.
+    if (isPriceException(unit, reference, false)) {
+      setError(
+        `Giá mua phải trong khoảng ±${formatDong(PRICE_EXCEPTION_THRESHOLD_DONG)}/chỉ so với giá niêm yết. Không thể thêm dòng ngoài khoảng.`,
+      );
+      return;
+    }
 
     onAdd({
       kind: "catalog",
@@ -98,7 +114,8 @@ export function CatalogBuyModal({
           <button
             type="button"
             onClick={submit}
-            className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+            disabled={outOfRange}
+            className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
           >
             Thêm vào phiếu
           </button>
@@ -121,16 +138,43 @@ export function CatalogBuyModal({
           <p className="mt-0.5 text-[16px] font-bold text-[var(--tlkv-text)]">
             {reference > 0 ? formatDong(reference) : "Chưa có"}
           </p>
+          {bounds ? (
+            <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+              Cho phép: {formatDong(bounds.min)} – {formatDong(bounds.max)}
+            </p>
+          ) : null}
         </div>
 
-        <label className="block text-[12px]">
+        <label className="block text-[12px] sm:col-span-2">
           <span className="text-[var(--tlkv-muted)]">Giá mua / chỉ (VND)</span>
-          <input
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value.replace(/[^\d]/g, ""))}
-            inputMode="numeric"
-            className={`${purchaseInputClass} mt-1`}
-          />
+          <div className="mt-1 flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Giảm 10.000"
+              onClick={() => setClampedUnit(unit - STEP)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--tlkv-line)] active:scale-[0.98]"
+            >
+              <Minus size={14} />
+            </button>
+            <input
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value.replace(/[^\d]/g, ""))}
+              onBlur={() => {
+                if (unitPrice === "") return;
+                setClampedUnit(unit);
+              }}
+              inputMode="numeric"
+              className={`${purchaseInputClass} flex-1`}
+            />
+            <button
+              type="button"
+              aria-label="Tăng 10.000"
+              onClick={() => setClampedUnit(unit + STEP)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--tlkv-line)] active:scale-[0.98]"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </label>
         <label className="block text-[12px]">
           <span className="text-[var(--tlkv-muted)]">Trọng lượng (chỉ)</span>
@@ -172,13 +216,13 @@ export function CatalogBuyModal({
       {unitPrice !== "" && reference > 0 ? (
         <div
           className={`mt-3 rounded-lg px-3 py-2.5 text-[12px] ${
-            exception
-              ? "border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]"
+            outOfRange
+              ? "border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]"
               : "border border-[var(--tlkv-green)]/30 bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]"
           }`}
         >
           <p className="flex items-start gap-1.5 font-medium">
-            {exception ? (
+            {outOfRange ? (
               <Warning size={14} className="mt-0.5 shrink-0" />
             ) : (
               <CheckCircle size={14} className="mt-0.5 shrink-0" weight="fill" />
@@ -186,8 +230,8 @@ export function CatalogBuyModal({
             <span>
               Chênh lệch {diff >= 0 ? "+" : ""}
               {formatDong(diff)}/chỉ
-              {exception
-                ? ` (vượt ngưỡng ±${formatDong(PRICE_EXCEPTION_THRESHOLD_DONG)}/chỉ - duyệt khi chốt phiếu)`
+              {outOfRange
+                ? ` - Ngoài khoảng ±${formatDong(PRICE_EXCEPTION_THRESHOLD_DONG)}. Không cho thanh toán.`
                 : " - Trong phạm vi cho phép"}
             </span>
           </p>

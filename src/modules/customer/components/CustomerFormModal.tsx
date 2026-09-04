@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import { fileToBase64, IMAGE_PRESET_CCCD, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { createCustomer, updateCustomer, uploadCustomerCccd } from "../actions";
 import {
   formatCustomerSaveError,
@@ -58,6 +59,7 @@ export function CustomerFormModal({
     citizenId: initial?.citizenId ?? "",
     citizenIdIssueDate: initial?.citizenIdIssueDate?.slice(0, 10) ?? "",
     citizenIdIssuePlace: initial?.citizenIdIssuePlace ?? "",
+    citizenIdExpiryDate: initial?.citizenIdExpiryDate?.slice(0, 10) ?? "",
     taxCode: initial?.taxCode ?? "",
     businessName: initial?.businessName ?? "",
     representativeName: initial?.representativeName ?? "",
@@ -97,6 +99,7 @@ export function CustomerFormModal({
       citizenId: citizenId || null,
       citizenIdIssueDate: form.citizenIdIssueDate || null,
       citizenIdIssuePlace: form.citizenIdIssuePlace || null,
+      citizenIdExpiryDate: form.citizenIdExpiryDate || null,
       taxCode: form.taxCode || null,
       businessName: form.businessName || null,
       representativeName: form.representativeName || null,
@@ -109,12 +112,14 @@ export function CustomerFormModal({
       for (const type of types) {
         const file = photos[type];
         if (!file) continue;
-        const base64 = await fileToBase64(file);
+        // Same Product/News client pipeline before private CCCD storage upload.
+        const optimized = await optimizeImageFile(file, IMAGE_PRESET_CCCD);
+        const base64 = await fileToBase64(optimized.file);
         await uploadCustomerCccd({
           customerId,
           documentType: type,
-          fileName: file.name,
-          contentType: file.type,
+          fileName: optimized.file.name,
+          contentType: optimized.file.type || "image/webp",
           base64,
         });
       }
@@ -302,6 +307,15 @@ export function CustomerFormModal({
                   />
                 </label>
                 <label className="text-[13px]">
+                  Ngày hết hạn CCCD
+                  <input
+                    type="date"
+                    value={form.citizenIdExpiryDate}
+                    onChange={(e) => patchForm({ citizenIdExpiryDate: e.target.value })}
+                    className={FIELD}
+                  />
+                </label>
+                <label className="text-[13px]">
                   Nơi cấp CCCD
                   <input
                     value={form.citizenIdIssuePlace}
@@ -421,17 +435,4 @@ export function CustomerFormModal({
       ) : null}
     </>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("Không đọc được file"));
-    reader.readAsDataURL(file);
-  });
 }

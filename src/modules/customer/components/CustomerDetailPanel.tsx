@@ -194,6 +194,14 @@ export function CustomerDetailPanel({
                         : "—"
                     }
                   />
+                  <InfoRow
+                    label="Ngày hết hạn CCCD"
+                    value={
+                      customer.citizenIdExpiryDate
+                        ? formatViDateOnly(customer.citizenIdExpiryDate)
+                        : "—"
+                    }
+                  />
                   <InfoRow label="Nơi cấp" value={customer.citizenIdIssuePlace || "—"} />
                   <InfoRow label="Quốc tịch" value={customer.nationality || "—"} />
                 </>

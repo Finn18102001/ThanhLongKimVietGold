@@ -12,9 +12,11 @@ import {
   documentTypeLabel,
   effectivePaymentStatus,
   formatInvoicePhone,
+  invoiceLifecycleBadgeClass,
+  invoiceLifecycleLabel,
+  invoiceLifecycleStatus,
   paymentBadgeClass,
   paymentLabel,
-  paymentStatusBadgeClass,
   paymentStatusLabel,
 } from "../labels";
 import type { DocumentType, InvoiceDetail, InvoiceListPage, InvoiceListRow, PaymentStatus } from "../types";
@@ -293,6 +295,12 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                   row.remainingDong,
                   row.dueDate,
                 );
+                const lifecycle = invoiceLifecycleStatus(
+                  row.remainingDong,
+                  row.transactionType,
+                  row.fulfillmentStatus,
+                  payStatus,
+                );
                 return (
                   <tr key={`${row.documentType}-${row.id}`} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                     <td className="py-3 pr-3">
@@ -331,10 +339,13 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
                     </td>
                     <td className="py-3 pr-3">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
+                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
                       >
-                        {paymentStatusLabel(payStatus)}
+                        {invoiceLifecycleLabel(lifecycle)}
                       </span>
+                      <p className="mt-1 text-[10px] text-[var(--tlkv-muted)]">
+                        {paymentStatusLabel(payStatus)}
+                      </p>
                     </td>
                     <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
                       {formatViDateTime(row.issuedAt)}

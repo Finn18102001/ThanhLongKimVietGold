@@ -182,7 +182,7 @@ export function lineTotalDong(line: Pick<BuyLine, "unitPriceDong" | "weightChi" 
 }
 
 /**
- * ±300k exception applies to catalog lines only.
+ * ±300k applies to catalog lines only.
  * Market gold never returns true (SRS 6.x.6).
  */
 export function isPriceException(
@@ -191,11 +191,38 @@ export function isPriceException(
   isMarketGold = false,
 ): boolean {
   if (isMarketGold) return false;
+  if (referencePriceDongPerChi <= 0) return false;
   return Math.abs(unitPriceDong - referencePriceDongPerChi) > PRICE_EXCEPTION_THRESHOLD_DONG;
 }
 
 export function lineHasPriceException(line: BuyLine): boolean {
   return isPriceException(line.unitPriceDong, line.referencePriceDongPerChi, line.isMarketGold);
+}
+
+/** Clamp catalog buy unit price into reference ± 300.000đ/chỉ. */
+export function clampBuyUnitPriceDong(
+  unitPriceDong: number,
+  referencePriceDongPerChi: number,
+  isMarketGold = false,
+): number {
+  if (!Number.isFinite(unitPriceDong)) return 0;
+  const rounded = Math.trunc(unitPriceDong);
+  if (isMarketGold || referencePriceDongPerChi <= 0) return Math.max(0, rounded);
+  const min = referencePriceDongPerChi - PRICE_EXCEPTION_THRESHOLD_DONG;
+  const max = referencePriceDongPerChi + PRICE_EXCEPTION_THRESHOLD_DONG;
+  if (rounded < min) return Math.max(0, min);
+  if (rounded > max) return max;
+  return Math.max(0, rounded);
+}
+
+export function buyUnitPriceBounds(
+  referencePriceDongPerChi: number,
+): { min: number; max: number } | null {
+  if (referencePriceDongPerChi <= 0) return null;
+  return {
+    min: Math.max(0, referencePriceDongPerChi - PRICE_EXCEPTION_THRESHOLD_DONG),
+    max: referencePriceDongPerChi + PRICE_EXCEPTION_THRESHOLD_DONG,
+  };
 }
 
 export function toBuyItemPayload(line: BuyLine): BuyItemPayload {

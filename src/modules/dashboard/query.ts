@@ -33,8 +33,17 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const rangeStart = addVnCalendarDays(rpc.businessDate, -6);
   const rangeEnd = rpc.businessDate;
   const fromIso = `${rangeStart}T00:00:00+07:00`;
+  const yesterday = addVnCalendarDays(rpc.businessDate, -1);
+  const yesterdayStart = `${yesterday}T00:00:00+07:00`;
+  const yesterdayEnd = `${yesterday}T23:59:59.999+07:00`;
 
-  const [{ data: sales }, { data: stockRows }, { data: invoices }] = await Promise.all([
+  const [
+    { data: sales },
+    { data: stockRows },
+    { data: invoices },
+    { data: buys },
+    { data: buysYesterday },
+  ] = await Promise.all([
     supabase
       .from("pos_sales")
       .select("id, total_dong, completed_at, pos_sale_items(quantity, total_price_dong, pos_skus(name))")
@@ -54,19 +63,33 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       )
       .order("issued_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("pos_buys")
+      .select("id, total_dong, completed_at, pos_buy_items(quantity)")
+      .eq("status", "COMPLETED")
+      .gte("completed_at", fromIso)
+      .order("completed_at", { ascending: true }),
+    supabase
+      .from("pos_buys")
+      .select("id, total_dong, pos_buy_items(quantity)")
+      .eq("status", "COMPLETED")
+      .gte("completed_at", yesterdayStart)
+      .lte("completed_at", yesterdayEnd),
   ]);
 
-  const seriesMap = new Map<string, number>();
+  const seriesMap = new Map<string, { sell: number; buy: number }>();
   for (let i = 0; i < 7; i += 1) {
     const key = addVnCalendarDays(rangeStart, i);
-    seriesMap.set(key, 0);
+    seriesMap.set(key, { sell: 0, buy: 0 });
   }
   const bestMap = new Map<string, { name: string; quantitySold: number; revenueDong: number }>();
 
   for (const sale of sales ?? []) {
     const day = formatVnIsoDate(String(sale.completed_at));
-    if (!seriesMap.has(day)) continue;
-    seriesMap.set(day, (seriesMap.get(day) ?? 0) + Number(sale.total_dong));
+    const point = seriesMap.get(day);
+    if (point) {
+      point.sell += Number(sale.total_dong);
+    }
     const items = (sale.pos_sale_items ?? []) as Array<{
       quantity: number;
       total_price_dong: number;
@@ -88,6 +111,33 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     }
   }
 
+  let purchaseTodayDong = 0;
+  let purchaseTodayQty = 0;
+  let purchaseTodayVouchers = 0;
+
+  for (const buy of buys ?? []) {
+    const day = formatVnIsoDate(String(buy.completed_at));
+    const point = seriesMap.get(day);
+    const total = Number(buy.total_dong);
+    if (point) {
+      point.buy += total;
+    }
+    if (day === rangeEnd) {
+      purchaseTodayDong += total;
+      purchaseTodayVouchers += 1;
+      const items = (buy.pos_buy_items ?? []) as Array<{ quantity: number }>;
+      for (const item of items) {
+        purchaseTodayQty += Number(item.quantity);
+      }
+    }
+  }
+
+  let purchaseYesterdayDong = 0;
+  for (const buy of buysYesterday ?? []) {
+    purchaseYesterdayDong += Number(buy.total_dong);
+  }
+  const purchaseTrend = trendFrom(purchaseTodayDong, purchaseYesterdayDong);
+
   const paymentLabel: Record<string, string> = {
     CASH: "Tiền mặt",
     TRANSFER: "Chuyển khoản",
@@ -97,6 +147,11 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   return {
     isPreview: false,
     businessDate: rpc.businessDate,
+    purchaseToday: {
+      totalDong: purchaseTodayDong,
+      quantity: purchaseTodayQty,
+      voucherCount: purchaseTodayVouchers,
+    },
     kpis: [
       {
         id: "revenue",
@@ -127,11 +182,35 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
         ...invoiceTrend,
         hint: formatTrendHint(invoiceTrend.trendDirection),
       },
+      {
+        id: "purchaseValue",
+        label: "Giá trị mua hôm nay",
+        valueLabel: formatDong(purchaseTodayDong),
+        ...purchaseTrend,
+        hint: formatTrendHint(purchaseTrend.trendDirection),
+      },
+      {
+        id: "purchaseQty",
+        label: "Sản phẩm nhập hôm nay",
+        valueLabel: String(purchaseTodayQty),
+        trendPercent: null,
+        trendDirection: "flat",
+        hint: "theo phiếu mua hoàn tất",
+      },
+      {
+        id: "purchaseVouchers",
+        label: "Phiếu mua hôm nay",
+        valueLabel: String(purchaseTodayVouchers),
+        trendPercent: null,
+        trendDirection: "flat",
+        hint: "số phiếu mua",
+      },
     ],
-    revenueSeries: [...seriesMap.entries()].map(([isoDate, amountDong]) => ({
+    revenueSeries: [...seriesMap.entries()].map(([isoDate, amounts]) => ({
       isoDate,
       label: `${isoDate.slice(8, 10)}/${isoDate.slice(5, 7)}`,
-      amountDong,
+      amountDong: amounts.sell,
+      purchaseDong: amounts.buy,
       isCurrent: isoDate === rangeEnd,
     })),
     bestSellers: [...bestMap.values()]

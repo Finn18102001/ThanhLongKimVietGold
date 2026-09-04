@@ -38,6 +38,7 @@ type CustomerJson = {
   citizen_id?: string | null;
   citizen_id_issue_date?: string | null;
   citizen_id_issue_place?: string | null;
+  citizen_id_expiry_date?: string | null;
   business_name?: string | null;
   representative_name?: string | null;
   documents?: DocumentJson[] | null;
@@ -98,6 +99,7 @@ export function mapCustomer(row: CustomerJson): CustomerRecord {
     citizenId: row.citizen_id ?? null,
     citizenIdIssueDate: row.citizen_id_issue_date ?? null,
     citizenIdIssuePlace: row.citizen_id_issue_place ?? null,
+    citizenIdExpiryDate: row.citizen_id_expiry_date ?? null,
     businessName: row.business_name ?? null,
     representativeName: row.representative_name ?? null,
     documents: (row.documents ?? []).map(mapDocument),

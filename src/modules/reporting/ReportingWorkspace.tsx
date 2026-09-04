@@ -4,35 +4,87 @@ import { useEffect, useState, useTransition } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import {
+  fetchPurchaseReport,
   fetchReportingSnapshot,
   fetchStaffSalesReport,
   fetchTransactionExport,
 } from "./actions";
-import type { ReportingSnapshot, StaffSalesRow, TransactionExportRow } from "./types";
+import type {
+  PurchaseReportSnapshot,
+  ReportingSnapshot,
+  StaffSalesRow,
+  TransactionExportRow,
+} from "./types";
 
-export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) {
+export function ReportingWorkspace({
+  initial,
+  initialPurchase,
+}: {
+  initial: ReportingSnapshot;
+  initialPurchase: PurchaseReportSnapshot;
+}) {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [snapshot, setSnapshot] = useState(initial);
+  const [purchase, setPurchase] = useState(initialPurchase);
+  const [purchaseBrandId, setPurchaseBrandId] = useState("");
+  const [purchaseSkuId, setPurchaseSkuId] = useState("");
+  const [purchaseActor, setPurchaseActor] = useState("");
   const [staffRows, setStaffRows] = useState<StaffSalesRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [exporting, setExporting] = useState(false);
 
   const maxRevenue = Math.max(...snapshot.daily.map((row) => row.revenueDong), 1);
+  const maxPurchaseDaily = Math.max(
+    ...purchase.daily.map((row) => Math.max(row.purchaseDong, row.sellDong)),
+    1,
+  );
 
   function refresh(nextFrom = from, nextTo = to) {
     startTransition(async () => {
       try {
-        const [nextSnapshot, nextStaff] = await Promise.all([
+        const [nextSnapshot, nextStaff, nextPurchase] = await Promise.all([
           fetchReportingSnapshot(nextFrom, nextTo),
           fetchStaffSalesReport(nextFrom, nextTo),
+          fetchPurchaseReport({
+            from: nextFrom,
+            to: nextTo,
+            brandId: purchaseBrandId || null,
+            skuId: purchaseSkuId || null,
+            actorEmail: purchaseActor || null,
+          }),
         ]);
         setSnapshot(nextSnapshot);
         setStaffRows(nextStaff);
+        setPurchase(nextPurchase);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải báo cáo");
+      }
+    });
+  }
+
+  function refreshPurchase(
+    nextFrom = from,
+    nextTo = to,
+    brandId = purchaseBrandId,
+    skuId = purchaseSkuId,
+    actorEmail = purchaseActor,
+  ) {
+    startTransition(async () => {
+      try {
+        const nextPurchase = await fetchPurchaseReport({
+          from: nextFrom,
+          to: nextTo,
+          brandId: brandId || null,
+          skuId: skuId || null,
+          actorEmail: actorEmail || null,
+        });
+        setPurchase(nextPurchase);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Không tải báo cáo mua hàng");
       }
     });
   }
@@ -232,6 +284,219 @@ export function ReportingWorkspace({ initial }: { initial: ReportingSnapshot }) 
                   <td className="py-2.5 text-right tabular-nums">
                     {formatDong(row.remainingDong)}
                   </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
+        <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
+          <div>
+            <h2 className="text-[18px] font-semibold">Báo cáo Mua hàng / Nhập hàng</h2>
+            <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
+              Theo dõi giá trị nhập, số lượng nhập và đối chiếu với bán hàng trong cùng khoảng ngày.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={purchaseBrandId}
+              onChange={(e) => setPurchaseBrandId(e.target.value)}
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            >
+              <option value="">Tất cả thương hiệu</option>
+              {purchase.filterOptions.brands.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={purchaseSkuId}
+              onChange={(e) => setPurchaseSkuId(e.target.value)}
+              className="h-10 max-w-[220px] rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            >
+              <option value="">Tất cả sản phẩm</option>
+              {purchase.filterOptions.products.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={purchaseActor}
+              onChange={(e) => setPurchaseActor(e.target.value)}
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            >
+              <option value="">Tất cả nhân viên</option>
+              {purchase.filterOptions.staff.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => refreshPurchase()}
+              className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+            >
+              Lọc mua hàng
+            </button>
+          </div>
+        </div>
+
+        <div className={`mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 ${pending ? "opacity-60" : ""}`}>
+          <Kpi label="Tổng giá trị nhập" value={formatDong(purchase.totalPurchaseDong)} />
+          <Kpi label="Tổng sản phẩm nhập" value={String(purchase.quantityPurchased)} />
+          <Kpi label="Số phiếu mua hàng" value={String(purchase.voucherCount)} />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-[var(--tlkv-line)] px-4 py-3">
+            <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">MUA HÀNG</p>
+            <p className="mt-2 text-[15px] font-semibold">
+              Tổng giá trị nhập: {formatDong(purchase.totalPurchaseDong)}
+            </p>
+            <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
+              Số lượng nhập: {purchase.quantityPurchased} sản phẩm
+            </p>
+          </div>
+          <div className="rounded-lg border border-[var(--tlkv-line)] px-4 py-3">
+            <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">BÁN HÀNG</p>
+            <p className="mt-2 text-[15px] font-semibold">
+              Tổng giá trị bán: {formatDong(purchase.totalSellDong)}
+            </p>
+            <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
+              Số lượng bán: {purchase.quantitySold} sản phẩm
+            </p>
+          </div>
+        </div>
+
+        <h3 className="mt-5 text-[14px] font-semibold">Giá trị mua / bán theo ngày</h3>
+        <div className="mt-3 flex h-[160px] items-end gap-2">
+          {purchase.daily.map((row) => {
+            const buyH = Math.max(4, Math.round((row.purchaseDong / maxPurchaseDaily) * 130));
+            const sellH = Math.max(4, Math.round((row.sellDong / maxPurchaseDaily) * 130));
+            return (
+              <div key={row.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                <div className="flex w-full max-w-10 items-end justify-center gap-0.5">
+                  <div
+                    className="w-[45%] rounded-t-md bg-[var(--tlkv-amber)]"
+                    style={{ height: buyH }}
+                    title={`Mua: ${formatDong(row.purchaseDong)}`}
+                  />
+                  <div
+                    className="w-[45%] rounded-t-md bg-[var(--tlkv-red)]"
+                    style={{ height: sellH }}
+                    title={`Bán: ${formatDong(row.sellDong)}`}
+                  />
+                </div>
+                <span className="text-[10px] text-[var(--tlkv-muted)]">
+                  {row.date.slice(8, 10)}/{row.date.slice(5, 7)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div>
+            <h3 className="text-[14px] font-semibold">Sản phẩm nhập nhiều</h3>
+            <table className="mt-2 w-full text-left text-[13px]">
+              <thead className="text-[12px] text-[var(--tlkv-muted)]">
+                <tr className="border-b border-[var(--tlkv-line)]">
+                  <th className="py-2 font-medium">Mã</th>
+                  <th className="py-2 font-medium">Sản phẩm</th>
+                  <th className="py-2 text-right font-medium">SL</th>
+                  <th className="py-2 text-right font-medium">Giá trị</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchase.topProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-[var(--tlkv-muted)]">
+                      Chưa có dữ liệu mua.
+                    </td>
+                  </tr>
+                ) : (
+                  purchase.topProducts.map((row) => (
+                    <tr key={row.skuId} className="border-b border-[var(--tlkv-line)]">
+                      <td className="py-2 font-mono text-[12px]">{row.sku}</td>
+                      <td className="py-2">{row.name}</td>
+                      <td className="py-2 text-right tabular-nums">{row.quantity}</td>
+                      <td className="py-2 text-right tabular-nums">
+                        {formatDong(row.totalDong)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3 className="text-[14px] font-semibold">Thương hiệu nhập nhiều</h3>
+            <table className="mt-2 w-full text-left text-[13px]">
+              <thead className="text-[12px] text-[var(--tlkv-muted)]">
+                <tr className="border-b border-[var(--tlkv-line)]">
+                  <th className="py-2 font-medium">Thương hiệu</th>
+                  <th className="py-2 text-right font-medium">SL</th>
+                  <th className="py-2 text-right font-medium">Giá trị</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchase.topBrands.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-4 text-[var(--tlkv-muted)]">
+                      Chưa có dữ liệu mua.
+                    </td>
+                  </tr>
+                ) : (
+                  purchase.topBrands.map((row) => (
+                    <tr
+                      key={row.brandId ?? row.brandName}
+                      className="border-b border-[var(--tlkv-line)]"
+                    >
+                      <td className="py-2">{row.brandName}</td>
+                      <td className="py-2 text-right tabular-nums">{row.quantity}</td>
+                      <td className="py-2 text-right tabular-nums">
+                        {formatDong(row.totalDong)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <h3 className="mt-5 text-[14px] font-semibold">Lịch sử giao dịch mua hàng</h3>
+        <table className="mt-2 w-full text-left text-[13px]">
+          <thead className="text-[12px] text-[var(--tlkv-muted)]">
+            <tr className="border-b border-[var(--tlkv-line)]">
+              <th className="py-2 font-medium">Mã phiếu</th>
+              <th className="py-2 font-medium">Khách</th>
+              <th className="py-2 font-medium">Nhân viên</th>
+              <th className="py-2 text-right font-medium">SL</th>
+              <th className="py-2 text-right font-medium">Giá trị</th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchase.history.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-4 text-[var(--tlkv-muted)]">
+                  Chưa có phiếu mua trong khoảng lọc.
+                </td>
+              </tr>
+            ) : (
+              purchase.history.map((row) => (
+                <tr key={row.buyNo} className="border-b border-[var(--tlkv-line)]">
+                  <td className="py-2 font-mono text-[12px]">{row.buyNo}</td>
+                  <td className="py-2">{row.customerName}</td>
+                  <td className="py-2">{row.actorEmail.split("@")[0] ?? row.actorEmail}</td>
+                  <td className="py-2 text-right tabular-nums">{row.quantity}</td>
+                  <td className="py-2 text-right tabular-nums">{formatDong(row.totalDong)}</td>
                 </tr>
               ))
             )}

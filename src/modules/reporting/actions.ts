@@ -1,10 +1,12 @@
 "use server";
 
 import {
+  getPurchaseReportSnapshot as loadPurchaseReportSnapshot,
   getReportingSnapshot as loadReportingSnapshot,
   getStaffSalesReport as loadStaffSalesReport,
   getTransactionExport as loadTransactionExport,
 } from "./query";
+import type { PurchaseReportFilters } from "./types";
 
 export async function fetchReportingSnapshot(from: string, to: string) {
   return loadReportingSnapshot(from, to);
@@ -16,4 +18,8 @@ export async function fetchStaffSalesReport(from: string, to: string) {
 
 export async function fetchTransactionExport(from: string, to: string) {
   return loadTransactionExport(from, to);
+}
+
+export async function fetchPurchaseReport(filters: PurchaseReportFilters) {
+  return loadPurchaseReportSnapshot(filters);
 }

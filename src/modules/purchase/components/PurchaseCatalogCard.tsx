@@ -4,7 +4,7 @@ import Image from "next/image";
 import { formatDong } from "@/shared/lib/money";
 import type { PurchaseCatalogItem } from "../types";
 
-/** Minimal thumb — same visual language as POS CatalogCard. */
+/** Used in buy lines / modals — not in catalog list cards. */
 export function PurchaseProductThumb({
   name,
   imageUrl,
@@ -34,38 +34,39 @@ export function PurchaseCatalogCard({
   onPick: (item: PurchaseCatalogItem) => void;
 }) {
   const disabled = item.referenceSellDongPerChi <= 0 && item.suggestedBuyDongPerChi <= 0;
+  const weightLabel =
+    item.weightChi > 0
+      ? `${item.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`
+      : "—";
+
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => onPick(item)}
-      className="overflow-hidden rounded-[12px] border border-[var(--tlkv-line)] bg-white text-left shadow-[var(--tlkv-shadow)] transition-transform disabled:opacity-50 enabled:hover:-translate-y-0.5 enabled:hover:border-[var(--tlkv-red)]"
+      className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3 text-left shadow-[var(--tlkv-shadow)] transition-transform disabled:opacity-50 enabled:hover:-translate-y-0.5 enabled:hover:border-[var(--tlkv-red)]"
     >
-      <div className="relative aspect-square bg-[#f8f1e7]">
-        <PurchaseProductThumb name={item.name} imageUrl={item.imageUrl} />
-      </div>
-      <div className="p-3">
-        <p className="line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">{item.name}</p>
-        <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">{item.sku}</p>
-        <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-          Niêm yết:{" "}
-          <span className="font-semibold text-[var(--tlkv-text)]">
-            {item.referenceSellDongPerChi > 0
-              ? `${formatDong(item.referenceSellDongPerChi)}/chỉ`
-              : "Chưa có"}
-          </span>
-        </p>
-        <p className="mt-1 text-[14px] font-bold text-[var(--tlkv-red)]">
-          {item.suggestedBuyDongPerChi > 0
-            ? `Mua gợi ý ${formatDong(item.suggestedBuyDongPerChi)}/chỉ`
-            : "Chưa có giá mua"}
-        </p>
-        {item.weightChi > 0 ? (
-          <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
-            TL mặc định: {item.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ
-          </p>
-        ) : null}
-      </div>
+      <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
+        {item.sku}
+      </p>
+      <p className="mt-1.5 line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">{item.name}</p>
+      <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+        {item.brandName || "Không thương hiệu"}
+      </p>
+      <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">KL: {weightLabel}</p>
+      <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
+        Niêm yết:{" "}
+        <span className="font-semibold text-[var(--tlkv-text)]">
+          {item.referenceSellDongPerChi > 0
+            ? `${formatDong(item.referenceSellDongPerChi)}/chỉ`
+            : "Chưa có"}
+        </span>
+      </p>
+      <p className="mt-1 text-[14px] font-bold text-[var(--tlkv-red)]">
+        {item.suggestedBuyDongPerChi > 0
+          ? `Mua gợi ý ${formatDong(item.suggestedBuyDongPerChi)}/chỉ`
+          : "Chưa có giá mua"}
+      </p>
     </button>
   );
 }

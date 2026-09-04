@@ -11,7 +11,10 @@ import {
   formatChi,
   formatInvoicePhone,
   fulfillmentLabel,
-  invoiceStatusLabel,
+  invoiceLifecycleBadgeClass,
+  invoiceLifecycleLabel,
+  invoiceLifecycleStatus,
+  isInvoiceIncomplete,
   paymentBadgeClass,
   paymentLabel,
   paymentStatusBadgeClass,
@@ -39,6 +42,13 @@ export function InvoiceDrawer({
     invoice.remainingDong,
     invoice.dueDate,
   );
+  const lifecycle = invoiceLifecycleStatus(
+    invoice.remainingDong,
+    invoice.transactionType,
+    invoice.fulfillmentStatus,
+    payStatus,
+  );
+  const incomplete = isInvoiceIncomplete(lifecycle);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [amountText, setAmountText] = useState(
@@ -163,8 +173,10 @@ export function InvoiceDrawer({
               <p className="text-[18px] font-bold text-[var(--tlkv-red)]">{invoice.invoiceNo}</p>
               <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">Mã bán {invoice.saleNo}</p>
             </div>
-            <span className="rounded-full bg-[var(--tlkv-green-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--tlkv-green)]">
-              {invoiceStatusLabel(invoice.status, invoice.saleStatus)}
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
+            >
+              {invoiceLifecycleLabel(lifecycle)}
             </span>
           </div>
           <div className="mt-2 flex flex-wrap gap-1">
@@ -174,7 +186,17 @@ export function InvoiceDrawer({
             <span className="rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
               {fulfillmentLabel(invoice.transactionType, invoice.fulfillmentStatus)}
             </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
+            >
+              {paymentStatusLabel(payStatus)}
+            </span>
           </div>
+          {!incomplete ? (
+            <p className="mt-2 rounded-lg border border-[var(--tlkv-green)]/30 bg-[var(--tlkv-green-soft)] px-2.5 py-1.5 text-[11px] text-[var(--tlkv-green)]">
+              Hóa đơn đã hoàn thành - khóa thu thêm / giao hàng. Chỉ in và xem.
+            </p>
+          ) : null}
           <p className="mt-2 text-[13px] text-[var(--tlkv-muted)]">
             {formatViDateTime(invoice.issuedAt)}
           </p>

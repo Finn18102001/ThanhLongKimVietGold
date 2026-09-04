@@ -39,3 +39,58 @@ export type TransactionExportRow = {
   actorEmail: string;
   completedAt: string;
 };
+
+export type PurchaseReportFilters = {
+  from: string;
+  to: string;
+  brandId?: string | null;
+  skuId?: string | null;
+  actorEmail?: string | null;
+};
+
+export type PurchaseReportOption = {
+  id: string;
+  label: string;
+};
+
+export type PurchaseReportSnapshot = {
+  from: string;
+  to: string;
+  totalPurchaseDong: number;
+  quantityPurchased: number;
+  voucherCount: number;
+  totalSellDong: number;
+  quantitySold: number;
+  daily: Array<{
+    date: string;
+    purchaseDong: number;
+    sellDong: number;
+    voucherCount: number;
+  }>;
+  topProducts: Array<{
+    skuId: string;
+    sku: string;
+    name: string;
+    quantity: number;
+    totalDong: number;
+  }>;
+  topBrands: Array<{
+    brandId: string | null;
+    brandName: string;
+    quantity: number;
+    totalDong: number;
+  }>;
+  history: Array<{
+    buyNo: string;
+    completedAt: string;
+    actorEmail: string;
+    customerName: string;
+    totalDong: number;
+    quantity: number;
+  }>;
+  filterOptions: {
+    brands: PurchaseReportOption[];
+    products: PurchaseReportOption[];
+    staff: PurchaseReportOption[];
+  };
+};

@@ -6,9 +6,12 @@ import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels"
 import type { CustomerRecord } from "@/modules/customer/types";
 import {
   chargesTotalDong,
-  clampAdjustmentPerChi,
+  clampUnitPriceDong,
   lineTotalDong,
   PRICE_ADJ_LIMIT_PER_CHI,
+  PRICE_UNIT_STEP_DONG,
+  unitPriceBoundsDong,
+  unitPriceToAdjustmentPerChi,
   type PosChargeDraft,
 } from "../money";
 import type { CartLine, PosOperatorOption } from "../types";
@@ -226,26 +229,87 @@ export function PosCartPanel({
                         <p className="text-[12px] font-semibold">{formatDong(lineTotal)}</p>
                       </div>
                       <label className="mt-1.5 block text-[11px] text-[var(--tlkv-muted)]">
-                        Điều chỉnh /chỉ (±{PRICE_ADJ_LIMIT_PER_CHI.toLocaleString("vi-VN")}đ)
-                        <input
-                          type="number"
-                          step={1000}
-                          min={-PRICE_ADJ_LIMIT_PER_CHI}
-                          max={PRICE_ADJ_LIMIT_PER_CHI}
-                          value={line.priceAdjustmentPerChi}
-                          onChange={(event) =>
-                            onAdj(
-                              line.skuId,
-                              clampAdjustmentPerChi(Number(event.target.value) || 0),
-                            )
-                          }
-                          className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
-                        />
+                        Giá GD / SP (±{PRICE_ADJ_LIMIT_PER_CHI.toLocaleString("vi-VN")}đ/chỉ)
+                        <div className="mt-0.5 flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            aria-label="Giảm giá"
+                            onClick={() =>
+                              onAdj(
+                                line.skuId,
+                                unitPriceToAdjustmentPerChi(
+                                  line.unitPriceDong - PRICE_UNIT_STEP_DONG,
+                                  line.referenceUnitPriceDong,
+                                  line.weightChi,
+                                ),
+                              )
+                            }
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--tlkv-line)]"
+                          >
+                            <Minus size={11} />
+                          </button>
+                          <input
+                            type="number"
+                            step={PRICE_UNIT_STEP_DONG}
+                            value={line.unitPriceDong}
+                            onChange={(event) => {
+                              const raw = Number(event.target.value) || 0;
+                              onAdj(
+                                line.skuId,
+                                unitPriceToAdjustmentPerChi(
+                                  raw,
+                                  line.referenceUnitPriceDong,
+                                  line.weightChi,
+                                ),
+                              );
+                            }}
+                            onBlur={() => {
+                              onAdj(
+                                line.skuId,
+                                unitPriceToAdjustmentPerChi(
+                                  clampUnitPriceDong(
+                                    line.unitPriceDong,
+                                    line.referenceUnitPriceDong,
+                                    line.weightChi,
+                                  ),
+                                  line.referenceUnitPriceDong,
+                                  line.weightChi,
+                                ),
+                              );
+                            }}
+                            className="h-7 min-w-0 flex-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                          />
+                          <button
+                            type="button"
+                            aria-label="Tăng giá"
+                            onClick={() =>
+                              onAdj(
+                                line.skuId,
+                                unitPriceToAdjustmentPerChi(
+                                  line.unitPriceDong + PRICE_UNIT_STEP_DONG,
+                                  line.referenceUnitPriceDong,
+                                  line.weightChi,
+                                ),
+                              )
+                            }
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--tlkv-line)]"
+                          >
+                            <Plus size={11} />
+                          </button>
+                        </div>
                       </label>
-                      <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
-                        Bảng {formatDong(line.referenceUnitPriceDong)} · GD{" "}
-                        {formatDong(line.unitPriceDong)}
-                      </p>
+                      {(() => {
+                        const bounds = unitPriceBoundsDong(
+                          line.referenceUnitPriceDong,
+                          line.weightChi,
+                        );
+                        return (
+                          <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+                            Bảng {formatDong(line.referenceUnitPriceDong)} · Cho phép{" "}
+                            {formatDong(bounds.min)}–{formatDong(bounds.max)}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </div>
                 </li>
