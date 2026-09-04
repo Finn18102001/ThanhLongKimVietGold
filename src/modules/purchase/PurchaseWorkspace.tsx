@@ -45,6 +45,7 @@ import {
   type BuyPayMode,
   type CatalogBuyLine,
   type DebtSummary,
+  type MarketBuyLine,
   type MarketGoldRef,
   type PaymentMethod,
   type PurchaseCatalogItem,
@@ -120,31 +121,43 @@ export function PurchaseWorkspace({
 
   function onChangeLine(localId: string, patch: Partial<BuyLine>) {
     setLines((prev) =>
-      prev.map((line) => {
+      prev.map((line): BuyLine => {
         if (line.localId !== localId) return line;
-        const merged = { ...line, ...patch };
-        if (merged.kind === "catalog") {
-          const unitPriceDong =
+        if (line.kind === "catalog") {
+          const nextQty =
+            patch.quantity !== undefined
+              ? Math.max(1, Math.trunc(patch.quantity) || 1)
+              : line.quantity;
+          const nextUnit =
             patch.unitPriceDong !== undefined
               ? clampBuyUnitPriceDong(
                   patch.unitPriceDong,
-                  merged.referencePriceDongPerChi,
+                  line.referencePriceDongPerChi,
                   false,
                 )
-              : merged.unitPriceDong;
+              : line.unitPriceDong;
+          const catalogPatch = patch as Partial<CatalogBuyLine>;
           return {
-            ...merged,
-            kind: "catalog" as const,
-            isMarketGold: false as const,
-            unitPriceDong,
-            quantity: Math.max(1, Math.trunc(merged.quantity) || 1),
+            ...line,
+            ...catalogPatch,
+            kind: "catalog",
+            isMarketGold: false,
+            skuId: catalogPatch.skuId ?? line.skuId,
+            sku: catalogPatch.sku ?? line.sku,
+            unitPriceDong: nextUnit,
+            quantity: nextQty,
           };
         }
+        const marketPatch = patch as Partial<MarketBuyLine>;
         return {
-          ...merged,
-          kind: "market" as const,
-          isMarketGold: true as const,
-          quantity: Math.max(1, Math.trunc(merged.quantity) || 1),
+          ...line,
+          ...marketPatch,
+          kind: "market",
+          isMarketGold: true,
+          quantity:
+            patch.quantity !== undefined
+              ? Math.max(1, Math.trunc(patch.quantity) || 1)
+              : line.quantity,
         };
       }),
     );
@@ -308,8 +321,6 @@ export function PurchaseWorkspace({
       setNote("");
       setPayMode("FULL");
       setPaidDong(0);
-      setApproveException(false);
-      setExceptionReason("");
       idempotencyKey.current = null;
       try {
         setDebt(await getCustomerDebtSummary(customer.id));
