@@ -60,6 +60,7 @@ export function historyPayLabel(row: {
   paymentStatus: string;
   transactionType: string;
   fulfillmentStatus: string;
+  activityKind?: "SALE" | "BUY";
 }): string {
   const pay =
     row.remainingDong <= 0
@@ -67,6 +68,9 @@ export function historyPayLabel(row: {
       : row.paidDong <= 0
         ? "Chưa thanh toán"
         : "Thanh toán một phần";
+  if (row.activityKind === "BUY" || row.transactionType === "BUY") {
+    return pay;
+  }
   if (row.transactionType === "PREORDER") {
     const goods =
       row.fulfillmentStatus === "FULFILLED"
@@ -77,6 +81,30 @@ export function historyPayLabel(row: {
     return `${pay} · ${goods}`;
   }
   return pay;
+}
+
+export function activityKindLabel(kind: "SALE" | "BUY"): string {
+  return kind === "BUY" ? "Mua vào" : "Bán hàng";
+}
+
+export function normalizeCitizenIdInput(raw: string | null | undefined): string {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+export function formatCustomerSaveError(message: string): { title: string; reason: string } {
+  const text = String(message || "").trim();
+  if (/CCCD|căn cước/i.test(text)) {
+    return {
+      title: "Số CCCD đã tồn tại",
+      reason:
+        text ||
+        "Khách hàng với số căn cước công dân này đã có trong hệ thống. Vui lòng chọn khách đó hoặc nhập số CCCD khác.",
+    };
+  }
+  if (/điện thoại|phone/i.test(text)) {
+    return { title: "Số điện thoại đã tồn tại", reason: text };
+  }
+  return { title: "Không lưu được khách hàng", reason: text || "Vui lòng thử lại." };
 }
 
 export function customerInitials(name: string): string {

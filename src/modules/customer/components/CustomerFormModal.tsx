@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { createCustomer, updateCustomer, uploadCustomerCccd } from "../actions";
-import { GENDER_LABEL, GROUP_LABEL, TYPE_LABEL } from "../labels";
+import {
+  formatCustomerSaveError,
+  GENDER_LABEL,
+  GROUP_LABEL,
+  normalizeCitizenIdInput,
+  TYPE_LABEL,
+} from "../labels";
 import type {
   CccdDocumentType,
   CustomerGender,
@@ -76,6 +82,7 @@ export function CustomerFormModal({
   }
 
   function buildPayload(): CustomerInput {
+    const citizenId = normalizeCitizenIdInput(form.citizenId);
     return {
       name: form.name,
       phone: form.phone,
@@ -87,7 +94,7 @@ export function CustomerFormModal({
       dateOfBirth: form.dateOfBirth || null,
       customerType,
       nationality: form.nationality || null,
-      citizenId: form.citizenId || null,
+      citizenId: citizenId || null,
       citizenIdIssueDate: form.citizenIdIssueDate || null,
       citizenIdIssuePlace: form.citizenIdIssuePlace || null,
       taxCode: form.taxCode || null,
@@ -149,10 +156,13 @@ export function CustomerFormModal({
       }
       onSaved(saved);
     } catch (err) {
+      const mapped = formatCustomerSaveError(
+        err instanceof Error ? err.message : "Không lưu được khách hàng",
+      );
       setAlert({
         tone: "error",
-        title: initial ? "Cập nhật khách thất bại" : "Tạo khách thất bại",
-        reason: err instanceof Error ? err.message : "Không lưu được khách hàng",
+        title: initial ? mapped.title || "Cập nhật khách thất bại" : mapped.title || "Tạo khách thất bại",
+        reason: mapped.reason,
       });
     } finally {
       setPending(false);
@@ -264,8 +274,13 @@ export function CustomerFormModal({
                   Số CCCD
                   <input
                     value={form.citizenId}
-                    onChange={(e) => patchForm({ citizenId: e.target.value })}
+                    onChange={(e) =>
+                      patchForm({ citizenId: normalizeCitizenIdInput(e.target.value) })
+                    }
                     inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={12}
+                    placeholder="Chỉ nhập số, 9–12 chữ số"
                     className={FIELD}
                   />
                 </label>

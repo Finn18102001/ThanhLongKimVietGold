@@ -58,8 +58,13 @@ export type CustomerRecord = {
   lastActivityAt: string;
 };
 
+export type CustomerActivityKind = "SALE" | "BUY";
+
 export type CustomerHistoryItem = {
-  invoiceId: string;
+  activityId: string;
+  activityKind: CustomerActivityKind;
+  docNo: string;
+  invoiceId: string | null;
   invoiceNo: string;
   saleNo: string;
   issuedAt: string;

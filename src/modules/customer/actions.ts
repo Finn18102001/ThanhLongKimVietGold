@@ -2,18 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/shared/supabase/server";
-import { mapCustomer, mapCustomerDetail, mapCustomerDirectoryStats, mapCustomerList } from "./map";
 import type {
   CccdDocumentType,
   CustomerActivityFilter,
   CustomerDetail,
   CustomerDirectoryStats,
   CustomerDocument,
+  CustomerHistoryItem,
   CustomerInput,
   CustomerListPage,
   CustomerRecord,
   CustomerSort,
 } from "./types";
+import { mapCustomer, mapCustomerDetail, mapCustomerDirectoryStats, mapCustomerList, mapHistory } from "./map";
 
 const CCCD_BUCKET = "customer-cccd";
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -115,6 +116,96 @@ export async function fetchCustomer(id: string): Promise<CustomerDetail> {
     ...detail,
     customer: { ...detail.customer, documents: withUrls },
   };
+}
+
+/** Full buy+sale activity for one customer (Excel export / complete timeline). */
+export async function listCustomerActivity(
+  customerId: string,
+): Promise<CustomerHistoryItem[]> {
+  const supabase = await createServerSupabase();
+  const id = String(customerId || "").trim();
+  if (!id) throw new Error("Thiếu mã khách hàng");
+
+  const [salesRes, buysRes] = await Promise.all([
+    supabase
+      .from("pos_invoices")
+      .select(
+        "id, invoice_no, issued_at, total_dong, pos_sales!inner(sale_no, paid_dong, remaining_dong, payment_status, status, payment_method, transaction_type, fulfillment_status, customer_id)",
+      )
+      .eq("customer_id", id)
+      .eq("pos_sales.status", "COMPLETED")
+      .order("issued_at", { ascending: false })
+      .limit(5000),
+    supabase
+      .from("pos_buys")
+      .select(
+        "id, buy_no, completed_at, created_at, total_dong, paid_dong, remaining_dong, payment_status, status, payment_method",
+      )
+      .eq("customer_id", id)
+      .eq("status", "COMPLETED")
+      .order("completed_at", { ascending: false })
+      .limit(5000),
+  ]);
+
+  if (salesRes.error) throw new Error(salesRes.error.message);
+  if (buysRes.error) throw new Error(buysRes.error.message);
+
+  type SaleEmbed = {
+    sale_no: string;
+    paid_dong: number | null;
+    remaining_dong: number | null;
+    payment_status: string | null;
+    status: string;
+    payment_method: string | null;
+    transaction_type: string | null;
+    fulfillment_status: string | null;
+  };
+
+  const sales = (salesRes.data ?? []).map((row) => {
+    const sale = Array.isArray(row.pos_sales) ? row.pos_sales[0] : row.pos_sales;
+    const s = sale as SaleEmbed | null;
+    return mapHistory({
+      activity_id: String(row.id),
+      activity_kind: "SALE",
+      doc_no: row.invoice_no,
+      invoice_id: row.id,
+      invoice_no: row.invoice_no,
+      sale_no: s?.sale_no ?? row.invoice_no,
+      issued_at: row.issued_at,
+      total_dong: Number(row.total_dong ?? 0),
+      paid_dong: Number(s?.paid_dong ?? 0),
+      remaining_dong: Number(s?.remaining_dong ?? 0),
+      payment_status: s?.payment_status ?? undefined,
+      status: s?.status ?? "COMPLETED",
+      payment_method: s?.payment_method ?? "",
+      transaction_type: s?.transaction_type ?? "SALE",
+      fulfillment_status: s?.fulfillment_status ?? "DELIVERED",
+    });
+  });
+
+  const buys = (buysRes.data ?? []).map((row) =>
+    mapHistory({
+      activity_id: String(row.id),
+      activity_kind: "BUY",
+      doc_no: row.buy_no,
+      invoice_id: null,
+      invoice_no: row.buy_no,
+      sale_no: row.buy_no,
+      issued_at: row.completed_at ?? row.created_at,
+      total_dong: Number(row.total_dong ?? 0),
+      paid_dong: Number(row.paid_dong ?? 0),
+      remaining_dong: Number(row.remaining_dong ?? 0),
+      payment_status: row.payment_status ?? undefined,
+      status: row.status,
+      payment_method: row.payment_method ?? "",
+      transaction_type: "BUY",
+      fulfillment_status: "RECEIVED",
+    }),
+  );
+
+  return [...sales, ...buys].sort(
+    (a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime(),
+  );
 }
 
 export async function createCustomer(input: CustomerInput): Promise<CustomerRecord> {

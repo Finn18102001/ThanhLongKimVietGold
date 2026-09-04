@@ -114,11 +114,12 @@ export function CustomerDetailModal({
             <Stat label="Số lần mua" value={String(customer.saleCount)} />
             <Stat label="Công nợ hiện tại" value={formatDong(customer.debtDong)} />
           </div>
-          <h3 className="mt-5 text-[14px] font-semibold">Lịch sử mua hàng gần đây</h3>
+          <h3 className="mt-5 text-[14px] font-semibold">Lịch sử mua/bán gần đây</h3>
           <table className="mt-2 w-full text-left text-[13px]">
             <thead className="text-[12px] text-[var(--tlkv-muted)]">
               <tr className="border-b border-[var(--tlkv-line)]">
-                <th className="py-2 font-medium">Mã HĐ</th>
+                <th className="py-2 font-medium">Loại</th>
+                <th className="py-2 font-medium">Mã</th>
                 <th className="py-2 font-medium">Ngày</th>
                 <th className="py-2 font-medium">Số tiền</th>
                 <th className="py-2 font-medium">Trạng thái</th>
@@ -127,14 +128,25 @@ export function CustomerDetailModal({
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-4 text-[var(--tlkv-muted)]">
+                  <td colSpan={5} className="py-4 text-[var(--tlkv-muted)]">
                     Chưa có giao dịch hoàn tất.
                   </td>
                 </tr>
               ) : (
                 history.map((row) => (
-                  <tr key={row.invoiceId} className="border-b border-[var(--tlkv-line)] last:border-b-0">
-                    <td className="py-2.5 font-semibold text-[var(--tlkv-red)]">{row.invoiceNo}</td>
+                  <tr key={row.activityId} className="border-b border-[var(--tlkv-line)] last:border-b-0">
+                    <td className="py-2.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          row.activityKind === "BUY"
+                            ? "bg-[var(--tlkv-blue-soft)] text-[var(--tlkv-blue)]"
+                            : "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]"
+                        }`}
+                      >
+                        {row.activityKind === "BUY" ? "Mua vào" : "Bán hàng"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 font-semibold text-[var(--tlkv-red)]">{row.docNo}</td>
                     <td className="py-2.5 text-[var(--tlkv-muted)]">
                       {formatViDateTime(row.issuedAt)}
                     </td>

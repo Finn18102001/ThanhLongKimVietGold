@@ -50,9 +50,12 @@ type CustomerJson = {
 };
 
 type HistoryJson = {
-  invoice_id: string;
-  invoice_no: string;
-  sale_no: string;
+  activity_id?: string;
+  activity_kind?: "SALE" | "BUY";
+  doc_no?: string;
+  invoice_id?: string | null;
+  invoice_no?: string;
+  sale_no?: string;
   issued_at: string;
   total_dong: number;
   paid_dong?: number;
@@ -111,17 +114,22 @@ export function mapHistory(row: HistoryJson): CustomerHistoryItem {
   const totalDong = Number(row.total_dong ?? 0);
   const paidDong = Number(row.paid_dong ?? 0);
   const remainingDong = Number(row.remaining_dong ?? Math.max(0, totalDong - paidDong));
+  const activityKind = row.activity_kind === "BUY" ? "BUY" : "SALE";
+  const docNo = row.doc_no ?? row.invoice_no ?? row.sale_no ?? "—";
   return {
-    invoiceId: row.invoice_id,
-    invoiceNo: row.invoice_no,
-    saleNo: row.sale_no,
+    activityId: row.activity_id ?? row.invoice_id ?? docNo,
+    activityKind,
+    docNo,
+    invoiceId: row.invoice_id ?? null,
+    invoiceNo: docNo,
+    saleNo: row.sale_no ?? docNo,
     issuedAt: row.issued_at,
     totalDong,
     paidDong,
     remainingDong,
     paymentStatus: row.payment_status ?? (remainingDong > 0 ? "PARTIALLY_PAID" : "PAID"),
-    transactionType: row.transaction_type ?? "SALE",
-    fulfillmentStatus: row.fulfillment_status ?? "DELIVERED",
+    transactionType: row.transaction_type ?? activityKind,
+    fulfillmentStatus: row.fulfillment_status ?? (activityKind === "BUY" ? "RECEIVED" : "DELIVERED"),
     status: row.status,
     paymentMethod: row.payment_method,
   };
