@@ -11,6 +11,14 @@
   "use strict";
 
   var CONTENT_ONLY_EMAIL = "tuananh18101@gmail.com";
+  /**
+   * ROUND DEBUG (SRS sửa giá): tạm bypass hạn chế account content-only
+   * để mọi admin đã đăng nhập đều thấy/sửa tab giá vàng.
+   * Đặt `false` để bật lại gate cũ
+   * (chỉ non-content-only / thanglongkimviet thấy tab Giá vàng / Sửa giá).
+   * Không xóa logic isContentOnly / CONTENT_ONLY_EMAIL bên dưới.
+   */
+  var DEBUG_BYPASS_GOLD_ACCOUNT_GATE = false;
   /** @type {Readonly<ReturnType<typeof buildAccess>> | null} */
   var currentAccess = null;
 
@@ -38,12 +46,13 @@
 
     var email = normalizeEmail(user.email);
     var isContentOnly = email === CONTENT_ONLY_EMAIL;
+    var bypass = DEBUG_BYPASS_GOLD_ACCOUNT_GATE === true;
 
     return {
       email: email,
       isContentOnly: isContentOnly,
-      canAccessGoldManagement: true,
-      canAccessContentManagement: true,
+      canAccessGoldManagement: bypass || !isContentOnly,
+      canAccessContentManagement: bypass || isContentOnly,
     };
   }
 
@@ -125,6 +134,8 @@
   function defaultModule(access) {
     var resolved = access && access.email ? access : currentAccess;
     if (!resolved || !resolved.email) return null;
+    // Round Debug: ưu tiên tab giá vàng cho mọi admin.
+    if (DEBUG_BYPASS_GOLD_ACCOUNT_GATE) return "gold";
     return resolved.isContentOnly ? "products" : "gold";
   }
 
@@ -156,8 +167,11 @@
   function applyMainAdminNavVisibility(access) {
     var resolved = access && access.email ? access : currentAccess;
     var isContentOnly = !!(resolved && resolved.isContentOnly);
-    var showGold = !!(resolved && resolved.email && !isContentOnly);
-    var showContent = !!(resolved && resolved.email && isContentOnly);
+    var bypass = DEBUG_BYPASS_GOLD_ACCOUNT_GATE === true;
+    // Gate gốc: showGold = !isContentOnly, showContent = isContentOnly.
+    // Bypass Round Debug: mọi admin thấy cả tab giá và tab nội dung.
+    var showGold = !!(resolved && resolved.email && (bypass || !isContentOnly));
+    var showContent = !!(resolved && resolved.email && (bypass || isContentOnly));
 
     setNavItemVisible(document.getElementById("tab-btn-gold"), showGold);
     setNavItemVisible(document.getElementById("tab-btn-products"), showContent);
@@ -178,6 +192,8 @@
 
   global.TLKVAdminAccess = Object.freeze({
     CONTENT_ONLY_EMAIL: CONTENT_ONLY_EMAIL,
+    /** @deprecated keep exported so ops can toggle without hunting internals */
+    DEBUG_BYPASS_GOLD_ACCOUNT_GATE: DEBUG_BYPASS_GOLD_ACCOUNT_GATE,
     normalizeEmail: normalizeEmail,
     isContentOnlyAccount: isContentOnlyAccount,
     canAccessGoldManagement: canAccessGoldManagement,

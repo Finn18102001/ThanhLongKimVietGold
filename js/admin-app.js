@@ -925,9 +925,8 @@ function showToast(message, type = 'success') {
           });
 
         var oldById = Object.create(null);
-        for (var o = 0; o < byIndex.length; o++) {
-          var oItem = byIndex[o];
-          oldById[oItem.rowId] = snapshotGoldAuditRow(d.rows[oItem.idx]);
+        for (var snapIdx = 0; snapIdx < d.rows.length; snapIdx++) {
+          oldById[d.rows[snapIdx].id] = snapshotGoldAuditRow(d.rows[snapIdx]);
         }
 
         auditEntries.length = 0;
@@ -955,9 +954,37 @@ function showToast(message, type = 'success') {
             highlight: base.highlight === true,
           };
           d.rows[idx] = row;
+        }
+
+        // SRS: sync Bông Lúa / Hạt Gạo / Nhẫn Tròn (mua/bán độc lập) trước khi lưu + audit.
+        if (window.TLKVGold && typeof window.TLKVGold.applyLinkedPriceGroupSync === "function") {
+          window.TLKVGold.applyLinkedPriceGroupSync(d.rows, { beforeById: oldById });
+        }
+
+        for (var a = 0; a < d.rows.length; a++) {
+          var afterRow = d.rows[a];
+          var beforeSnap = oldById[afterRow.id];
+          var afterSnap = snapshotGoldAuditRow(afterRow);
+          if (!beforeSnap) continue;
+          var buyChanged =
+            (window.TLKVGold.parseGoldMoneyToInt(beforeSnap.buy) ?? null) !==
+            (window.TLKVGold.parseGoldMoneyToInt(afterSnap.buy) ?? null);
+          var sellChanged =
+            (window.TLKVGold.parseGoldMoneyToInt(beforeSnap.sell) ?? null) !==
+            (window.TLKVGold.parseGoldMoneyToInt(afterSnap.sell) ?? null);
+          if (
+            !buyChanged &&
+            !sellChanged &&
+            goldCellEq(beforeSnap, afterSnap, "product") &&
+            goldCellEq(beforeSnap, afterSnap, "purity") &&
+            goldCellEq(beforeSnap, afterSnap, "brand") &&
+            !!beforeSnap.highlight === !!afterSnap.highlight
+          ) {
+            continue;
+          }
           auditEntries.push({
-            before: oldById[rowId],
-            after: snapshotGoldAuditRow(row),
+            before: beforeSnap,
+            after: afterSnap,
           });
         }
 
@@ -1526,7 +1553,11 @@ function showToast(message, type = 'success') {
             return x.id === id;
           });
           wasEdit = idx >= 0;
-          if (wasEdit) beforeSnapshot = snapshotGoldAuditRow(d.rows[idx]);
+          var beforeById = Object.create(null);
+          for (var bi = 0; bi < d.rows.length; bi++) {
+            beforeById[d.rows[bi].id] = snapshotGoldAuditRow(d.rows[bi]);
+          }
+          if (wasEdit) beforeSnapshot = beforeById[d.rows[idx].id];
           var productVal = $("f-product").value.trim();
           if (idx >= 0) {
             var parentName = window.TLKVGold.variantParentProduct(d.rows, idx);
@@ -1552,34 +1583,83 @@ function showToast(message, type = 'success') {
           } else {
             d.rows = window.TLKVGold.insertGoldRow(d.rows, row);
           }
+          if (typeof window.TLKVGold.applyLinkedPriceGroupSync === "function") {
+            window.TLKVGold.applyLinkedPriceGroupSync(d.rows, { beforeById: beforeById });
+            var synced = d.rows.find(function (x) {
+              return x.id === row.id;
+            });
+            if (synced) savedRow = synced;
+          }
           stampMetaOnPayload(d);
           console.log("[TLKV gold-push] admin: form save → saveToStorage");
-          return window.TLKVGold.saveToStorage(d);
+          return window.TLKVGold.saveToStorage(d).then(function () {
+            return { d: d, beforeById: beforeById };
+          });
         })
-        .then(function () {
+        .then(function (ctx) {
           console.log("[TLKV gold-push] admin: form save → saveToStorage OK");
-          if (sb && window.TLKVAudit && savedRow) {
-            var afterSnap = snapshotGoldAuditRow(savedRow);
-            var en =
-              savedRow.brand +
-              " — " +
-              (String(savedRow.product || "").trim() || "—") +
-              " — " +
-              savedRow.purity;
-            var summary = wasEdit && beforeSnapshot
-              ? buildGoldRowChangeSummary(beforeSnapshot, afterSnap)
-              : buildGoldRowInsertSummary(savedRow);
-            var payload = wasEdit && beforeSnapshot
-              ? { before: beforeSnapshot, after: afterSnap }
-              : { after: afterSnap };
-            return window.TLKVAudit.logGold(sb, {
-              action: wasEdit ? "row_update" : "row_insert",
-              entity_name: en,
-              entity_id: savedRow.id,
-              summary: summary,
-              payload: payload,
+          if (!sb || !window.TLKVAudit || !ctx) return;
+          var chain = Promise.resolve();
+          var auditErrors = [];
+          (ctx.d.rows || []).forEach(function (r) {
+            var before = ctx.beforeById[r.id];
+            var after = snapshotGoldAuditRow(r);
+            if (!before) {
+              if (savedRow && r.id === savedRow.id && !wasEdit) {
+                chain = chain.then(function () {
+                  return window.TLKVAudit.logGold(sb, {
+                    action: "row_insert",
+                    entity_name:
+                      r.brand +
+                      " — " +
+                      (String(r.product || "").trim() || "—") +
+                      " — " +
+                      r.purity,
+                    entity_id: r.id,
+                    summary: buildGoldRowInsertSummary(r),
+                    payload: { after: after },
+                  }).catch(function (err) {
+                    auditErrors.push(err);
+                  });
+                });
+              }
+              return;
+            }
+            var buyChanged =
+              (window.TLKVGold.parseGoldMoneyToInt(before.buy) ?? null) !==
+              (window.TLKVGold.parseGoldMoneyToInt(after.buy) ?? null);
+            var sellChanged =
+              (window.TLKVGold.parseGoldMoneyToInt(before.sell) ?? null) !==
+              (window.TLKVGold.parseGoldMoneyToInt(after.sell) ?? null);
+            if (
+              !buyChanged &&
+              !sellChanged &&
+              goldCellEq(before, after, "product") &&
+              goldCellEq(before, after, "purity") &&
+              goldCellEq(before, after, "brand")
+            ) {
+              return;
+            }
+            chain = chain.then(function () {
+              return window.TLKVAudit.logGold(sb, {
+                action: "row_update",
+                entity_name:
+                  r.brand +
+                  " — " +
+                  (String(r.product || "").trim() || "—") +
+                  " — " +
+                  r.purity,
+                entity_id: r.id,
+                summary: buildGoldRowChangeSummary(before, after),
+                payload: { before: before, after: after },
+              }).catch(function (err) {
+                auditErrors.push(err);
+              });
             });
-          }
+          });
+          return chain.then(function () {
+            if (auditErrors.length) console.warn("[form save] audit errors", auditErrors.length);
+          });
         })
         .then(function () {
           showAdminToast("Đã lưu dòng giá.");

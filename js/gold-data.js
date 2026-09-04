@@ -860,6 +860,141 @@
     if (eMeta) throw eMeta;
   }
 
+  /**
+   * SRS: nhóm giá liên kết Bông Lúa 0.1 / Hạt Gạo 0.1 / Nhẫn Tròn 1 chỉ (×10).
+   * Mua vào và Bán ra độc lập. Chỉ đụng 3 dòng này — không ảnh hưởng SP khác.
+   * Giá cơ sở = giá dòng 0.1 chỉ; Nhẫn Tròn = cơ sở × 10 (integer VND, không float).
+   */
+  var LINKED_PRICE_GROUP_DEFS = [
+    {
+      key: "bongLua",
+      ratio: 1,
+      match: function (name) {
+        return /^bông\s*lúa\s*vàng\s*0[.,]?1\s*chỉ$/i.test(String(name || "").trim());
+      },
+    },
+    {
+      key: "hatGao",
+      ratio: 1,
+      match: function (name) {
+        return /^hạt\s*gạo\s*vàng\s*0[.,]?1\s*chỉ$/i.test(String(name || "").trim());
+      },
+    },
+    {
+      key: "nhanTron",
+      ratio: 10,
+      match: function (name) {
+        return /^nhẫn\s*tròn\s*kim\s*việt$/i.test(String(name || "").trim());
+      },
+    },
+  ];
+
+  function findLinkedPriceGroup(rows) {
+    var found = { bongLua: null, hatGao: null, nhanTron: null };
+    (rows || []).forEach(function (row) {
+      if (!row || row.metal === "silver") return;
+      var name = String(row.product || "").trim();
+      for (var i = 0; i < LINKED_PRICE_GROUP_DEFS.length; i++) {
+        var def = LINKED_PRICE_GROUP_DEFS[i];
+        if (def.match(name) && !found[def.key]) {
+          found[def.key] = { row: row, ratio: def.ratio, key: def.key };
+        }
+      }
+    });
+    if (!found.bongLua || !found.hatGao || !found.nhanTron) return null;
+    return found;
+  }
+
+  function linkedGroupOldPrice(member, field, opts) {
+    opts = opts || {};
+    var id = String(member.row.id);
+    if (opts.beforeById && opts.beforeById[id]) {
+      return parseGoldMoneyToInt(opts.beforeById[id][field]);
+    }
+    if (opts.existingById && opts.existingById.get) {
+      var ex = opts.existingById.get(id);
+      if (ex) return parseGoldMoneyToInt(ex[field]);
+    }
+    return null;
+  }
+
+  /**
+   * Mutates `rows` in place. Returns { changedIds, buyBase, sellBase }.
+   * @param {Array} rows
+   * @param {{ existingById?: Map, beforeById?: Record<string, {buy?:string, sell?:string}> }} [opts]
+   */
+  function applyLinkedPriceGroupSync(rows, opts) {
+    opts = opts || {};
+    var group = findLinkedPriceGroup(rows);
+    var empty = { changedIds: [], buyBase: null, sellBase: null };
+    if (!group) return empty;
+
+    var members = [group.bongLua, group.hatGao, group.nhanTron];
+
+    function resolveBase(field) {
+      var changes = [];
+      for (var i = 0; i < members.length; i++) {
+        var m = members[i];
+        var newVal = parsePriceToNumber(m.row[field]);
+        if (newVal == null || !Number.isFinite(newVal)) continue;
+        newVal = Math.trunc(newVal);
+        var oldVal = linkedGroupOldPrice(m, field, opts);
+        if (oldVal == null || newVal === oldVal) continue;
+        changes.push({ member: m, newVal: newVal });
+      }
+      if (changes.length === 0) return null;
+      // Ưu tiên nguồn Nhẫn Tròn (÷10) nếu cùng lúc sửa nhiều dòng; ngược lại lấy dòng 0.1 chỉ.
+      var fromRing = null;
+      var fromBase = null;
+      for (var c = 0; c < changes.length; c++) {
+        if (changes[c].member.key === "nhanTron") fromRing = changes[c];
+        else if (!fromBase) fromBase = changes[c];
+      }
+      if (fromRing) return Math.trunc(fromRing.newVal / 10);
+      return Math.trunc(fromBase.newVal / fromBase.member.ratio);
+    }
+
+    function applyBase(field, base) {
+      if (base == null || !Number.isFinite(base) || base < 0) return [];
+      base = Math.trunc(base);
+      var ids = [];
+      for (var i = 0; i < members.length; i++) {
+        var m = members[i];
+        var next = Math.trunc(base * m.ratio);
+        var cur = parsePriceToNumber(m.row[field]);
+        // Giữ format hiển thị VN (1.404.000) giống loadFromStorage — tránh mất dấu chấm trên admin.
+        var formatted = formatPriceDisplay(next, m.row.metal, field);
+        if (cur !== next) {
+          m.row[field] = formatted;
+          ids.push(String(m.row.id));
+        } else {
+          m.row[field] = formatted;
+        }
+      }
+      return ids;
+    }
+
+    var buyBase = resolveBase("buy");
+    var sellBase = resolveBase("sell");
+    var changed = Object.create(null);
+    if (buyBase != null) {
+      applyBase("buy", buyBase).forEach(function (id) {
+        changed[id] = true;
+      });
+    }
+    if (sellBase != null) {
+      applyBase("sell", sellBase).forEach(function (id) {
+        changed[id] = true;
+      });
+    }
+
+    return {
+      changedIds: Object.keys(changed),
+      buyBase: buyBase,
+      sellBase: sellBase,
+    };
+  }
+
   /** Chỉ đồng bộ gold_price_rows (không đụng gold_meta). */
   async function persistGoldRowsToSupabase(sb, rowsNormalized) {
     const rows = rowsNormalized || [];
@@ -871,6 +1006,10 @@
     (existingList || []).forEach(function (row) {
       existingById.set(String(row.id), row);
     });
+
+    // SRS: đồng bộ Bông Lúa / Hạt Gạo / Nhẫn Tròn trước khi upsert (atomic batch).
+    applyLinkedPriceGroupSync(rows, { existingById: existingById });
+
     const keep = new Set(
       rows.map(function (r) {
         return String(r.id);
@@ -1862,6 +2001,8 @@ function applyMetaToDom(meta) {
     coalesceProductForNewSilverRow,
     normalizeMeta,
     stampMetaWithVietnamNow,
+    applyLinkedPriceGroupSync,
+    findLinkedPriceGroup,
     /** Test/debug: whether push is desired while possibly paused for hidden tab. */
     isGoldPushDesired: function () {
       return __goldPushDesired === true;

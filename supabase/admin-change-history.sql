@@ -54,12 +54,14 @@ create policy "public_read_gold_price_change_log"
   to public
   using (true);
 
+-- Insert: mọi email trong tlkv_admin_emails() (xem tlkv-admin-rls.sql).
+-- Round Debug: không khóa một email duy nhất; sau debug có thể thu hẹp lại nếu cần.
 drop policy if exists "admin_insert_gold_price_change_log" on public.gold_price_change_log;
 create policy "admin_insert_gold_price_change_log"
   on public.gold_price_change_log
   for insert
   to authenticated
-  with check ((auth.jwt() ->> 'email') = 'tuananh18101@gmail.com');
+  with check (public.tlkv_is_admin());
 
 drop policy if exists "public_read_product_change_log" on public.product_change_log;
 create policy "public_read_product_change_log"
@@ -73,7 +75,7 @@ create policy "admin_insert_product_change_log"
   on public.product_change_log
   for insert
   to authenticated
-  with check ((auth.jwt() ->> 'email') = 'tuananh18101@gmail.com');
+  with check (public.tlkv_is_admin());
 
 -- (Tuỳ chọn) hỗ trợ tìm theo tên nhanh hơn khi dữ liệu lớn:
 -- create extension if not exists pg_trgm;
