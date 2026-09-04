@@ -642,7 +642,10 @@
       return [];
     }
     var data = await global.TLKVProducts.getProducts();
-    return (data && data.items) || [];
+    // Public website only — never surface products with Hiển thị = off.
+    return ((data && data.items) || []).filter(function (p) {
+      return p && p.isActive !== false;
+    });
   }
 
   var DEFAULT_BRAND_SLUGS = ["thang-long-kim-viet", "bao-tin-minh-chau", "bao-tin-manh-hai"];
@@ -765,4 +768,7 @@
             return d ? Number(d) : null;
           },
   };
+
+  // Invalidate public catalog caches as soon as products/brands change (admin CRUD).
+  ensureCatalogInvalidateLifecycle();
 })(typeof window !== "undefined" ? window : globalThis);

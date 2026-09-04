@@ -121,9 +121,16 @@
     });
   }
 
-  function ensureProductsRealtimeLifecycle() {
+  /**
+   * Cache invalidation must NOT depend on Realtime (admin never starts it today).
+   * Always clear session cache when products change, then listeners may refetch.
+   */
+  function ensureProductsCacheLifecycle() {
     if (__productsRealtimeLifecycleBound || typeof global.addEventListener !== "function") return;
     __productsRealtimeLifecycleBound = true;
+    global.addEventListener("tlkv:products-changed", function () {
+      clearProductsSessionCache();
+    });
     global.addEventListener("pagehide", function () {
       stopProductsRealtime({ permanent: true });
     });
@@ -137,9 +144,10 @@
         }
       });
     }
-    global.addEventListener("tlkv:products-changed", function () {
-      clearProductsSessionCache();
-    });
+  }
+
+  function ensureProductsRealtimeLifecycle() {
+    ensureProductsCacheLifecycle();
   }
 
   function startProductsRealtime(sb) {
@@ -667,6 +675,8 @@
         normalized.imageStoragePath || pathFromProductPublicUrl(normalized.image)
       );
     }
+    // Clear before notify so any refresh listener cannot read a stale session cache.
+    clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed", { detail: { item: normalized } }));
     return normalized;
   }
@@ -679,6 +689,7 @@
     const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").update({ is_active: false, is_featured: false }).eq("id", id);
     throwIfSupabaseWriteError(error, adminUser);
+    clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
@@ -690,6 +701,7 @@
     const adminUser = await assertSupabaseAdminSession(sb);
     const { error } = await sb.from("products").delete().eq("id", id);
     throwIfSupabaseWriteError(error, adminUser);
+    clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
 
@@ -952,11 +964,15 @@
     }
   }
 
+  // Register cache invalidation immediately (do not wait for Realtime start).
+  ensureProductsCacheLifecycle();
+
   global.TLKVProducts = {
     STORAGE_KEY,
     SESSION_CACHE_KEY,
     SESSION_CACHE_TTL_MS,
     getProducts,
+    clearProductsSessionCache,
     fetchDefaultJson,
     loadFromStorage,
     saveToStorage,

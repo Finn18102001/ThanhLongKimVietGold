@@ -35,9 +35,29 @@
   }
 
   async function loadTaxonomies() {
-    if (!window.TLKVCatalogApi) return;
-    brandsCache = await window.TLKVCatalogApi.fetchBrandsList();
-    categoriesCache = await window.TLKVCatalogApi.fetchCategoriesList();
+    // Admin needs ALL brands/categories (including ẩn). Public catalog APIs filter is_active.
+    var sb = await getSb();
+    if (sb) {
+      var brandRes = await sb
+        .from("brands")
+        .select("id, name, slug, logo_url, sort_order, is_active")
+        .order("sort_order")
+        .order("name");
+      var catRes = await sb
+        .from("categories")
+        .select("id, name, slug, sort_order, is_active")
+        .order("sort_order")
+        .order("name");
+      if (brandRes.error) throw brandRes.error;
+      if (catRes.error) throw catRes.error;
+      brandsCache = brandRes.data || [];
+      categoriesCache = catRes.data || [];
+    } else if (window.TLKVCatalogApi) {
+      brandsCache = await window.TLKVCatalogApi.fetchBrandsList();
+      categoriesCache = await window.TLKVCatalogApi.fetchCategoriesList();
+    } else {
+      return;
+    }
     fillSelect($("pf-brand-id"), brandsCache, "Tất cả thương hiệu");
     fillSelect($("pf-category-id"), categoriesCache, "Chọn danh mục");
     fillSelect($("catalog-admin-filter-brand"), brandsCache, "Thương hiệu");
@@ -149,12 +169,23 @@
     tb.querySelectorAll(".btn-edit-product").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id = btn.getAttribute("data-id");
-        window.TLKVProducts.getProducts().then(function (d) {
-          var row = d.items.find(function (x) {
-            return x.id === id;
+        // Always load the row from Supabase — never from session cache.
+        var loader =
+          window.TLKVProducts.getProductById
+            ? window.TLKVProducts.getProductById(id)
+            : window.TLKVProducts.getProducts({ forceRefresh: true }).then(function (d) {
+                return ((d && d.items) || []).find(function (x) {
+                  return x.id === id;
+                });
+              });
+        loader
+          .then(function (row) {
+            if (row) fillProductForm(row);
+            else toast("Không tìm thấy sản phẩm.", "error");
+          })
+          .catch(function (e) {
+            toast(e.message || String(e), "error");
           });
-          if (row) fillProductForm(row);
-        });
       });
     });
 
@@ -165,7 +196,7 @@
         window.TLKVProducts.deleteProductById(id)
           .then(function () {
             toast("Đã xóa sản phẩm.", "success");
-            refreshProductsTableAdmin();
+            return afterProductMutation();
           })
           .catch(function (e) {
             toast(e.message || String(e), "error");
@@ -175,20 +206,35 @@
   }
 
   function refreshProductsTableAdmin() {
-    if (!window.TLKVProducts) return;
-    window.TLKVProducts.getProducts().then(function (data) {
-      var items = (data && data.items) || [];
-      var q = ($("catalog-admin-search") && $("catalog-admin-search").value.trim().toLowerCase()) || "";
-      var bf = $("catalog-admin-filter-brand") && $("catalog-admin-filter-brand").value;
-      var cf = $("catalog-admin-filter-category") && $("catalog-admin-filter-category").value;
-      items = items.filter(function (p) {
-        if (bf && p.brandId !== bf) return false;
-        if (cf && p.categoryId !== cf) return false;
-        if (q && String(p.name || "").toLowerCase().indexOf(q) < 0) return false;
-        return true;
+    if (!window.TLKVProducts) return Promise.resolve();
+    // Admin table always hits Supabase so edits are visible after save / reload.
+    // Shows ALL products including is_active=false (badge Ẩn) — website hides those.
+    return window.TLKVProducts
+      .getProducts({ forceRefresh: true })
+      .then(function (data) {
+        var items = (data && data.items) || [];
+        var q = ($("catalog-admin-search") && $("catalog-admin-search").value.trim().toLowerCase()) || "";
+        var bf = $("catalog-admin-filter-brand") && $("catalog-admin-filter-brand").value;
+        var cf = $("catalog-admin-filter-category") && $("catalog-admin-filter-category").value;
+        items = items.filter(function (p) {
+          if (bf && p.brandId !== bf) return false;
+          if (cf && p.categoryId !== cf) return false;
+          if (q && String(p.name || "").toLowerCase().indexOf(q) < 0) return false;
+          return true;
+        });
+        renderProductsTable(items);
+      })
+      .catch(function (e) {
+        toast(e.message || String(e), "error");
       });
-      renderProductsTable(items);
-    });
+  }
+
+  /** After CUD: clear public catalog caches + reload admin table from Supabase. */
+  function afterProductMutation() {
+    if (window.TLKVCatalogApi && typeof window.TLKVCatalogApi.clearCatalogSessionCaches === "function") {
+      window.TLKVCatalogApi.clearCatalogSessionCaches();
+    }
+    return refreshProductsTableAdmin();
   }
 
   function resetBrandForm() {
@@ -476,7 +522,7 @@
           if (window.TLKVProductFormAdmin) {
             window.TLKVProductFormAdmin.resetToCreateMode();
           } else if (typeof window.clearProductForm === "function") window.clearProductForm();
-          refreshProductsTableAdmin();
+          return afterProductMutation();
         })
         .catch(function (err) {
           toast(err.message || String(err), "error");
@@ -535,7 +581,10 @@
       });
     });
 
-    window.addEventListener("tlkv:products-changed", refreshProductsTableAdmin);
+    window.addEventListener("tlkv:products-changed", function () {
+      // Realtime / other tabs: refresh table. Same-tab CRUD also calls afterProductMutation.
+      refreshProductsTableAdmin();
+    });
   }
 
   window.TLKVCatalogAdmin = {
