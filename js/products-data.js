@@ -75,6 +75,8 @@
   let __productsRealtimeLifecycleBound = false;
   let __productsRealtimeSb = null;
   let __productsRealtimeChannel = null;
+  /** Bumps on every network getProducts; stale responses must not overwrite cache/UI. */
+  let __productsFetchSeq = 0;
 
   function stopProductsRealtime(opts) {
     const permanent = !(opts && opts.permanent === false);
@@ -396,6 +398,7 @@
     "*, brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)";
 
   async function fetchProductsFromSupabase(sb) {
+    // Admin + shared list: ALL rows. Never filter is_active here — website catalog filters separately.
     let res = await sb.from("products").select(PRODUCT_ADMIN_SELECT);
     if (res.error && String(res.error.message || "").toLowerCase().includes("product_images")) {
       res = await sb.from("products").select("*, brands(id, name, slug), categories(id, name, slug)");
@@ -817,13 +820,20 @@
     }
     try { await sb.auth.getUser(); } catch (_) { }
 
+    const fetchSeq = ++__productsFetchSeq;
     var result = await fetchProductsFromSupabase(sb);
     if (result && result.items && result.items.length === 0) {
       await new Promise(function (r) { setTimeout(r, 600); });
       try { await sb.auth.getUser(); } catch (_) { }
-      result = await fetchProductsFromSupabase(sb);
+      // Only retry if this is still the latest requested fetch.
+      if (fetchSeq === __productsFetchSeq) {
+        result = await fetchProductsFromSupabase(sb);
+      }
     }
-    if (result) writeProductsSessionCache(result);
+    // Never let an older in-flight request poison session cache after a newer refresh.
+    if (result && fetchSeq === __productsFetchSeq) {
+      writeProductsSessionCache(result);
+    }
     return result;
   }
 
