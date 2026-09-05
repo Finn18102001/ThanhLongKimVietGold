@@ -4,6 +4,12 @@ export const PRICE_ADJ_LIMIT_PER_CHI = 300_000;
 /** Step for +/- on transaction unit price in cart. */
 export const PRICE_UNIT_STEP_DONG = 10_000;
 
+export const PRICE_OUT_OF_RANGE_INLINE =
+  "⚠️ Giá đã vượt quá mức cho phép thay đổi ±300.000 đ.";
+
+export const PRICE_OUT_OF_RANGE_CONFIRM =
+  "⚠️ Giá nhập đang vượt quá mức cho phép ±300.000 đ. Vui lòng kiểm tra và điều chỉnh lại giá trước khi xác nhận.";
+
 export type PosChargeDraft = {
   clientKey: string;
   name: string;
@@ -36,16 +42,16 @@ export function clampAdjustmentPerChi(value: number): number {
   return rounded;
 }
 
-/** Convert a direct unit (piece) price into clamped adjustment / chỉ. */
+/** Convert a direct unit (piece) price into adjustment / chỉ (optionally clamped for +/-). */
 export function unitPriceToAdjustmentPerChi(
   unitPriceDong: number,
   referenceUnitDong: number,
   weightChi: number,
+  opts: { clamp?: boolean } = {},
 ): number {
   if (!Number.isFinite(unitPriceDong) || weightChi <= 0) return 0;
-  return clampAdjustmentPerChi(
-    Math.round((Math.trunc(unitPriceDong) - referenceUnitDong) / weightChi),
-  );
+  const raw = Math.round((Math.trunc(unitPriceDong) - referenceUnitDong) / weightChi);
+  return opts.clamp === false ? raw : clampAdjustmentPerChi(raw);
 }
 
 /** Clamp a typed unit price into reference ± (300k × weightChi). */
@@ -67,6 +73,18 @@ export function unitPriceBoundsDong(
     min: referenceUnitDong - Math.round(PRICE_ADJ_LIMIT_PER_CHI * w),
     max: referenceUnitDong + Math.round(PRICE_ADJ_LIMIT_PER_CHI * w),
   };
+}
+
+/** True when piece unit price is outside reference ± (300k × weightChi). */
+export function isUnitPriceOutOfAllowedRange(
+  unitPriceDong: number,
+  referenceUnitDong: number,
+  weightChi: number,
+): boolean {
+  if (!Number.isFinite(unitPriceDong)) return true;
+  const bounds = unitPriceBoundsDong(referenceUnitDong, weightChi);
+  const unit = Math.trunc(unitPriceDong);
+  return unit < bounds.min || unit > bounds.max;
 }
 
 export function chargesTotalDong(charges: PosChargeDraft[]): number {

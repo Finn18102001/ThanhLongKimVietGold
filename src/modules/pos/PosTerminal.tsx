@@ -17,8 +17,9 @@ import {
   saveHeldOrder,
 } from "./actions";
 import {
+  PRICE_OUT_OF_RANGE_CONFIRM,
   chargesTotalDong,
-  clampAdjustmentPerChi,
+  isUnitPriceOutOfAllowedRange,
   lineActualUnitDong,
   lineTotalDong,
   type PosChargeDraft,
@@ -65,7 +66,7 @@ function defaultPickupDueAt(): string {
 
 function toCartLine(item: PosCatalogItem, quantity: number, adj: number): CartLine | null {
   if (item.unitPriceDong === null || quantity <= 0) return null;
-  const clamped = clampAdjustmentPerChi(adj);
+  const adjustment = Number.isFinite(adj) ? Math.trunc(adj) : 0;
   return {
     skuId: item.skuId,
     sku: item.sku,
@@ -74,8 +75,8 @@ function toCartLine(item: PosCatalogItem, quantity: number, adj: number): CartLi
     weightChi: item.weightChi,
     stock: item.quantity,
     referenceUnitPriceDong: item.unitPriceDong,
-    priceAdjustmentPerChi: clamped,
-    unitPriceDong: lineActualUnitDong(item.unitPriceDong, clamped, item.weightChi),
+    priceAdjustmentPerChi: adjustment,
+    unitPriceDong: lineActualUnitDong(item.unitPriceDong, adjustment, item.weightChi),
     imageUrl: item.imageUrl,
   };
 }
@@ -378,9 +379,10 @@ export function PosTerminal({
     setCart((current) => {
       const entry = current[skuId];
       if (!entry) return current;
+      const nextAdj = Number.isFinite(adj) ? Math.trunc(adj) : 0;
       return {
         ...current,
-        [skuId]: { ...entry, adj: clampAdjustmentPerChi(adj) },
+        [skuId]: { ...entry, adj: nextAdj },
       };
     });
   }
@@ -608,6 +610,21 @@ export function PosTerminal({
       setPickingCustomer(true);
       return;
     }
+    const priceOut = lines.some((line) =>
+      isUnitPriceOutOfAllowedRange(
+        line.unitPriceDong,
+        line.referenceUnitPriceDong,
+        line.weightChi,
+      ),
+    );
+    if (priceOut) {
+      setAlert({
+        tone: "error",
+        title: "Giá ngoài khoảng cho phép",
+        reason: PRICE_OUT_OF_RANGE_CONFIRM,
+      });
+      return;
+    }
     const error = paymentValidationError();
     if (error) {
       setAlert({
@@ -630,6 +647,22 @@ export function PosTerminal({
       });
       setReviewing(false);
       setPickingCustomer(true);
+      return;
+    }
+    const priceOut = lines.some((line) =>
+      isUnitPriceOutOfAllowedRange(
+        line.unitPriceDong,
+        line.referenceUnitPriceDong,
+        line.weightChi,
+      ),
+    );
+    if (priceOut) {
+      setReviewing(false);
+      setAlert({
+        tone: "error",
+        title: "Giá ngoài khoảng cho phép",
+        reason: PRICE_OUT_OF_RANGE_CONFIRM,
+      });
       return;
     }
     const error = paymentValidationError();

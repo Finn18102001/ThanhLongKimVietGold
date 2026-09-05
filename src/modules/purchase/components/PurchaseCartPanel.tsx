@@ -7,6 +7,7 @@ import type { CustomerRecord } from "@/modules/customer/types";
 import { formatChi } from "../labels";
 import {
   PRICE_EXCEPTION_THRESHOLD_DONG,
+  PRICE_OUT_OF_RANGE_INLINE,
   buyUnitPriceBounds,
   clampBuyUnitPriceDong,
   lineHasPriceException,
@@ -228,9 +229,6 @@ export function PurchaseCartPanel({
                               const raw = parseDongInput(e.target.value);
                               onChangeLine(line.localId, { unitPriceDong: raw });
                             }}
-                            onBlur={() => {
-                              if (!line.isMarketGold) setUnitPrice(line, line.unitPriceDong);
-                            }}
                             className={`h-7 min-w-0 flex-1 rounded-md border px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] ${
                               exception
                                 ? "border-[var(--tlkv-red)] text-[var(--tlkv-red)]"
@@ -256,8 +254,9 @@ export function PurchaseCartPanel({
                         </p>
                       ) : null}
                       {exception ? (
-                        <p className="mt-0.5 text-[10px] font-medium text-[var(--tlkv-red)]">
-                          Ngoài ±300k - chỉnh trước khi chốt
+                        <p className="mt-0.5 flex items-start gap-1 text-[10px] font-medium text-[var(--tlkv-red)]">
+                          <Warning size={12} className="mt-0.5 shrink-0" />
+                          <span>{PRICE_OUT_OF_RANGE_INLINE}</span>
                         </p>
                       ) : null}
                     </div>
@@ -305,7 +304,7 @@ export function PurchaseCartPanel({
         {anyCatalogException ? (
           <div className="mt-3 flex items-start gap-1.5 rounded-lg border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)] px-2.5 py-2 text-[11px] font-medium text-[var(--tlkv-red)]">
             <Warning size={14} className="mt-0.5 shrink-0" />
-            Có dòng ngoài ±300.000đ/chỉ. Không cho chốt.
+            {PRICE_OUT_OF_RANGE_INLINE} Bấm xác nhận sẽ bị chặn đến khi chỉnh lại.
           </div>
         ) : null}
 
@@ -385,7 +384,7 @@ export function PurchaseCartPanel({
           </button>
           <button
             type="button"
-            disabled={pending || lines.length === 0 || anyCatalogException}
+            disabled={pending || lines.length === 0}
             onClick={onCheckout}
             className="h-11 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white disabled:opacity-40"
           >

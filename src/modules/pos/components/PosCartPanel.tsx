@@ -1,14 +1,15 @@
 "use client";
 
-import { Minus, Plus, Trash } from "@phosphor-icons/react";
+import { Minus, Plus, Trash, Warning } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import {
   chargesTotalDong,
-  clampUnitPriceDong,
+  isUnitPriceOutOfAllowedRange,
   lineTotalDong,
   PRICE_ADJ_LIMIT_PER_CHI,
+  PRICE_OUT_OF_RANGE_INLINE,
   PRICE_UNIT_STEP_DONG,
   unitPriceBoundsDong,
   unitPriceToAdjustmentPerChi,
@@ -182,6 +183,15 @@ export function PosCartPanel({
                 line.quantity,
               );
               const out = line.stock <= 0;
+              const priceOut = isUnitPriceOutOfAllowedRange(
+                line.unitPriceDong,
+                line.referenceUnitPriceDong,
+                line.weightChi,
+              );
+              const bounds = unitPriceBoundsDong(
+                line.referenceUnitPriceDong,
+                line.weightChi,
+              );
               return (
                 <li key={line.skuId} className="px-3 py-2.5">
                   <div className="flex gap-2">
@@ -252,6 +262,7 @@ export function PosCartPanel({
                           </button>
                           <input
                             type="number"
+                            inputMode="numeric"
                             step={PRICE_UNIT_STEP_DONG}
                             value={line.unitPriceDong}
                             onChange={(event) => {
@@ -262,24 +273,15 @@ export function PosCartPanel({
                                   raw,
                                   line.referenceUnitPriceDong,
                                   line.weightChi,
+                                  { clamp: false },
                                 ),
                               );
                             }}
-                            onBlur={() => {
-                              onAdj(
-                                line.skuId,
-                                unitPriceToAdjustmentPerChi(
-                                  clampUnitPriceDong(
-                                    line.unitPriceDong,
-                                    line.referenceUnitPriceDong,
-                                    line.weightChi,
-                                  ),
-                                  line.referenceUnitPriceDong,
-                                  line.weightChi,
-                                ),
-                              );
-                            }}
-                            className="h-7 min-w-0 flex-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                            className={`h-7 min-w-0 flex-1 rounded-md border px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] ${
+                              priceOut
+                                ? "border-[var(--tlkv-red)] text-[var(--tlkv-red)]"
+                                : "border-[var(--tlkv-line)] text-[var(--tlkv-text)]"
+                            }`}
                           />
                           <button
                             type="button"
@@ -300,18 +302,16 @@ export function PosCartPanel({
                           </button>
                         </div>
                       </label>
-                      {(() => {
-                        const bounds = unitPriceBoundsDong(
-                          line.referenceUnitPriceDong,
-                          line.weightChi,
-                        );
-                        return (
-                          <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
-                            Bảng {formatDong(line.referenceUnitPriceDong)} · Cho phép{" "}
-                            {formatDong(bounds.min)}–{formatDong(bounds.max)}
-                          </p>
-                        );
-                      })()}
+                      <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+                        Bảng {formatDong(line.referenceUnitPriceDong)} · Cho phép{" "}
+                        {formatDong(bounds.min)}–{formatDong(bounds.max)}
+                      </p>
+                      {priceOut ? (
+                        <p className="mt-0.5 flex items-start gap-1 text-[11px] font-medium text-[var(--tlkv-red)]">
+                          <Warning size={12} className="mt-0.5 shrink-0" />
+                          <span>{PRICE_OUT_OF_RANGE_INLINE}</span>
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </li>

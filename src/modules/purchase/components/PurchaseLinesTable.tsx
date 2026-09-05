@@ -144,15 +144,7 @@ export function PurchaseLinesTable({
                         value={String(line.unitPriceDong)}
                         onChange={(e) => {
                           const raw = parseDongInput(e.target.value);
-                          if (line.isMarketGold) {
-                            onChangeLine(line.localId, { unitPriceDong: raw });
-                            return;
-                          }
                           onChangeLine(line.localId, { unitPriceDong: raw });
-                        }}
-                        onBlur={() => {
-                          if (line.isMarketGold) return;
-                          setUnitPrice(line, line.unitPriceDong);
                         }}
                         inputMode="numeric"
                         className={`${purchaseInputClass} h-8 w-[100px] ${exception ? "border-[var(--tlkv-red)]" : ""}`}

@@ -7,6 +7,12 @@ export type BuyPayMode = "FULL" | "PARTIAL" | "UNPAID";
 /** Spec §2.1 / SRS 6.x: max |unit - reference| per chỉ before admin exception (catalog only). */
 export const PRICE_EXCEPTION_THRESHOLD_DONG = 300_000;
 
+export const PRICE_OUT_OF_RANGE_INLINE =
+  "⚠️ Giá đã vượt quá mức cho phép thay đổi ±300.000 đ.";
+
+export const PRICE_OUT_OF_RANGE_CONFIRM =
+  "⚠️ Giá nhập đang vượt quá mức cho phép ±300.000 đ. Vui lòng kiểm tra và điều chỉnh lại giá trước khi xác nhận.";
+
 export type MarketGoldRef = {
   id: string;
   brand: string;

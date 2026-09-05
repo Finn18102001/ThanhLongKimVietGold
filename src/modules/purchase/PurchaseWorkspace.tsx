@@ -35,6 +35,7 @@ import {
   paymentStatusLabel,
 } from "./labels";
 import {
+  PRICE_OUT_OF_RANGE_CONFIRM,
   clampBuyUnitPriceDong,
   lineHasPriceException,
   lineTotalDong,
@@ -130,11 +131,7 @@ export function PurchaseWorkspace({
               : line.quantity;
           const nextUnit =
             patch.unitPriceDong !== undefined
-              ? clampBuyUnitPriceDong(
-                  patch.unitPriceDong,
-                  line.referencePriceDongPerChi,
-                  false,
-                )
+              ? Math.max(0, Math.trunc(patch.unitPriceDong) || 0)
               : line.unitPriceDong;
           const catalogPatch = patch as Partial<CatalogBuyLine>;
           return {
@@ -251,9 +248,8 @@ export function PurchaseWorkspace({
     if (anyCatalogException) {
       setAlert({
         tone: "error",
-        title: "Giá ngoài khoảng ±300.000đ",
-        reason:
-          "Có dòng catalog vượt ±300.000đ/chỉ so với giá niêm yết. Chỉnh giá (nhập trực tiếp hoặc ±) về trong khoảng trước khi chốt. Không cho thanh toán khi ngoài khoảng.",
+        title: "Giá ngoài khoảng cho phép",
+        reason: PRICE_OUT_OF_RANGE_CONFIRM,
       });
       return;
     }
@@ -278,6 +274,15 @@ export function PurchaseWorkspace({
 
   async function onConfirmBuy() {
     if (!customer || pending) return;
+    if (anyCatalogException) {
+      setReviewing(false);
+      setAlert({
+        tone: "error",
+        title: "Giá ngoài khoảng cho phép",
+        reason: PRICE_OUT_OF_RANGE_CONFIRM,
+      });
+      return;
+    }
     setPending(true);
     try {
       const result = await completeBuy({
