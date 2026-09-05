@@ -52,6 +52,7 @@ export function PosCheckoutDialog({
 }) {
   const extraDong = chargesTotalDong(charges);
   const merch = displayTotal - extraDong;
+  const walkInBlocked = customer.isWalkIn;
 
   return (
     <Modal
@@ -69,7 +70,7 @@ export function PosCheckoutDialog({
           </button>
           <button
             type="button"
-            disabled={pending}
+            disabled={pending || walkInBlocked}
             onClick={onConfirm}
             className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
           >
@@ -99,14 +100,17 @@ export function PosCheckoutDialog({
               <p className="mt-1 text-[14px] font-semibold">{customer.name}</p>
               <p className="text-[13px] text-[var(--tlkv-muted)]">
                 {customer.customerNo}
-                {customer.isWalkIn
-                  ? " · Khách vãng lai"
-                  : formatPhoneDisplay(customer.phone)
-                    ? ` · ${formatPhoneDisplay(customer.phone)}`
-                    : ""}
+                {formatPhoneDisplay(customer.phone)
+                  ? ` · ${formatPhoneDisplay(customer.phone)}`
+                  : ""}
               </p>
               {customer.address ? (
                 <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">{customer.address}</p>
+              ) : null}
+              {walkInBlocked ? (
+                <p className="mt-2 text-[12px] font-medium text-[var(--tlkv-red)]">
+                  Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.
+                </p>
               ) : null}
             </div>
             <button

@@ -41,6 +41,10 @@
   var NHAN_TRON_KIM_VIET_GOLD_ROW_KEY = "Nhẫn Tròn Kim Việt";
   var BONG_LUA_VANG_GOLD_ROW_KEY = "Bông Lúa Vàng 0.1 chỉ";
   var HAT_GAO_VANG_GOLD_ROW_KEY = "Hạt Gạo Vàng 0.1 chỉ";
+  /** Live board rows (BTMC split). */
+  var DONG_XU_VANG_RONG_GOLD_ROW_KEY = "Đồng Xu Vàng Rồng Thăng Long";
+  var NHAN_VANG_RONG_GOLD_ROW_KEY = "Nhẫn Vàng Rồng Thăng Long";
+  /** Legacy keys kept as fallback if still present on an old board dump. */
   var VANG_RONG_SMALL_GOLD_ROW_KEY = "Vàng Rồng Thăng Long 0.5, 1, 2, 3 chỉ";
   var VANG_RONG_LARGE_GOLD_ROW_KEY = "Vàng Rồng Thăng Long 5, 10 chỉ";
 
@@ -73,10 +77,28 @@
     return /^Nhẫn Tròn Kim Việt\b/i.test(key);
   }
 
-  /** Vàng Rồng Thăng Long — nhóm 0.5–3 chỉ hoặc 5–10 chỉ tùy weight. */
+  /** VRTL Đồng xu / Đồng Xu Vàng Rồng* → giá/chỉ dòng Đồng Xu. */
+  function isDongXuVangRongFamilyLabel(label) {
+    var key = normalizeProductKey(label);
+    if (!key) return false;
+    if (/đồng\s*xu\s*vàng\s*rồng/i.test(key)) return true;
+    return /đồng\s*xu/i.test(key) && /vrtl|vàng\s*rồng/i.test(key);
+  }
+
+  /** Nhẫn Vàng Rồng Thăng Long* (không gồm đồng xu). */
+  function isNhanVangRongFamilyLabel(label) {
+    var key = normalizeProductKey(label);
+    if (!key) return false;
+    if (/đồng\s*xu/i.test(key)) return false;
+    return /nhẫn\s*vàng\s*rồng/i.test(key);
+  }
+
+  /** Legacy Vàng Rồng Thăng Long (không đồng xu / không nhẫn đã map riêng). */
   function isVangRongThangLongFamilyLabel(label) {
     var key = normalizeProductKey(label);
     if (!key) return false;
+    if (/đồng\s*xu/i.test(key)) return false;
+    if (/nhẫn\s*vàng\s*rồng/i.test(key)) return false;
     return /v[àa]ng\s*r[ồo]ng\s*th[ăa]ng\s*long/i.test(key);
   }
 
@@ -104,14 +126,29 @@
     }
     if (isKimGiaBaoFamilyLabel(key)) return KIM_GIA_BAO_GOLD_ROW_KEY;
     if (isNhanTronKimVietFamilyLabel(key)) return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
+    if (isDongXuVangRongFamilyLabel(key)) {
+      if (index && index.has && index.has(DONG_XU_VANG_RONG_GOLD_ROW_KEY)) {
+        return DONG_XU_VANG_RONG_GOLD_ROW_KEY;
+      }
+      return DONG_XU_VANG_RONG_GOLD_ROW_KEY;
+    }
+    if (isNhanVangRongFamilyLabel(key)) {
+      if (index && index.has && index.has(NHAN_VANG_RONG_GOLD_ROW_KEY)) {
+        return NHAN_VANG_RONG_GOLD_ROW_KEY;
+      }
+      return NHAN_VANG_RONG_GOLD_ROW_KEY;
+    }
     if (isVangRongThangLongFamilyLabel(key)) {
+      if (index && index.has && index.has(NHAN_VANG_RONG_GOLD_ROW_KEY)) {
+        return NHAN_VANG_RONG_GOLD_ROW_KEY;
+      }
       if (index && index.has && index.has(VANG_RONG_SMALL_GOLD_ROW_KEY)) {
         return VANG_RONG_SMALL_GOLD_ROW_KEY;
       }
       if (index && index.has && index.has(VANG_RONG_LARGE_GOLD_ROW_KEY)) {
         return VANG_RONG_LARGE_GOLD_ROW_KEY;
       }
-      return VANG_RONG_SMALL_GOLD_ROW_KEY;
+      return resolveVangRongGoldRowKey(null);
     }
     return key;
   }
@@ -122,18 +159,26 @@
    * - Bông Lúa Vàng* → dòng "Bông Lúa Vàng 0.1 chỉ" (giá mệnh giá 0.1 chỉ × tỉ lệ lượng).
    * - Hạt Gạo Vàng* → dòng "Hạt Gạo Vàng 0.1 chỉ".
    * - Nhẫn Tròn Kim Việt* → một dòng Nhẫn Tròn Kim Việt (giá/chỉ × weight).
+   * - VRTL Đồng xu* / Đồng Xu Vàng Rồng* → Đồng Xu Vàng Rồng Thăng Long (giá/chỉ × weight).
+   * - Nhẫn Vàng Rồng* → Nhẫn Vàng Rồng Thăng Long (giá/chỉ × weight).
    * - Khớp nguyên văn trước nếu đã có dòng riêng trên bảng giá.
    */
   function resolveGoldRowLookupKey(priceSourceProduct, productName, index, weight) {
     var fromSource = resolveGoldRowLookupKeyFromLabel(priceSourceProduct, index);
     if (fromSource) {
       if (isVangRongThangLongFamilyLabel(fromSource)) {
+        if (index && index.has && index.has(NHAN_VANG_RONG_GOLD_ROW_KEY)) {
+          return NHAN_VANG_RONG_GOLD_ROW_KEY;
+        }
         return resolveVangRongGoldRowKey(weight);
       }
       return fromSource;
     }
     var fromName = resolveGoldRowLookupKeyFromLabel(productName, index);
     if (fromName && isVangRongThangLongFamilyLabel(fromName)) {
+      if (index && index.has && index.has(NHAN_VANG_RONG_GOLD_ROW_KEY)) {
+        return NHAN_VANG_RONG_GOLD_ROW_KEY;
+      }
       return resolveVangRongGoldRowKey(weight);
     }
     return fromName;
@@ -153,7 +198,12 @@
     if (isHatGaoVangFamilyLabel(label)) return HAT_GAO_VANG_GOLD_ROW_KEY;
     if (isNhanTronKimVietFamilyLabel(label)) return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
     if (isKimGiaBaoFamilyLabel(label)) return KIM_GIA_BAO_GOLD_ROW_KEY;
-    if (isVangRongThangLongFamilyLabel(label)) return resolveVangRongGoldRowKey(w);
+    if (isDongXuVangRongFamilyLabel(label)) return DONG_XU_VANG_RONG_GOLD_ROW_KEY;
+    if (isNhanVangRongFamilyLabel(label)) return NHAN_VANG_RONG_GOLD_ROW_KEY;
+    if (isVangRongThangLongFamilyLabel(label)) {
+      if (w != null) return resolveVangRongGoldRowKey(w);
+      return NHAN_VANG_RONG_GOLD_ROW_KEY;
+    }
     return null;
   }
 

@@ -80,31 +80,49 @@ function toCartLine(item: PosCatalogItem, quantity: number, adj: number): CartLi
   };
 }
 
-function customerFromHold(detail: HeldOrderDetail, walkIn: CustomerRecord): CustomerRecord {
-  if (detail.isWalkIn || !detail.customerId || detail.customerId === walkIn.id) {
-    return walkIn;
+function customerFromHold(detail: HeldOrderDetail): CustomerRecord | null {
+  if (detail.isWalkIn || !detail.customerId) {
+    return null;
   }
   return {
-    ...walkIn,
     id: detail.customerId,
     customerNo: detail.customerNo ?? "",
     name: detail.customerName,
     phone: detail.customerPhone,
+    email: null,
+    address: null,
+    taxCode: null,
+    note: null,
+    gender: null,
+    customerGroup: "RETAIL",
+    dateOfBirth: null,
     isWalkIn: false,
+    customerType: "INDIVIDUAL",
+    nationality: null,
+    citizenId: null,
+    citizenIdIssueDate: null,
+    citizenIdExpiryDate: null,
+    citizenIdIssuePlace: null,
+    businessName: null,
+    representativeName: null,
     documents: [],
+    createdAt: "",
+    updatedAt: "",
+    totalDong: 0,
+    saleCount: 0,
+    debtDong: 0,
+    lastActivityAt: "",
   };
 }
 
 export function PosTerminal({
   catalog: initialCatalog,
   brands,
-  walkIn,
   initialHeldOrders,
   saleContext,
 }: {
   catalog: PosCatalogItem[];
   brands: PosBrandOption[];
-  walkIn: CustomerRecord;
   initialHeldOrders: HeldOrderListResult;
   saleContext: PosSaleContext;
 }) {
@@ -123,7 +141,7 @@ export function PosTerminal({
   const [operatorStaffId, setOperatorStaffId] = useState("");
   const [pickupDueAt, setPickupDueAt] = useState(defaultPickupDueAt);
   const [recentIds, setRecentIds] = useState<string[]>([]);
-  const [customer, setCustomer] = useState(walkIn);
+  const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD">("CASH");
@@ -383,7 +401,7 @@ export function PosTerminal({
     setPickupDueAt(defaultPickupDueAt());
     setRecentIds([]);
     setNote("");
-    setCustomer(walkIn);
+    setCustomer(null);
     setPayMode("FULL");
     setPaidDong(0);
     setDueDate(defaultDueDateIso());
@@ -418,6 +436,15 @@ export function PosTerminal({
       })
       .filter((row): row is { sku_id: string; quantity: number } => row !== null);
     if (items.length === 0 || pending || savingHold) return;
+    if (!customer || customer.isWalkIn) {
+      setAlert({
+        tone: "error",
+        title: "Chưa chọn khách hàng",
+        reason: "Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.",
+      });
+      setPickingCustomer(true);
+      return;
+    }
     setSavingHold(true);
     try {
       const saved = await saveHeldOrder({
@@ -489,7 +516,7 @@ export function PosTerminal({
       }
       setCart(nextCart);
       setRecentIds(Object.keys(nextCart));
-      setCustomer(customerFromHold(detail, walkIn));
+      setCustomer(customerFromHold(detail));
       setNote(detail.note ?? "");
       setPaymentMethod(detail.paymentMethod);
       setPayMode("FULL");
@@ -572,6 +599,15 @@ export function PosTerminal({
 
   function openReview() {
     if (lines.length === 0 || pending) return;
+    if (!customer || customer.isWalkIn) {
+      setAlert({
+        tone: "error",
+        title: "Chưa chọn khách hàng",
+        reason: "Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.",
+      });
+      setPickingCustomer(true);
+      return;
+    }
     const error = paymentValidationError();
     if (error) {
       setAlert({
@@ -586,6 +622,16 @@ export function PosTerminal({
 
   async function onCheckout() {
     if (lines.length === 0 || pending) return;
+    if (!customer || customer.isWalkIn) {
+      setAlert({
+        tone: "error",
+        title: "Chưa chọn khách hàng",
+        reason: "Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.",
+      });
+      setReviewing(false);
+      setPickingCustomer(true);
+      return;
+    }
     const error = paymentValidationError();
     if (error) {
       setAlert({
@@ -921,7 +967,7 @@ export function PosTerminal({
         />
       ) : null}
 
-      {reviewing ? (
+      {reviewing && customer ? (
         <PosCheckoutDialog
           customer={customer}
           lines={lines}

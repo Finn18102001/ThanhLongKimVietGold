@@ -27,6 +27,10 @@ export type LedgerRow = {
   referenceId: string;
   costPriceDong: number | null;
   brandName: string | null;
+  /** Khách (SALE/CUSTOMER_BUY) hoặc NCC (PURCHASE). */
+  customerName: string | null;
+  customerPhone: string | null;
+  customerCitizenId: string | null;
 };
 
 export type BrandOption = {

@@ -7,5 +7,13 @@ export async function InvoiceDetailPage({ invoiceNo }: { invoiceNo: string }) {
   const invoice = await getInvoiceByNo(invoiceNo);
   if (!invoice) notFound();
   const session = await getPosSession();
-  return <InvoiceDetailView invoice={invoice} isAdmin={session?.role === "ADMIN"} />;
+  const canVoidInvoice =
+    session?.email?.toLowerCase() === "thanglongkimviet@gmail.com";
+  return (
+    <InvoiceDetailView
+      invoice={invoice}
+      isAdmin={session?.role === "ADMIN"}
+      canVoidInvoice={canVoidInvoice}
+    />
+  );
 }

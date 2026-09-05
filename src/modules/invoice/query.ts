@@ -177,7 +177,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const { data: invoice, error } = await supabase
     .from("pos_invoices")
     .select(
-      `id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, pos_customers(name, phone, address, customer_no, is_walk_in, citizen_id, date_of_birth), pos_sales(${SALE_COLS}, note)`,
+      `id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, voided_at, voided_by, void_reason, pos_customers(name, phone, address, customer_no, is_walk_in, citizen_id, date_of_birth), pos_sales(${SALE_COLS}, note)`,
     )
     .eq("invoice_no", invoiceNo)
     .maybeSingle();
@@ -291,6 +291,9 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     pickupDueAt: sale?.pickup_due_at ?? null,
     operatorStaffId: sale?.operator_staff_id ?? null,
     operatorName,
+    voidedAt: (invoice as { voided_at?: string | null }).voided_at ?? null,
+    voidedBy: (invoice as { voided_by?: string | null }).voided_by ?? null,
+    voidReason: (invoice as { void_reason?: string | null }).void_reason ?? null,
   };
 }
 

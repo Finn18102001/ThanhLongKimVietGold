@@ -140,7 +140,7 @@ export function CustomerSelectModal({
             {(page?.items ?? []).length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-6 text-[var(--tlkv-muted)]">
-                  Chưa có khách. Tạo khách mới hoặc bán cho khách lẻ.
+                  Chưa có khách. Tạo khách mới để gắn vào hóa đơn.
                 </td>
               </tr>
             ) : (

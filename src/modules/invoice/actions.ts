@@ -120,3 +120,39 @@ export async function cancelInvoicePreorder(input: {
   const payload = data as { fulfillment_status: string };
   return { fulfillmentStatus: payload.fulfillment_status };
 }
+
+export async function voidInvoice(input: {
+  invoiceId: string;
+  reason: string;
+}): Promise<{
+  ok: boolean;
+  invoiceNo: string;
+  status: string;
+}> {
+  const reason = input.reason.trim();
+  if (reason.length < 3) {
+    throw new Error("Phải nhập lý do hủy hóa đơn (tối thiểu 3 ký tự).");
+  }
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_void_invoice", {
+    p_invoice_id: input.invoiceId,
+    p_reason: reason,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/invoices");
+  revalidatePath("/inventory");
+  revalidatePath("/cashflow");
+  revalidatePath("/pos");
+  revalidatePath("/customers");
+  const payload = data as {
+    ok?: boolean;
+    invoice_no?: string;
+    status?: string;
+  };
+  return {
+    ok: Boolean(payload.ok),
+    invoiceNo: String(payload.invoice_no ?? ""),
+    status: String(payload.status ?? "VOIDED"),
+  };
+}

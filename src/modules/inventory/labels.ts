@@ -13,12 +13,15 @@ export const LEDGER_TYPE_LABEL: Record<string, string> = {
   SUPPLIER_RETURN: "Trả NCC",
   STOCK_ADJUSTMENT_IN: "Điều chỉnh tăng",
   STOCK_ADJUSTMENT_OUT: "Điều chỉnh giảm",
+  PREORDER_FULFILL: "Giao đặt hàng",
+  SALE_VOID: "Hủy HĐ — hoàn kho",
 };
 
 export const LEDGER_TYPE_OPTIONS = [
   { value: "", label: "Tất cả loại" },
   { value: "PURCHASE_RECEIVED", label: "Nhập hàng / mua từ khách" },
   { value: "SALE", label: "Xuất bán" },
+  { value: "SALE_VOID", label: "Hủy HĐ — hoàn kho" },
   { value: "STOCK_ADJUSTMENT_IN", label: "Điều chỉnh tăng" },
   { value: "STOCK_ADJUSTMENT_OUT", label: "Điều chỉnh giảm" },
   { value: "CUSTOMER_RETURN", label: "Khách trả" },

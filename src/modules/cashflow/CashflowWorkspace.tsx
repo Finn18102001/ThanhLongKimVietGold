@@ -26,25 +26,32 @@ import type {
   CashLedgerPage,
   CashTxnType,
 } from "./types";
+import { TXN_TYPE_LABEL } from "./types";
 
 type ModalKind = "deposit" | "withdraw" | "transfer" | null;
 
 const TXN_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "", label: "Tất cả loại" },
-  { value: "SALE_PAYMENT", label: "SALE_PAYMENT" },
-  { value: "PURCHASE_PAYMENT", label: "PURCHASE_PAYMENT" },
-  { value: "RECEIVABLE_COLLECTION", label: "RECEIVABLE_COLLECTION" },
-  { value: "PAYABLE_PAYMENT", label: "PAYABLE_PAYMENT" },
-  { value: "OTHER_INCOME", label: "OTHER_INCOME" },
-  { value: "OTHER_EXPENSE", label: "OTHER_EXPENSE" },
-  { value: "TRANSFER", label: "TRANSFER" },
+  { value: "SALE_PAYMENT", label: "Thu bán hàng" },
+  { value: "SALE_VOID_REFUND", label: "Hủy HĐ — hoàn tiền" },
+  { value: "PURCHASE_PAYMENT", label: "Chi mua hàng" },
+  { value: "RECEIVABLE_COLLECTION", label: "Thu công nợ" },
+  { value: "PAYABLE_PAYMENT", label: "Chi trả nợ" },
+  { value: "OTHER_INCOME", label: "Thu khác" },
+  { value: "OTHER_EXPENSE", label: "Chi khác" },
+  { value: "TRANSFER", label: "Chuyển quỹ" },
 ];
 
 function txnTone(type: CashTxnType): string {
   if (type === "SALE_PAYMENT" || type === "RECEIVABLE_COLLECTION" || type === "OTHER_INCOME") {
     return "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]";
   }
-  if (type === "PURCHASE_PAYMENT" || type === "PAYABLE_PAYMENT" || type === "OTHER_EXPENSE") {
+  if (
+    type === "PURCHASE_PAYMENT" ||
+    type === "PAYABLE_PAYMENT" ||
+    type === "OTHER_EXPENSE" ||
+    type === "SALE_VOID_REFUND"
+  ) {
     return "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]";
   }
   return "bg-[var(--tlkv-violet-soft)] text-[var(--tlkv-violet)]";
@@ -285,7 +292,7 @@ export function CashflowWorkspace({
                       <span
                         className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${txnTone(row.txnType)}`}
                       >
-                        {row.txnType}
+                        {TXN_TYPE_LABEL[row.txnType] ?? row.txnType}
                       </span>
                     </td>
                     <td className="py-2.5 max-w-[240px]">{row.content}</td>

@@ -102,25 +102,32 @@ export async function searchLedger(input: {
     offset?: number;
   } | null;
   return {
-    items: (raw?.items ?? []).map((row) => ({
-      id: String(row.id),
-      sku: String(row.sku ?? ""),
-      name: String(row.name ?? ""),
-      type: String(row.type ?? ""),
-      quantity: Number(row.quantity ?? 0),
-      beforeQuantity: Number(row.beforeQuantity ?? 0),
-      afterQuantity: Number(row.afterQuantity ?? 0),
-      reason: String(row.reason ?? ""),
-      createdAt: String(row.createdAt ?? ""),
-      actorEmail: String(row.actorEmail ?? ""),
-      referenceType: String(row.referenceType ?? ""),
-      referenceId: String(row.referenceId ?? ""),
-      costPriceDong: row.costPriceDong == null ? null : Number(row.costPriceDong),
-      brandName: (row.brandName as string | null) ?? null,
-    })),
+    items: (raw?.items ?? []).map(mapLedgerRpcRow),
     total: Number(raw?.total ?? 0),
     limit: Number(raw?.limit ?? 50),
     offset: Number(raw?.offset ?? 0),
+  };
+}
+
+function mapLedgerRpcRow(row: Record<string, unknown>): import("./types").LedgerRow {
+  return {
+    id: String(row.id),
+    sku: String(row.sku ?? ""),
+    name: String(row.name ?? ""),
+    type: String(row.type ?? ""),
+    quantity: Number(row.quantity ?? 0),
+    beforeQuantity: Number(row.beforeQuantity ?? 0),
+    afterQuantity: Number(row.afterQuantity ?? 0),
+    reason: String(row.reason ?? ""),
+    createdAt: String(row.createdAt ?? ""),
+    actorEmail: String(row.actorEmail ?? ""),
+    referenceType: String(row.referenceType ?? ""),
+    referenceId: String(row.referenceId ?? ""),
+    costPriceDong: row.costPriceDong == null ? null : Number(row.costPriceDong),
+    brandName: (row.brandName as string | null) ?? null,
+    customerName: (row.customerName as string | null) ?? null,
+    customerPhone: (row.customerPhone as string | null) ?? null,
+    customerCitizenId: (row.customerCitizenId as string | null) ?? null,
   };
 }
 
@@ -147,22 +154,7 @@ export async function exportLedger(input: {
     offset?: number;
   } | null;
   return {
-    items: (raw?.items ?? []).map((row) => ({
-      id: String(row.id),
-      sku: String(row.sku ?? ""),
-      name: String(row.name ?? ""),
-      type: String(row.type ?? ""),
-      quantity: Number(row.quantity ?? 0),
-      beforeQuantity: Number(row.beforeQuantity ?? 0),
-      afterQuantity: Number(row.afterQuantity ?? 0),
-      reason: String(row.reason ?? ""),
-      createdAt: String(row.createdAt ?? ""),
-      actorEmail: String(row.actorEmail ?? ""),
-      referenceType: String(row.referenceType ?? ""),
-      referenceId: String(row.referenceId ?? ""),
-      costPriceDong: row.costPriceDong == null ? null : Number(row.costPriceDong),
-      brandName: (row.brandName as string | null) ?? null,
-    })),
+    items: (raw?.items ?? []).map(mapLedgerRpcRow),
     total: Number(raw?.total ?? 0),
     limit: Number(raw?.limit ?? 0),
     offset: Number(raw?.offset ?? 0),

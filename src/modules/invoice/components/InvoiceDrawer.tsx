@@ -49,6 +49,7 @@ export function InvoiceDrawer({
     payStatus,
   );
   const incomplete = isInvoiceIncomplete(lifecycle);
+  const isVoided = invoice.status === "VOIDED" || invoice.saleStatus === "VOIDED";
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [amountText, setAmountText] = useState(
@@ -275,6 +276,7 @@ export function InvoiceDrawer({
           </section>
 
           {invoice.transactionType === "PREORDER" &&
+          !isVoided &&
           invoice.fulfillmentStatus !== "FULFILLED" &&
           invoice.fulfillmentStatus !== "CANCELLED" ? (
             <section className="mt-3 rounded-[12px] border border-[var(--tlkv-line)] p-3">
@@ -306,7 +308,16 @@ export function InvoiceDrawer({
             </section>
           ) : null}
 
-          {invoice.remainingDong > 0 ? (
+          {isVoided ? (
+            <section className="mt-3 rounded-[12px] border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)]/50 p-3">
+              <p className="text-[12px] font-semibold text-[var(--tlkv-red)]">Hóa đơn đã hủy</p>
+              <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+                Không thu thêm / giao hàng / chỉnh sửa. Chỉ xem lịch sử và in.
+              </p>
+            </section>
+          ) : null}
+
+          {!isVoided && invoice.remainingDong > 0 ? (
             <section className="mt-3 rounded-[12px] border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)]/40 p-3">
               <p className="text-[12px] font-semibold text-[var(--tlkv-amber)]">Thu tiền còn lại</p>
               <label className="mt-2 block text-[13px]">

@@ -105,8 +105,8 @@ export function PurchaseWorkspace({
     if (next.isWalkIn) {
       setAlert({
         tone: "error",
-        title: "Không dùng khách lẻ",
-        reason: "Giao dịch mua vào bắt buộc chọn khách hàng thật, không dùng khách vãng lai.",
+        title: "Chưa chọn khách hàng",
+        reason: "Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.",
       });
       return;
     }
@@ -226,9 +226,10 @@ export function PurchaseWorkspace({
     if (!customer || customer.isWalkIn) {
       setAlert({
         tone: "error",
-        title: "Chưa chọn khách",
-        reason: "Phải chọn khách hàng thật trước khi xác nhận mua vào.",
+        title: "Chưa chọn khách hàng",
+        reason: "Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.",
       });
+      setPickingCustomer(true);
       return;
     }
     if (lines.length === 0) {

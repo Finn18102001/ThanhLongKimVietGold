@@ -56,7 +56,7 @@ export function PosCartPanel({
   saving,
   heldHoldNo,
 }: {
-  customer: CustomerRecord;
+  customer: CustomerRecord | null;
   lines: CartLine[];
   merchandiseTotal: number;
   charges: PosChargeDraft[];
@@ -146,14 +146,16 @@ export function PosCartPanel({
 
       <div className="flex items-center gap-3 border-b border-[var(--tlkv-line)] px-4 py-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tlkv-red-soft)] text-[12px] font-bold text-[var(--tlkv-red)]">
-          {customerInitials(customer.name)}
+          {customer ? customerInitials(customer.name) : "?"}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold">{customer.name}</p>
+          <p className="truncate text-[13px] font-semibold">
+            {customer ? customer.name : "Chưa chọn khách hàng"}
+          </p>
           <p className="text-[12px] text-[var(--tlkv-muted)]">
-            {customer.isWalkIn
-              ? "Khách vãng lai"
-              : formatPhoneDisplay(customer.phone) || customer.customerNo}
+            {customer
+              ? formatPhoneDisplay(customer.phone) || customer.customerNo
+              : "Bắt buộc chọn khách trước khi xác nhận"}
           </p>
         </div>
         <button
@@ -161,7 +163,7 @@ export function PosCartPanel({
           onClick={onOpenCustomer}
           className="h-9 shrink-0 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-semibold hover:bg-[var(--tlkv-bg)]"
         >
-          Chọn khách
+          {customer ? "Đổi khách" : "Chọn khách"}
         </button>
       </div>
 

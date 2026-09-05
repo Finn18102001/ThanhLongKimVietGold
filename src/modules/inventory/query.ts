@@ -86,6 +86,9 @@ export async function listLedger(): Promise<LedgerRow[]> {
       referenceId: row.reference_id,
       costPriceDong: null,
       brandName: null,
+      customerName: null,
+      customerPhone: null,
+      customerCitizenId: null,
     };
   });
 }

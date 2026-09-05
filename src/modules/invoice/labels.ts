@@ -46,6 +46,7 @@ export function invoiceIssuedParts(isoDateTime: string): {
 }
 
 export function invoiceStatusLabel(status: string, saleStatus: string): string {
+  if (status === "VOIDED" || saleStatus === "VOIDED") return "Đã hủy";
   if (status === "ISSUED") return "Đã phát hành";
   if (saleStatus === "COMPLETED") return "Đã chốt giao dịch";
   return status;

@@ -7,7 +7,8 @@ export type CashTxnType =
   | "PAYABLE_PAYMENT"
   | "OTHER_INCOME"
   | "OTHER_EXPENSE"
-  | "TRANSFER";
+  | "TRANSFER"
+  | "SALE_VOID_REFUND";
 
 export type CashAccountCard = {
   id: string;
@@ -74,11 +75,12 @@ export type CapitalSnapshot = {
 };
 
 export const TXN_TYPE_LABEL: Record<CashTxnType, string> = {
-  SALE_PAYMENT: "SALE_PAYMENT",
-  PURCHASE_PAYMENT: "PURCHASE_PAYMENT",
-  RECEIVABLE_COLLECTION: "RECEIVABLE_COLLECTION",
-  PAYABLE_PAYMENT: "PAYABLE_PAYMENT",
-  OTHER_INCOME: "OTHER_INCOME",
-  OTHER_EXPENSE: "OTHER_EXPENSE",
-  TRANSFER: "TRANSFER",
+  SALE_PAYMENT: "Thu bán hàng",
+  PURCHASE_PAYMENT: "Chi mua hàng",
+  RECEIVABLE_COLLECTION: "Thu công nợ",
+  PAYABLE_PAYMENT: "Chi trả nợ",
+  OTHER_INCOME: "Thu khác",
+  OTHER_EXPENSE: "Chi khác",
+  TRANSFER: "Chuyển quỹ",
+  SALE_VOID_REFUND: "Hủy HĐ — hoàn tiền",
 };

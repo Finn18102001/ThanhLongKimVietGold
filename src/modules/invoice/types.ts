@@ -102,6 +102,9 @@ export type InvoiceDetail = {
   pickupDueAt: string | null;
   operatorStaffId: string | null;
   operatorName: string | null;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
 };
 
 export type InvoiceCharge = {
