@@ -84,7 +84,16 @@ type InvoiceDocumentProps = {
 export function InvoiceDocument({
   invoice,
   payload: payloadProp,
-  printer = { name: "Mặc định", offsetX: 0, offsetY: 0, scale: 1 },
+  printer = {
+    name: "Mặc định",
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1,
+    amountInWordsOffsetX: 0,
+    amountInWordsOffsetY: 0,
+    totalAmountOffsetX: 0,
+    totalAmountOffsetY: 0,
+  },
   showTemplateBackground = true,
   showCalibrationMarks = false,
 }: InvoiceDocumentProps) {
@@ -95,6 +104,10 @@ export function InvoiceDocument({
   const ox = printer.offsetX;
   const oy = printer.offsetY;
   const scale = printer.scale > 0 ? printer.scale : 1;
+  const wordsOx = ox + (printer.amountInWordsOffsetX ?? 0);
+  const wordsOy = oy + (printer.amountInWordsOffsetY ?? 0);
+  const totalOx = ox + (printer.totalAmountOffsetX ?? 0);
+  const totalOy = oy + (printer.totalAmountOffsetY ?? 0);
 
   return (
     <article
@@ -198,10 +211,10 @@ export function InvoiceDocument({
         );
       })}
 
-      <PrintField field={T.fields.amountInWords} ox={ox} oy={oy}>
+      <PrintField field={T.fields.amountInWords} ox={wordsOx} oy={wordsOy}>
         {payload.amountInWords}
       </PrintField>
-      <PrintField field={T.fields.totalAmount} ox={ox} oy={oy} className="font-bold text-[#9b0102]">
+      <PrintField field={T.fields.totalAmount} ox={totalOx} oy={totalOy} className="font-bold text-[#9b0102]">
         {formatDongCompact(payload.totalAmountDong)}
       </PrintField>
 

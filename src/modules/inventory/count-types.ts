@@ -13,6 +13,7 @@ export type StockCountLine = {
   skuId: string;
   sku: string;
   name: string;
+  brandName: string | null;
   systemQty: number;
   actualQty: number | null;
   difference: number | null;

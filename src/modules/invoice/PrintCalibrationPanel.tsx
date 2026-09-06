@@ -45,8 +45,8 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
             Căn chỉnh in phôi ({GOLD_CERTIFICATE.widthMm} × {GOLD_CERTIFICATE.heightMm} mm)
           </h2>
           <p className="mt-1 max-w-[65ch] text-[12px] text-[var(--tlkv-muted)]">
-            Chỉ admin. Khi in thật, website chỉ in dữ liệu động (không in logo/khung phôi). Offset
-            X/Y dùng chung cho mọi field. Scale mặc định 100% - không dùng Fit to Page trên máy in.
+            Chỉ admin. Offset X/Y dùng chung cho header/bảng. Phần tiền bằng chữ và tổng tiền số có
+            offset riêng để chỉnh không đè chữ phôi. Scale 100% — không dùng Fit to Page.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <label className="block text-[12px]">
-          <span className="mb-1 block text-[var(--tlkv-muted)]">Offset X (mm)</span>
+          <span className="mb-1 block text-[var(--tlkv-muted)]">Offset X chung (mm)</span>
           <input
             type="number"
             step="0.1"
@@ -90,7 +90,7 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
           />
         </label>
         <label className="block text-[12px]">
-          <span className="mb-1 block text-[var(--tlkv-muted)]">Offset Y (mm)</span>
+          <span className="mb-1 block text-[var(--tlkv-muted)]">Offset Y chung (mm)</span>
           <input
             type="number"
             step="0.1"
@@ -130,12 +130,90 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
         </label>
       </div>
 
+      <div className="mt-4 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] p-3">
+        <p className="text-[12px] font-semibold">Số tiền thanh toán (Bằng chữ) — offset riêng</p>
+        <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+          Chỉ dịch value bằng chữ; không ảnh hưởng dòng hàng trong bảng.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <label className="block text-[12px]">
+            <span className="mb-1 block text-[var(--tlkv-muted)]">X thêm (mm)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={profile.amountInWordsOffsetX}
+              onChange={(e) =>
+                onChange({
+                  ...profile,
+                  amountInWordsOffsetX: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"
+            />
+          </label>
+          <label className="block text-[12px]">
+            <span className="mb-1 block text-[var(--tlkv-muted)]">Y thêm (mm)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={profile.amountInWordsOffsetY}
+              onChange={(e) =>
+                onChange({
+                  ...profile,
+                  amountInWordsOffsetY: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] p-3">
+        <p className="text-[12px] font-semibold">Tổng tiền (Bằng số) — offset riêng</p>
+        <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+          Chỉ dịch số tổng thanh toán; tách khỏi offset bằng chữ và bảng.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <label className="block text-[12px]">
+            <span className="mb-1 block text-[var(--tlkv-muted)]">X thêm (mm)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={profile.totalAmountOffsetX}
+              onChange={(e) =>
+                onChange({
+                  ...profile,
+                  totalAmountOffsetX: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"
+            />
+          </label>
+          <label className="block text-[12px]">
+            <span className="mb-1 block text-[var(--tlkv-muted)]">Y thêm (mm)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={profile.totalAmountOffsetY}
+              onChange={(e) =>
+                onChange({
+                  ...profile,
+                  totalAmountOffsetY: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"
+            />
+          </label>
+        </div>
+      </div>
+
       {savedMsg ? (
         <p className="mt-2 text-[12px] text-[var(--tlkv-green)]">{savedMsg}</p>
       ) : (
         <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
-          Công thức: X_final = X_field + OffsetX, Y_final = Y_field + OffsetY. In test dùng dữ liệu
-          mẫu và 4 điểm P1–P4 để đo lệch.
+          Công thức: X_final = X_field + OffsetX (+ offset riêng nếu có). In test dùng dữ liệu mẫu
+          và 4 điểm P1–P4 để đo lệch.
         </p>
       )}
     </section>

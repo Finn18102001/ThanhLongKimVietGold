@@ -28,7 +28,19 @@ export const GOLD_CERTIFICATE = {
   fields: {
     customerName: { x: 68.91, y: 50.01, w: 50.49, h: 4.26, fontSizePt: 9.5, align: "left" as const, weight: "600" },
     citizenId: { x: 144.64, y: 50.01, w: 43.66, h: 4.26, fontSizePt: 9.5, align: "left" as const },
-    address: { x: 40.25, y: 56.13, w: 55.95, h: 4.26, fontSizePt: 9.5, align: "left" as const },
+    /**
+     * Address wraps within width when longer than the phôi line (2 lines max before date row).
+     */
+    address: {
+      x: 40.25,
+      y: 55.4,
+      w: 75.0,
+      h: 7.2,
+      fontSizePt: 8.5,
+      align: "left" as const,
+      wrap: true,
+      lineHeight: 1.15,
+    },
     phone: { x: 121.78, y: 56.13, w: 30.7, h: 4.26, fontSizePt: 9.5, align: "left" as const },
     birthDate: { x: 169.88, y: 56.13, w: 19.79, h: 4.26, fontSizePt: 9.5, align: "left" as const },
     day: { x: 33.43, y: 62.31, w: 12.96, h: 4.26, fontSizePt: 9.5, align: "center" as const },
@@ -37,21 +49,24 @@ export const GOLD_CERTIFICATE = {
     time: { x: 141.91, y: 62.31, w: 23.88, h: 4.26, fontSizePt: 9.5, align: "left" as const },
     /**
      * total_amount_in_words — value only (label already on phôi).
-     * Independent box left of totalAmount; wrap within width, never share layout with total.
+     * Base box + PrinterProfile.amountInWordsOffset* for fine X/Y without moving the table.
      */
     amountInWords: {
       x: 70.95,
-      y: 98.2,
+      y: 100.4,
       w: 66.0,
-      h: 9.6,
+      h: 8.0,
       fontSizePt: 7.5,
       align: "left" as const,
       wrap: true,
       lineHeight: 1.25,
     },
+    /**
+     * total by number — value only. Use PrinterProfile.totalAmountOffset* independently.
+     */
     totalAmount: {
       x: 141.23,
-      y: 99.34,
+      y: 101.0,
       w: 46.39,
       h: 3.85,
       fontSizePt: 11,
@@ -76,9 +91,16 @@ export const GOLD_CERTIFICATE = {
 
 export type PrinterProfile = {
   name: string;
+  /** Global offset applied to every field (table + header). */
   offsetX: number;
   offsetY: number;
   scale: number;
+  /** Extra X/Y only for “Số tiền thanh toán (Bằng chữ)” value. */
+  amountInWordsOffsetX: number;
+  amountInWordsOffsetY: number;
+  /** Extra X/Y only for “Tổng tiền (Bằng số)” value. */
+  totalAmountOffsetX: number;
+  totalAmountOffsetY: number;
 };
 
 export const DEFAULT_PRINTER_PROFILE: PrinterProfile = {
@@ -86,9 +108,13 @@ export const DEFAULT_PRINTER_PROFILE: PrinterProfile = {
   offsetX: 0,
   offsetY: 0,
   scale: 1,
+  amountInWordsOffsetX: 0,
+  amountInWordsOffsetY: 0,
+  totalAmountOffsetX: 0,
+  totalAmountOffsetY: 0,
 };
 
-export const PRINT_PROFILE_STORAGE_KEY = "tlkv.invoice.print.gold-certificate.v1";
+export const PRINT_PROFILE_STORAGE_KEY = "tlkv.invoice.print.gold-certificate.v2";
 
 export type InvoicePrintPayload = {
   customerName: string;
@@ -119,7 +145,7 @@ export function createTestPrintPayload(): InvoicePrintPayload {
   return {
     customerName: "TEST CUSTOMER",
     citizenId: "012345678901",
-    address: "01 Nguyen Hue, Q1, TP.HCM",
+    address: "Thôn Phú Mỹ, Xã Ba Vì, Thành phố Hà Nội, Việt Nam",
     phone: "0901234567",
     birthDate: "01/01/1990",
     day: "01",

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, Plus, XCircle } from "@phosphor-icons/react";
+import { Check, FileXls, Plus, XCircle } from "@phosphor-icons/react";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { downloadCsv } from "@/shared/lib/csv";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
   approveStockCount,
@@ -35,6 +36,8 @@ export function StockCountWorkspace({
   const [scopeType, setScopeType] = useState<"ALL" | "CATEGORY">("ALL");
   const [scopeValue, setScopeValue] = useState("");
   const [rejectReason, setRejectReason] = useState("");
+  const [itemQuery, setItemQuery] = useState("");
+  const [itemBrand, setItemBrand] = useState("");
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -46,6 +49,34 @@ export function StockCountWorkspace({
     () => Object.fromEntries(categories.map((category) => [category.id, category.name])),
     [categories],
   );
+
+  const brandOptions = useMemo(() => {
+    if (!session) return [] as string[];
+    return Array.from(
+      new Set(
+        session.items
+          .map((line) => line.brandName)
+          .filter((name): name is string => Boolean(name && name.trim())),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [session]);
+
+  const filteredItems = useMemo(() => {
+    if (!session) return [];
+    const q = itemQuery.trim().toLowerCase();
+    return session.items.filter((line) => {
+      const brandOk =
+        !itemBrand ||
+        (itemBrand === "__none__" ? !line.brandName : line.brandName === itemBrand);
+      if (!brandOk) return false;
+      if (!q) return true;
+      return (
+        line.name.toLowerCase().includes(q) ||
+        line.sku.toLowerCase().includes(q) ||
+        (line.brandName ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [session, itemQuery, itemBrand]);
 
   function formatScope(scopeType: string, scopeValue: string | null) {
     if (scopeType === "ALL") return "Toàn kho";
@@ -59,6 +90,8 @@ export function StockCountWorkspace({
   function openSession(id: string) {
     startTransition(async () => {
       try {
+        setItemQuery("");
+        setItemBrand("");
         setSession(await getStockCount(id));
       } catch (err) {
         setAlert({
@@ -68,6 +101,34 @@ export function StockCountWorkspace({
         });
       }
     });
+  }
+
+  function exportFilteredExcel() {
+    if (!session) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      `kiem-ke-${session.countNo}-${stamp}.csv`,
+      [
+        "Mã phiên",
+        "SKU",
+        "Tên sản phẩm",
+        "Thương hiệu",
+        "Tồn hệ thống",
+        "Thực tế",
+        "Lệch",
+        "Trạng thái dòng",
+      ],
+      filteredItems.map((line) => [
+        session.countNo,
+        line.sku,
+        line.name,
+        line.brandName || "Không brand",
+        line.systemQty,
+        line.actualQty ?? "",
+        line.difference ?? "",
+        LINE_STATUS_LABEL[line.lineStatus],
+      ]),
+    );
   }
 
   return (
@@ -129,6 +190,8 @@ export function StockCountWorkspace({
                       scopeType,
                       scopeValue: scopeType === "CATEGORY" ? scopeValue : null,
                     });
+                    setItemQuery("");
+                    setItemBrand("");
                     setSession(created);
                     setCreating(false);
                     await refreshList();
@@ -203,6 +266,14 @@ export function StockCountWorkspace({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={exportFilteredExcel}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium"
+              >
+                <FileXls size={14} />
+                Xuất Excel
+              </button>
               {canSubmit ? (
                 <button
                   type="button"
@@ -297,11 +368,37 @@ export function StockCountWorkspace({
             <SummaryCard label="Chưa nhập" value={session.summary.pendingCount} />
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              value={itemQuery}
+              onChange={(event) => setItemQuery(event.target.value)}
+              placeholder="Lọc theo tên / mã sản phẩm..."
+              className="h-9 min-w-[220px] flex-1 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            />
+            <select
+              value={itemBrand}
+              onChange={(event) => setItemBrand(event.target.value)}
+              className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            >
+              <option value="">Tất cả thương hiệu</option>
+              <option value="__none__">Không brand</option>
+              {brandOptions.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
+            <p className="flex h-9 items-center text-[12px] text-[var(--tlkv-muted)]">
+              Hiển thị {filteredItems.length}/{session.items.length} dòng
+            </p>
+          </div>
+
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead className="text-[12px] text-[var(--tlkv-muted)]">
                 <tr className="border-b border-[var(--tlkv-line)]">
                   <th className="py-2 font-medium">Mã hàng</th>
+                  <th className="py-2 font-medium">Thương hiệu</th>
                   <th className="py-2 font-medium">Tồn hệ thống</th>
                   <th className="py-2 font-medium">Thực tế</th>
                   <th className="py-2 font-medium">Lệch</th>
@@ -309,46 +406,59 @@ export function StockCountWorkspace({
                 </tr>
               </thead>
               <tbody>
-                {session.items.map((line) => (
-                  <tr key={line.id} className="border-b border-[var(--tlkv-line)]">
-                    <td className="py-2.5">
-                      <p className="font-medium">{line.name}</p>
-                      <p className="text-[12px] text-[var(--tlkv-muted)]">{line.sku}</p>
-                    </td>
-                    <td className="py-2.5">{line.systemQty}</td>
-                    <td className="py-2.5">
-                      {canEdit ? (
-                        <input
-                          type="number"
-                          min={0}
-                          defaultValue={line.actualQty ?? ""}
-                          onBlur={(event) => {
-                            const value = Number(event.target.value);
-                            if (Number.isNaN(value) || value < 0) return;
-                            startTransition(async () => {
-                              try {
-                                setSession(await updateStockCountItem(session.id, line.skuId, value));
-                              } catch (err) {
-                                setAlert({
-                                  tone: "error",
-                                  title: "Không lưu được số liệu",
-                                  reason: err instanceof Error ? err.message : "Lỗi",
-                                });
-                              }
-                            });
-                          }}
-                          className="h-8 w-20 rounded-md border border-[var(--tlkv-line)] px-2"
-                        />
-                      ) : (
-                        (line.actualQty ?? "—")
-                      )}
-                    </td>
-                    <td className="py-2.5">{line.difference ?? "—"}</td>
-                    <td className="py-2.5">
-                      <LineBadge status={line.lineStatus} />
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-[var(--tlkv-muted)]">
+                      Không có dòng khớp bộ lọc.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredItems.map((line) => (
+                    <tr key={line.id} className="border-b border-[var(--tlkv-line)]">
+                      <td className="py-2.5">
+                        <p className="font-medium">{line.name}</p>
+                        <p className="text-[12px] text-[var(--tlkv-muted)]">{line.sku}</p>
+                      </td>
+                      <td className="py-2.5 text-[var(--tlkv-muted)]">
+                        {line.brandName || "Không brand"}
+                      </td>
+                      <td className="py-2.5">{line.systemQty}</td>
+                      <td className="py-2.5">
+                        {canEdit ? (
+                          <input
+                            type="number"
+                            min={0}
+                            defaultValue={line.actualQty ?? ""}
+                            onBlur={(event) => {
+                              const value = Number(event.target.value);
+                              if (Number.isNaN(value) || value < 0) return;
+                              startTransition(async () => {
+                                try {
+                                  setSession(
+                                    await updateStockCountItem(session.id, line.skuId, value),
+                                  );
+                                } catch (err) {
+                                  setAlert({
+                                    tone: "error",
+                                    title: "Không lưu được số liệu",
+                                    reason: err instanceof Error ? err.message : "Lỗi",
+                                  });
+                                }
+                              });
+                            }}
+                            className="h-8 w-20 rounded-md border border-[var(--tlkv-line)] px-2"
+                          />
+                        ) : (
+                          (line.actualQty ?? "—")
+                        )}
+                      </td>
+                      <td className="py-2.5">{line.difference ?? "—"}</td>
+                      <td className="py-2.5">
+                        <LineBadge status={line.lineStatus} />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

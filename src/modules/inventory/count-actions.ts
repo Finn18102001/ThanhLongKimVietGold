@@ -39,10 +39,39 @@ function mapSession(raw: Record<string, unknown>): StockCountSession {
       skuId: String(item.sku_id),
       sku: String(item.sku),
       name: String(item.name),
+      brandName: item.brand_name == null ? null : String(item.brand_name),
       systemQty: Number(item.system_qty),
       actualQty: item.actual_qty === null ? null : Number(item.actual_qty),
       difference: item.difference === null ? null : Number(item.difference),
       lineStatus: item.line_status as StockCountSession["items"][number]["lineStatus"],
+    })),
+  };
+}
+
+async function withBrandNames(session: StockCountSession): Promise<StockCountSession> {
+  if (session.items.length === 0) return session;
+  const supabase = await createServerSupabase();
+  const skuIds = session.items.map((item) => item.skuId);
+  const { data, error } = await supabase
+    .from("pos_skus")
+    .select("id, brands(name)")
+    .in("id", skuIds);
+  if (error || !data) return session;
+
+  const brandBySku = new Map<string, string | null>();
+  for (const row of data as Array<{
+    id: string;
+    brands?: { name: string } | { name: string }[] | null;
+  }>) {
+    const brand = Array.isArray(row.brands) ? row.brands[0] : row.brands;
+    brandBySku.set(row.id, brand?.name ?? null);
+  }
+
+  return {
+    ...session,
+    items: session.items.map((item) => ({
+      ...item,
+      brandName: brandBySku.get(item.skuId) ?? item.brandName ?? null,
     })),
   };
 }
@@ -80,7 +109,7 @@ export async function getStockCount(id: string): Promise<StockCountSession> {
   const { data, error } = await supabase.rpc("pos_get_stock_count", { p_id: id });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Không tìm thấy phiên kiểm kê.");
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
 
 export async function createStockCount(input: {
@@ -98,7 +127,7 @@ export async function createStockCount(input: {
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
 
 export async function updateStockCountItem(countId: string, skuId: string, actualQty: number) {
@@ -110,7 +139,7 @@ export async function updateStockCountItem(countId: string, skuId: string, actua
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
 
 export async function submitStockCount(countId: string) {
@@ -118,7 +147,7 @@ export async function submitStockCount(countId: string) {
   const { data, error } = await supabase.rpc("pos_submit_stock_count", { p_count_id: countId });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
 
 export async function approveStockCount(countId: string) {
@@ -127,7 +156,7 @@ export async function approveStockCount(countId: string) {
   if (error) throw new Error(error.message);
   revalidateCount();
   revalidatePath("/inventory/history");
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
 
 export async function rejectStockCount(countId: string, reason: string) {
@@ -138,5 +167,5 @@ export async function rejectStockCount(countId: string, reason: string) {
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return mapSession(data as Record<string, unknown>);
+  return withBrandNames(mapSession(data as Record<string, unknown>));
 }
