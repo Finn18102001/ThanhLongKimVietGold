@@ -8,10 +8,12 @@ import type {
   CustomerDetail,
   CustomerDirectoryStats,
   CustomerDocument,
+  CustomerDocumentUploadResult,
   CustomerHistoryItem,
   CustomerInput,
   CustomerListPage,
   CustomerRecord,
+  CustomerSaveResult,
   CustomerSort,
 } from "./types";
 import { mapCustomer, mapCustomerDetail, mapCustomerDirectoryStats, mapCustomerList, mapHistory } from "./map";
@@ -209,30 +211,30 @@ export async function listCustomerActivity(
   );
 }
 
-export async function createCustomer(input: CustomerInput): Promise<CustomerRecord> {
+export async function createCustomer(input: CustomerInput): Promise<CustomerSaveResult> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_create_customer", customerArgs(input));
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, message: error.message };
+  const payload = data as { customer?: Parameters<typeof mapCustomer>[0] } | null;
+  if (!payload?.customer) return { ok: false, message: "Phản hồi tạo khách không hợp lệ" };
   revalidateCustomerViews();
-  const payload = data as { customer?: Parameters<typeof mapCustomer>[0] };
-  if (!payload.customer) throw new Error("Phản hồi tạo khách không hợp lệ");
-  return mapCustomer(payload.customer);
+  return { ok: true, customer: mapCustomer(payload.customer) };
 }
 
 export async function updateCustomer(
   id: string,
   input: CustomerInput,
-): Promise<CustomerRecord> {
+): Promise<CustomerSaveResult> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_update_customer", {
     p_id: id,
     ...customerArgs(input),
   });
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, message: error.message };
+  const payload = data as { customer?: Parameters<typeof mapCustomer>[0] } | null;
+  if (!payload?.customer) return { ok: false, message: "Phản hồi cập nhật khách không hợp lệ" };
   revalidateCustomerViews();
-  const payload = data as { customer?: Parameters<typeof mapCustomer>[0] };
-  if (!payload.customer) throw new Error("Phản hồi cập nhật khách không hợp lệ");
-  return mapCustomer(payload.customer);
+  return { ok: true, customer: mapCustomer(payload.customer) };
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
@@ -251,49 +253,44 @@ async function createCccdSignedUrl(storagePath: string): Promise<string | null> 
   return data.signedUrl;
 }
 
-export async function uploadCustomerCccd(formData: FormData): Promise<CustomerDocument> {
-  const customerId = String(formData.get("customerId") || "").trim();
-  const documentType = String(formData.get("documentType") || "").trim() as CccdDocumentType;
-  const rawFile = formData.get("file");
+export async function uploadCustomerCccd(
+  formData: FormData,
+): Promise<CustomerDocumentUploadResult> {
+  try {
+    const customerId = String(formData.get("customerId") || "").trim();
+    const documentType = String(formData.get("documentType") || "").trim() as CccdDocumentType;
+    const rawFile = formData.get("file");
 
-  if (!customerId) throw new Error("Thiếu mã khách hàng");
-  if (documentType !== "CCCD_FRONT" && documentType !== "CCCD_BACK") {
-    throw new Error("Loại ảnh CCCD không hợp lệ");
-  }
-  if (!rawFile || typeof rawFile === "string") throw new Error("Không có file ảnh");
+    if (!customerId) return { ok: false, message: "Thiếu mã khách hàng" };
+    if (documentType !== "CCCD_FRONT" && documentType !== "CCCD_BACK") {
+      return { ok: false, message: "Loại ảnh CCCD không hợp lệ" };
+    }
+    if (!rawFile || typeof rawFile === "string") {
+      return { ok: false, message: "Không có file ảnh" };
+    }
 
-  const file = rawFile as File;
-  const fileSize = typeof file.size === "number" ? file.size : 0;
-  if (fileSize <= 0) throw new Error("File ảnh trống");
-  if (fileSize > 10 * 1024 * 1024) throw new Error("Ảnh CCCD tối đa 10MB trước khi xử lý");
+    const file = rawFile as File;
+    const fileSize = typeof file.size === "number" ? file.size : 0;
+    if (fileSize <= 0) return { ok: false, message: "File ảnh trống" };
+    if (fileSize > 10 * 1024 * 1024) {
+      return { ok: false, message: "Ảnh CCCD tối đa 10MB trước khi xử lý" };
+    }
 
-  const inputMime = String(file.type || "").toLowerCase();
-  if (
-    inputMime &&
-    !ALLOWED_MIME.has(inputMime) &&
-    inputMime !== "image/jpg" &&
-    inputMime !== "application/octet-stream"
-  ) {
-    throw new Error("Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP");
-  }
+    const inputMime = String(file.type || "").toLowerCase();
+    if (
+      inputMime &&
+      !ALLOWED_MIME.has(inputMime) &&
+      inputMime !== "image/jpg" &&
+      inputMime !== "application/octet-stream"
+    ) {
+      return { ok: false, message: "Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP" };
+    }
 
-  const inputBuffer = Buffer.from(await file.arrayBuffer());
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
 
-  // Same Product/News server safety net: sharp re-encode to WebP ≤1200px / ~350KB.
-  const sharp = (await import("sharp")).default;
-  let output = await sharp(inputBuffer, { failOn: "none" })
-    .rotate()
-    .resize({
-      width: 1200,
-      height: 1200,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 82 })
-    .toBuffer();
-
-  if (output.byteLength > 350 * 1024) {
-    output = await sharp(inputBuffer, { failOn: "none" })
+    // Same Product/News server safety net: sharp re-encode to WebP ≤1200px / ~350KB.
+    const sharp = (await import("sharp")).default;
+    let output = await sharp(inputBuffer, { failOn: "none" })
       .rotate()
       .resize({
         width: 1200,
@@ -301,54 +298,79 @@ export async function uploadCustomerCccd(formData: FormData): Promise<CustomerDo
         fit: "inside",
         withoutEnlargement: true,
       })
-      .webp({ quality: 70 })
+      .webp({ quality: 82 })
       .toBuffer();
-  }
 
-  if (output.byteLength > 5 * 1024 * 1024) {
-    throw new Error("Ảnh CCCD sau tối ưu vẫn vượt 5MB");
-  }
+    if (output.byteLength > 350 * 1024) {
+      output = await sharp(inputBuffer, { failOn: "none" })
+        .rotate()
+        .resize({
+          width: 1200,
+          height: 1200,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 70 })
+        .toBuffer();
+    }
 
-  const contentType = "image/webp";
-  const storagePath = `${customerId}/${documentType.toLowerCase()}.webp`;
+    if (output.byteLength > 5 * 1024 * 1024) {
+      return { ok: false, message: "Ảnh CCCD sau tối ưu vẫn vượt 5MB" };
+    }
 
-  const supabase = await createServerSupabase();
-  const { error: uploadError } = await supabase.storage
-    .from(CCCD_BUCKET)
-    .upload(storagePath, output, {
-      contentType,
-      upsert: true,
+    const contentType = "image/webp";
+    const storagePath = `${customerId}/${documentType.toLowerCase()}.webp`;
+
+    const supabase = await createServerSupabase();
+    const { error: uploadError } = await supabase.storage
+      .from(CCCD_BUCKET)
+      .upload(storagePath, output, {
+        contentType,
+        upsert: true,
+      });
+    if (uploadError) return { ok: false, message: uploadError.message };
+
+    const { data, error } = await supabase.rpc("pos_upsert_customer_document", {
+      p_customer_id: customerId,
+      p_document_type: documentType,
+      p_storage_path: storagePath,
+      p_mime_type: contentType,
+      p_byte_size: output.byteLength,
     });
-  if (uploadError) throw new Error(uploadError.message);
+    if (error) return { ok: false, message: error.message };
 
-  const { data, error } = await supabase.rpc("pos_upsert_customer_document", {
-    p_customer_id: customerId,
-    p_document_type: documentType,
-    p_storage_path: storagePath,
-    p_mime_type: contentType,
-    p_byte_size: output.byteLength,
-  });
-  if (error) throw new Error(error.message);
+    const doc = (
+      data as {
+        document: {
+          id: string;
+          document_type: CccdDocumentType;
+          storage_path: string;
+          uploaded_by: string;
+          uploaded_at: string;
+        };
+      }
+    ).document;
 
-  const doc = (data as { document: {
-    id: string;
-    document_type: CccdDocumentType;
-    storage_path: string;
-    uploaded_by: string;
-    uploaded_at: string;
-  } }).document;
-
-  revalidateCustomerViews();
-  return {
-    id: doc.id,
-    documentType: doc.document_type,
-    storagePath: doc.storage_path,
-    mimeType: contentType,
-    byteSize: output.byteLength,
-    uploadedBy: doc.uploaded_by,
-    uploadedAt: doc.uploaded_at,
-    signedUrl: await createCccdSignedUrl(storagePath),
-  };
+    revalidateCustomerViews();
+    return {
+      ok: true,
+      document: {
+        id: doc.id,
+        documentType: doc.document_type,
+        storagePath: doc.storage_path,
+        mimeType: contentType,
+        byteSize: output.byteLength,
+        uploadedBy: doc.uploaded_by,
+        uploadedAt: doc.uploaded_at,
+        signedUrl: await createCccdSignedUrl(storagePath),
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Không tải được ảnh căn cước",
+    };
+  }
 }
 
 export async function auditViewCccd(customerId: string, documentType: CccdDocumentType): Promise<void> {

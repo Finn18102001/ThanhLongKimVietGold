@@ -118,7 +118,8 @@ export function CustomerFormModal({
         formData.set("customerId", customerId);
         formData.set("documentType", type);
         formData.set("file", optimized.file, optimized.file.name);
-        await uploadCustomerCccd(formData);
+        const uploaded = await uploadCustomerCccd(formData);
+        if (!uploaded.ok) return uploaded.message;
       }
       return null;
     } catch (err) {
@@ -142,9 +143,19 @@ export function CustomerFormModal({
     setPending(true);
     const payload = buildPayload();
     try {
-      const saved = persistedId
+      const result = persistedId
         ? await updateCustomer(persistedId, payload)
         : await createCustomer(payload);
+      if (!result.ok) {
+        const mapped = formatCustomerSaveError(result.message);
+        setAlert({
+          tone: "error",
+          title: initial ? mapped.title || "Cập nhật khách thất bại" : mapped.title || "Tạo khách thất bại",
+          reason: mapped.reason,
+        });
+        return;
+      }
+      const saved = result.customer;
       setPersistedId(saved.id);
       const photoError = isBusiness ? null : await uploadPendingPhotos(saved.id);
       if (photoError) {

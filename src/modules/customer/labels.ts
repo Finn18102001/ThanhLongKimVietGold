@@ -93,6 +93,14 @@ export function normalizeCitizenIdInput(raw: string | null | undefined): string 
 
 export function formatCustomerSaveError(message: string): { title: string; reason: string } {
   const text = String(message || "").trim();
+  // Production digests hide Server Action throw messages as React #441 — prefer Result returns.
+  if (/Minified React error #441|Server Components render|digest/i.test(text)) {
+    return {
+      title: "Không lưu được khách hàng",
+      reason:
+        "Máy chủ từ chối lưu (thường do SĐT hoặc CCCD đã tồn tại). Kiểm tra lại số CCCD/SĐT hoặc mở khách đã có.",
+    };
+  }
   if (/CCCD|căn cước/i.test(text)) {
     return {
       title: "Số CCCD đã tồn tại",

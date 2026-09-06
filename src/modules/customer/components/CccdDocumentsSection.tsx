@@ -40,7 +40,11 @@ export function CccdDocumentsSection({
       formData.set("documentType", type);
       formData.set("file", optimized.file, optimized.file.name);
       const saved = await uploadCustomerCccd(formData);
-      const next = documents.filter((doc) => doc.documentType !== type).concat(saved);
+      if (!saved.ok) {
+        setError(saved.message);
+        return;
+      }
+      const next = documents.filter((doc) => doc.documentType !== type).concat(saved.document);
       onUpdated(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được ảnh CCCD");

@@ -110,3 +110,12 @@ export type CustomerInput = {
   businessName?: string | null;
   representativeName?: string | null;
 };
+
+/** Prefer Result over throw — production strips Server Action error messages (React #441). */
+export type CustomerSaveResult =
+  | { ok: true; customer: CustomerRecord }
+  | { ok: false; message: string };
+
+export type CustomerDocumentUploadResult =
+  | { ok: true; document: CustomerDocument }
+  | { ok: false; message: string };
