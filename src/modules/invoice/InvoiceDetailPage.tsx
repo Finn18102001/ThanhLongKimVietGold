@@ -13,7 +13,7 @@ export async function InvoiceDetailPage({ invoiceNo }: { invoiceNo: string }) {
     <InvoiceDetailView
       invoice={invoice}
       isAdmin={session?.role === "ADMIN"}
-      canVoidInvoice={canVoidInvoice}
+      canVoidInvoice={canVoidInvoice && session?.role === "ADMIN"}
     />
   );
 }

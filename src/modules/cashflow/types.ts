@@ -50,6 +50,8 @@ export type CashLedgerRow = {
 export type CashLedgerPage = {
   items: CashLedgerRow[];
   total: number;
+  limit: number;
+  offset: number;
   sumInDong: number;
   sumOutDong: number;
   netDong: number;
@@ -62,6 +64,8 @@ export type CashLedgerFilters = {
   txnType?: string | null;
   direction?: string | null;
   q?: string | null;
+  limit?: number;
+  offset?: number;
 };
 
 export type CapitalGroupRow = {

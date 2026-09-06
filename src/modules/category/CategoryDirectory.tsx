@@ -12,7 +12,13 @@ import {
 import { CategoryFormModal } from "./components/CategoryFormModal";
 import type { CategoryDetail, CategoryRecord } from "./types";
 
-export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
+export function CategoryDirectory({
+  initial,
+  canMutate = true,
+}: {
+  initial: CategoryRecord[];
+  canMutate?: boolean;
+}) {
   const [rows, setRows] = useState(initial);
   const [editing, setEditing] = useState<CategoryDetail | null>(null);
   const [creating, setCreating] = useState(false);
@@ -37,14 +43,20 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
             Nhóm mã hàng dùng trên quầy và kiểm kê. Không thay đổi sản phẩm trên website.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
-        >
-          <Plus size={14} weight="bold" />
-          Thêm danh mục
-        </button>
+        {canMutate ? (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+          >
+            <Plus size={14} weight="bold" />
+            Thêm danh mục
+          </button>
+        ) : (
+          <p className="rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[12px] text-[var(--tlkv-muted)]">
+            Chỉ xem — không thêm/sửa/xóa danh mục.
+          </p>
+        )}
       </div>
 
       {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
@@ -86,33 +98,37 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
                 </td>
                 <td className="py-3">{row.displayOrder}</td>
                 <td className="py-3">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void openEdit(row.id)}
-                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px]"
-                    >
-                      <PencilSimple size={14} />
-                      Sửa
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        startTransition(async () => {
-                          try {
-                            await deleteCategory(row.id);
-                            setRows((current) => current.filter((item) => item.id !== row.id));
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : "Không xóa được");
-                          }
-                        })
-                      }
-                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] text-[var(--tlkv-red)]"
-                    >
-                      <Trash size={14} />
-                      Xóa
-                    </button>
-                  </div>
+                  {canMutate ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void openEdit(row.id)}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px]"
+                      >
+                        <PencilSimple size={14} />
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          startTransition(async () => {
+                            try {
+                              await deleteCategory(row.id);
+                              setRows((current) => current.filter((item) => item.id !== row.id));
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Không xóa được");
+                            }
+                          })
+                        }
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] text-[var(--tlkv-red)]"
+                      >
+                        <Trash size={14} />
+                        Xóa
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-[var(--tlkv-muted)]">Chỉ xem</span>
+                  )}
                 </td>
               </tr>
             ))
@@ -120,7 +136,7 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
         </tbody>
       </table>
 
-      {creating ? (
+      {canMutate && creating ? (
         <CategoryFormModal
           title="Thêm danh mục"
           onClose={() => setCreating(false)}
@@ -147,7 +163,7 @@ export function CategoryDirectory({ initial }: { initial: CategoryRecord[] }) {
         />
       ) : null}
 
-      {editing ? (
+      {canMutate && editing ? (
         <CategoryFormModal
           title="Sửa danh mục"
           initial={editing}

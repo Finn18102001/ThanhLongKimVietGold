@@ -7,12 +7,12 @@ import {
 import { CashflowWorkspace } from "./CashflowWorkspace";
 import type { CapitalSnapshot, CashflowOverview, CashLedgerPage } from "./types";
 import { getPosSession } from "@/shared/auth/session";
-import { roleHomePath } from "@/shared/auth/permissions";
+import { canAdminRead, canMutateAdminData, roleHomePath } from "@/shared/auth/permissions";
 import { redirect } from "next/navigation";
 
 export async function CashflowPage() {
   const session = await getPosSession();
-  if (!session || session.role !== "ADMIN") {
+  if (!session || !canAdminRead(session.role)) {
     redirect(roleHomePath(session?.role ?? "STAFF"));
   }
 
@@ -29,6 +29,8 @@ export async function CashflowPage() {
   const emptyLedger: CashLedgerPage = {
     items: [],
     total: 0,
+    limit: 50,
+    offset: 0,
     sumInDong: 0,
     sumOutDong: 0,
     netDong: 0,
@@ -51,7 +53,7 @@ export async function CashflowPage() {
   }
 
   try {
-    ledger = await getCashLedger({ from, to });
+    ledger = await getCashLedger({ from, to, limit: 50, offset: 0 });
   } catch {
     // Ledger chưa sẵn sàng
   }
@@ -69,6 +71,7 @@ export async function CashflowPage() {
       initialCapital={capital}
       initialFrom={from}
       initialTo={to}
+      canMutate={canMutateAdminData(session.role)}
     />
   );
 }

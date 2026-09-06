@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 type StaffAction =
-  | { action: "create"; fullName: string; email: string; phone?: string | null; role: "ADMIN" | "STAFF"; note?: string | null; password: string }
+  | { action: "create"; fullName: string; email: string; phone?: string | null; role: "ADMIN" | "ADMIN_VIEWER" | "STAFF"; note?: string | null; password: string }
   | { action: "setActive"; id: string; isActive: boolean }
   | { action: "delete"; id: string; deleteAuth?: boolean }
   | { action: "resetPassword"; id: string; password: string };

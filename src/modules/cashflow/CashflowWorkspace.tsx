@@ -4,15 +4,18 @@ import { useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   ArrowsLeftRight,
   Bank,
+  FileXls,
   MagnifyingGlass,
   Minus,
   Money,
   Plus,
   Wallet,
 } from "@phosphor-icons/react";
+import { downloadCsv } from "@/shared/lib/csv";
 import { formatDong } from "@/shared/lib/money";
 import {
   depositCash,
+  exportCashLedger,
   fetchCapitalSnapshot,
   fetchCashflowOverview,
   fetchCashLedger,
@@ -63,18 +66,22 @@ function txnTone(type: CashTxnType): string {
   return "bg-[var(--tlkv-violet-soft)] text-[var(--tlkv-violet)]";
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+
 export function CashflowWorkspace({
   initialOverview,
   initialLedger,
   initialCapital,
   initialFrom,
   initialTo,
+  canMutate = true,
 }: {
   initialOverview: CashflowOverview;
   initialLedger: CashLedgerPage;
   initialCapital: CapitalSnapshot;
   initialFrom: string;
   initialTo: string;
+  canMutate?: boolean;
 }) {
   const [overview, setOverview] = useState(initialOverview);
   const [ledger, setLedger] = useState(initialLedger);
@@ -85,6 +92,8 @@ export function CashflowWorkspace({
   const [txnType, setTxnType] = useState("");
   const [direction, setDirection] = useState("");
   const [q, setQ] = useState("");
+  const [pageSize, setPageSize] = useState(initialLedger.limit || 50);
+  const [offset, setOffset] = useState(initialLedger.offset || 0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [modal, setModal] = useState<ModalKind>(null);
@@ -94,27 +103,101 @@ export function CashflowWorkspace({
     [overview.cash, overview.bank],
   );
 
-  function refreshAll(nextFrom = from, nextTo = to) {
+  const currentPage = Math.floor(offset / pageSize) + 1;
+  const pageCount = Math.max(1, Math.ceil(ledger.total / pageSize));
+
+  function ledgerFilters(nextOffset = offset, nextLimit = pageSize) {
+    return {
+      from,
+      to,
+      accountId: accountId || null,
+      txnType: txnType || null,
+      direction: direction || null,
+      q: q || null,
+      limit: nextLimit,
+      offset: nextOffset,
+    };
+  }
+
+  function refreshAll(nextFrom = from, nextTo = to, nextOffset = 0) {
     startTransition(async () => {
       try {
         const [nextOverview, nextLedger, nextCapital] = await Promise.all([
           fetchCashflowOverview(),
           fetchCashLedger({
+            ...ledgerFilters(nextOffset, pageSize),
             from: nextFrom,
             to: nextTo,
-            accountId: accountId || null,
-            txnType: txnType || null,
-            direction: direction || null,
-            q: q || null,
           }),
           fetchCapitalSnapshot(),
         ]);
         setOverview(nextOverview);
         setLedger(nextLedger);
         setCapital(nextCapital);
+        setOffset(nextOffset);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được dòng tiền");
+      }
+    });
+  }
+
+  function loadLedgerPage(nextOffset: number, nextLimit = pageSize) {
+    startTransition(async () => {
+      try {
+        const nextLedger = await fetchCashLedger(ledgerFilters(nextOffset, nextLimit));
+        setLedger(nextLedger);
+        setOffset(nextOffset);
+        setPageSize(nextLimit);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Không tải được lịch sử");
+      }
+    });
+  }
+
+  function exportExcel() {
+    startTransition(async () => {
+      try {
+        const exported = await exportCashLedger({
+          from,
+          to,
+          accountId: accountId || null,
+          txnType: txnType || null,
+          direction: direction || null,
+          q: q || null,
+        });
+        const stamp = new Date().toISOString().slice(0, 10);
+        downloadCsv(
+          `dong-tien-${from}_${to}-${stamp}.csv`,
+          [
+            "Thời gian",
+            "Loại giao dịch",
+            "Hướng",
+            "Số tiền",
+            "Số dư sau",
+            "Nội dung",
+            "Tài khoản",
+            "Mã TK",
+            "Tham chiếu",
+            "Người thực hiện",
+          ],
+          exported.items.map((row) => [
+            formatDateTime(row.occurredAt),
+            TXN_TYPE_LABEL[row.txnType] ?? row.txnType,
+            row.direction === "IN" ? "Thu" : "Chi",
+            row.amountDong,
+            row.balanceAfterDong,
+            row.content,
+            row.accountName,
+            row.accountCode,
+            row.referenceCode ?? "",
+            row.actorEmail,
+          ]),
+        );
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Không xuất được Excel");
       }
     });
   }
@@ -128,32 +211,38 @@ export function CashflowWorkspace({
             Theo dõi tiền mặt, ngân hàng, thu/chi và vốn hàng hóa. Số liệu lấy từ giao dịch thực tế.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setModal("deposit")}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
-          >
-            <Plus size={14} weight="bold" />
-            Nạp tiền
-          </button>
-          <button
-            type="button"
-            onClick={() => setModal("withdraw")}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-semibold"
-          >
-            <Minus size={14} weight="bold" />
-            Rút tiền
-          </button>
-          <button
-            type="button"
-            onClick={() => setModal("transfer")}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-semibold"
-          >
-            <ArrowsLeftRight size={14} weight="bold" />
-            Chuyển tiền
-          </button>
-        </div>
+        {canMutate ? (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setModal("deposit")}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+            >
+              <Plus size={14} weight="bold" />
+              Nạp tiền
+            </button>
+            <button
+              type="button"
+              onClick={() => setModal("withdraw")}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-semibold"
+            >
+              <Minus size={14} weight="bold" />
+              Rút tiền
+            </button>
+            <button
+              type="button"
+              onClick={() => setModal("transfer")}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-semibold"
+            >
+              <ArrowsLeftRight size={14} weight="bold" />
+              Chuyển tiền
+            </button>
+          </div>
+        ) : (
+          <p className="rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[12px] text-[var(--tlkv-muted)]">
+            Tài khoản chỉ xem — không nạp/rút/chuyển quỹ.
+          </p>
+        )}
       </div>
 
       {error ? <p className="text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
@@ -252,10 +341,19 @@ export function CashflowWorkspace({
             <button
               type="button"
               disabled={pending}
-              onClick={() => refreshAll()}
+              onClick={() => refreshAll(from, to, 0)}
               className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
             >
               Lọc
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => exportExcel()}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-semibold disabled:opacity-60"
+            >
+              <FileXls size={14} />
+              Xuất Excel
             </button>
           </div>
         </div>
@@ -324,10 +422,45 @@ export function CashflowWorkspace({
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-[12px] text-[var(--tlkv-muted)]">
-          Hiển thị {ledger.items.length}/{ledger.total} giao dịch. Chuyển tiền nội bộ không tính vào
-          tổng thu/chi.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--tlkv-muted)]">
+          <p>
+            Trang {currentPage}/{pageCount} · {ledger.total} giao dịch. Chuyển tiền nội bộ không tính
+            vào tổng thu/chi.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5">
+              <span>Số dòng/trang</span>
+              <select
+                value={pageSize}
+                disabled={pending}
+                onChange={(e) => loadLedgerPage(0, Number(e.target.value))}
+                className="h-8 rounded-lg border border-[var(--tlkv-line)] px-2 text-[12px]"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              disabled={pending || currentPage <= 1}
+              onClick={() => loadLedgerPage(Math.max(0, offset - pageSize))}
+              className="h-8 rounded-lg border border-[var(--tlkv-line)] px-2 disabled:opacity-40"
+            >
+              Trước
+            </button>
+            <button
+              type="button"
+              disabled={pending || currentPage >= pageCount}
+              onClick={() => loadLedgerPage(offset + pageSize)}
+              className="h-8 rounded-lg border border-[var(--tlkv-line)] px-2 disabled:opacity-40"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">

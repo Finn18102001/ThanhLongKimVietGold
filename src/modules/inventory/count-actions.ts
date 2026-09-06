@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assertAdminWrite } from "@/shared/auth/assert";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type { StockCountListRow, StockCountSession } from "./count-types";
 
@@ -118,6 +119,7 @@ export async function createStockCount(input: {
   scopeValue?: string | null;
   note?: string;
 }) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_create_stock_count", {
     p_warehouse: input.warehouse ?? "MAIN",
@@ -131,6 +133,7 @@ export async function createStockCount(input: {
 }
 
 export async function updateStockCountItem(countId: string, skuId: string, actualQty: number) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_update_stock_count_item", {
     p_count_id: countId,
@@ -143,6 +146,7 @@ export async function updateStockCountItem(countId: string, skuId: string, actua
 }
 
 export async function submitStockCount(countId: string) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_submit_stock_count", { p_count_id: countId });
   if (error) throw new Error(error.message);
@@ -151,6 +155,7 @@ export async function submitStockCount(countId: string) {
 }
 
 export async function approveStockCount(countId: string) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_approve_stock_count", { p_count_id: countId });
   if (error) throw new Error(error.message);
@@ -160,6 +165,7 @@ export async function approveStockCount(countId: string) {
 }
 
 export async function rejectStockCount(countId: string, reason: string) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_reject_stock_count", {
     p_count_id: countId,

@@ -45,7 +45,7 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export function navForRole(role: StaffRole): { main: NavItem[]; admin: NavItem[] } {
-  if (role === "ADMIN") {
+  if (role === "ADMIN" || role === "ADMIN_VIEWER") {
     return { main: MAIN_NAV, admin: ADMIN_NAV };
   }
 

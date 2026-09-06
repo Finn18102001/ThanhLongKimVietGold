@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assertAdminWrite } from "@/shared/auth/assert";
 import { createServerSupabase } from "@/shared/supabase/server";
 
 function revalidateInventory() {
@@ -14,6 +15,7 @@ function revalidateInventory() {
 }
 
 export async function receivePurchase(formData: FormData) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const receivedQty = Number(formData.get("received_qty") ?? 0);
   const costPriceDong = Number(formData.get("cost_price_dong") ?? "");
@@ -162,6 +164,7 @@ export async function exportLedger(input: {
 }
 
 export async function adjustStock(formData: FormData) {
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const quantity = Number(formData.get("quantity") ?? 0);
   const { data, error } = await supabase.rpc("pos_adjust_stock", {

@@ -1,9 +1,12 @@
+import { getPosSession } from "@/shared/auth/session";
+import { canMutateAdminData } from "@/shared/auth/permissions";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { listStockCounts } from "./count-actions";
 import { StockCountWorkspace } from "./components/StockCountWorkspace";
 import type { StockCountListRow } from "./count-types";
 
 export async function CountPage() {
+  const session = await getPosSession();
   const supabase = await createServerSupabase();
   let initialList: { items: StockCountListRow[]; total: number } = { items: [], total: 0 };
   let categories: Array<{ id: string; name: string }> = [];
@@ -17,5 +20,11 @@ export async function CountPage() {
     // Migration chưa apply — UI vẫn render với danh sách rỗng.
   }
 
-  return <StockCountWorkspace initialList={initialList} categories={categories} />;
+  return (
+    <StockCountWorkspace
+      initialList={initialList}
+      categories={categories}
+      canMutate={session ? canMutateAdminData(session.role) : false}
+    />
+  );
 }

@@ -1,4 +1,4 @@
-export const STAFF_ROLES = ["ADMIN", "STAFF"] as const;
+export const STAFF_ROLES = ["ADMIN", "ADMIN_VIEWER", "STAFF"] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 

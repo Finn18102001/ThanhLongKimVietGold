@@ -26,9 +26,11 @@ type CategoryOption = { id: string; name: string };
 export function StockCountWorkspace({
   initialList,
   categories,
+  canMutate = true,
 }: {
   initialList: { items: StockCountListRow[]; total: number };
   categories: CategoryOption[];
+  canMutate?: boolean;
 }) {
   const [list, setList] = useState(initialList);
   const [session, setSession] = useState<StockCountSession | null>(null);
@@ -41,9 +43,10 @@ export function StockCountWorkspace({
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const canEdit = session?.status === "COUNTING" || session?.status === "DRAFT";
+  const canEdit =
+    canMutate && (session?.status === "COUNTING" || session?.status === "DRAFT");
   const canSubmit = canEdit && (session?.summary.pendingCount ?? 0) === 0;
-  const canApprove = session?.status === "PENDING_APPROVAL";
+  const canApprove = canMutate && session?.status === "PENDING_APPROVAL";
 
   const categoryNameById = useMemo(
     () => Object.fromEntries(categories.map((category) => [category.id, category.name])),
@@ -142,17 +145,23 @@ export function StockCountWorkspace({
               chênh lệch.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setCreating((value) => !value)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
-          >
-            <Plus size={14} weight="bold" />
-            Tạo phiên kiểm kê
-          </button>
+          {canMutate ? (
+            <button
+              type="button"
+              onClick={() => setCreating((value) => !value)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+            >
+              <Plus size={14} weight="bold" />
+              Tạo phiên kiểm kê
+            </button>
+          ) : (
+            <p className="rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[12px] text-[var(--tlkv-muted)]">
+              Chỉ xem — không tạo/duyệt kiểm kê.
+            </p>
+          )}
         </div>
 
-        {creating ? (
+        {canMutate && creating ? (
           <div className="mt-4 grid grid-cols-1 gap-2 rounded-lg border border-[var(--tlkv-line)] p-3 md:grid-cols-4">
             <select
               value={scopeType}

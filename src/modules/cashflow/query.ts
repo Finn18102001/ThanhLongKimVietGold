@@ -53,6 +53,8 @@ export async function getCashflowOverview(): Promise<CashflowOverview> {
 
 export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLedgerPage> {
   const supabase = await createServerSupabase();
+  const limit = Math.min(Math.max(filters.limit ?? 50, 1), 5000);
+  const offset = Math.max(filters.offset ?? 0, 0);
   const { data, error } = await supabase.rpc("pos_cashflow_list", {
     p_from: filters.from,
     p_to: filters.to,
@@ -60,8 +62,8 @@ export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLed
     p_txn_type: filters.txnType || null,
     p_direction: filters.direction || null,
     p_q: filters.q || null,
-    p_limit: 100,
-    p_offset: 0,
+    p_limit: limit,
+    p_offset: offset,
   });
   if (error) throw new Error(error.message);
   const raw = data as Record<string, unknown>;
@@ -83,6 +85,8 @@ export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLed
   return {
     items,
     total: Number(raw.total ?? 0),
+    limit,
+    offset,
     sumInDong: Number(raw.sumInDong ?? 0),
     sumOutDong: Number(raw.sumOutDong ?? 0),
     netDong: Number(raw.netDong ?? 0),

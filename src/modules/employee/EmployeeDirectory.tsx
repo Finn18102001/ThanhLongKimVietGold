@@ -10,7 +10,13 @@ import type { StaffListPage, StaffRecord, StaffRole } from "./types";
 import { STAFF_ROLES } from "./types";
 import { EmployeeFormModal } from "./components/EmployeeFormModal";
 
-export function EmployeeDirectory({ initial }: { initial: StaffListPage }) {
+export function EmployeeDirectory({
+  initial,
+  canMutate = true,
+}: {
+  initial: StaffListPage;
+  canMutate?: boolean;
+}) {
   const [page, setPage] = useState(initial);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"" | StaffRole>("");
@@ -89,18 +95,24 @@ export function EmployeeDirectory({ initial }: { initial: StaffListPage }) {
           <div>
             <h1 className="text-[18px] font-semibold">Nhân viên</h1>
             <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-              Tạo tài khoản, gán vai trò Quản trị / Nhân viên, bật tắt và đổi mật khẩu. Chỉ quản trị
-              mới truy cập được mục này.
+              Tạo tài khoản, gán vai trò Quản trị / Quản trị chỉ xem / Nhân viên, bật tắt và đổi mật
+              khẩu. Chỉ quản trị đầy đủ mới được chỉnh sửa.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
-          >
-            <Plus size={14} weight="bold" />
-            Thêm nhân viên
-          </button>
+          {canMutate ? (
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+            >
+              <Plus size={14} weight="bold" />
+              Thêm nhân viên
+            </button>
+          ) : (
+            <p className="rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[12px] text-[var(--tlkv-muted)]">
+              Chỉ xem — không tạo/sửa nhân viên.
+            </p>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
@@ -163,7 +175,7 @@ export function EmployeeDirectory({ initial }: { initial: StaffListPage }) {
         </div>
         <div className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] sm:col-span-1 col-span-2">
           <p className="text-[12px] text-[var(--tlkv-muted)]">Vai trò</p>
-          <p className="mt-1 text-[13px] font-medium">Quản trị / Nhân viên</p>
+          <p className="mt-1 text-[13px] font-medium">Quản trị / Chỉ xem / Nhân viên</p>
         </div>
       </section>
 
@@ -229,39 +241,43 @@ export function EmployeeDirectory({ initial }: { initial: StaffListPage }) {
                       {formatViDateOnly(row.updatedAt)}
                     </td>
                     <td className="py-3">
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditing(row)}
-                          className="h-8 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          type="button"
-                          title="Đổi mật khẩu"
-                          onClick={() => setPasswordFor(row)}
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                        >
-                          <Key size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          title={row.isActive ? "Tắt" : "Bật"}
-                          onClick={() => void toggleActive(row)}
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                        >
-                          {row.isActive ? <Prohibit size={14} /> : <UserCheck size={14} />}
-                        </button>
-                        <button
-                          type="button"
-                          title="Xóa"
-                          onClick={() => void removeStaff(row)}
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)]"
-                        >
-                          <Trash size={14} />
-                        </button>
-                      </div>
+                      {canMutate ? (
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditing(row)}
+                            className="h-8 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            type="button"
+                            title="Đổi mật khẩu"
+                            onClick={() => setPasswordFor(row)}
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
+                          >
+                            <Key size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            title={row.isActive ? "Tắt" : "Bật"}
+                            onClick={() => void toggleActive(row)}
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
+                          >
+                            {row.isActive ? <Prohibit size={14} /> : <UserCheck size={14} />}
+                          </button>
+                          <button
+                            type="button"
+                            title="Xóa"
+                            onClick={() => void removeStaff(row)}
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)]"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-[var(--tlkv-muted)]">Chỉ xem</span>
+                      )}
                     </td>
                   </tr>
                 ))

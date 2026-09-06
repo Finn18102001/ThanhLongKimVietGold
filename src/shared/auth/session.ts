@@ -24,7 +24,10 @@ export async function getPosSession(): Promise<PosSession | null> {
     is_shared?: boolean;
   };
 
-  const role = row.role === "STAFF" || row.role === "ADMIN" ? row.role : null;
+  const role =
+    row.role === "STAFF" || row.role === "ADMIN" || row.role === "ADMIN_VIEWER"
+      ? row.role
+      : null;
   if (!role || !row.email) return null;
 
   return {

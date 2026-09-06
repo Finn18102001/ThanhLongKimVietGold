@@ -1,6 +1,8 @@
 "use server";
 
 import { getPosSession } from "@/shared/auth/session";
+import { assertAdminRead, assertAdminWrite } from "@/shared/auth/assert";
+import { canAdminRead } from "@/shared/auth/permissions";
 import { createServerSupabase } from "@/shared/supabase/server";
 import {
   defaultCashflowRange,
@@ -10,26 +12,36 @@ import {
 } from "./query";
 import type { CashLedgerFilters } from "./types";
 
-async function assertCashflowAdmin() {
+async function assertCashflowRead() {
   const session = await getPosSession();
-  if (!session || session.role !== "ADMIN") {
-    throw new Error("Chỉ quản trị mới được thao tác dòng tiền.");
+  if (!session || !canAdminRead(session.role)) {
+    throw new Error("Không có quyền xem dòng tiền.");
   }
+  return session;
 }
 
 export async function fetchCashflowOverview() {
-  await assertCashflowAdmin();
+  await assertCashflowRead();
   return getCashflowOverview();
 }
 
 export async function fetchCashLedger(filters: CashLedgerFilters) {
-  await assertCashflowAdmin();
+  await assertCashflowRead();
   return getCashLedger(filters);
 }
 
 export async function fetchCapitalSnapshot() {
-  await assertCashflowAdmin();
+  await assertCashflowRead();
   return getCapitalSnapshot();
+}
+
+export async function exportCashLedger(filters: Omit<CashLedgerFilters, "limit" | "offset">) {
+  await assertAdminRead();
+  return getCashLedger({
+    ...filters,
+    limit: 5000,
+    offset: 0,
+  });
 }
 
 function newIdempotencyKey(prefix: string) {
@@ -41,7 +53,7 @@ export async function depositCash(input: {
   amountDong: number;
   content: string;
 }) {
-  await assertCashflowAdmin();
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_cashflow_deposit", {
     p_idempotency_key: newIdempotencyKey("dep"),
@@ -58,7 +70,7 @@ export async function withdrawCash(input: {
   amountDong: number;
   content: string;
 }) {
-  await assertCashflowAdmin();
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_cashflow_withdraw", {
     p_idempotency_key: newIdempotencyKey("wd"),
@@ -76,7 +88,7 @@ export async function transferCash(input: {
   amountDong: number;
   content: string;
 }) {
-  await assertCashflowAdmin();
+  await assertAdminWrite();
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_cashflow_transfer", {
     p_idempotency_key: newIdempotencyKey("tf"),
