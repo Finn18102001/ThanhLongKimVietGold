@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
+import { downloadCsv } from "@/shared/lib/csv";
 import { STOCK_STATUS_LABEL } from "../labels";
 import { stockStatus, type StockFilter, type StockRow } from "../types";
 
@@ -56,10 +57,55 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
   const safePage = Math.min(page, pageCount - 1);
   const pageRows = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
+  function onExportExcel() {
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      `ton-kho-${stamp}.csv`,
+      [
+        "Mã hàng",
+        "Sản phẩm",
+        "Thương hiệu",
+        "Danh mục",
+        "SL tồn",
+        "TL / chiếc (chỉ)",
+        "Tổng TL (chỉ)",
+        "Giá hiện tại (đ)",
+        "Giá vốn gần nhất (đ)",
+        "Giá trị tồn (đ)",
+        "Trạng thái",
+      ],
+      filtered.map((row) => {
+        const status = stockStatus(row.quantity);
+        const value = row.unitPriceDong === null ? null : row.unitPriceDong * row.quantity;
+        return [
+          row.sku,
+          row.name,
+          row.brandName || "Không brand",
+          row.category,
+          row.quantity,
+          row.weightChi,
+          Number((row.quantity * row.weightChi).toFixed(4)),
+          row.unitPriceDong,
+          row.lastCostDong,
+          value,
+          STOCK_STATUS_LABEL[status],
+        ];
+      }),
+    );
+  }
+
   return (
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold">Tồn kho hiện tại</h2>
+        <button
+          type="button"
+          onClick={onExportExcel}
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium hover:bg-[var(--tlkv-bg)]"
+        >
+          <DownloadSimple size={15} weight="bold" />
+          Xuất Excel
+        </button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {TABS.map((item) => (

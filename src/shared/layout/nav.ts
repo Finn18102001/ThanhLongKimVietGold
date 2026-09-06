@@ -26,7 +26,7 @@ export type NavItem = {
 
 export const MAIN_NAV: NavItem[] = [
   { href: ROUTES.dashboard, label: "Dashboard", icon: House },
-  { href: ROUTES.pos, label: "Bán hàng tại quầy (POS)", icon: Storefront },
+  { href: ROUTES.pos, label: "Bán hàng", icon: Storefront },
   { href: ROUTES.purchase, label: "Mua vào", icon: HandCoins },
   { href: ROUTES.inventory, label: "Kho hàng", icon: Package },
   { href: ROUTES.customers, label: "Khách hàng", icon: Users },

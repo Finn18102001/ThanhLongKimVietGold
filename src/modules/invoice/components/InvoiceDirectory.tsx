@@ -37,7 +37,13 @@ const DOCUMENT_TYPE_OPTIONS: { value: "" | DocumentType; label: string }[] = [
   { value: "STOCK_RECEIPT", label: "Nhập hàng" },
 ];
 
-export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
+export function InvoiceDirectory({
+  initial,
+  canVoidInvoice = false,
+}: {
+  initial: InvoiceListPage;
+  canVoidInvoice?: boolean;
+}) {
   const router = useRouter();
   const [page, setPage] = useState(initial);
   const [query, setQuery] = useState("");
@@ -429,6 +435,7 @@ export function InvoiceDirectory({ initial }: { initial: InvoiceListPage }) {
       {detail ? (
         <InvoiceDrawer
           invoice={detail}
+          canVoidInvoice={canVoidInvoice}
           onClose={() => setDetail(null)}
           onUpdated={(next) => {
             setDetail(next);

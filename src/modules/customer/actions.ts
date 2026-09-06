@@ -251,40 +251,82 @@ async function createCccdSignedUrl(storagePath: string): Promise<string | null> 
   return data.signedUrl;
 }
 
-export async function uploadCustomerCccd(input: {
-  customerId: string;
-  documentType: CccdDocumentType;
-  fileName: string;
-  contentType: string;
-  base64: string;
-}): Promise<CustomerDocument> {
-  if (!ALLOWED_MIME.has(input.contentType)) {
+export async function uploadCustomerCccd(formData: FormData): Promise<CustomerDocument> {
+  const customerId = String(formData.get("customerId") || "").trim();
+  const documentType = String(formData.get("documentType") || "").trim() as CccdDocumentType;
+  const rawFile = formData.get("file");
+
+  if (!customerId) throw new Error("Thiếu mã khách hàng");
+  if (documentType !== "CCCD_FRONT" && documentType !== "CCCD_BACK") {
+    throw new Error("Loại ảnh CCCD không hợp lệ");
+  }
+  if (!rawFile || typeof rawFile === "string") throw new Error("Không có file ảnh");
+
+  const file = rawFile as File;
+  const fileSize = typeof file.size === "number" ? file.size : 0;
+  if (fileSize <= 0) throw new Error("File ảnh trống");
+  if (fileSize > 10 * 1024 * 1024) throw new Error("Ảnh CCCD tối đa 10MB trước khi xử lý");
+
+  const inputMime = String(file.type || "").toLowerCase();
+  if (
+    inputMime &&
+    !ALLOWED_MIME.has(inputMime) &&
+    inputMime !== "image/jpg" &&
+    inputMime !== "application/octet-stream"
+  ) {
     throw new Error("Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP");
   }
 
-  const binary = Buffer.from(input.base64, "base64");
-  if (binary.byteLength === 0) throw new Error("File ảnh trống");
-  if (binary.byteLength > 5 * 1024 * 1024) throw new Error("Ảnh CCCD tối đa 5MB");
+  const inputBuffer = Buffer.from(await file.arrayBuffer());
 
-  const ext =
-    input.contentType === "image/png" ? "png" : input.contentType === "image/webp" ? "webp" : "jpg";
-  const storagePath = `${input.customerId}/${input.documentType.toLowerCase()}.${ext}`;
+  // Same Product/News server safety net: sharp re-encode to WebP ≤1200px / ~350KB.
+  const sharp = (await import("sharp")).default;
+  let output = await sharp(inputBuffer, { failOn: "none" })
+    .rotate()
+    .resize({
+      width: 1200,
+      height: 1200,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82 })
+    .toBuffer();
+
+  if (output.byteLength > 350 * 1024) {
+    output = await sharp(inputBuffer, { failOn: "none" })
+      .rotate()
+      .resize({
+        width: 1200,
+        height: 1200,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 70 })
+      .toBuffer();
+  }
+
+  if (output.byteLength > 5 * 1024 * 1024) {
+    throw new Error("Ảnh CCCD sau tối ưu vẫn vượt 5MB");
+  }
+
+  const contentType = "image/webp";
+  const storagePath = `${customerId}/${documentType.toLowerCase()}.webp`;
 
   const supabase = await createServerSupabase();
   const { error: uploadError } = await supabase.storage
     .from(CCCD_BUCKET)
-    .upload(storagePath, binary, {
-      contentType: input.contentType,
+    .upload(storagePath, output, {
+      contentType,
       upsert: true,
     });
   if (uploadError) throw new Error(uploadError.message);
 
   const { data, error } = await supabase.rpc("pos_upsert_customer_document", {
-    p_customer_id: input.customerId,
-    p_document_type: input.documentType,
+    p_customer_id: customerId,
+    p_document_type: documentType,
     p_storage_path: storagePath,
-    p_mime_type: input.contentType,
-    p_byte_size: binary.byteLength,
+    p_mime_type: contentType,
+    p_byte_size: output.byteLength,
   });
   if (error) throw new Error(error.message);
 
@@ -301,8 +343,8 @@ export async function uploadCustomerCccd(input: {
     id: doc.id,
     documentType: doc.document_type,
     storagePath: doc.storage_path,
-    mimeType: input.contentType,
-    byteSize: binary.byteLength,
+    mimeType: contentType,
+    byteSize: output.byteLength,
     uploadedBy: doc.uploaded_by,
     uploadedAt: doc.uploaded_at,
     signedUrl: await createCccdSignedUrl(storagePath),

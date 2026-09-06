@@ -7,7 +7,8 @@ import type {
 } from "./types";
 
 type RpcHeldItem = {
-  id: string;
+  id?: string;
+  held_order_id?: string;
   hold_no: string;
   status: HeldOrderStatus;
   customer_id: string | null;
@@ -45,7 +46,7 @@ function asObject(data: unknown): Record<string, unknown> {
 
 export function mapHeldOrderListItem(row: RpcHeldItem): HeldOrderListItem {
   return {
-    id: row.id,
+    id: row.id || row.held_order_id || "",
     holdNo: row.hold_no,
     status: row.status,
     customerId: row.customer_id,

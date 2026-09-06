@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, DownloadSimple, EnvelopeSimple, Plus, Printer } from "@phosphor-icons/react";
 import { ROUTES } from "@/shared/navigation/routes";
@@ -44,6 +44,16 @@ export function InvoiceDetailView({
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidPending, startVoid] = useTransition();
+  const savedDocumentTitle = useRef<string | null>(null);
+
+  /** Clear HTML title so Chrome does not print "Thăng Long Kim Việt · Quản lý quầy" (+ date) in header. */
+  function printWithoutBrowserChrome() {
+    if (savedDocumentTitle.current === null) {
+      savedDocumentTitle.current = document.title;
+    }
+    document.title = " ";
+    window.print();
+  }
 
   useEffect(() => {
     setInvoice(initialInvoice);
@@ -58,11 +68,15 @@ export function InvoiceDetailView({
       if (event.key === "F9") {
         event.preventDefault();
         setTestMode(false);
-        window.setTimeout(() => window.print(), 0);
+        window.setTimeout(() => printWithoutBrowserChrome(), 0);
       }
     }
     function onAfterPrint() {
       setTestMode(false);
+      if (savedDocumentTitle.current !== null) {
+        document.title = savedDocumentTitle.current;
+        savedDocumentTitle.current = null;
+      }
     }
     window.addEventListener("keydown", onKey);
     window.addEventListener("afterprint", onAfterPrint);
@@ -74,12 +88,12 @@ export function InvoiceDetailView({
 
   function printInvoice() {
     setTestMode(false);
-    window.setTimeout(() => window.print(), 0);
+    window.setTimeout(() => printWithoutBrowserChrome(), 0);
   }
 
   function printTest() {
     setTestMode(true);
-    window.setTimeout(() => window.print(), 50);
+    window.setTimeout(() => printWithoutBrowserChrome(), 50);
   }
 
   function onConfirmVoid() {
@@ -103,7 +117,7 @@ export function InvoiceDetailView({
           saleStatus: "VOIDED",
           remainingDong: 0,
           voidedAt: new Date().toISOString(),
-          voidedBy: "thanglongkimviet@gmail.com",
+          voidedBy: invoice.voidedBy ?? "—",
           voidReason: reason,
         });
         setAlert({

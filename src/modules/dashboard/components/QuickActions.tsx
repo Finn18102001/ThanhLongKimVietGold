@@ -13,7 +13,7 @@ import { ROUTES } from "@/shared/navigation/routes";
 const ACTIONS = [
   {
     href: ROUTES.pos,
-    label: "Bán hàng (POS)",
+    label: "Bán hàng",
     icon: Storefront,
     className: "bg-[var(--tlkv-red)] text-white hover:bg-[var(--tlkv-red-hover)]",
   },

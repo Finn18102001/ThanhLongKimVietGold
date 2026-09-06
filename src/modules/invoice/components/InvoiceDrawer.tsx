@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Printer, X } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { invoiceDetailPath } from "@/shared/navigation/routes";
-import { collectSalePayment, cancelInvoicePreorder, fulfillInvoicePreorder } from "../actions";
+import { Modal } from "@/shared/ui/Modal";
+import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import {
+  collectSalePayment,
+  cancelInvoicePreorder,
+  fulfillInvoicePreorder,
+  voidInvoice,
+} from "../actions";
 import {
   effectivePaymentStatus,
   formatChi,
@@ -30,10 +37,12 @@ export function InvoiceDrawer({
   invoice,
   onClose,
   onUpdated,
+  canVoidInvoice = false,
 }: {
   invoice: InvoiceDetail;
   onClose: () => void;
   onUpdated?: (next: InvoiceDetail) => void;
+  canVoidInvoice?: boolean;
 }) {
   const staffName = invoice.actorEmail.split("@")[0] ?? invoice.actorEmail;
   const phone = formatInvoicePhone(invoice.customerPhone);
@@ -52,6 +61,10 @@ export function InvoiceDrawer({
   const isVoided = invoice.status === "VOIDED" || invoice.saleStatus === "VOIDED";
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<ResultAlertModel | null>(null);
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const [voidPending, startVoid] = useTransition();
   const [amountText, setAmountText] = useState(
     invoice.remainingDong > 0 ? String(invoice.remainingDong) : "",
   );
@@ -62,6 +75,38 @@ export function InvoiceDrawer({
 
   function openPrintView() {
     window.open(invoiceDetailPath(invoice.invoiceNo), "_blank", "noopener,noreferrer");
+  }
+
+  function onConfirmVoid() {
+    const reason = voidReason.trim();
+    if (reason.length < 3) {
+      setError("Phải nhập lý do hủy hóa đơn (tối thiểu 3 ký tự).");
+      return;
+    }
+    startVoid(async () => {
+      try {
+        await voidInvoice({ invoiceId: invoice.id, reason });
+        setVoidOpen(false);
+        setVoidReason("");
+        const next: InvoiceDetail = {
+          ...invoice,
+          status: "VOIDED",
+          saleStatus: "VOIDED",
+          remainingDong: 0,
+          voidedAt: new Date().toISOString(),
+          voidedBy: invoice.voidedBy ?? "—",
+          voidReason: reason,
+        };
+        onUpdated?.(next);
+        setAlert({
+          tone: "success",
+          title: "Đã hủy hóa đơn",
+          reason: `Hóa đơn ${invoice.invoiceNo} đã hủy. Kho đã hoàn (nếu đã xuất) và dòng tiền đã ghi hoàn tiền kèm lý do.`,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Không hủy được hóa đơn.");
+      }
+    });
   }
 
   async function onCollect() {
@@ -461,7 +506,20 @@ export function InvoiceDrawer({
           </div>
         </div>
 
-        <div className="flex gap-2 border-t border-[var(--tlkv-line)] px-5 py-3">
+        <div className="flex flex-wrap gap-2 border-t border-[var(--tlkv-line)] px-5 py-3">
+          {canVoidInvoice && !isVoided ? (
+            <button
+              type="button"
+              disabled={pending || voidPending}
+              onClick={() => {
+                setError(null);
+                setVoidOpen(true);
+              }}
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-[var(--tlkv-red)] bg-white text-[13px] font-semibold text-[var(--tlkv-red)] disabled:opacity-40"
+            >
+              Hủy hóa đơn
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={openPrintView}
@@ -479,6 +537,51 @@ export function InvoiceDrawer({
           </button>
         </div>
       </aside>
+
+      {voidOpen ? (
+        <Modal
+          title={`Hủy hóa đơn ${invoice.invoiceNo}`}
+          onClose={() => (voidPending ? undefined : setVoidOpen(false))}
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={voidPending}
+                onClick={() => setVoidOpen(false)}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                disabled={voidPending}
+                onClick={onConfirmVoid}
+                className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                {voidPending ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          }
+        >
+          <p className="text-[13px] text-[var(--tlkv-muted)]">
+            Hủy là giao dịch bù trừ: hoàn kho (nếu đã xuất), ghi chi hoàn tiền trên sổ quỹ kèm lý do,
+            và ghi nhật ký hệ thống. Không chỉnh sửa nội dung hóa đơn đã phát hành.
+          </p>
+          <label className="mt-3 block text-[12px] font-medium">
+            Lý do hủy
+            <textarea
+              value={voidReason}
+              onChange={(event) => setVoidReason(event.target.value)}
+              rows={3}
+              disabled={voidPending}
+              className="mt-1 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+              placeholder="Ví dụ: khách đổi ý, nhập sai sản phẩm..."
+            />
+          </label>
+        </Modal>
+      ) : null}
+
+      {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
     </div>
   );
 }

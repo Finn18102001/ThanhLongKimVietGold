@@ -13,12 +13,13 @@ export const GOLD_CERTIFICATE = {
   orientation: "landscape" as const,
   table: {
     startY: 76.19,
-    rowHeight: 5.77,
+    /** Match dashed lines on physical phôi (tighter than previous 5.77). */
+    rowHeight: 5.35,
     maxRows: 4,
   },
   columns: {
     /** Phôi vẫn có cột STT in sẵn - không in số STT; để trống. */
-    productName: { x: 29.34, w: 34.11 },
+    productName: { x: 29.34, w: 36.5 },
     purity: { x: 66.86, w: 20.47 },
     weight: { x: 89.72, w: 20.47 },
     unitPrice: { x: 112.57, w: 25.24 },
@@ -34,8 +35,20 @@ export const GOLD_CERTIFICATE = {
     month: { x: 70.95, y: 62.31, w: 9.55, h: 4.26, fontSizePt: 9.5, align: "center" as const },
     year: { x: 100.29, y: 62.31, w: 14.33, h: 4.26, fontSizePt: 9.5, align: "center" as const },
     time: { x: 141.91, y: 62.31, w: 23.88, h: 4.26, fontSizePt: 9.5, align: "left" as const },
-    /** Two-line box so full amount-in-words is visible (no clip). */
-    amountInWords: { x: 70.95, y: 98.2, w: 66.0, h: 7.2, fontSizePt: 7.5, align: "left" as const },
+    /**
+     * total_amount_in_words — value only (label already on phôi).
+     * Independent box left of totalAmount; wrap within width, never share layout with total.
+     */
+    amountInWords: {
+      x: 70.95,
+      y: 98.2,
+      w: 66.0,
+      h: 9.6,
+      fontSizePt: 7.5,
+      align: "left" as const,
+      wrap: true,
+      lineHeight: 1.25,
+    },
     totalAmount: {
       x: 141.23,
       y: 99.34,
@@ -113,7 +126,7 @@ export function createTestPrintPayload(): InvoicePrintPayload {
     month: "09",
     year: "2026",
     time: "09:30",
-    staffName: "NV TEST",
+    staffName: "",
     cashierName: "",
     controllerName: "",
     totalAmountDong: 12_858_000,
@@ -131,9 +144,9 @@ export function createTestPrintPayload(): InvoicePrintPayload {
         stt: 2,
         productName: "TEST PRODUCT 2",
         purity: "999.9",
-        weightLabel: "0,5 chỉ",
+        weightLabel: "0,5 chỉ × 2",
         unitPriceDong: 4_286_000,
-        amountDong: 4_286_000,
+        amountDong: 8_572_000,
       },
       {
         stt: 3,

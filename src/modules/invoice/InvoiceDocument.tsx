@@ -16,8 +16,6 @@ export function invoiceCertificateRowCount(invoice: InvoiceDetail): number {
 }
 
 export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPayload {
-  const staffName =
-    invoice.operatorName || invoice.actorEmail.split("@")[0] || invoice.actorEmail;
   const issued = invoiceIssuedParts(invoice.issuedAt);
   const walkIn = invoice.isWalkIn || invoice.customerPhone === "WALKIN";
   const phone = walkIn ? "" : invoice.customerPhone;
@@ -27,11 +25,19 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
     : "";
   const paidDong = Math.max(0, invoice.paidDong);
 
+  // Keep product name short so table cells stay single-line on phôi (qty goes into weight).
   const productItems = invoice.lines.map((line, index) => ({
     stt: index + 1,
-    productName: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
+    productName: line.name,
     purity: line.purity || "",
-    weightLabel: line.weightChi > 0 ? formatChi(line.weightChi) : "",
+    weightLabel:
+      line.weightChi > 0
+        ? line.quantity > 1
+          ? `${formatChi(line.weightChi)} × ${line.quantity}`
+          : formatChi(line.weightChi)
+        : line.quantity > 1
+          ? `× ${line.quantity}`
+          : "",
     unitPriceDong: line.unitPriceDong,
     amountDong: line.totalPriceDong,
   }));
@@ -54,7 +60,8 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
     month: issued.month,
     year: issued.year,
     time: issued.time,
-    staffName,
+    // Phôi: để trống ô ký nhân viên bán hàng (ký tay).
+    staffName: "",
     cashierName: "",
     controllerName: "",
     totalAmountDong: paidDong,
@@ -152,14 +159,14 @@ export function InvoiceDocument({
               ox={ox}
               oy={oy}
               align="center"
-              size={8}
+              size={7.5}
             >
               {item.productName}
             </PrintBox>
             <PrintBox x={T.columns.purity.x} y={y} w={T.columns.purity.w} h={h} ox={ox} oy={oy} align="center" size={8}>
               {item.purity}
             </PrintBox>
-            <PrintBox x={T.columns.weight.x} y={y} w={T.columns.weight.w} h={h} ox={ox} oy={oy} align="center" size={8}>
+            <PrintBox x={T.columns.weight.x} y={y} w={T.columns.weight.w} h={h} ox={ox} oy={oy} align="center" size={7.5}>
               {item.weightLabel}
             </PrintBox>
             <PrintBox
@@ -201,9 +208,7 @@ export function InvoiceDocument({
       <PrintField field={T.fields.customerSign} ox={ox} oy={oy}>
         {payload.customerName}
       </PrintField>
-      <PrintField field={T.fields.staffSign} ox={ox} oy={oy}>
-        {payload.staffName}
-      </PrintField>
+      {/* staffSign intentionally blank — phôi ký tay, không in tên tài khoản. */}
       {payload.cashierName ? (
         <PrintField field={T.fields.cashierSign} ox={ox} oy={oy}>
           {payload.cashierName}
@@ -257,6 +262,11 @@ type FieldBox = {
   align: "left" | "center" | "right";
   weight?: string;
   color?: string;
+  /** When true, text wraps inside width/height (used by amount-in-words). */
+  wrap?: boolean;
+  lineHeight?: number;
+  letterSpacing?: string | number;
+  fontFamily?: string;
 };
 
 function PrintField({
@@ -284,6 +294,10 @@ function PrintField({
       size={field.fontSizePt}
       weight={field.weight}
       color={field.color}
+      wrap={field.wrap === true}
+      lineHeight={field.lineHeight}
+      letterSpacing={field.letterSpacing}
+      fontFamily={field.fontFamily}
       className={className}
     >
       {children}
@@ -302,6 +316,10 @@ function PrintBox({
   size = 9.5,
   weight,
   color,
+  wrap = false,
+  lineHeight,
+  letterSpacing,
+  fontFamily,
   className = "",
   children,
 }: {
@@ -315,6 +333,10 @@ function PrintBox({
   size?: number;
   weight?: string;
   color?: string;
+  wrap?: boolean;
+  lineHeight?: number;
+  letterSpacing?: string | number;
+  fontFamily?: string;
   className?: string;
   children?: ReactNode;
 }) {
@@ -323,30 +345,60 @@ function PrintBox({
 
   const justify =
     align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
-  const style: CSSProperties = {
-    position: "absolute",
-    left: `calc(${x}mm + ${ox}mm)`,
-    top: `calc(${y}mm + ${oy}mm)`,
-    width: `${w}mm`,
-    height: `${h}mm`,
-    fontSize: `${size}pt`,
-    fontFamily: "Arial, Helvetica, sans-serif",
-    fontWeight: weight ?? 400,
-    color: color,
-    lineHeight: 1.15,
-    display: "flex",
-    alignItems: size <= 8.5 ? "flex-start" : "center",
-    justifyContent: justify,
-    overflow: "hidden",
-    whiteSpace: size <= 8.5 ? "normal" : "nowrap",
-    textOverflow: size <= 8.5 ? "clip" : "ellipsis",
-    paddingTop: size <= 8.5 ? "0.1mm" : 0,
-    paddingLeft: align === "left" ? "0.15em" : 0,
-    paddingRight: align === "right" ? "0.15em" : 0,
-    boxSizing: "border-box",
-  };
+  const textAlign = align;
+  const style: CSSProperties = wrap
+    ? {
+        position: "absolute",
+        left: `calc(${x}mm + ${ox}mm)`,
+        top: `calc(${y}mm + ${oy}mm)`,
+        width: `${w}mm`,
+        maxWidth: `${w}mm`,
+        height: `${h}mm`,
+        fontSize: `${size}pt`,
+        fontFamily: fontFamily ?? "Arial, Helvetica, sans-serif",
+        fontWeight: weight ?? 400,
+        color,
+        lineHeight: lineHeight ?? 1.25,
+        letterSpacing,
+        display: "block",
+        overflow: "hidden",
+        whiteSpace: "normal",
+        overflowWrap: "break-word",
+        wordBreak: "normal",
+        textAlign,
+        paddingTop: "0.15mm",
+        paddingLeft: align === "left" ? "0.15em" : 0,
+        paddingRight: align === "right" ? "0.15em" : 0,
+        boxSizing: "border-box",
+      }
+    : {
+        position: "absolute",
+        left: `calc(${x}mm + ${ox}mm)`,
+        top: `calc(${y}mm + ${oy}mm)`,
+        width: `${w}mm`,
+        height: `${h}mm`,
+        fontSize: `${size}pt`,
+        fontFamily: fontFamily ?? "Arial, Helvetica, sans-serif",
+        fontWeight: weight ?? 400,
+        color,
+        lineHeight: lineHeight ?? 1.15,
+        letterSpacing,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: justify,
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        minWidth: 0,
+        paddingLeft: align === "left" ? "0.15em" : 0,
+        paddingRight: align === "right" ? "0.15em" : 0,
+        boxSizing: "border-box",
+      };
   return (
-    <div style={style} className={`invoice-print-field ${className}`.trim()}>
+    <div
+      style={style}
+      className={`invoice-print-field ${wrap ? "invoice-print-wrap" : ""} ${className}`.trim()}
+    >
       {text}
     </div>
   );

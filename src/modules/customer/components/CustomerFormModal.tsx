@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
-import { fileToBase64, IMAGE_PRESET_CCCD, optimizeImageFile } from "@/shared/lib/image-optimize";
+import { IMAGE_PRESET_CCCD, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { createCustomer, updateCustomer, uploadCustomerCccd } from "../actions";
 import {
   formatCustomerSaveError,
@@ -112,16 +112,13 @@ export function CustomerFormModal({
       for (const type of types) {
         const file = photos[type];
         if (!file) continue;
-        // Same Product/News client pipeline before private CCCD storage upload.
+        // Same Product/News client pipeline, then FormData binary upload (not base64).
         const optimized = await optimizeImageFile(file, IMAGE_PRESET_CCCD);
-        const base64 = await fileToBase64(optimized.file);
-        await uploadCustomerCccd({
-          customerId,
-          documentType: type,
-          fileName: optimized.file.name,
-          contentType: optimized.file.type || "image/webp",
-          base64,
-        });
+        const formData = new FormData();
+        formData.set("customerId", customerId);
+        formData.set("documentType", type);
+        formData.set("file", optimized.file, optimized.file.name);
+        await uploadCustomerCccd(formData);
       }
       return null;
     } catch (err) {

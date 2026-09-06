@@ -35,6 +35,7 @@ const TXN_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "SALE_PAYMENT", label: "Thu bán hàng" },
   { value: "SALE_VOID_REFUND", label: "Hủy HĐ — hoàn tiền" },
   { value: "PURCHASE_PAYMENT", label: "Chi mua hàng" },
+  { value: "PURCHASE_VOID_RECLAIM", label: "Hủy mua — hoàn tiền đã trả" },
   { value: "RECEIVABLE_COLLECTION", label: "Thu công nợ" },
   { value: "PAYABLE_PAYMENT", label: "Chi trả nợ" },
   { value: "OTHER_INCOME", label: "Thu khác" },
@@ -43,7 +44,12 @@ const TXN_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 function txnTone(type: CashTxnType): string {
-  if (type === "SALE_PAYMENT" || type === "RECEIVABLE_COLLECTION" || type === "OTHER_INCOME") {
+  if (
+    type === "SALE_PAYMENT" ||
+    type === "RECEIVABLE_COLLECTION" ||
+    type === "OTHER_INCOME" ||
+    type === "PURCHASE_VOID_RECLAIM"
+  ) {
     return "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]";
   }
   if (

@@ -58,9 +58,10 @@ body {
 }
 
 @media print {
+  /* Prefer zero margin so Chrome has less room for date/title headers on phôi. */
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 0;
   }
 
   @page gold-certificate {
@@ -110,8 +111,21 @@ body {
     aspect-ratio: auto !important;
     background: transparent !important;
     overflow: hidden !important;
+    transform: none !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  .invoice-print-field {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .invoice-print-field.invoice-print-wrap {
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
   }
 
   .purchase-print {

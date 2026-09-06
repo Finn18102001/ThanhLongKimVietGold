@@ -12,6 +12,7 @@ import {
   cancelHeldOrder,
   completeHeldSale,
   completeSale,
+  fetchHeldOrders,
   getHeldOrder,
   refreshPosStock,
   saveHeldOrder,
@@ -429,6 +430,17 @@ export function PosTerminal({
     }
   }
 
+  async function reloadHeldList() {
+    setHeldLoading(true);
+    try {
+      const result = await fetchHeldOrders();
+      setHeldList(result.items);
+      setHeldVisibleToAll(result.visibleToAll);
+    } finally {
+      setHeldLoading(false);
+    }
+  }
+
   async function onSaveHold() {
     const items = Object.entries(cart)
       .map(([skuId, entry]) => {
@@ -457,11 +469,7 @@ export function PosTerminal({
         items,
       });
       resetDraft();
-      setHeldList((current) => {
-        const next = current.filter((row) => row.id !== saved.id);
-        return [saved, ...next];
-      });
-      setHeldVisibleToAll(saved.visibleToAll);
+      await reloadHeldList();
       setAlert({
         tone: "success",
         title: "Đã lưu đơn",
@@ -554,10 +562,10 @@ export function PosTerminal({
     setCancelHoldId(null);
     try {
       const result = await cancelHeldOrder(id);
-      setHeldList((current) => current.filter((row) => row.id !== id));
       if (activeHeldOrderId === id) {
         resetDraft();
       }
+      await reloadHeldList();
       setAlert({
         tone: "success",
         title: "Đã hủy đơn lưu",
@@ -712,7 +720,7 @@ export function PosTerminal({
       const closedHoldId = activeHeldOrderId;
       resetDraft();
       if (closedHoldId) {
-        setHeldList((current) => current.filter((row) => row.id !== closedHoldId));
+        await reloadHeldList();
       }
       setPaid({
         invoiceNo: result.invoice_no,
@@ -772,7 +780,7 @@ export function PosTerminal({
       <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-6 py-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-[18px] font-semibold">Bán hàng tại quầy (POS)</h1>
+            <h1 className="text-[18px] font-semibold">Bán hàng</h1>
             <Link
               href={ROUTES.purchase}
               className="text-[12px] font-semibold text-[var(--tlkv-red)] hover:underline"

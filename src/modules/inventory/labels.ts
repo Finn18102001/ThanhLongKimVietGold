@@ -15,6 +15,7 @@ export const LEDGER_TYPE_LABEL: Record<string, string> = {
   STOCK_ADJUSTMENT_OUT: "Điều chỉnh giảm",
   PREORDER_FULFILL: "Giao đặt hàng",
   SALE_VOID: "Hủy HĐ — hoàn kho",
+  PURCHASE_VOID: "Hủy mua — trừ kho",
 };
 
 export const LEDGER_TYPE_OPTIONS = [
@@ -22,6 +23,7 @@ export const LEDGER_TYPE_OPTIONS = [
   { value: "PURCHASE_RECEIVED", label: "Nhập hàng / mua từ khách" },
   { value: "SALE", label: "Xuất bán" },
   { value: "SALE_VOID", label: "Hủy HĐ — hoàn kho" },
+  { value: "PURCHASE_VOID", label: "Hủy mua — trừ kho" },
   { value: "STOCK_ADJUSTMENT_IN", label: "Điều chỉnh tăng" },
   { value: "STOCK_ADJUSTMENT_OUT", label: "Điều chỉnh giảm" },
   { value: "CUSTOMER_RETURN", label: "Khách trả" },

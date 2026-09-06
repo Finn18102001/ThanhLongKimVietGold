@@ -8,7 +8,8 @@ export type CashTxnType =
   | "OTHER_INCOME"
   | "OTHER_EXPENSE"
   | "TRANSFER"
-  | "SALE_VOID_REFUND";
+  | "SALE_VOID_REFUND"
+  | "PURCHASE_VOID_RECLAIM";
 
 export type CashAccountCard = {
   id: string;
@@ -83,4 +84,5 @@ export const TXN_TYPE_LABEL: Record<CashTxnType, string> = {
   OTHER_EXPENSE: "Chi khác",
   TRANSFER: "Chuyển quỹ",
   SALE_VOID_REFUND: "Hủy HĐ — hoàn tiền",
+  PURCHASE_VOID_RECLAIM: "Hủy mua — hoàn tiền đã trả",
 };
