@@ -266,6 +266,8 @@
         r.price_source_product != null
           ? String(r.price_source_product).trim().replace(/\s+/g, " ")
           : null,
+      priceRowId: r.price_row_id ? String(r.price_row_id).trim() : "",
+      priceSource: r.price_source ? String(r.price_source).trim() : null,
       image: r.image ?? "",
       thumbnailUrl: thumbnailUrl,
       sortOrder: r.sort_order,
@@ -500,6 +502,8 @@
         p.priceSourceProduct != null
           ? String(p.priceSourceProduct).trim().replace(/\s+/g, " ")
           : null,
+      priceRowId: p.priceRowId ? String(p.priceRowId).trim() : "",
+      priceSource: p.priceSource ? String(p.priceSource).trim() : null,
       image: String(p.image ?? "").trim(),
       thumbnailUrl: String(p.thumbnailUrl ?? p.image ?? "").trim(),
       imageStoragePath: String(p.imageStoragePath ?? "").trim(),
@@ -512,15 +516,20 @@
   }
 
   function resolvePriceSourceProductForSave(p) {
+    var rowId = p && p.priceRowId != null ? String(p.priceRowId).trim() : "";
+    if (!rowId) return null;
     var explicit =
       p.priceSourceProduct != null ? String(p.priceSourceProduct).trim().replace(/\s+/g, " ") : "";
-    if (explicit) return explicit;
-    var weight = parseProductWeight(p.weight);
-    if (weight == null) return null;
-    var engine = global.TLKVProductPriceEngine;
-    if (engine && typeof engine.inferPriceSourceProduct === "function") {
-      return engine.inferPriceSourceProduct(p.name, weight);
-    }
+    return explicit || null;
+  }
+
+  function resolveOfficialPriceSourceForSave(p) {
+    var rowId = p && p.priceRowId != null ? String(p.priceRowId).trim() : "";
+    if (rowId) return "LINKED_PRICE";
+    var sourceProduct = resolvePriceSourceProductForSave(p);
+    if (sourceProduct) return "LINKED_PRICE";
+    var manual = p && p.priceText != null ? String(p.priceText).trim() : "";
+    if (manual) return "MANUAL";
     return null;
   }
 
@@ -529,6 +538,7 @@
     const sortOrder =
       sortOrderResolved != null ? coerceSortOrder(sortOrderResolved) : coerceSortOrder(p.sortOrder);
     const priceSourceProduct = resolvePriceSourceProductForSave(p);
+    const priceRowId = p.priceRowId ? String(p.priceRowId).trim() : "";
     return {
       id: p.id,
       name: p.name || "",
@@ -537,7 +547,8 @@
       price_text: p.priceText || "",
       price_numeric: p.priceNumeric != null ? p.priceNumeric : parsePriceNumeric(p.priceText),
       weight: parseProductWeight(p.weight),
-      price_source_product: priceSourceProduct,
+      price_source_product: priceRowId ? priceSourceProduct : null,
+      price_row_id: priceRowId || null,
       image: p.image || "",
       sort_order: sortOrder != null ? sortOrder : 0,
       brand_id: p.brandId || null,
@@ -670,6 +681,8 @@
     const row = productAppToDb(normalized, sortOrder);
     const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
     throwIfSupabaseWriteError(error, adminUser);
+    normalized.priceSource = resolveOfficialPriceSourceForSave(normalized);
+    normalized.priceSourceProduct = row.price_source_product;
     if (normalized.image) {
       await syncProductThumbnailRecord(
         sb,

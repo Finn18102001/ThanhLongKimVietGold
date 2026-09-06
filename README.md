@@ -13,7 +13,9 @@ npm install
 npm start
 ```
 
-Mặc định: `http://127.0.0.1:5190`
+Mặc định: `http://127.0.0.1:5190` (nếu cổng bận: 5191, 5192, …)
+
+**Không nhầm với POS:** website/admin catalog = cổng **5190**. POS Next.js = cổng **3000**. Chi tiết: [`docs/LOCAL_DEV_PORTS.md`](./docs/LOCAL_DEV_PORTS.md).
 
 ### Deploy — biến môi trường
 

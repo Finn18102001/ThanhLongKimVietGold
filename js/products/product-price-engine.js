@@ -246,37 +246,65 @@
     return alternate != null && Number.isFinite(alternate) ? alternate : null;
   }
 
-  /** SP có khối lượng + khớp được dòng gold_price_rows (trực tiếp hoặc qua alias). */
+  /** SP đã liên kết dòng bảng giá (FK hoặc price_source_product). Không suy từ tên SP. */
   function isPriceMappable(product, index) {
-    var weight = resolvePricingWeight(product);
-    var lookupKey = resolveGoldRowLookupKey(
-      product && product.priceSourceProduct,
-      product && product.name,
-      index,
-      weight
-    );
-    return !!(lookupKey && weight != null);
+    if (resolveOfficialPriceSource(product) !== "LINKED_PRICE") return false;
+    return !!lookupLinkedGoldEntry(product, index);
   }
 
   /**
-   * @param {Array<{ product?: string, buy?: string, sell?: string, buyNum?: number|null, sellNum?: number|null }>} rows
-   * @returns {Map<string, { product: string, buyNum: number|null, sellNum: number|null }>}
+   * @param {Array<{ id?: string, product?: string, buy?: string, sell?: string, buyNum?: number|null, sellNum?: number|null }>} rows
+   * @returns {Map<string, { id: string, product: string, buyNum: number|null, sellNum: number|null }>}
    */
   function buildGoldPriceIndex(rows) {
     var index = new Map();
     (rows || []).forEach(function (row) {
       if (!row) return;
       var key = normalizeProductKey(row.product);
-      if (!key) return;
       var buyNum = row.buyNum != null ? row.buyNum : parseMoney(row.buy);
       var sellNum = row.sellNum != null ? row.sellNum : parseMoney(row.sell);
-      index.set(key, {
+      var entry = {
+        id: row.id ? String(row.id) : "",
         product: key,
         buyNum: buyNum,
         sellNum: sellNum,
-      });
+      };
+      if (key) index.set(key, entry);
+      if (entry.id) index.set("id:" + entry.id, entry);
     });
     return index;
+  }
+
+  function resolveOfficialPriceSource(product) {
+    if (!product) return null;
+    var declared = product.priceSource != null ? String(product.priceSource).trim() : "";
+    if (declared === "LINKED_PRICE" || declared === "MANUAL") return declared;
+    var rowId = product.priceRowId != null ? String(product.priceRowId).trim() : "";
+    if (rowId) return "LINKED_PRICE";
+    if (normalizeProductKey(product.priceSourceProduct)) return "LINKED_PRICE";
+    var manual = String(
+      product.manualPriceText != null ? product.manualPriceText : product.priceText || ""
+    ).trim();
+    if (manual) return "MANUAL";
+    return null;
+  }
+
+  function lookupLinkedGoldEntry(product, index) {
+    if (!index || typeof index.get !== "function") return null;
+    var rowId = product && product.priceRowId != null ? String(product.priceRowId).trim() : "";
+    if (rowId) {
+      var byId = index.get("id:" + rowId);
+      if (byId) return byId;
+    }
+    var weight = resolvePricingWeight(product);
+    var source = resolveGoldRowLookupKey(
+      product && product.priceSourceProduct,
+      null,
+      index,
+      weight
+    );
+    if (!source) return null;
+    return index.get(source) || null;
   }
 
   /**
@@ -313,39 +341,57 @@
   }
 
   /**
-   * @param {{ priceSourceProduct?: string|null, weight?: number|null, priceText?: string }} product
+   * @param {{ priceSourceProduct?: string|null, weight?: number|null, priceText?: string, priceRowId?: string|null, priceSource?: string|null, manualPriceText?: string }} product
    * @param {Map<string, { buyNum: number|null, sellNum: number|null }>} index
    * @param {{ side?: 'buy'|'sell' }} [opts]
-   * @returns {{ amountVnd: number|null, priceText: string, isDerived: boolean }}
+   * @returns {{ amountVnd: number|null, priceText: string, isDerived: boolean, showPrice: boolean }}
    */
   function deriveProductPrice(product, index, opts) {
     opts = opts || {};
     var side = opts.side === "buy" || opts.side === "sell" ? opts.side : readPriceSide();
+    var official = resolveOfficialPriceSource(product);
+    var manualText = String(
+      product && product.manualPriceText != null
+        ? product.manualPriceText
+        : (product && product.priceText) || ""
+    ).trim();
 
-    if (!isPriceMappable(product, index)) {
+    if (official !== "LINKED_PRICE") {
+      if (official === "MANUAL" && manualText) {
+        return {
+          amountVnd: parseMoney(manualText),
+          priceText: manualText,
+          isDerived: false,
+          showPrice: true,
+        };
+      }
       return { amountVnd: null, priceText: "", isDerived: false, showPrice: false };
     }
 
-    var weight = resolvePricingWeight(product);
-    var source = resolveGoldRowLookupKey(product.priceSourceProduct, product.name, index, weight);
-    var entry = index && index.get ? index.get(source) : null;
+    var entry = lookupLinkedGoldEntry(product, index);
+    var source = entry && entry.product ? entry.product : null;
 
     if (!entry) {
       if (typeof console !== "undefined" && console.warn) {
         console.warn(
-          "[TLKV price] Không khớp gold_price_rows.product:",
-          source,
-          "(price_source_product:",
-          normalizeProductKey(product.priceSourceProduct) + ")",
-          "— kiểm tra alias hoặc tên dòng giá trên bảng giá."
+          "[TLKV price] Không khớp gold_price_rows:",
+          product && product.priceRowId,
+          product && product.priceSourceProduct,
+          "- không dùng giá nhập tay khi đã liên kết."
         );
       }
       return { amountVnd: null, priceText: "", isDerived: true, showPrice: false };
     }
 
     var basePrice = resolveBasePricePerChi(entry, side);
-    var refWeight = resolveReferenceWeightForGoldRow(source);
-    var amountVnd = multiplyVndByReferenceWeight(basePrice, weight, refWeight);
+    var weight = resolvePricingWeight(product);
+    var amountVnd = null;
+    if (weight != null) {
+      var refWeight = resolveReferenceWeightForGoldRow(source);
+      amountVnd = multiplyVndByReferenceWeight(basePrice, weight, refWeight);
+    } else if (basePrice != null && Number.isFinite(basePrice)) {
+      amountVnd = Math.round(basePrice);
+    }
     if (amountVnd == null) {
       return { amountVnd: null, priceText: "", isDerived: true, showPrice: false };
     }
@@ -360,24 +406,38 @@
 
   /**
    * Mutates products in-place: sets priceText + priceNumeric + isPriceDerived.
+   * Linked gold-row price always replaces display. Manual price_text is never mixed in.
    * @param {object[]} products
    */
   function applyDerivedPrices(products, index, opts) {
     (products || []).forEach(function (p) {
       if (!p) return;
-      p.isPriceMappable = isPriceMappable(p, index);
-      if (!p.isPriceMappable) {
-        p.isPriceDerived = false;
-        p.showPrice = false;
-        p.priceNumeric = null;
-        p.priceText = "";
+      if (p.manualPriceText == null) p.manualPriceText = p.priceText || "";
+      var official = resolveOfficialPriceSource(p);
+      p.priceSource = official;
+      if (official === "LINKED_PRICE") {
+        var derived = deriveProductPrice(p, index, opts);
+        p.isPriceMappable = derived.showPrice === true;
+        p.isPriceDerived = true;
+        p.showPrice = derived.showPrice === true;
+        p.priceNumeric = derived.amountVnd;
+        p.priceText = derived.showPrice ? derived.priceText : "";
         return;
       }
-      var derived = deriveProductPrice(p, index, opts);
-      p.isPriceDerived = derived.isDerived;
-      p.showPrice = derived.showPrice === true;
-      p.priceNumeric = derived.amountVnd;
-      p.priceText = derived.showPrice ? derived.priceText : "";
+      if (official === "MANUAL") {
+        var manual = String(p.manualPriceText || "").trim();
+        p.isPriceMappable = false;
+        p.isPriceDerived = false;
+        p.showPrice = !!manual;
+        p.priceNumeric = parseMoney(manual);
+        p.priceText = manual;
+        return;
+      }
+      p.isPriceMappable = false;
+      p.isPriceDerived = false;
+      p.showPrice = false;
+      p.priceNumeric = null;
+      p.priceText = "";
     });
     return products;
   }
@@ -422,6 +482,7 @@
     applyDerivedPricesFromRows: applyDerivedPricesFromRows,
     resolveGoldRowsForPricing: resolveGoldRowsForPricing,
     inferPriceSourceProduct: inferPriceSourceProduct,
+    resolveOfficialPriceSource: resolveOfficialPriceSource,
     compareBySmallestWeight: compareBySmallestWeight,
     sortBySmallestWeight: sortBySmallestWeight,
     normalizeProductKey: normalizeProductKey,

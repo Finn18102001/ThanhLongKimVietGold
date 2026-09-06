@@ -3,7 +3,7 @@
 
   /** Chỉ cột có trên bảng products thực tế (legacy có thể thiếu created_at). */
   var PRODUCT_SELECT =
-    "id, name, slug, price_text, price_numeric, image, sort_order, weight, price_source_product, " +
+    "id, name, slug, price_text, price_numeric, image, sort_order, weight, price_source_product, price_row_id, price_source, " +
     "is_featured, is_best_seller, is_hot, is_active, brand_id, category_id, " +
     "brands ( id, name, slug ), categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";
@@ -14,7 +14,8 @@
   var BRAND_SELECT = [
     "id, name, slug, description, logo_url, sort_order",
     "products (",
-    "  id, name, slug, price_text, price_numeric, image, sort_order,",
+    "  id, name, slug, price_text, price_numeric, image, sort_order, weight,",
+    "  price_source_product, price_row_id, price_source,",
     "  is_featured, is_best_seller, is_hot, is_active,",
     "  product_images ( role, public_url, sort_order )",
     ")",
@@ -22,7 +23,7 @@
   var FEATURED_BRAND_SELECT = "id, name, slug, logo_url, sort_order";
   var FEATURED_PRODUCT_SELECT = "id, name, slug, image, price_text, sort_order";
   var FEATURED_FALLBACK_PRODUCT_SELECT =
-    "id, name, slug, image, price_text, price_numeric, sort_order, weight, price_source_product, brand_id, " +
+    "id, name, slug, image, price_text, price_numeric, sort_order, weight, price_source_product, price_row_id, price_source, brand_id, " +
     "is_featured, is_best_seller, is_hot, " +
     "categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";
@@ -40,11 +41,11 @@
   // ---------------------------------------------------------------------------
   var BRANDS_LIST_CACHE_KEY = "tlkv_brands_list_v1";
   var BRANDS_LIST_TTL_MS = 24 * 60 * 60 * 1000;
-  var FEATURED_BUNDLE_CACHE_PREFIX = "tlkv_featured_bundle_v1:";
+  var FEATURED_BUNDLE_CACHE_PREFIX = "tlkv_featured_bundle_v3:";
   var FEATURED_BUNDLE_TTL_MS = 15 * 60 * 1000;
   var BRAND_BY_SLUG_CACHE_PREFIX = "tlkv_brand_slug_v1:";
   var BRAND_BY_SLUG_TTL_MS = 15 * 60 * 1000;
-  var ACCUMULATION_CACHE_KEY = "tlkv_accumulation_brands_v1";
+  var ACCUMULATION_CACHE_KEY = "tlkv_accumulation_brands_v3";
   var ACCUMULATION_TTL_MS = 15 * 60 * 1000;
   var CATEGORIES_LIST_CACHE_KEY = "tlkv_categories_list_v1";
   var CATEGORIES_LIST_TTL_MS = 24 * 60 * 60 * 1000;
@@ -254,6 +255,9 @@
         row.price_source_product != null
           ? String(row.price_source_product).trim().replace(/\s+/g, " ")
           : null,
+      priceRowId: row.price_row_id ? String(row.price_row_id).trim() : "",
+      priceSource: row.price_source ? String(row.price_source).trim() : null,
+      manualPriceText: row.price_text || "",
       createdAt: row.created_at || null,
     };
   }
@@ -267,17 +271,23 @@
       row.price_source_product != null
         ? String(row.price_source_product).trim().replace(/\s+/g, " ")
         : "";
-    var isPriceMappable = !!(priceSourceProduct && weight != null && weight > 0);
+    var priceRowId = row.price_row_id ? String(row.price_row_id).trim() : "";
+    var priceSource = row.price_source ? String(row.price_source).trim() : null;
+    var manualPriceText = row.price_text || "";
+    var isPriceMappable = !!(priceRowId || (priceSource === "LINKED_PRICE") || (priceSourceProduct && weight != null && weight > 0));
     return {
       id: row.id,
       name: row.name || "",
       slug: row.slug || "",
       image: row.image || "",
       thumbnailUrl: pickImageUrl(row, rfn),
-      priceText: "",
+      priceText: manualPriceText,
+      manualPriceText: manualPriceText,
       priceNumeric: row.price_numeric != null ? Number(row.price_numeric) : null,
       weight: weight,
       priceSourceProduct: priceSourceProduct || null,
+      priceRowId: priceRowId,
+      priceSource: priceSource,
       isPriceMappable: isPriceMappable,
       isPriceDerived: false,
       showPrice: false,

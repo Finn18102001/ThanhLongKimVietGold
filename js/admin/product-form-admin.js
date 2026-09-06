@@ -12,6 +12,9 @@
     mode: "create",
     productId: "",
     originalSlug: "",
+    goldRows: [],
+    goldRowsLoaded: false,
+    suppressBrandClear: false,
   };
 
   var DEFAULTS = {
@@ -21,6 +24,8 @@
     categoryId: "",
     category: "",
     priceText: "",
+    priceRowId: "",
+    priceSourceProduct: "",
     weight: null,
     image: "",
     isFeatured: false,
@@ -117,6 +122,232 @@
     return String(Number(w));
   }
 
+  function brandKey(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function selectedBrandName() {
+    var sel = $("pf-brand-id");
+    if (!sel || !sel.value) return "";
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt) return "";
+    return String(opt.textContent || "").replace(/\s*\(ẩn\)\s*$/, "").trim();
+  }
+
+  function formatGoldSell(row) {
+    var engine = global.TLKVProductPriceEngine;
+      var n = row && row.sellNum != null ? row.sellNum : null;
+    if (n == null && row && row.sell != null) {
+      if (global.TLKVGold && typeof global.TLKVGold.parseGoldMoneyToInt === "function") {
+        n = global.TLKVGold.parseGoldMoneyToInt(row.sell);
+      } else {
+        n = Number(row.sell);
+      }
+    }
+    if (n == null || !Number.isFinite(Number(n)) || Number(n) <= 0) return "";
+    if (engine && typeof engine.formatVndInteger === "function") {
+      return engine.formatVndInteger(Math.round(Number(n))) + "đ";
+    }
+    return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+  }
+
+  function rowsForSelectedBrand() {
+    var brand = brandKey(selectedBrandName());
+    if (!brand) return [];
+    return (formState.goldRows || []).filter(function (row) {
+      if (!row || !String(row.product || "").trim()) return false;
+      return brandKey(row.brand) === brand;
+    });
+  }
+
+  function findGoldRow(id) {
+    var key = String(id || "").trim();
+    if (!key) return null;
+    return (formState.goldRows || []).find(function (row) {
+      return row && row.id === key;
+    }) || null;
+  }
+
+  async function ensureGoldRows() {
+    if (formState.goldRowsLoaded) return formState.goldRows;
+    var sb = null;
+    if (global.TLKVCatalogApi && typeof global.TLKVCatalogApi.getSupabaseClient === "function") {
+      sb = await global.TLKVCatalogApi.getSupabaseClient();
+    } else if (global.TLKVSupabase && typeof global.TLKVSupabase.getSupabaseClient === "function") {
+      sb = await global.TLKVSupabase.getSupabaseClient();
+    }
+    if (!sb) {
+      formState.goldRows = [];
+      formState.goldRowsLoaded = true;
+      return formState.goldRows;
+    }
+    var res = await sb
+      .from("gold_price_rows")
+      .select("id, brand, product, purity, buy, sell, sort_order")
+      .order("sort_order")
+      .order("product");
+    if (res.error) throw res.error;
+    formState.goldRows = (res.data || []).map(function (row) {
+      var sellNum =
+        global.TLKVGold && typeof global.TLKVGold.parseGoldMoneyToInt === "function"
+          ? global.TLKVGold.parseGoldMoneyToInt(row.sell)
+          : Number(row.sell);
+      var buyNum =
+        global.TLKVGold && typeof global.TLKVGold.parseGoldMoneyToInt === "function"
+          ? global.TLKVGold.parseGoldMoneyToInt(row.buy)
+          : Number(row.buy);
+      return {
+        id: String(row.id || ""),
+        brand: String(row.brand || ""),
+        product: String(row.product || "").trim().replace(/\s+/g, " "),
+        purity: String(row.purity || ""),
+        buy: row.buy,
+        sell: row.sell,
+        buyNum: Number.isFinite(buyNum) ? Math.round(buyNum) : null,
+        sellNum: Number.isFinite(sellNum) ? Math.round(sellNum) : null,
+        sortOrder: row.sort_order,
+      };
+    });
+    formState.goldRowsLoaded = true;
+    return formState.goldRows;
+  }
+
+  function fillPriceRowSelect(selectedId) {
+    var sel = $("pf-price-row-id");
+    if (!sel) return;
+    var brandId = $("pf-brand-id") && $("pf-brand-id").value;
+    var keep = String(selectedId || sel.value || "").trim();
+    sel.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    if (!brandId) {
+      placeholder.textContent = "Chọn thương hiệu trước";
+      sel.appendChild(placeholder);
+      sel.disabled = true;
+      sel.value = "";
+      return;
+    }
+    placeholder.textContent = "Chưa liên kết";
+    sel.appendChild(placeholder);
+    var rows = rowsForSelectedBrand();
+    rows.forEach(function (row) {
+      var o = document.createElement("option");
+      o.value = row.id;
+      o.textContent = row.product;
+      o.setAttribute("data-product", row.product);
+      sel.appendChild(o);
+    });
+    sel.disabled = false;
+    if (keep && Array.prototype.some.call(sel.options, function (opt) {
+      return opt.value === keep;
+    })) {
+      sel.value = keep;
+    } else {
+      sel.value = "";
+    }
+  }
+
+  function matchPriceRowId(item) {
+    var explicit = item && item.priceRowId ? String(item.priceRowId).trim() : "";
+    if (explicit && findGoldRow(explicit)) return explicit;
+    var source = item && item.priceSourceProduct ? String(item.priceSourceProduct).trim() : "";
+    if (!source) return "";
+    var brandRows = rowsForSelectedBrand();
+    var exact = brandRows.find(function (row) {
+      return brandKey(row.product) === brandKey(source);
+    });
+    if (exact) return exact.id;
+    var engine = global.TLKVProductPriceEngine;
+    if (engine && typeof engine.resolveGoldRowLookupKey === "function") {
+      var index = engine.buildGoldPriceIndex ? engine.buildGoldPriceIndex(brandRows) : null;
+      var lookup = engine.resolveGoldRowLookupKey(source, null, index, item && item.weight);
+      if (lookup) {
+        var aliased = brandRows.find(function (row) {
+          return brandKey(row.product) === brandKey(lookup);
+        });
+        if (aliased) return aliased.id;
+      }
+    }
+    return "";
+  }
+
+  function updatePriceSourceStatus() {
+    var box = $("pf-price-source-status");
+    var labelEl = $("pf-price-source-label");
+    var currentEl = $("pf-price-source-current");
+    var noteEl = $("pf-price-source-note");
+    if (!box || !labelEl) return;
+    var rowId = $("pf-price-row-id") && $("pf-price-row-id").value;
+    var manual = ($("pf-priceText") && $("pf-priceText").value.trim()) || "";
+    var row = rowId ? findGoldRow(rowId) : null;
+    if (row) {
+      box.hidden = false;
+      labelEl.innerHTML = "Nguồn giá: <strong>Bảng giá liên kết</strong>";
+      var current = formatGoldSell(row);
+      if (currentEl) {
+        currentEl.hidden = !current;
+        currentEl.textContent = current ? "Giá hiện tại: " + current : "";
+      }
+      if (noteEl) {
+        var showNote = !!manual;
+        noteEl.hidden = !showNote;
+        noteEl.textContent = showNote
+          ? "Sản phẩm đang sử dụng giá từ bảng giá liên kết. Giá nhập tay sẽ không được sử dụng."
+          : "";
+      }
+      return;
+    }
+    if (manual) {
+      box.hidden = false;
+      labelEl.innerHTML = "Nguồn giá: <strong>Giá nhập tay</strong>";
+      if (currentEl) {
+        currentEl.hidden = true;
+        currentEl.textContent = "";
+      }
+      if (noteEl) {
+        noteEl.hidden = true;
+        noteEl.textContent = "";
+      }
+      return;
+    }
+    box.hidden = true;
+    labelEl.textContent = "";
+    if (currentEl) {
+      currentEl.hidden = true;
+      currentEl.textContent = "";
+    }
+    if (noteEl) {
+      noteEl.hidden = true;
+      noteEl.textContent = "";
+    }
+  }
+
+  function refreshPriceRowOptions(opts) {
+    opts = opts || {};
+    var selectedId = opts.selectedId != null ? opts.selectedId : undefined;
+    return ensureGoldRows()
+      .then(function () {
+        var selectedId = opts.selectedId != null ? opts.selectedId : undefined;
+        if (!selectedId && opts.item) selectedId = matchPriceRowId(opts.item);
+        fillPriceRowSelect(selectedId);
+        updatePriceSourceStatus();
+      })
+      .catch(function () {
+        fillPriceRowSelect("");
+        updatePriceSourceStatus();
+      });
+  }
+
+  function onBrandChangedByUser() {
+    if (formState.suppressBrandClear) return;
+    fillPriceRowSelect("");
+    updatePriceSourceStatus();
+    refreshPriceRowOptions({ selectedId: "" });
+  }
+
   function setCheckboxes(flags) {
     flags = flags || DEFAULTS;
     if ($("pf-is-featured")) $("pf-is-featured").checked = !!flags.isFeatured;
@@ -138,6 +369,13 @@
     if ($("pf-image-path")) $("pf-image-path").value = data.imageStoragePath || "";
     setCheckboxes(data);
     updateSlugPreview(data.name || "");
+    formState.suppressBrandClear = true;
+    refreshPriceRowOptions({
+      selectedId: data.priceRowId || "",
+      item: data,
+    }).then(function () {
+      formState.suppressBrandClear = false;
+    });
   }
 
   function readFromDom(categoriesCache) {
@@ -146,6 +384,13 @@
     var catRow = (categoriesCache || []).find(function (c) {
       return c.id === categoryId;
     });
+    var priceRowSel = $("pf-price-row-id");
+    var priceRowId = priceRowSel ? String(priceRowSel.value || "").trim() : "";
+    var priceRowOpt = priceRowSel && priceRowId ? priceRowSel.options[priceRowSel.selectedIndex] : null;
+    var linkedProduct =
+      (priceRowOpt && priceRowOpt.getAttribute("data-product")) ||
+      (findGoldRow(priceRowId) && findGoldRow(priceRowId).product) ||
+      "";
     return {
       id: ($("pf-id") && $("pf-id").value.trim()) || "",
       name: ($("pf-name") && $("pf-name").value.trim()) || "",
@@ -153,6 +398,8 @@
       categoryId: categoryId,
       category: catRow ? catRow.name : ($("pf-category") && $("pf-category").value.trim()) || "",
       priceText: ($("pf-priceText") && $("pf-priceText").value.trim()) || "",
+      priceRowId: priceRowId,
+      priceSourceProduct: priceRowId ? String(linkedProduct).trim() : "",
       weight: parseWeightInput($("pf-weight") && $("pf-weight").value),
       image: ($("pf-image") && $("pf-image").value.trim()) || "",
       imageStoragePath: ($("pf-image-path") && $("pf-image-path").value.trim()) || "",
@@ -203,6 +450,8 @@
       categoryId: item.categoryId || "",
       category: item.category || "",
       priceText: item.priceText || "",
+      priceRowId: item.priceRowId || "",
+      priceSourceProduct: item.priceSourceProduct || "",
       weight: item.weight != null ? item.weight : null,
       image: item.image || "",
       imageStoragePath: item.imageStoragePath || pathFromProductPublicUrl(item.image || ""),
@@ -268,6 +517,19 @@
       }
     });
 
+    $("pf-brand-id")?.addEventListener("change", onBrandChangedByUser);
+    $("pf-price-row-id")?.addEventListener("change", updatePriceSourceStatus);
+    $("pf-priceText")?.addEventListener("input", updatePriceSourceStatus);
+
+    window.addEventListener("tlkv:gold-table-changed", function () {
+      formState.goldRowsLoaded = false;
+      refreshPriceRowOptions();
+    });
+    window.addEventListener("tlkv:gold-rows-updated", function () {
+      formState.goldRowsLoaded = false;
+      refreshPriceRowOptions();
+    });
+
     $("btn-product-new")?.addEventListener("click", function () {
       resetToCreateMode();
     });
@@ -283,6 +545,8 @@
     validateForm: validateForm,
     readFromDom: readFromDom,
     updateSlugPreview: updateSlugPreview,
+    refreshPriceRowOptions: refreshPriceRowOptions,
+    updatePriceSourceStatus: updatePriceSourceStatus,
     getMode: function () {
       return formState.mode;
     },

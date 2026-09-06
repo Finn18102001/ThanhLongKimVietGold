@@ -6,7 +6,7 @@
   "use strict";
 
   var PRODUCT_PUBLIC_SELECT =
-    "id, name, slug, price_text, price_numeric, image, sort_order, " +
+    "id, name, slug, price_text, price_numeric, image, sort_order, weight, price_source_product, price_row_id, price_source, " +
     "is_featured, is_best_seller, is_hot, is_active, brand_id, category_id, " +
     "brands ( id, name, slug ), categories ( id, name, slug ), " +
     "product_images ( role, public_url, sort_order )";

@@ -65,6 +65,9 @@
     fillSelect($("pf-category-id"), categoriesCache, "Chọn danh mục");
     fillSelect($("catalog-admin-filter-brand"), brandsCache, "Thương hiệu");
     fillSelect($("catalog-admin-filter-category"), categoriesCache, "Danh mục");
+    if (window.TLKVProductFormAdmin && typeof window.TLKVProductFormAdmin.refreshPriceRowOptions === "function") {
+      window.TLKVProductFormAdmin.refreshPriceRowOptions();
+    }
   }
 
   function fillSelect(sel, rows, placeholder) {

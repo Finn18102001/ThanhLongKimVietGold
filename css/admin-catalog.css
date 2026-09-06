@@ -121,6 +121,44 @@
   box-shadow: 0 0 0 3px rgba(139, 29, 29, 0.08);
 }
 
+.catalog-admin-select:disabled {
+  background-color: #f4f4f5;
+  color: #71717a;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.catalog-admin-price-source {
+  margin: 0;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+}
+
+.catalog-admin-price-source__line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #3f3f46;
+}
+
+.catalog-admin-price-source__line + .catalog-admin-price-source__line {
+  margin-top: 4px;
+}
+
+.catalog-admin-price-source__line strong {
+  font-weight: 600;
+  color: #18181b;
+}
+
+.catalog-admin-price-source__note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #71717a;
+}
+
 .catalog-admin-input--muted {
   background: #fafafa;
   font-size: 13px;
