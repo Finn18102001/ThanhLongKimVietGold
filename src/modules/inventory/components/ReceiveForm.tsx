@@ -43,8 +43,8 @@ export function ReceiveForm({ rows }: { rows: StockRow[] }) {
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
       <h1 className="text-[15px] font-semibold">Nhập hàng</h1>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-        Giá vốn là số nguyên VND / chiếc. Backend tính tổng giá vốn = giá vốn × số nhận và tự suy
-        trạng thái thanh toán từ số đã trả.
+        Giá vốn là số nguyên VND / chiếc. Backend tính tổng = giá vốn × số nhận. Nhận hàng tăng kho;
+        số đã trả giảm tiền và giảm công nợ nguồn hàng. Hai luồng độc lập.
       </p>
       <form action={onSubmit} className="mt-4 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
         <input type="hidden" name="idempotency_key" value={idempotencyKey} />

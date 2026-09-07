@@ -6,8 +6,10 @@ import { ROUTES } from "@/shared/navigation/routes";
 
 const ITEMS = [
   { href: ROUTES.inventory, label: "Tồn kho hiện tại", exact: true },
+  { href: ROUTES.inventoryOrder, label: "Đặt hàng cho kho" },
   { href: ROUTES.inventoryReceive, label: "Nhập hàng" },
   { href: ROUTES.inventoryOutbound, label: "Xuất hàng" },
+  { href: ROUTES.inventoryReturn, label: "Trả hàng" },
   { href: ROUTES.inventoryAdjust, label: "Điều chỉnh kho" },
   { href: ROUTES.inventoryCount, label: "Kiểm kê kho" },
   { href: ROUTES.inventoryHistory, label: "Lịch sử biến động" },

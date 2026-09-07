@@ -6,10 +6,14 @@ import { createServerSupabase } from "@/shared/supabase/server";
 
 function revalidateInventory() {
   revalidatePath("/inventory");
+  revalidatePath("/inventory/order");
   revalidatePath("/inventory/receive");
   revalidatePath("/inventory/adjust");
   revalidatePath("/inventory/history");
   revalidatePath("/inventory/outbound");
+  revalidatePath("/inventory/return");
+  revalidatePath("/invoices");
+  revalidatePath("/cashflow");
   revalidatePath("/");
   revalidatePath("/pos");
 }
@@ -21,6 +25,11 @@ export async function receivePurchase(formData: FormData) {
   const costPriceDong = Number(formData.get("cost_price_dong") ?? "");
   const paidRaw = String(formData.get("paid_dong") ?? "").trim();
   const payMode = String(formData.get("pay_mode") ?? "UNPAID");
+  const goodsStatus = String(formData.get("goods_status") ?? "RECEIVED");
+  const paymentMethod = String(formData.get("payment_method") ?? "CASH");
+  const expectedReceiveAt = String(formData.get("expected_receive_at") ?? "").trim();
+  const weightChiRaw = String(formData.get("weight_chi") ?? "").trim();
+  const unitCostPerChiRaw = String(formData.get("unit_cost_dong_per_chi") ?? "").trim();
   if (!Number.isInteger(costPriceDong) || costPriceDong < 0) {
     throw new Error("Giá vốn phải là số nguyên VND không âm.");
   }
@@ -35,19 +44,28 @@ export async function receivePurchase(formData: FormData) {
   } else {
     paidDong = 0;
   }
+  const item: Record<string, unknown> = {
+    sku_id: String(formData.get("sku_id") ?? ""),
+    expected_qty: Number(formData.get("expected_qty") ?? receivedQty),
+    received_qty: receivedQty,
+    cost_price_dong: costPriceDong,
+  };
+  if (weightChiRaw !== "" && Number.isFinite(Number(weightChiRaw))) {
+    item.weight_chi = Number(weightChiRaw);
+  }
+  if (unitCostPerChiRaw !== "" && Number.isInteger(Number(unitCostPerChiRaw))) {
+    item.unit_cost_dong_per_chi = Number(unitCostPerChiRaw);
+  }
   const { data, error } = await supabase.rpc("pos_receive_purchase", {
     p_idempotency_key: String(formData.get("idempotency_key") || crypto.randomUUID()),
     p_supplier_name: String(formData.get("supplier_name") ?? "").trim(),
     p_reason: String(formData.get("reason") ?? "").trim(),
-    p_items: [
-      {
-        sku_id: String(formData.get("sku_id") ?? ""),
-        expected_qty: Number(formData.get("expected_qty") ?? 0),
-        received_qty: receivedQty,
-        cost_price_dong: costPriceDong,
-      },
-    ],
+    p_items: [item],
     p_paid_dong: paidDong,
+    p_payment_method: paymentMethod,
+    p_goods_status: goodsStatus === "NOT_RECEIVED" ? "NOT_RECEIVED" : "RECEIVED",
+    p_expected_receive_at: expectedReceiveAt || null,
+    p_note: String(formData.get("note") ?? "").trim() || null,
   });
   if (error) {
     throw new Error(error.message);
@@ -61,7 +79,21 @@ export async function receivePurchase(formData: FormData) {
     paidDong?: number;
     remainingDong?: number;
     paymentStatus?: string;
+    goodsStatus?: string;
+    documentStatus?: string;
   };
+}
+
+export async function listSuppliers(): Promise<Array<{ id: string; name: string; phone: string | null }>> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_suppliers");
+  if (error) throw new Error(error.message);
+  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name ?? ""),
+    phone: (row.phone as string | null) ?? null,
+  }));
 }
 
 export async function listBrands(): Promise<import("./types").BrandOption[]> {

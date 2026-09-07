@@ -7,7 +7,12 @@ import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { downloadCsv } from "@/shared/lib/csv";
 import { ROUTES } from "@/shared/navigation/routes";
-import { exportInvoiceCsv, fetchInvoiceDetail, searchInvoices } from "../actions";
+import {
+  exportInvoiceCsv,
+  fetchInvoiceDetail,
+  fetchStockReceiptDetail,
+  searchInvoices,
+} from "../actions";
 import {
   documentTypeLabel,
   effectivePaymentStatus,
@@ -20,7 +25,9 @@ import {
   paymentStatusLabel,
 } from "../labels";
 import type { DocumentType, InvoiceDetail, InvoiceListPage, InvoiceListRow, PaymentStatus } from "../types";
+import type { StockReceiptDetail } from "../types-receipt";
 import { InvoiceDrawer } from "./InvoiceDrawer";
+import { StockReceiptDrawer } from "./StockReceiptDrawer";
 
 const PAGE_SIZES = [5, 10, 20] as const;
 const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
@@ -44,6 +51,7 @@ export function InvoiceDirectory({
   initial: InvoiceListPage;
   canVoidInvoice?: boolean;
 }) {
+  const canReversePurchase = canVoidInvoice;
   const router = useRouter();
   const [page, setPage] = useState(initial);
   const [query, setQuery] = useState("");
@@ -53,6 +61,7 @@ export function InvoiceDirectory({
   const [documentType, setDocumentType] = useState<"" | DocumentType>("");
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
+  const [receiptDetail, setReceiptDetail] = useState<StockReceiptDetail | null>(null);
   const [exporting, setExporting] = useState(false);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -109,10 +118,21 @@ export function InvoiceDirectory({
 
   async function openDetail(invoiceNo: string) {
     try {
+      setReceiptDetail(null);
       setDetail(await fetchInvoiceDetail(invoiceNo));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được chi tiết hóa đơn.");
+    }
+  }
+
+  async function openReceiptDetail(receiptId: string) {
+    try {
+      setDetail(null);
+      setReceiptDetail(await fetchStockReceiptDetail(receiptId));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được chi tiết phiếu nhập.");
     }
   }
 
@@ -122,7 +142,7 @@ export function InvoiceDirectory({
       return;
     }
     if (row.documentType === "STOCK_RECEIPT") {
-      router.push(ROUTES.inventoryReceive);
+      void openReceiptDetail(row.id);
       return;
     }
     void openDetail(row.invoiceNo);
@@ -445,6 +465,18 @@ export function InvoiceDirectory({
           onClose={() => setDetail(null)}
           onUpdated={(next) => {
             setDetail(next);
+            refresh({ offset: page.offset });
+          }}
+        />
+      ) : null}
+
+      {receiptDetail ? (
+        <StockReceiptDrawer
+          receipt={receiptDetail}
+          canReversePurchase={canReversePurchase}
+          onClose={() => setReceiptDetail(null)}
+          onUpdated={(next) => {
+            setReceiptDetail(next);
             refresh({ offset: page.offset });
           }}
         />
