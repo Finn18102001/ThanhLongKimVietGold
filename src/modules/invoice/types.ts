@@ -71,6 +71,20 @@ export type InvoiceListPage = {
   offset: number;
 };
 
+/** One CSV row per product line (document fields repeated). */
+export type InvoiceExportRow = InvoiceListRow & {
+  productName: string;
+  quantity: number | null;
+  weightChi: number | null;
+};
+
+export type InvoiceExportPage = {
+  items: InvoiceExportRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type InvoiceDetail = {
   id: string;
   invoiceNo: string;

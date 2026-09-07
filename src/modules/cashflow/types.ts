@@ -45,6 +45,9 @@ export type CashLedgerRow = {
   accountName: string;
   referenceCode: string | null;
   actorEmail: string;
+  /** Linked customer for sale/buy/void cash movements; empty otherwise. */
+  customerName: string | null;
+  customerCitizenId: string | null;
 };
 
 export type CashLedgerPage = {

@@ -14,11 +14,24 @@ export type StockCountLine = {
   sku: string;
   name: string;
   brandName: string | null;
+  /** Định lượng vàng (chỉ) của SKU — nguồn pos_skus.weight_chi. */
+  weightChi: number;
   systemQty: number;
   actualQty: number | null;
   difference: number | null;
   lineStatus: StockCountLineStatus;
 };
+
+/** Tổng số chỉ = tồn hệ thống × định lượng. Làm tròn 4 chữ số thập phân (tránh lỗi float 0.1×N). */
+export function systemTotalChi(systemQty: number, weightChi: number): number {
+  return Number((systemQty * weightChi).toFixed(4));
+}
+
+export function formatSystemTotalChi(systemQty: number, weightChi: number): string {
+  return `${systemTotalChi(systemQty, weightChi).toLocaleString("vi-VN", {
+    maximumFractionDigits: 4,
+  })} chỉ`;
+}
 
 export type StockCountSummary = {
   totalLines: number;

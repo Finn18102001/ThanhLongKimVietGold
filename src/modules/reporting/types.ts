@@ -38,6 +38,10 @@ export type TransactionExportRow = {
   dueDate: string | null;
   actorEmail: string;
   completedAt: string;
+  /** Sum of line quantities from the completed sale/buy. */
+  quantitySold: number;
+  /** Sum of quantity × weight_chi from line items (same basis as UI Số chỉ). */
+  weightChiSold: number;
 };
 
 export type PurchaseReportFilters = {

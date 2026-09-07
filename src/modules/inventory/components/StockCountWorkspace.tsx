@@ -17,6 +17,8 @@ import {
 import {
   COUNT_STATUS_LABEL,
   LINE_STATUS_LABEL,
+  formatSystemTotalChi,
+  systemTotalChi,
   type StockCountListRow,
   type StockCountSession,
 } from "../count-types";
@@ -117,6 +119,7 @@ export function StockCountWorkspace({
         "Tên sản phẩm",
         "Thương hiệu",
         "Tồn hệ thống",
+        "Tổng số chỉ",
         "Thực tế",
         "Lệch",
         "Trạng thái dòng",
@@ -127,6 +130,7 @@ export function StockCountWorkspace({
         line.name,
         line.brandName || "Không brand",
         line.systemQty,
+        systemTotalChi(line.systemQty, line.weightChi),
         line.actualQty ?? "",
         line.difference ?? "",
         LINE_STATUS_LABEL[line.lineStatus],
@@ -403,12 +407,13 @@ export function StockCountWorkspace({
           </div>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-[13px]">
+            <table className="w-full min-w-[820px] text-left text-[13px]">
               <thead className="text-[12px] text-[var(--tlkv-muted)]">
                 <tr className="border-b border-[var(--tlkv-line)]">
                   <th className="py-2 font-medium">Mã hàng</th>
                   <th className="py-2 font-medium">Thương hiệu</th>
                   <th className="py-2 font-medium">Tồn hệ thống</th>
+                  <th className="py-2 font-medium">Tổng số chỉ</th>
                   <th className="py-2 font-medium">Thực tế</th>
                   <th className="py-2 font-medium">Lệch</th>
                   <th className="py-2 font-medium">Trạng thái</th>
@@ -417,7 +422,7 @@ export function StockCountWorkspace({
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-[var(--tlkv-muted)]">
+                    <td colSpan={7} className="py-6 text-[var(--tlkv-muted)]">
                       Không có dòng khớp bộ lọc.
                     </td>
                   </tr>
@@ -431,7 +436,10 @@ export function StockCountWorkspace({
                       <td className="py-2.5 text-[var(--tlkv-muted)]">
                         {line.brandName || "Không brand"}
                       </td>
-                      <td className="py-2.5">{line.systemQty}</td>
+                      <td className="py-2.5 tabular-nums">{line.systemQty}</td>
+                      <td className="py-2.5 tabular-nums font-medium">
+                        {formatSystemTotalChi(line.systemQty, line.weightChi)}
+                      </td>
                       <td className="py-2.5">
                         {canEdit ? (
                           <input

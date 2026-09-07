@@ -181,6 +181,8 @@ export function CashflowWorkspace({
             "Mã TK",
             "Tham chiếu",
             "Người thực hiện",
+            "Tên khách hàng",
+            "CCCD",
           ],
           exported.items.map((row) => [
             formatDateTime(row.occurredAt),
@@ -193,6 +195,8 @@ export function CashflowWorkspace({
             row.accountCode,
             row.referenceCode ?? "",
             row.actorEmail,
+            row.customerName ?? "",
+            row.customerCitizenId ?? "",
           ]),
         );
         setError(null);

@@ -5,6 +5,7 @@ import { createServerSupabase } from "@/shared/supabase/server";
 import { getInvoiceByNo, listDocuments, listInvoices, listSalePayments, exportDocuments } from "./query";
 import type {
   InvoiceDetail,
+  InvoiceExportPage,
   InvoiceListFilter,
   InvoiceListPage,
   SalePaymentRecord,
@@ -17,7 +18,7 @@ export async function searchInvoices(filter: InvoiceListFilter): Promise<Invoice
   return listDocuments(filter);
 }
 
-export async function exportInvoiceCsv(filter: InvoiceListFilter): Promise<InvoiceListPage> {
+export async function exportInvoiceCsv(filter: InvoiceListFilter): Promise<InvoiceExportPage> {
   return exportDocuments(filter);
 }
 

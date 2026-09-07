@@ -80,6 +80,14 @@ export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLed
       accountName: String(row.accountName ?? ""),
       referenceCode: row.referenceCode == null ? null : String(row.referenceCode),
       actorEmail: String(row.actorEmail ?? ""),
+      customerName:
+        row.customerName == null || String(row.customerName).trim() === ""
+          ? null
+          : String(row.customerName),
+      customerCitizenId:
+        row.customerCitizenId == null || String(row.customerCitizenId).trim() === ""
+          ? null
+          : String(row.customerCitizenId),
     }),
   );
   return {

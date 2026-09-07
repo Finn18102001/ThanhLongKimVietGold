@@ -41,6 +41,7 @@ function mapSession(raw: Record<string, unknown>): StockCountSession {
       sku: String(item.sku),
       name: String(item.name),
       brandName: item.brand_name == null ? null : String(item.brand_name),
+      weightChi: Number(item.weight_chi ?? 0),
       systemQty: Number(item.system_qty),
       actualQty: item.actual_qty === null ? null : Number(item.actual_qty),
       difference: item.difference === null ? null : Number(item.difference),
@@ -49,31 +50,39 @@ function mapSession(raw: Record<string, unknown>): StockCountSession {
   };
 }
 
-async function withBrandNames(session: StockCountSession): Promise<StockCountSession> {
+async function withSkuMeta(session: StockCountSession): Promise<StockCountSession> {
   if (session.items.length === 0) return session;
   const supabase = await createServerSupabase();
   const skuIds = session.items.map((item) => item.skuId);
   const { data, error } = await supabase
     .from("pos_skus")
-    .select("id, brands(name)")
+    .select("id, weight_chi, brands(name)")
     .in("id", skuIds);
   if (error || !data) return session;
 
-  const brandBySku = new Map<string, string | null>();
+  const metaBySku = new Map<string, { brandName: string | null; weightChi: number }>();
   for (const row of data as Array<{
     id: string;
+    weight_chi: number | string | null;
     brands?: { name: string } | { name: string }[] | null;
   }>) {
     const brand = Array.isArray(row.brands) ? row.brands[0] : row.brands;
-    brandBySku.set(row.id, brand?.name ?? null);
+    metaBySku.set(row.id, {
+      brandName: brand?.name ?? null,
+      weightChi: Number(row.weight_chi ?? 0),
+    });
   }
 
   return {
     ...session,
-    items: session.items.map((item) => ({
-      ...item,
-      brandName: brandBySku.get(item.skuId) ?? item.brandName ?? null,
-    })),
+    items: session.items.map((item) => {
+      const meta = metaBySku.get(item.skuId);
+      return {
+        ...item,
+        brandName: meta?.brandName ?? item.brandName ?? null,
+        weightChi: meta?.weightChi ?? item.weightChi,
+      };
+    }),
   };
 }
 
@@ -110,7 +119,7 @@ export async function getStockCount(id: string): Promise<StockCountSession> {
   const { data, error } = await supabase.rpc("pos_get_stock_count", { p_id: id });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Không tìm thấy phiên kiểm kê.");
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }
 
 export async function createStockCount(input: {
@@ -129,7 +138,7 @@ export async function createStockCount(input: {
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }
 
 export async function updateStockCountItem(countId: string, skuId: string, actualQty: number) {
@@ -142,7 +151,7 @@ export async function updateStockCountItem(countId: string, skuId: string, actua
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }
 
 export async function submitStockCount(countId: string) {
@@ -151,7 +160,7 @@ export async function submitStockCount(countId: string) {
   const { data, error } = await supabase.rpc("pos_submit_stock_count", { p_count_id: countId });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }
 
 export async function approveStockCount(countId: string) {
@@ -161,7 +170,7 @@ export async function approveStockCount(countId: string) {
   if (error) throw new Error(error.message);
   revalidateCount();
   revalidatePath("/inventory/history");
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }
 
 export async function rejectStockCount(countId: string, reason: string) {
@@ -173,5 +182,5 @@ export async function rejectStockCount(countId: string, reason: string) {
   });
   if (error) throw new Error(error.message);
   revalidateCount();
-  return withBrandNames(mapSession(data as Record<string, unknown>));
+  return withSkuMeta(mapSession(data as Record<string, unknown>));
 }

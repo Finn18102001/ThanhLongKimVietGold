@@ -1,6 +1,7 @@
 import { createServerSupabase } from "@/shared/supabase/server";
 import type {
   InvoiceDetail,
+  InvoiceExportPage,
   InvoiceLine,
   InvoiceListFilter,
   InvoiceListPage,
@@ -415,7 +416,7 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
   };
 }
 
-export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
+export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceExportPage> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_export_documents", {
     p_document_type: filter.documentType ?? null,
@@ -437,6 +438,8 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
       const totalDong = Number(row.totalDong ?? 0);
       const paidDong = Number(row.paidDong ?? 0);
       const remainingDong = Number(row.remainingDong ?? 0);
+      const quantityRaw = row.quantity;
+      const weightRaw = row.weightChi;
       return {
         id: String(row.id),
         invoiceNo: String(row.documentNo ?? ""),
@@ -463,6 +466,9 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         transactionType: "SALE" as const,
         fulfillmentStatus: "DELIVERED",
         documentType,
+        productName: String(row.productName ?? ""),
+        quantity: quantityRaw == null || quantityRaw === "" ? null : Number(quantityRaw),
+        weightChi: weightRaw == null || weightRaw === "" ? null : Number(weightRaw),
       };
     }),
     total: Number(raw?.total ?? 0),

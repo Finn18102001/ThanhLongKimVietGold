@@ -143,6 +143,8 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
     dueDate: raw.dueDate == null || raw.dueDate === "" ? null : String(raw.dueDate),
     actorEmail: String(raw.actorEmail ?? ""),
     completedAt: String(raw.completedAt ?? ""),
+    quantitySold: Number(raw.quantitySold ?? 0),
+    weightChiSold: Number(raw.weightChiSold ?? 0),
   };
 }
 
