@@ -2,6 +2,19 @@ export type PaymentMethod = "CASH" | "TRANSFER" | "CARD";
 
 export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "OVERDUE";
 
+/** Melt buy lifecycle (UI stepper + BE workflow_status). */
+export type BuyWorkflowStatus =
+  | "INTAKE"
+  | "MELT_COMMITTED"
+  | "MELTING"
+  | "WEIGHT_ENTERED"
+  | "AWAITING_CONFIRM"
+  | "COMPLETED"
+  | "CANCELLED";
+
+/** Aggregate buy row status (pos_buys.status). */
+export type BuyStatus = "PROCESSING" | "COMPLETED" | "CANCELLED" | "FAILED" | "VOIDED";
+
 export type BuyPayMode = "FULL" | "PARTIAL" | "UNPAID";
 
 /** Spec §2.1 / SRS 6.x: max |unit - reference| per chỉ before admin exception (catalog only). */
@@ -105,6 +118,12 @@ export type BuyListRow = {
   actorEmail: string;
   completedAt: string | null;
   note: string | null;
+  status: BuyStatus | string;
+  workflowStatus: BuyWorkflowStatus | string;
+  meltCommitmentNo: string | null;
+  form02No: string | null;
+  meltingStartedAt: string | null;
+  attachmentPdfPath: string | null;
 };
 
 export type BuyDetailItem = {
@@ -116,7 +135,12 @@ export type BuyDetailItem = {
   brandId: string | null;
   brandName: string | null;
   quantity: number;
+  /** Settlement weight (after melt when confirmed; else initial). */
   weightChi: number;
+  /** Weight before melting (intake). */
+  weightBeforeChi: number;
+  /** Weight after melting; null until entered. */
+  weightAfterChi: number | null;
   unitPriceDong: number;
   totalPriceDong: number;
   isMarketGold: boolean;
@@ -152,8 +176,20 @@ export type BuyDetail = {
   actorEmail: string;
   completedAt: string | null;
   note: string | null;
+  status: BuyStatus | string;
+  workflowStatus: BuyWorkflowStatus | string;
+  meltCommitmentNo: string | null;
+  form02No: string | null;
+  meltingStartedAt: string | null;
+  attachmentPdfPath: string | null;
   items: BuyDetailItem[];
   payments: BuyPaymentRow[];
+};
+
+/** Payload row for pos_set_buy_melt_weights. */
+export type MeltWeightItemPayload = {
+  item_id: string;
+  weight_after_chi: number;
 };
 
 export type DebtSummary = {

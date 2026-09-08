@@ -2,7 +2,36 @@
 
 export function formatViDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
   return `${day}/${month}/${year}`;
+}
+
+/** Parse `dd/mm/yyyy` (or ISO `yyyy-mm-dd`) → ISO date, or null if invalid. */
+export function parseViDateInput(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return isValidIsoDate(trimmed) ? trimmed : null;
+  }
+
+  const m = trimmed.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+  const iso = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return isValidIsoDate(iso) ? iso : null;
+}
+
+function isValidIsoDate(iso: string): boolean {
+  const [y, mo, d] = iso.split("-").map(Number);
+  if (!y || !mo || !d) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return (
+    dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d
+  );
 }
 
 export function formatViDateTime(isoDateTime: string): string {

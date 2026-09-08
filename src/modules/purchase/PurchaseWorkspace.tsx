@@ -15,10 +15,18 @@ import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
   collectBuyPayment,
   completeBuy,
+  confirmBuyMelt,
   getBuy,
   getCustomerDebtSummary,
+  issueMeltCommitment,
+  setBuyMeltWeights,
+  startBuyMelting,
+  uploadBuyPdf,
 } from "./actions";
+import { BuyWorkflowPanel } from "./components/BuyWorkflowPanel";
+import { Form02Document } from "./components/Form02Document";
 import { MarketGoldModal } from "./components/MarketGoldModal";
+import { MeltCommitmentDocument } from "./components/MeltCommitmentDocument";
 import { PurchaseCartPanel } from "./components/PurchaseCartPanel";
 import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
 import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
@@ -48,9 +56,13 @@ import {
   type DebtSummary,
   type MarketBuyLine,
   type MarketGoldRef,
+  type MeltWeightItemPayload,
   type PaymentMethod,
   type PurchaseCatalogItem,
 } from "./types";
+import { isBuyInMeltWorkflow } from "./workflowLabels";
+
+type PrintDocKind = "commitment" | "form02" | "invoice";
 
 export function PurchaseWorkspace({
   catalog,
@@ -93,6 +105,12 @@ export function PurchaseWorkspace({
   const [collectMethod, setCollectMethod] = useState<PaymentMethod>("CASH");
   const [collectDue, setCollectDue] = useState(defaultDueDateIso);
   const [collectPending, setCollectPending] = useState(false);
+  const [workflowPending, setWorkflowPending] = useState(false);
+  const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachPending, setAttachPending] = useState(false);
+  const workflowKey = useRef<string | null>(null);
+  const attachFileRef = useRef<HTMLInputElement | null>(null);
 
   const totalDong = useMemo(
     () => lines.reduce((sum, line) => sum + lineTotalDong(line), 0),
@@ -317,8 +335,14 @@ export function PurchaseWorkspace({
           paymentMethod,
           dueDate: result.dueDate,
           actorEmail: "",
-          completedAt: new Date().toISOString(),
+          completedAt: null,
           note: note.trim() || null,
+          status: "PROCESSING",
+          workflowStatus: "INTAKE",
+          meltCommitmentNo: null,
+          form02No: null,
+          meltingStartedAt: null,
+          attachmentPdfPath: null,
         },
         ...prev,
       ]);
@@ -333,11 +357,12 @@ export function PurchaseWorkspace({
       } catch {
         /* ignore */
       }
+      void openDetail(result.buyId);
     } catch (err) {
       setReviewing(false);
       setAlert({
         tone: "error",
-        title: "Không hoàn tất mua vào",
+        title: "Không tạo được giao dịch",
         reason: err instanceof Error ? err.message : "Lỗi không xác định.",
       });
       idempotencyKey.current = crypto.randomUUID();
@@ -350,12 +375,21 @@ export function PurchaseWorkspace({
     setDetailLoading(true);
     setDetail(null);
     collectKey.current = null;
+    workflowKey.current = null;
+    setPrintDoc("invoice");
     try {
       const buy = await getBuy(buyId);
       setDetail(buy);
       setCollectAmount(buy.remainingDong > 0 ? buy.remainingDong : 0);
       setCollectMethod((buy.paymentMethod as PaymentMethod) || "CASH");
       setCollectDue(buy.dueDate || defaultDueDateIso());
+      if (isBuyInMeltWorkflow(buy) && buy.workflowStatus === "INTAKE") {
+        setPrintDoc("commitment");
+      } else if (buy.form02No && buy.status !== "COMPLETED") {
+        setPrintDoc("form02");
+      } else if (buy.meltCommitmentNo && isBuyInMeltWorkflow(buy)) {
+        setPrintDoc("commitment");
+      }
     } catch (err) {
       setAlert({
         tone: "error",
@@ -365,6 +399,90 @@ export function PurchaseWorkspace({
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  function syncRecentFromDetail(buy: BuyDetail) {
+    setRecentBuys((prev) =>
+      prev.map((row) =>
+        row.id === buy.id
+          ? {
+              ...row,
+              buyNo: buy.buyNo,
+              totalDong: buy.totalDong,
+              paidDong: buy.paidDong,
+              remainingDong: buy.remainingDong,
+              paymentStatus: buy.paymentStatus,
+              paymentMethod: buy.paymentMethod,
+              dueDate: buy.dueDate,
+              completedAt: buy.completedAt,
+              status: buy.status,
+              workflowStatus: buy.workflowStatus,
+              meltCommitmentNo: buy.meltCommitmentNo,
+              form02No: buy.form02No,
+              meltingStartedAt: buy.meltingStartedAt,
+              attachmentPdfPath: buy.attachmentPdfPath,
+            }
+          : row,
+      ),
+    );
+  }
+
+  async function runWorkflow(
+    action: () => Promise<BuyDetail>,
+    opts?: { print?: PrintDocKind; successTitle?: string; offerAttach?: boolean },
+  ) {
+    if (workflowPending) return;
+    if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
+    setWorkflowPending(true);
+    try {
+      const buy = await action();
+      setDetail(buy);
+      syncRecentFromDetail(buy);
+      workflowKey.current = null;
+      if (opts?.print) {
+        setPrintDoc(opts.print);
+      }
+      if (opts?.successTitle) {
+        setAlert({ tone: "success", title: opts.successTitle, reason: buy.buyNo });
+      }
+      if (opts?.offerAttach) setAttachOpen(true);
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không cập nhật được quy trình",
+        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+      });
+      workflowKey.current = crypto.randomUUID();
+    } finally {
+      setWorkflowPending(false);
+    }
+  }
+
+  async function onUploadPdf(file: File | null) {
+    if (!detail || !file || attachPending) return;
+    setAttachPending(true);
+    try {
+      const fd = new FormData();
+      fd.set("buyId", detail.id);
+      fd.set("file", file);
+      const result = await uploadBuyPdf(fd);
+      if (!result.ok) {
+        setAlert({ tone: "error", title: "Không đính kèm PDF", reason: result.message });
+        return;
+      }
+      setDetail(result.buy);
+      syncRecentFromDetail(result.buy);
+      setAttachOpen(false);
+      setAlert({ tone: "success", title: "Đã đính kèm PDF", reason: result.buy.buyNo });
+    } finally {
+      setAttachPending(false);
+      if (attachFileRef.current) attachFileRef.current.value = "";
+    }
+  }
+
+  function printDocument(kind: PrintDocKind) {
+    setPrintDoc(kind);
+    window.setTimeout(() => window.print(), 50);
   }
 
   const searchParams = useSearchParams();
@@ -465,11 +583,11 @@ export function PurchaseWorkspace({
         {success ? (
           <div className="rounded-[12px] border border-[var(--tlkv-green)]/30 bg-[var(--tlkv-green-soft)] px-4 py-3">
             <p className="text-[14px] font-semibold text-[var(--tlkv-green)]">
-              Đã tạo phiếu {success.buyNo}
+              Đã tạo giao dịch {success.buyNo} — tiếp tục phiếu cam kết nấu
             </p>
             <p className="mt-1 text-[12px] text-[var(--tlkv-text)]">
-              Tổng {formatDong(success.totalDong)} · Đã trả {formatDong(success.paidDong)} · Còn phải
-              trả {formatDong(success.remainingDong)}
+              Tổng ước tính {formatDong(success.totalDong)} · Trả dự kiến{" "}
+              {formatDong(success.paidDong)} · Còn {formatDong(success.remainingDong)}
             </p>
             <div className="mt-2 flex flex-wrap gap-3">
               <button
@@ -478,14 +596,14 @@ export function PurchaseWorkspace({
                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--tlkv-red)]"
               >
                 <Printer size={14} />
-                In phiếu mua
+                Mở quy trình / in chứng từ
               </button>
               <button
                 type="button"
                 onClick={resetDraft}
                 className="text-[12px] font-semibold text-[var(--tlkv-red)]"
               >
-                Tạo phiếu mua mới
+                Tạo giao dịch mới
               </button>
             </div>
           </div>
@@ -637,7 +755,7 @@ export function PurchaseWorkspace({
                 onClick={() => void onConfirmBuy()}
                 className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
               >
-                {pending ? "Đang chốt..." : "Xác nhận & lưu phiếu"}
+                {pending ? "Đang tạo..." : "Tạo giao dịch tiếp nhận"}
               </button>
             </>
           }
@@ -645,8 +763,8 @@ export function PurchaseWorkspace({
           <div className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-amber)]">
             <Warning size={18} className="mt-0.5 shrink-0" />
             <p>
-              Kiểm tra khách, trọng lượng và giá trước khi chốt. Hệ thống sẽ tạo phiếu mua, nhập kho
-              và ghi công nợ phải trả (nếu còn) trong một bước.
+              Kiểm tra khách, trọng lượng và giá trước khi tạo giao dịch. Hệ thống tạo phiếu tiếp
+              nhận (đang xử lý) — chưa nhập kho. Tiếp theo: phiếu cam kết nấu → nấu → xác nhận.
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
@@ -706,17 +824,39 @@ export function PurchaseWorkspace({
           title={detail ? `Phiếu ${detail.buyNo}` : "Đang tải..."}
           wide
           onClose={() => {
-            if (!collectPending) setDetail(null);
+            if (!collectPending && !workflowPending) setDetail(null);
           }}
           footer={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {detail && isBuyInMeltWorkflow(detail) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => printDocument("commitment")}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
+                  >
+                    <Printer size={16} />
+                    In cam kết
+                  </button>
+                  {(detail.form02No || detail.status === "COMPLETED") && (
+                    <button
+                      type="button"
+                      onClick={() => printDocument("form02")}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
+                    >
+                      <Printer size={16} />
+                      In phiếu 02
+                    </button>
+                  )}
+                </>
+              ) : null}
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => printDocument("invoice")}
                 className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
               >
                 <Printer size={16} />
-                In phiếu
+                In hóa đơn mua
               </button>
               <button
                 type="button"
@@ -731,150 +871,279 @@ export function PurchaseWorkspace({
           {detailLoading || !detail ? (
             <p className="text-[13px] text-[var(--tlkv-muted)]">Đang tải chi tiết...</p>
           ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-[13px] font-semibold">{detail.customerName}</p>
-                  <p className="text-[12px] text-[var(--tlkv-muted)]">
-                    {formatPhoneDisplay(detail.customerPhone)}
-                    {detail.customerNo ? ` · ${detail.customerNo}` : ""}
-                  </p>
-                </div>
-                <div className="text-[13px] sm:text-right">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${paymentStatusBadgeClass(detail.paymentStatus)}`}
-                  >
-                    {paymentStatusLabel(detail.paymentStatus)}
-                  </span>
-                  <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-                    {detail.completedAt ? formatViDateTime(detail.completedAt) : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
-                <DebtChip label="Tổng" value={formatDong(detail.totalDong)} />
-                <DebtChip label="Đã trả" value={formatDong(detail.paidDong)} />
-                <DebtChip label="Còn trả" value={formatDong(detail.remainingDong)} />
-                <DebtChip
-                  label="Hẹn trả"
-                  value={detail.dueDate ? formatViDate(detail.dueDate) : "-"}
-                />
-              </div>
-
-              <div>
-                <h3 className="text-[13px] font-semibold">Hàng mua</h3>
-                <table className="mt-1 w-full text-left text-[12px]">
-                  <thead className="text-[11px] text-[var(--tlkv-muted)]">
-                    <tr className="border-b border-[var(--tlkv-line)]">
-                      <th className="py-1.5 font-medium">Tên</th>
-                      <th className="py-1.5 font-medium">Brand</th>
-                      <th className="py-1.5 font-medium">SL</th>
-                      <th className="py-1.5 font-medium">TL</th>
-                      <th className="py-1.5 text-right font-medium">Tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.items.map((item) => (
-                      <tr key={item.id} className="border-b border-[var(--tlkv-line)]">
-                        <td className="py-2">
-                          {item.productName}
-                          {item.isMarketGold ? (
-                            <span className="ml-1 text-[10px] text-[var(--tlkv-muted)]">
-                              (thị trường)
-                            </span>
-                          ) : null}
-                        </td>
-                        <td className="py-2">{item.brandName || "—"}</td>
-                        <td className="py-2">{item.quantity}</td>
-                        <td className="py-2">{formatChi(item.weightChi)}</td>
-                        <td className="py-2 text-right font-medium">
-                          {formatDong(item.totalPriceDong)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {detail.payments.length > 0 ? (
-                <div>
-                  <h3 className="text-[13px] font-semibold">Lịch sử trả tiền</h3>
-                  <ul className="mt-1 space-y-1 text-[12px]">
-                    {detail.payments.map((p) => (
-                      <li
-                        key={p.id}
-                        className="flex flex-wrap justify-between gap-2 border-b border-[var(--tlkv-line)] py-1.5"
-                      >
-                        <span>
-                          {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
-                          {p.actorEmail ? (
-                            <span className="text-[var(--tlkv-muted)]"> · {p.actorEmail}</span>
-                          ) : null}
-                        </span>
-                        <span className="font-medium">{formatDong(p.amountDong)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {detail.remainingDong > 0 ? (
-                <div className="rounded-[12px] border border-[var(--tlkv-line)] p-3">
-                  <h3 className="text-[13px] font-semibold">Trả thêm cho khách</h3>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                    <Field label="Số tiền (VND)">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={collectAmount > 0 ? String(collectAmount) : ""}
-                        onChange={(e) => setCollectAmount(parseDongInput(e.target.value))}
-                        className={purchaseInputClass}
-                      />
-                    </Field>
-                    <Field label="Hình thức">
-                      <select
-                        value={collectMethod}
-                        onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
-                        className={purchaseInputClass}
-                      >
-                        <option value="CASH">Tiền mặt</option>
-                        <option value="TRANSFER">Chuyển khoản</option>
-                        <option value="CARD">Thẻ</option>
-                      </select>
-                    </Field>
-                    <Field label="Ngày hẹn (nếu còn)">
-                      <input
-                        type="date"
-                        value={collectDue}
-                        onChange={(e) => setCollectDue(e.target.value)}
-                        className={purchaseInputClass}
-                      />
-                    </Field>
+            <div
+              className={`grid gap-4 ${
+                isBuyInMeltWorkflow(detail) || detail.workflowStatus === "COMPLETED"
+                  ? "lg:grid-cols-[minmax(0,1fr)_300px]"
+                  : ""
+              }`}
+            >
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[13px] font-semibold">{detail.customerName}</p>
+                    <p className="text-[12px] text-[var(--tlkv-muted)]">
+                      {formatPhoneDisplay(detail.customerPhone)}
+                      {detail.customerNo ? ` · ${detail.customerNo}` : ""}
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    disabled={collectPending || collectAmount <= 0}
-                    onClick={() => void onCollectPayment()}
-                    className="mt-3 h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[12px] font-semibold text-white disabled:opacity-40"
-                  >
-                    {collectPending ? "Đang ghi..." : "Ghi trả thêm"}
-                  </button>
+                  <div className="text-[13px] sm:text-right">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${paymentStatusBadgeClass(detail.paymentStatus)}`}
+                    >
+                      {paymentStatusLabel(detail.paymentStatus)}
+                    </span>
+                    <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+                      {detail.completedAt ? formatViDateTime(detail.completedAt) : "Đang xử lý"}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-[12px] font-medium text-[var(--tlkv-green)]">
-                  Đã trả đủ cho khách trên phiếu này.
-                </p>
-              )}
+
+                <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
+                  <DebtChip label="Tổng" value={formatDong(detail.totalDong)} />
+                  <DebtChip label="Đã trả" value={formatDong(detail.paidDong)} />
+                  <DebtChip label="Còn trả" value={formatDong(detail.remainingDong)} />
+                  <DebtChip
+                    label="Hẹn trả"
+                    value={detail.dueDate ? formatViDate(detail.dueDate) : "-"}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-[13px] font-semibold">Hàng mua</h3>
+                  <table className="mt-1 w-full text-left text-[12px]">
+                    <thead className="text-[11px] text-[var(--tlkv-muted)]">
+                      <tr className="border-b border-[var(--tlkv-line)]">
+                        <th className="py-1.5 font-medium">Tên</th>
+                        <th className="py-1.5 font-medium">Brand</th>
+                        <th className="py-1.5 font-medium">SL</th>
+                        <th className="py-1.5 font-medium">Trước</th>
+                        <th className="py-1.5 font-medium">Sau</th>
+                        <th className="py-1.5 text-right font-medium">Tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items.map((item) => (
+                        <tr key={item.id} className="border-b border-[var(--tlkv-line)]">
+                          <td className="py-2">
+                            {item.productName}
+                            {item.isMarketGold ? (
+                              <span className="ml-1 text-[10px] text-[var(--tlkv-muted)]">
+                                (thị trường)
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="py-2">{item.brandName || "—"}</td>
+                          <td className="py-2">{item.quantity}</td>
+                          <td className="py-2">
+                            {formatChi(
+                              item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi,
+                            )}
+                          </td>
+                          <td className="py-2">
+                            {item.weightAfterChi != null ? formatChi(item.weightAfterChi) : "—"}
+                          </td>
+                          <td className="py-2 text-right font-medium">
+                            {formatDong(item.totalPriceDong)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {detail.payments.length > 0 ? (
+                  <div>
+                    <h3 className="text-[13px] font-semibold">Lịch sử trả tiền</h3>
+                    <ul className="mt-1 space-y-1 text-[12px]">
+                      {detail.payments.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex flex-wrap justify-between gap-2 border-b border-[var(--tlkv-line)] py-1.5"
+                        >
+                          <span>
+                            {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
+                            {p.actorEmail ? (
+                              <span className="text-[var(--tlkv-muted)]"> · {p.actorEmail}</span>
+                            ) : null}
+                          </span>
+                          <span className="font-medium">{formatDong(p.amountDong)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {detail.status === "COMPLETED" || detail.workflowStatus === "COMPLETED" ? (
+                  detail.remainingDong > 0 ? (
+                    <div className="rounded-[12px] border border-[var(--tlkv-line)] p-3">
+                      <h3 className="text-[13px] font-semibold">Trả thêm cho khách</h3>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        <Field label="Số tiền (VND)">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={collectAmount > 0 ? String(collectAmount) : ""}
+                            onChange={(e) => setCollectAmount(parseDongInput(e.target.value))}
+                            className={purchaseInputClass}
+                          />
+                        </Field>
+                        <Field label="Hình thức">
+                          <select
+                            value={collectMethod}
+                            onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
+                            className={purchaseInputClass}
+                          >
+                            <option value="CASH">Tiền mặt</option>
+                            <option value="TRANSFER">Chuyển khoản</option>
+                            <option value="CARD">Thẻ</option>
+                          </select>
+                        </Field>
+                        <Field label="Ngày hẹn (nếu còn)">
+                          <input
+                            type="date"
+                            value={collectDue}
+                            onChange={(e) => setCollectDue(e.target.value)}
+                            className={purchaseInputClass}
+                          />
+                        </Field>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={collectPending || collectAmount <= 0}
+                        onClick={() => void onCollectPayment()}
+                        className="mt-3 h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[12px] font-semibold text-white disabled:opacity-40"
+                      >
+                        {collectPending ? "Đang ghi..." : "Ghi trả thêm"}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-[12px] font-medium text-[var(--tlkv-green)]">
+                      Đã trả đủ cho khách trên phiếu này.
+                    </p>
+                  )
+                ) : (
+                  <p className="text-[12px] text-[var(--tlkv-muted)]">
+                    Thanh toán / nhập kho chỉ ghi nhận sau khi khách đồng ý kết quả nấu.
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setAttachOpen(true)}
+                  className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium"
+                >
+                  {detail.attachmentPdfPath ? "Đổi / thêm PDF đã ký" : "Đính kèm PDF đã ký"}
+                </button>
+              </div>
+
+              {isBuyInMeltWorkflow(detail) ||
+              detail.workflowStatus === "COMPLETED" ||
+              detail.status === "COMPLETED" ? (
+                <BuyWorkflowPanel
+                  buy={detail}
+                  pending={workflowPending}
+                  onIssueCommitment={() =>
+                    void runWorkflow(
+                      () =>
+                        issueMeltCommitment({
+                          buyId: detail.id,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { print: "commitment", successTitle: "Đã tạo phiếu cam kết nấu" },
+                    )
+                  }
+                  onStartMelt={() =>
+                    void runWorkflow(
+                      () =>
+                        startBuyMelting({
+                          buyId: detail.id,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { successTitle: "Đã chuyển sang nấu vàng" },
+                    )
+                  }
+                  onSetWeights={(items: MeltWeightItemPayload[]) =>
+                    void runWorkflow(
+                      () =>
+                        setBuyMeltWeights({
+                          buyId: detail.id,
+                          items,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { successTitle: "Đã lưu khối lượng sau nấu" },
+                    )
+                  }
+                  onConfirmAgree={() =>
+                    void runWorkflow(
+                      () =>
+                        confirmBuyMelt({
+                          buyId: detail.id,
+                          agree: true,
+                          idempotencyKey: workflowKey.current || undefined,
+                          paymentMethod: detail.paymentMethod as PaymentMethod,
+                          // Omit paidDong so BE uses intended_paid_dong from intake
+                          // (detail.paidDong is 0 while PROCESSING).
+                          dueDate: detail.dueDate,
+                        }),
+                      {
+                        print: "form02",
+                        successTitle: "Đã xác nhận — tạo Phiếu 02 / hóa đơn",
+                        offerAttach: true,
+                      },
+                    )
+                  }
+                  onConfirmCancel={() =>
+                    void runWorkflow(
+                      () =>
+                        confirmBuyMelt({
+                          buyId: detail.id,
+                          agree: false,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { successTitle: "Đã hủy giao dịch theo yêu cầu khách" },
+                    )
+                  }
+                  onPrintCommitment={() => printDocument("commitment")}
+                  onPrintForm02={() => printDocument("form02")}
+                  onPrintInvoice={() => printDocument("invoice")}
+                />
+              ) : null}
             </div>
           )}
         </Modal>
       )}
 
       {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
+
+      {attachOpen ? (
+        <Modal title="Đính kèm PDF đã ký" onClose={() => setAttachOpen(false)}>
+          <p className="text-[13px] text-[var(--tlkv-muted)]">
+            Tải lên bản PDF đã ký. Có thể bổ sung sau từ chi tiết phiếu mua.
+          </p>
+          <input
+            ref={attachFileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="mt-3 block w-full text-[12px]"
+            disabled={attachPending}
+            onChange={(e) => void onUploadPdf(e.target.files?.[0] ?? null)}
+          />
+          {attachPending ? (
+            <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Đang tải lên...</p>
+          ) : null}
+        </Modal>
+      ) : null}
+
       {detail ? (
         <div className="hidden print:block">
-          <PurchaseVoucherDocument buy={detail} />
+          {printDoc === "commitment" ? (
+            <MeltCommitmentDocument buy={detail} />
+          ) : printDoc === "form02" ? (
+            <Form02Document buy={detail} />
+          ) : (
+            <PurchaseVoucherDocument buy={detail} />
+          )}
         </div>
       ) : null}
     </div>

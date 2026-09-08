@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { DownloadSimple, Eye, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { downloadCsv } from "@/shared/lib/csv";
-import { ROUTES } from "@/shared/navigation/routes";
+import { getBuy } from "@/modules/purchase/actions";
+import { BuyDetailDrawer } from "@/modules/purchase/components/BuyDetailDrawer";
+import type { BuyDetail } from "@/modules/purchase/types";
 import {
   exportInvoiceCsv,
   fetchInvoiceDetail,
@@ -52,7 +54,6 @@ export function InvoiceDirectory({
   canVoidInvoice?: boolean;
 }) {
   const canReversePurchase = canVoidInvoice;
-  const router = useRouter();
   const [page, setPage] = useState(initial);
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState("");
@@ -62,6 +63,7 @@ export function InvoiceDirectory({
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [receiptDetail, setReceiptDetail] = useState<StockReceiptDetail | null>(null);
+  const [buyDetail, setBuyDetail] = useState<BuyDetail | null>(null);
   const [exporting, setExporting] = useState(false);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -136,9 +138,20 @@ export function InvoiceDirectory({
     }
   }
 
+  async function openBuyDetail(buyId: string) {
+    try {
+      setDetail(null);
+      setReceiptDetail(null);
+      setBuyDetail(await getBuy(buyId));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được phiếu mua từ khách.");
+    }
+  }
+
   function openRow(row: InvoiceListRow) {
     if (row.documentType === "PURCHASE_FROM_CUSTOMER") {
-      router.push(`${ROUTES.purchase}?buy=${row.id}`);
+      void openBuyDetail(row.id);
       return;
     }
     if (row.documentType === "STOCK_RECEIPT") {
@@ -477,6 +490,18 @@ export function InvoiceDirectory({
           onClose={() => setReceiptDetail(null)}
           onUpdated={(next) => {
             setReceiptDetail(next);
+            refresh({ offset: page.offset });
+          }}
+        />
+      ) : null}
+
+      {buyDetail ? (
+        <BuyDetailDrawer
+          buy={buyDetail}
+          canVoidBuy={canVoidInvoice}
+          onClose={() => setBuyDetail(null)}
+          onUpdated={(next) => {
+            setBuyDetail(next);
             refresh({ offset: page.offset });
           }}
         />

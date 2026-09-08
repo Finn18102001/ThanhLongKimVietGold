@@ -22,6 +22,7 @@ import type {
 } from "../types";
 import { CUSTOMER_GENDERS, CUSTOMER_GROUPS, CUSTOMER_TYPES } from "../types";
 import { CccdFormPhotos, type CccdPendingPhotos } from "./CccdFormPhotos";
+import { ViDateField } from "./ViDateField";
 
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
@@ -305,24 +306,16 @@ export function CustomerFormModal({
                     className={FIELD}
                   />
                 </label>
-                <label className="text-[13px]">
-                  Ngày cấp CCCD
-                  <input
-                    type="date"
-                    value={form.citizenIdIssueDate}
-                    onChange={(e) => patchForm({ citizenIdIssueDate: e.target.value })}
-                    className={FIELD}
-                  />
-                </label>
-                <label className="text-[13px]">
-                  Ngày hết hạn CCCD
-                  <input
-                    type="date"
-                    value={form.citizenIdExpiryDate}
-                    onChange={(e) => patchForm({ citizenIdExpiryDate: e.target.value })}
-                    className={FIELD}
-                  />
-                </label>
+                <ViDateField
+                  label="Ngày cấp CCCD"
+                  valueIso={form.citizenIdIssueDate}
+                  onChangeIso={(iso) => patchForm({ citizenIdIssueDate: iso })}
+                />
+                <ViDateField
+                  label="Ngày hết hạn CCCD"
+                  valueIso={form.citizenIdExpiryDate}
+                  onChangeIso={(iso) => patchForm({ citizenIdExpiryDate: iso })}
+                />
                 <label className="text-[13px]">
                   Nơi cấp CCCD
                   <input
@@ -373,15 +366,11 @@ export function CustomerFormModal({
               </select>
             </label>
             {!isBusiness ? (
-              <label className="text-[13px]">
-                Ngày sinh
-                <input
-                  type="date"
-                  value={form.dateOfBirth}
-                  onChange={(e) => patchForm({ dateOfBirth: e.target.value })}
-                  className={FIELD}
-                />
-              </label>
+              <ViDateField
+                label="Ngày sinh"
+                valueIso={form.dateOfBirth}
+                onChangeIso={(iso) => patchForm({ dateOfBirth: iso })}
+              />
             ) : null}
             <label className="text-[13px] sm:col-span-2">
               Email
