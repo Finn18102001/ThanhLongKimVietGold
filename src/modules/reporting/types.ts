@@ -38,10 +38,16 @@ export type TransactionExportRow = {
   dueDate: string | null;
   actorEmail: string;
   completedAt: string;
-  /** Sum of line quantities from the completed sale/buy. */
+  /** Line quantity (one Excel row per product line). */
   quantitySold: number;
-  /** Sum of quantity × weight_chi from line items (same basis as UI Số chỉ). */
+  /** Line quantity × weight_chi. */
   weightChiSold: number;
+  /** SKU code from the transaction product line. */
+  sku: string;
+  /** Brand name from the transaction product (buy snapshot / sale SKU brand). */
+  brandName: string;
+  /** Product name from the transaction line snapshot. */
+  productName: string;
 };
 
 export type PurchaseReportFilters = {

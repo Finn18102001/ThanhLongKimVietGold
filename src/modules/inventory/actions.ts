@@ -21,21 +21,88 @@ function revalidateInventory() {
 export async function receivePurchase(formData: FormData) {
   await assertAdminWrite();
   const supabase = await createServerSupabase();
-  const receivedQty = Number(formData.get("received_qty") ?? 0);
-  const costPriceDong = Number(formData.get("cost_price_dong") ?? "");
   const paidRaw = String(formData.get("paid_dong") ?? "").trim();
   const payMode = String(formData.get("pay_mode") ?? "UNPAID");
   const goodsStatus = String(formData.get("goods_status") ?? "RECEIVED");
   const paymentMethod = String(formData.get("payment_method") ?? "CASH");
   const expectedReceiveAt = String(formData.get("expected_receive_at") ?? "").trim();
-  const weightChiRaw = String(formData.get("weight_chi") ?? "").trim();
-  const unitCostPerChiRaw = String(formData.get("unit_cost_dong_per_chi") ?? "").trim();
-  if (!Number.isInteger(costPriceDong) || costPriceDong < 0) {
-    throw new Error("Giá vốn phải là số nguyên VND không âm.");
+
+  const itemsRaw = String(formData.get("items") ?? "").trim();
+  let items: Array<Record<string, unknown>> = [];
+
+  if (itemsRaw) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(itemsRaw);
+    } catch {
+      throw new Error("Danh sách sản phẩm không hợp lệ.");
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("Cần ít nhất một sản phẩm trong đơn đặt hàng.");
+    }
+    items = parsed.map((row) => {
+      const r = row as Record<string, unknown>;
+      const receivedQty = Number(r.received_qty ?? r.expected_qty ?? 0);
+      const costPriceDong = Number(r.cost_price_dong ?? "");
+      if (!Number.isInteger(costPriceDong) || costPriceDong < 0) {
+        throw new Error("Giá vốn mỗi dòng phải là số nguyên VND không âm.");
+      }
+      if (!Number.isInteger(receivedQty) || receivedQty <= 0) {
+        throw new Error("Số lượng mỗi dòng phải là số nguyên > 0.");
+      }
+      const item: Record<string, unknown> = {
+        sku_id: String(r.sku_id ?? ""),
+        expected_qty: Number(r.expected_qty ?? receivedQty),
+        received_qty: receivedQty,
+        cost_price_dong: costPriceDong,
+      };
+      const weightChi = Number(r.weight_chi);
+      if (r.weight_chi != null && r.weight_chi !== "" && Number.isFinite(weightChi)) {
+        item.weight_chi = weightChi;
+      }
+      const unitCost = Number(r.unit_cost_dong_per_chi);
+      if (
+        r.unit_cost_dong_per_chi != null &&
+        r.unit_cost_dong_per_chi !== "" &&
+        Number.isInteger(unitCost)
+      ) {
+        item.unit_cost_dong_per_chi = unitCost;
+      }
+      return item;
+    });
+  } else {
+    // Backward-compatible single-item FormData (Nhập hàng / legacy clients).
+    const receivedQty = Number(formData.get("received_qty") ?? 0);
+    const costPriceDong = Number(formData.get("cost_price_dong") ?? "");
+    if (!Number.isInteger(costPriceDong) || costPriceDong < 0) {
+      throw new Error("Giá vốn phải là số nguyên VND không âm.");
+    }
+    const weightChiRaw = String(formData.get("weight_chi") ?? "").trim();
+    const unitCostPerChiRaw = String(formData.get("unit_cost_dong_per_chi") ?? "").trim();
+    const item: Record<string, unknown> = {
+      sku_id: String(formData.get("sku_id") ?? ""),
+      expected_qty: Number(formData.get("expected_qty") ?? receivedQty),
+      received_qty: receivedQty,
+      cost_price_dong: costPriceDong,
+    };
+    if (weightChiRaw !== "" && Number.isFinite(Number(weightChiRaw))) {
+      item.weight_chi = Number(weightChiRaw);
+    }
+    if (unitCostPerChiRaw !== "" && Number.isInteger(Number(unitCostPerChiRaw))) {
+      item.unit_cost_dong_per_chi = Number(unitCostPerChiRaw);
+    }
+    items = [item];
   }
+
+  const itemsTotal = items.reduce((sum, item) => {
+    const qty = Number(item.received_qty ?? 0);
+    const cost = Number(item.cost_price_dong ?? 0);
+    return sum + cost * qty;
+  }, 0);
+
   let paidDong: number | null = 0;
   if (payMode === "FULL") {
-    paidDong = costPriceDong * receivedQty;
+    paidDong = itemsTotal;
   } else if (payMode === "PARTIAL") {
     paidDong = Number(paidRaw);
     if (!Number.isInteger(paidDong) || paidDong < 0) {
@@ -44,23 +111,12 @@ export async function receivePurchase(formData: FormData) {
   } else {
     paidDong = 0;
   }
-  const item: Record<string, unknown> = {
-    sku_id: String(formData.get("sku_id") ?? ""),
-    expected_qty: Number(formData.get("expected_qty") ?? receivedQty),
-    received_qty: receivedQty,
-    cost_price_dong: costPriceDong,
-  };
-  if (weightChiRaw !== "" && Number.isFinite(Number(weightChiRaw))) {
-    item.weight_chi = Number(weightChiRaw);
-  }
-  if (unitCostPerChiRaw !== "" && Number.isInteger(Number(unitCostPerChiRaw))) {
-    item.unit_cost_dong_per_chi = Number(unitCostPerChiRaw);
-  }
+
   const { data, error } = await supabase.rpc("pos_receive_purchase", {
     p_idempotency_key: String(formData.get("idempotency_key") || crypto.randomUUID()),
     p_supplier_name: String(formData.get("supplier_name") ?? "").trim(),
     p_reason: String(formData.get("reason") ?? "").trim(),
-    p_items: [item],
+    p_items: items,
     p_paid_dong: paidDong,
     p_payment_method: paymentMethod,
     p_goods_status: goodsStatus === "NOT_RECEIVED" ? "NOT_RECEIVED" : "RECEIVED",

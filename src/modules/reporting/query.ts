@@ -145,6 +145,9 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
     completedAt: String(raw.completedAt ?? ""),
     quantitySold: Number(raw.quantitySold ?? 0),
     weightChiSold: Number(raw.weightChiSold ?? 0),
+    sku: String(raw.sku ?? ""),
+    brandName: String(raw.brandName ?? ""),
+    productName: String(raw.productName ?? ""),
   };
 }
 

@@ -9,8 +9,35 @@ import type { StockRow } from "../types";
 type PayMode = "FULL" | "PARTIAL" | "UNPAID";
 type GoodsMode = "NOT_RECEIVED" | "RECEIVED";
 
+type OrderLine = {
+  localId: string;
+  skuId: string;
+  qty: number;
+  weightChi: number;
+  unitCostPerChi: number;
+};
+
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
+
+function newLine(rows: StockRow[], preferredSkuId?: string): OrderLine {
+  const row =
+    (preferredSkuId ? rows.find((r) => r.skuId === preferredSkuId) : null) ?? rows[0] ?? null;
+  return {
+    localId: crypto.randomUUID(),
+    skuId: row?.skuId ?? "",
+    qty: 1,
+    weightChi: row?.weightChi ?? 0,
+    unitCostPerChi: 0,
+  };
+}
+
+function lineCostPerPiece(line: OrderLine, row: StockRow | null): number {
+  if (line.unitCostPerChi > 0 && line.weightChi > 0) {
+    return Math.round(line.unitCostPerChi * line.weightChi);
+  }
+  return row?.lastCostDong ?? 0;
+}
 
 export function WarehouseOrderForm({
   rows,
@@ -22,11 +49,8 @@ export function WarehouseOrderForm({
   const [pending, setPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const [skuId, setSkuId] = useState(rows[0]?.skuId ?? "");
+  const [lines, setLines] = useState<OrderLine[]>(() => [newLine(rows)]);
   const [supplierName, setSupplierName] = useState(suppliers[0]?.name ?? "");
-  const [qty, setQty] = useState(1);
-  const [weightChi, setWeightChi] = useState(rows[0]?.weightChi ?? 0);
-  const [unitCostPerChi, setUnitCostPerChi] = useState(0);
   const [goodsStatus, setGoodsStatus] = useState<GoodsMode>("NOT_RECEIVED");
   const [payMode, setPayMode] = useState<PayMode>("UNPAID");
   const [paidDong, setPaidDong] = useState(0);
@@ -34,30 +58,53 @@ export function WarehouseOrderForm({
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD">("CASH");
 
-  const selected = rows.find((r) => r.skuId === skuId) ?? null;
+  const computedLines = useMemo(() => {
+    return lines.map((line) => {
+      const row = rows.find((r) => r.skuId === line.skuId) ?? null;
+      const costPerPiece = lineCostPerPiece(line, row);
+      const qty = Math.max(0, line.qty);
+      return {
+        line,
+        row,
+        costPerPiece,
+        lineTotal: costPerPiece * qty,
+        lineWeight: line.weightChi * qty,
+      };
+    });
+  }, [lines, rows]);
 
-  const costPerPiece = useMemo(() => {
-    if (unitCostPerChi > 0 && weightChi > 0) {
-      return Math.round(unitCostPerChi * weightChi);
-    }
-    return selected?.lastCostDong ?? 0;
-  }, [unitCostPerChi, weightChi, selected]);
-
-  const totalDong = costPerPiece * Math.max(0, qty);
-  const totalWeight = weightChi * Math.max(0, qty);
+  const totalDong = computedLines.reduce((sum, x) => sum + x.lineTotal, 0);
+  const totalQty = computedLines.reduce((sum, x) => sum + Math.max(0, x.line.qty), 0);
+  const totalWeight = computedLines.reduce((sum, x) => sum + x.lineWeight, 0);
   const effectivePaid =
     payMode === "FULL" ? totalDong : payMode === "PARTIAL" ? Math.min(paidDong, totalDong) : 0;
   const remaining = Math.max(0, totalDong - effectivePaid);
 
-  function onSkuChange(nextId: string) {
-    setSkuId(nextId);
-    const next = rows.find((r) => r.skuId === nextId);
-    if (next) setWeightChi(next.weightChi);
+  function patchLine(localId: string, patch: Partial<OrderLine>) {
+    setLines((prev) =>
+      prev.map((line) => {
+        if (line.localId !== localId) return line;
+        const next = { ...line, ...patch };
+        if (patch.skuId != null) {
+          const row = rows.find((r) => r.skuId === patch.skuId);
+          if (row) next.weightChi = row.weightChi;
+        }
+        return next;
+      }),
+    );
+  }
+
+  function addLine() {
+    setLines((prev) => [...prev, newLine(rows)]);
+  }
+
+  function removeLine(localId: string) {
+    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.localId !== localId)));
   }
 
   function resetForm() {
     setIdempotencyKey(crypto.randomUUID());
-    setQty(1);
+    setLines([newLine(rows)]);
     setPaidDong(0);
     setNote("");
     setPayMode("UNPAID");
@@ -66,30 +113,50 @@ export function WarehouseOrderForm({
 
   async function onSubmit() {
     if (pending) return;
-    if (!skuId || !supplierName.trim()) {
+    if (!supplierName.trim()) {
       setAlert({
         tone: "error",
         title: "Thiếu thông tin",
-        reason: "Chọn sản phẩm và nguồn hàng trước khi xác nhận.",
+        reason: "Chọn hoặc nhập nguồn hàng trước khi xác nhận.",
       });
       return;
     }
-    if (!Number.isInteger(qty) || qty <= 0) {
+    if (computedLines.length === 0) {
       setAlert({
         tone: "error",
-        title: "Số lượng không hợp lệ",
-        reason: "Số lượng phải là số nguyên > 0.",
+        title: "Thiếu sản phẩm",
+        reason: "Thêm ít nhất một sản phẩm vào đơn đặt hàng.",
       });
       return;
     }
-    if (!Number.isInteger(costPerPiece) || costPerPiece < 0) {
-      setAlert({
-        tone: "error",
-        title: "Đơn giá không hợp lệ",
-        reason: "Nhập đơn giá nhập (VND/chỉ) để tính giá vốn nguyên.",
-      });
-      return;
+
+    for (const item of computedLines) {
+      if (!item.line.skuId) {
+        setAlert({
+          tone: "error",
+          title: "Thiếu sản phẩm",
+          reason: "Mỗi dòng phải chọn sản phẩm.",
+        });
+        return;
+      }
+      if (!Number.isInteger(item.line.qty) || item.line.qty <= 0) {
+        setAlert({
+          tone: "error",
+          title: "Số lượng không hợp lệ",
+          reason: "Số lượng mỗi dòng phải là số nguyên > 0.",
+        });
+        return;
+      }
+      if (!Number.isInteger(item.costPerPiece) || item.costPerPiece < 0) {
+        setAlert({
+          tone: "error",
+          title: "Đơn giá không hợp lệ",
+          reason: "Nhập đơn giá nhập (VND/chỉ) cho từng dòng để tính giá vốn nguyên.",
+        });
+        return;
+      }
     }
+
     if (payMode === "PARTIAL" && (!Number.isInteger(paidDong) || paidDong < 0 || paidDong > totalDong)) {
       setAlert({
         tone: "error",
@@ -103,10 +170,6 @@ export function WarehouseOrderForm({
     try {
       const fd = new FormData();
       fd.set("idempotency_key", idempotencyKey);
-      fd.set("sku_id", skuId);
-      fd.set("expected_qty", String(qty));
-      fd.set("received_qty", String(qty));
-      fd.set("cost_price_dong", String(costPerPiece));
       fd.set("supplier_name", supplierName.trim());
       fd.set("reason", "Đặt hàng cho kho");
       fd.set("note", note);
@@ -115,8 +178,19 @@ export function WarehouseOrderForm({
       fd.set("goods_status", goodsStatus);
       fd.set("payment_method", paymentMethod);
       fd.set("expected_receive_at", expectedAt);
-      fd.set("weight_chi", String(weightChi));
-      fd.set("unit_cost_dong_per_chi", String(unitCostPerChi));
+      fd.set(
+        "items",
+        JSON.stringify(
+          computedLines.map((x) => ({
+            sku_id: x.line.skuId,
+            expected_qty: x.line.qty,
+            received_qty: x.line.qty,
+            cost_price_dong: x.costPerPiece,
+            weight_chi: x.line.weightChi,
+            unit_cost_dong_per_chi: x.line.unitCostPerChi,
+          })),
+        ),
+      );
 
       const result = await receivePurchase(fd);
       resetForm();
@@ -127,7 +201,7 @@ export function WarehouseOrderForm({
           goodsStatus === "RECEIVED"
             ? "Kho đã tăng theo số nhận. Tiền/công nợ ghi theo số thực trả."
             : "Chưa tăng tồn kho. Tiền chỉ giảm nếu đã thanh toán; phần còn lại theo dõi công nợ/tạm ứng.",
-        detail: `Phiếu ${result.receipt_no}. TT: ${result.paymentStatus ?? "-"}. Hàng: ${result.goodsStatus ?? goodsStatus}.`,
+        detail: `Phiếu ${result.receipt_no} · ${computedLines.length} sản phẩm. TT: ${result.paymentStatus ?? "-"}. Hàng: ${result.goodsStatus ?? goodsStatus}.`,
       });
     } catch (error) {
       setAlert({
@@ -146,8 +220,8 @@ export function WarehouseOrderForm({
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
         <h1 className="text-[15px] font-semibold">Đặt hàng cho kho</h1>
         <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-          Tồn kho chỉ tăng khi trạng thái nhận hàng là Đã nhận. Thanh toán và công nợ nguồn hàng
-          độc lập với trạng thái hàng.
+          Một phiếu có thể gồm nhiều sản phẩm. Tồn kho chỉ tăng khi trạng thái nhận hàng là Đã nhận.
+          Thanh toán và công nợ nguồn hàng độc lập với trạng thái hàng.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -172,67 +246,125 @@ export function WarehouseOrderForm({
               className={`${FIELD} mt-2`}
             />
           </label>
+        </div>
 
-          <label className="text-sm sm:col-span-2">
-            Sản phẩm
-            <select value={skuId} onChange={(e) => onSkuChange(e.target.value)} className={FIELD}>
-              {rows.map((row) => (
-                <option key={row.skuId} value={row.skuId}>
-                  {row.name} · {row.sku}
-                  {row.brandName ? ` · ${row.brandName}` : ""} · tồn {row.quantity}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-[13px] font-semibold">Sản phẩm trong đơn ({lines.length})</h2>
+            <button
+              type="button"
+              onClick={addLine}
+              className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-semibold"
+            >
+              + Thêm sản phẩm
+            </button>
+          </div>
 
-          <label className="text-sm">
-            Thương hiệu
-            <input readOnly value={selected?.brandName ?? ""} className={`${FIELD} bg-[var(--tlkv-bg)]`} />
-          </label>
-          <label className="text-sm">
-            Mã sản phẩm
-            <input readOnly value={selected?.sku ?? ""} className={`${FIELD} bg-[var(--tlkv-bg)]`} />
-          </label>
+          {computedLines.map((item, index) => (
+            <div
+              key={item.line.localId}
+              className="rounded-[12px] border border-[var(--tlkv-line)] p-3"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[12px] font-semibold text-[var(--tlkv-muted)]">
+                  Dòng {index + 1}
+                </p>
+                <button
+                  type="button"
+                  disabled={lines.length <= 1}
+                  onClick={() => removeLine(item.line.localId)}
+                  className="h-8 rounded-lg px-2 text-[12px] font-medium text-[var(--tlkv-red)] disabled:opacity-40"
+                >
+                  Xóa
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="text-sm sm:col-span-2">
+                  Sản phẩm
+                  <select
+                    value={item.line.skuId}
+                    onChange={(e) => patchLine(item.line.localId, { skuId: e.target.value })}
+                    className={FIELD}
+                  >
+                    {rows.map((row) => (
+                      <option key={row.skuId} value={row.skuId}>
+                        {row.name} · {row.sku}
+                        {row.brandName ? ` · ${row.brandName}` : ""} · tồn {row.quantity}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm">
+                  Thương hiệu
+                  <input
+                    readOnly
+                    value={item.row?.brandName ?? ""}
+                    className={`${FIELD} bg-[var(--tlkv-bg)]`}
+                  />
+                </label>
+                <label className="text-sm">
+                  Mã sản phẩm
+                  <input
+                    readOnly
+                    value={item.row?.sku ?? ""}
+                    className={`${FIELD} bg-[var(--tlkv-bg)]`}
+                  />
+                </label>
+                <label className="text-sm">
+                  Số lượng (cái)
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={item.line.qty}
+                    onChange={(e) =>
+                      patchLine(item.line.localId, { qty: Number(e.target.value) })
+                    }
+                    className={FIELD}
+                  />
+                </label>
+                <label className="text-sm">
+                  Trọng lượng / cái (chỉ)
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.0001"
+                    value={item.line.weightChi}
+                    onChange={(e) =>
+                      patchLine(item.line.localId, { weightChi: Number(e.target.value) })
+                    }
+                    className={FIELD}
+                  />
+                </label>
+                <label className="text-sm">
+                  Đơn giá nhập (VND/chỉ)
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={item.line.unitCostPerChi || ""}
+                    onChange={(e) =>
+                      patchLine(item.line.localId, {
+                        unitCostPerChi: Number(e.target.value),
+                      })
+                    }
+                    className={FIELD}
+                  />
+                </label>
+                <label className="text-sm">
+                  Thành tiền
+                  <input
+                    readOnly
+                    value={formatDong(item.lineTotal)}
+                    className={`${FIELD} bg-[var(--tlkv-bg)] font-semibold`}
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
 
-          <label className="text-sm">
-            Số lượng (cái)
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={qty}
-              onChange={(e) => setQty(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-          <label className="text-sm">
-            Trọng lượng / cái (chỉ)
-            <input
-              type="number"
-              min={0}
-              step="0.0001"
-              value={weightChi}
-              onChange={(e) => setWeightChi(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-
-          <label className="text-sm">
-            Đơn giá nhập (VND/chỉ)
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={unitCostPerChi || ""}
-              onChange={(e) => setUnitCostPerChi(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-          <label className="text-sm">
-            Tổng tiền
-            <input readOnly value={formatDong(totalDong)} className={`${FIELD} bg-[var(--tlkv-bg)] font-semibold`} />
-          </label>
-
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <fieldset className="sm:col-span-2">
             <legend className="text-sm">Trạng thái nhận hàng</legend>
             <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
@@ -255,10 +387,18 @@ export function WarehouseOrderForm({
                   {opt.label}
                 </button>
               ))}
-              <button type="button" disabled className="h-9 rounded-lg border border-[var(--tlkv-line)] text-[12px] text-[var(--tlkv-muted)]">
+              <button
+                type="button"
+                disabled
+                className="h-9 rounded-lg border border-[var(--tlkv-line)] text-[12px] text-[var(--tlkv-muted)]"
+              >
                 Đã bán
               </button>
-              <button type="button" disabled className="h-9 rounded-lg border border-[var(--tlkv-line)] text-[12px] text-[var(--tlkv-muted)]">
+              <button
+                type="button"
+                disabled
+                className="h-9 rounded-lg border border-[var(--tlkv-line)] text-[12px] text-[var(--tlkv-muted)]"
+              >
                 Đã trả hàng
               </button>
             </div>
@@ -373,8 +513,12 @@ export function WarehouseOrderForm({
           <h2 className="text-[13px] font-semibold">Tóm tắt đơn đặt hàng</h2>
           <dl className="mt-3 space-y-2 text-[13px]">
             <div className="flex justify-between gap-2">
+              <dt className="text-[var(--tlkv-muted)]">Số dòng SP</dt>
+              <dd className="font-medium">{lines.length}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
               <dt className="text-[var(--tlkv-muted)]">Tổng số lượng</dt>
-              <dd className="font-medium">{qty} cái</dd>
+              <dd className="font-medium">{totalQty} cái</dd>
             </div>
             <div className="flex justify-between gap-2">
               <dt className="text-[var(--tlkv-muted)]">Tổng trọng lượng</dt>
@@ -410,7 +554,9 @@ export function WarehouseOrderForm({
             <li className="rounded-lg border border-[var(--tlkv-line)] px-3 py-2">
               <p className="font-semibold">Đặt hàng</p>
               <p className="text-[var(--tlkv-muted)]">
-                {goodsStatus === "RECEIVED" ? "Kèm nhận hàng → tăng tồn kho" : "Chưa làm tăng tồn kho"}
+                {goodsStatus === "RECEIVED"
+                  ? "Kèm nhận hàng → tăng tồn kho theo từng dòng SP"
+                  : "Chưa làm tăng tồn kho"}
               </p>
             </li>
             <li className="rounded-lg border border-[var(--tlkv-line)] px-3 py-2">
@@ -420,7 +566,9 @@ export function WarehouseOrderForm({
             <li className="rounded-lg border border-[var(--tlkv-line)] px-3 py-2">
               <p className="font-semibold">Thanh toán</p>
               <p className="text-[var(--tlkv-muted)]">
-                {effectivePaid > 0 ? `Giảm tiền ${formatDong(effectivePaid)}` : "Không giảm tiền nếu chưa TT"}
+                {effectivePaid > 0
+                  ? `Giảm tiền ${formatDong(effectivePaid)}`
+                  : "Không giảm tiền nếu chưa TT"}
               </p>
             </li>
             <li className="rounded-lg border border-[var(--tlkv-line)] px-3 py-2">
