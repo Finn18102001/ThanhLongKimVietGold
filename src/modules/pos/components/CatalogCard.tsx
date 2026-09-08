@@ -54,7 +54,7 @@ export function CatalogCard({
       type="button"
       disabled={disabled}
       onClick={() => onAdd(item)}
-      className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3 text-left shadow-[var(--tlkv-shadow)] transition-transform disabled:opacity-50 enabled:hover:-translate-y-0.5 enabled:hover:border-[var(--tlkv-red-bar)]"
+      className="h-auto w-full self-start rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3 text-left shadow-[var(--tlkv-shadow)] transition-transform disabled:opacity-50 enabled:hover:-translate-y-0.5 enabled:hover:border-[var(--tlkv-red-bar)]"
     >
       <div className="flex items-start justify-between gap-2">
         <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">

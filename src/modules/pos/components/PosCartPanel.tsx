@@ -115,7 +115,7 @@ export function PosCartPanel({
   }
 
   return (
-    <aside className="flex min-h-0 flex-col rounded-[12px] bg-white shadow-[var(--tlkv-shadow)]">
+    <aside className="flex w-full min-h-0 flex-col self-start rounded-[12px] bg-white shadow-[var(--tlkv-shadow)] xl:sticky xl:top-4">
       <div className="flex items-center justify-between border-b border-[var(--tlkv-line)] px-4 py-3">
         <div>
           <h2 className="text-[15px] font-semibold">Đơn hàng ({lines.length})</h2>

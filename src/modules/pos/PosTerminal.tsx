@@ -839,8 +839,8 @@ export function PosTerminal({
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <section className="flex min-h-0 flex-col rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="flex min-h-0 w-full min-w-0 flex-col rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)]">
             <div className="flex gap-2 overflow-x-auto pb-1">
               {groups.map((item) => {
                 const active = item === group;
@@ -861,7 +861,7 @@ export function PosTerminal({
               })}
             </div>
 
-            <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
+            <div className="mt-4 grid min-h-0 auto-rows-max grid-cols-2 content-start items-start gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
               {pageItems.length === 0 ? (
                 <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-muted)]">
                   Không có sản phẩm khớp tìm kiếm.
