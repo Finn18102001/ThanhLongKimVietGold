@@ -418,12 +418,15 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
 
 export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceExportPage> {
   const supabase = await createServerSupabase();
+  const exportLimit =
+    filter.limit == null || filter.limit <= 0 ? 0 : Math.min(Math.max(filter.limit, 1), 2000);
   const { data, error } = await supabase.rpc("pos_export_documents", {
     p_document_type: filter.documentType ?? null,
     p_payment_status: filter.paymentStatus ?? null,
     p_from: filter.from || null,
     p_to: filter.to || null,
     p_q: sanitizeSearch(filter.query ?? "") || null,
+    p_limit: exportLimit,
   });
   if (error) throw new Error(error.message);
   const raw = data as {
@@ -431,6 +434,7 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
     total?: number;
     limit?: number;
     offset?: number;
+    exportedDocuments?: number;
   } | null;
   return {
     items: (raw?.items ?? []).map((row) => {
@@ -472,7 +476,8 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
       };
     }),
     total: Number(raw?.total ?? 0),
-    limit: Number(raw?.limit ?? 0),
+    limit: Number(raw?.limit ?? exportLimit),
     offset: Number(raw?.offset ?? 0),
+    exportedDocuments: Number(raw?.exportedDocuments ?? 0),
   };
 }

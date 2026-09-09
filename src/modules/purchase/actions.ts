@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type {
+  BuyAttachment,
+  BuyAttachmentDocKind,
   BuyDetail,
   BuyDetailItem,
   BuyItemPayload,
@@ -119,6 +121,22 @@ function mapBuyDetailItem(item: Record<string, unknown>): BuyDetailItem {
   };
 }
 
+function mapBuyAttachment(row: Record<string, unknown>): BuyAttachment {
+  return {
+    id: String(row.id),
+    storagePath: String(row.storagePath ?? row.storage_path ?? ""),
+    fileName: String(row.fileName ?? row.file_name ?? ""),
+    mimeType: String(row.mimeType ?? row.mime_type ?? ""),
+    byteSize:
+      row.byteSize != null || row.byte_size != null
+        ? asNumber(row.byteSize ?? row.byte_size)
+        : null,
+    docKind: String(row.docKind ?? row.doc_kind ?? "RELATED"),
+    actorEmail: String(row.actorEmail ?? row.actor_email ?? ""),
+    createdAt: String(row.createdAt ?? row.created_at ?? ""),
+  };
+}
+
 /**
  * Creates a PROCESSING buy intake (melt workflow entry).
  * Same args as former pos_complete_buy; does not complete stock-in.
@@ -214,8 +232,8 @@ export async function setBuyMeltWeights(input: {
 }
 
 /**
- * Confirm melt result. p_agree=true completes buy (Form 02 + invoice path on BE).
- * Optional payment fields forwarded when present for settlement at confirm.
+ * Customer confirm: agree → INVOICE_ISSUED (no stock/cash yet);
+ * disagree → CANCELLED + rollback temp data.
  */
 export async function confirmBuyMelt(input: {
   buyId: string;
@@ -240,6 +258,38 @@ export async function confirmBuyMelt(input: {
   const { error } = await supabase.rpc("pos_confirm_buy_melt", payload);
   if (error) throw new Error(error.message);
   revalidatePath("/purchase");
+  revalidatePath("/invoices");
+  return getBuy(input.buyId);
+}
+
+/** After invoice step: confirm → FORM02_READY (+ form02_no). Print not required. */
+export async function confirmBuyInvoice(input: {
+  buyId: string;
+  idempotencyKey?: string;
+}): Promise<BuyDetail> {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_confirm_buy_invoice", {
+    p_buy_id: input.buyId,
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/purchase");
+  revalidatePath("/invoices");
+  return getBuy(input.buyId);
+}
+
+/** Form 02 done → COMPLETED + stock + cash + payable. */
+export async function completeBuyMelt(input: {
+  buyId: string;
+  idempotencyKey?: string;
+}): Promise<BuyDetail> {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_complete_buy_melt", {
+    p_buy_id: input.buyId,
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/purchase");
   revalidatePath("/inventory");
   revalidatePath("/customers");
   revalidatePath("/invoices");
@@ -248,29 +298,56 @@ export async function confirmBuyMelt(input: {
 
 const BUY_PDF_BUCKET = "buy-attachments";
 
-export async function uploadBuyPdf(
+const ALLOWED_UPLOAD_MIME = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/octet-stream",
+]);
+
+/**
+ * Upload PDF (kept as PDF) or image (prefer WebP from client optimize).
+ * Inserts a new attachment row — never deletes prior files on failure/replace.
+ */
+export async function uploadBuyFile(
   formData: FormData,
 ): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
   try {
     const buyId = String(formData.get("buyId") || "").trim();
+    const docKindRaw = String(formData.get("docKind") || "RELATED").trim().toUpperCase();
+    const docKind = docKindRaw as BuyAttachmentDocKind;
     const rawFile = formData.get("file");
     if (!buyId) return { ok: false, message: "Thiếu mã phiếu mua" };
+    if (!["PURITY_TEST", "RELATED", "SIGNED_PDF"].includes(docKind)) {
+      return { ok: false, message: "Loại tài liệu không hợp lệ" };
+    }
     if (!rawFile || typeof rawFile === "string") {
-      return { ok: false, message: "Không có file PDF" };
+      return { ok: false, message: "Không có file" };
     }
     const file = rawFile as File;
     const fileSize = typeof file.size === "number" ? file.size : 0;
-    if (fileSize <= 0) return { ok: false, message: "File PDF trống" };
+    if (fileSize <= 0) return { ok: false, message: "File trống" };
     if (fileSize > 10 * 1024 * 1024) {
-      return { ok: false, message: "PDF tối đa 10MB" };
+      return { ok: false, message: "File tối đa 10MB" };
     }
-    const mime = String(file.type || "").toLowerCase();
-    if (mime && mime !== "application/pdf" && mime !== "application/octet-stream") {
-      return { ok: false, message: "Chỉ chấp nhận file PDF" };
+
+    let mime = String(file.type || "").toLowerCase();
+    const name = (file.name || "file").replace(/[^\w.\-() ]+/g, "_");
+    const ext = (/\.([^.]+)$/.exec(name)?.[1] || "").toLowerCase();
+    if (!mime || mime === "application/octet-stream") {
+      if (ext === "pdf") mime = "application/pdf";
+      else if (ext === "webp") mime = "image/webp";
+      else if (ext === "png") mime = "image/png";
+      else if (ext === "jpg" || ext === "jpeg") mime = "image/jpeg";
     }
-    const name = (file.name || "buy.pdf").replace(/[^\w.\-() ]+/g, "_");
-    if (!name.toLowerCase().endsWith(".pdf")) {
-      return { ok: false, message: "Tên file phải kết thúc bằng .pdf" };
+    if (!ALLOWED_UPLOAD_MIME.has(mime)) {
+      return { ok: false, message: "Chỉ chấp nhận PDF hoặc ảnh (JPEG/PNG/WebP)" };
+    }
+    if (mime === "application/pdf" && ext !== "pdf") {
+      return { ok: false, message: "Tên file PDF phải kết thúc bằng .pdf" };
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -281,19 +358,24 @@ export async function uploadBuyPdf(
     const { error: uploadError } = await supabase.storage
       .from(BUY_PDF_BUCKET)
       .upload(storagePath, bytes, {
-        contentType: "application/pdf",
+        contentType: mime === "application/octet-stream" ? "application/pdf" : mime,
         upsert: false,
       });
     if (uploadError) return { ok: false, message: uploadError.message };
 
-    const { error } = await supabase.rpc("pos_attach_buy_pdf", {
+    const { error } = await supabase.rpc("pos_attach_buy_file", {
       p_buy_id: buyId,
       p_storage_path: storagePath,
       p_file_name: name,
+      p_mime_type: mime === "application/octet-stream" ? "application/pdf" : mime,
       p_byte_size: bytes.byteLength,
+      p_doc_kind: docKind,
       p_idempotency_key: crypto.randomUUID(),
     });
-    if (error) return { ok: false, message: error.message };
+    if (error) {
+      // Leave orphaned storage object rather than deleting other attachments.
+      return { ok: false, message: error.message };
+    }
 
     revalidatePath("/purchase");
     revalidatePath("/invoices");
@@ -301,9 +383,17 @@ export async function uploadBuyPdf(
   } catch (err) {
     return {
       ok: false,
-      message: err instanceof Error ? err.message : "Không tải được PDF",
+      message: err instanceof Error ? err.message : "Không tải được file",
     };
   }
+}
+
+/** @deprecated Prefer uploadBuyFile with docKind=SIGNED_PDF */
+export async function uploadBuyPdf(
+  formData: FormData,
+): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
+  if (!formData.get("docKind")) formData.set("docKind", "SIGNED_PDF");
+  return uploadBuyFile(formData);
 }
 
 export async function getBuyPdfSignedUrl(storagePath: string): Promise<string | null> {
@@ -432,6 +522,9 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
   );
 
   const completedAt = (raw.completedAt as string | null) ?? null;
+  const attachments = ((raw.attachments as Record<string, unknown>[] | null) ?? []).map(
+    mapBuyAttachment,
+  );
   return {
     id: String(raw.id),
     buyNo: String(raw.buyNo ?? ""),
@@ -453,8 +546,13 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
     completedAt,
     note: (raw.note as string | null) ?? null,
     ...mapWorkflowFields(raw, completedAt),
+    intendedPaidDong:
+      raw.intendedPaidDong != null || raw.intended_paid_dong != null
+        ? asNumber(raw.intendedPaidDong ?? raw.intended_paid_dong)
+        : null,
     items,
     payments,
+    attachments,
   };
 }
 

@@ -7,22 +7,27 @@ import { formatViDateTime } from "@/shared/lib/datetime";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
+  completeBuyMelt,
+  confirmBuyInvoice,
   confirmBuyMelt,
   issueMeltCommitment,
   setBuyMeltWeights,
   startBuyMelting,
-  uploadBuyPdf,
+  uploadBuyFile,
   voidBuy,
 } from "../actions";
 import { formatChi, paymentMethodLabel, paymentStatusLabel } from "../labels";
-import type { BuyDetail, MeltWeightItemPayload, PaymentMethod } from "../types";
+import type { BuyAttachmentDocKind, BuyDetail, MeltWeightItemPayload, PaymentMethod } from "../types";
 import { isBuyInMeltWorkflow } from "../workflowLabels";
+import { BuyAttachmentsPanel } from "./BuyAttachmentsPanel";
 import { BuyWorkflowPanel } from "./BuyWorkflowPanel";
 import { Form02Document } from "./Form02Document";
 import { MeltCommitmentDocument } from "./MeltCommitmentDocument";
 import { PurchaseVoucherDocument } from "./PurchaseVoucherDocument";
+import { printPurchaseDocument } from "../print";
 
 type PrintDocKind = "commitment" | "form02" | "invoice";
+type DetailTab = "overview" | "docs";
 
 /**
  * Buy detail drawer for invoice directory (and reusable embed).
@@ -40,38 +45,41 @@ export function BuyDetailDrawer({
   /** Same allow-list as invoice void (UI gate; BE enforces). */
   canVoidBuy?: boolean;
 }) {
-  const [buy, setBuy] = useState(initial);
+  const [buy, setBuy] = useState({
+    ...initial,
+    attachments: initial.attachments ?? [],
+  });
+  const [tab, setTab] = useState<DetailTab>("overview");
   const [pending, setPending] = useState(false);
+  const [uploadPending, setUploadPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintDocKind>(
-    initial.form02No || initial.status === "COMPLETED" ? "invoice" : "commitment",
+    initial.form02No || initial.status === "COMPLETED" || initial.workflowStatus === "INVOICE_ISSUED"
+      ? "invoice"
+      : "commitment",
   );
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [attachPending, setAttachPending] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidError, setVoidError] = useState<string | null>(null);
   const workflowKey = useRef<string | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const canShowVoid = canVoidBuy && buy.status === "COMPLETED";
 
   async function runWorkflow(
     action: () => Promise<BuyDetail>,
-    opts?: { print?: PrintDocKind; successTitle?: string; offerAttach?: boolean },
+    opts?: { print?: PrintDocKind; successTitle?: string },
   ) {
     if (pending) return;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
     setPending(true);
     try {
       const next = await action();
-      setBuy(next);
+      setBuy({ ...next, attachments: next.attachments ?? [] });
       onUpdated?.(next);
       workflowKey.current = null;
       if (opts?.print) setPrintDoc(opts.print);
       if (opts?.successTitle) {
         setAlert({ tone: "success", title: opts.successTitle, reason: next.buyNo });
       }
-      if (opts?.offerAttach) setAttachOpen(true);
     } catch (err) {
       setAlert({
         tone: "error",
@@ -86,32 +94,31 @@ export function BuyDetailDrawer({
 
   function printDocument(kind: PrintDocKind) {
     setPrintDoc(kind);
-    window.setTimeout(() => window.print(), 50);
+    printPurchaseDocument();
   }
 
-  async function onUploadPdf(file: File | null) {
-    if (!file || attachPending) return;
-    setAttachPending(true);
+  async function onUploadWorkflowFile(file: File, docKind: BuyAttachmentDocKind) {
+    if (uploadPending) return;
+    setUploadPending(true);
     try {
       const fd = new FormData();
       fd.set("buyId", buy.id);
+      fd.set("docKind", docKind);
       fd.set("file", file);
-      const result = await uploadBuyPdf(fd);
+      const result = await uploadBuyFile(fd);
       if (!result.ok) {
-        setAlert({ tone: "error", title: "Không đính kèm PDF", reason: result.message });
+        setAlert({ tone: "error", title: "Không tải được file", reason: result.message });
         return;
       }
-      setBuy(result.buy);
+      setBuy({ ...result.buy, attachments: result.buy.attachments ?? [] });
       onUpdated?.(result.buy);
-      setAttachOpen(false);
       setAlert({
         tone: "success",
-        title: "Đã đính kèm PDF",
+        title: docKind === "PURITY_TEST" ? "Đã upload phiếu kiểm tra HL" : "Đã đính kèm tài liệu",
         reason: result.buy.buyNo,
       });
     } finally {
-      setAttachPending(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setUploadPending(false);
     }
   }
 
@@ -126,7 +133,7 @@ export function BuyDetailDrawer({
     setVoidError(null);
     try {
       const next = await voidBuy({ buyId: buy.id, reason });
-      setBuy(next);
+      setBuy({ ...next, attachments: next.attachments ?? [] });
       onUpdated?.(next);
       setVoidOpen(false);
       setVoidReason("");
@@ -153,6 +160,17 @@ export function BuyDetailDrawer({
                 {buy.customerName} · {paymentStatusLabel(buy.paymentStatus)} ·{" "}
                 {formatDong(buy.totalDong)}
               </p>
+              <div className="mt-2 flex gap-1">
+                <TabBtn active={tab === "overview"} onClick={() => setTab("overview")}>
+                  Chi tiết
+                </TabBtn>
+                <TabBtn active={tab === "docs"} onClick={() => setTab("docs")}>
+                  Tài liệu liên quan
+                  {(buy.attachments?.length ?? 0) > 0
+                    ? ` (${buy.attachments.length})`
+                    : ""}
+                </TabBtn>
+              </div>
             </div>
             <button
               type="button"
@@ -166,86 +184,98 @@ export function BuyDetailDrawer({
 
           <div className="grid flex-1 gap-3 overflow-y-auto p-4 lg:grid-cols-[1fr_300px]">
             <div className="space-y-3 rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3">
-              <dl className="grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-3">
-                <Info label="Khách" value={buy.customerName} />
-                <Info label="CCCD" value={buy.customerCitizenId || "—"} />
-                <Info label="SĐT" value={buy.customerPhone || "—"} />
-                <Info label="Hình thức" value={paymentMethodLabel(buy.paymentMethod)} />
-                <Info label="Đã chi" value={formatDong(buy.paidDong)} />
-                <Info label="Còn lại" value={formatDong(buy.remainingDong)} />
-              </dl>
+              {tab === "docs" ? (
+                <BuyAttachmentsPanel
+                  buy={buy}
+                  onUpdated={(next) => {
+                    setBuy({ ...next, attachments: next.attachments ?? [] });
+                    onUpdated?.(next);
+                  }}
+                />
+              ) : (
+                <>
+                  <dl className="grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-3">
+                    <Info label="Khách" value={buy.customerName} />
+                    <Info label="CCCD" value={buy.customerCitizenId || "—"} />
+                    <Info label="SĐT" value={buy.customerPhone || "—"} />
+                    <Info label="Hình thức" value={paymentMethodLabel(buy.paymentMethod)} />
+                    <Info label="Đã chi" value={formatDong(buy.paidDong)} />
+                    <Info label="Còn lại" value={formatDong(buy.remainingDong)} />
+                  </dl>
 
-              <table className="w-full text-left text-[12px]">
-                <thead>
-                  <tr className="border-b border-[var(--tlkv-line)] text-[var(--tlkv-muted)]">
-                    <th className="py-1.5 font-medium">SP</th>
-                    <th className="py-1.5 font-medium">Trước</th>
-                    <th className="py-1.5 font-medium">Sau</th>
-                    <th className="py-1.5 text-right font-medium">Tiền</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {buy.items.map((item) => (
-                    <tr key={item.id} className="border-b border-[var(--tlkv-line)]">
-                      <td className="py-2">{item.productName}</td>
-                      <td className="py-2">
-                        {formatChi(
-                          item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi,
-                        )}
-                      </td>
-                      <td className="py-2">
-                        {item.weightAfterChi != null ? formatChi(item.weightAfterChi) : "—"}
-                      </td>
-                      <td className="py-2 text-right font-medium">
-                        {formatDong(item.totalPriceDong)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  <table className="w-full text-left text-[12px]">
+                    <thead>
+                      <tr className="border-b border-[var(--tlkv-line)] text-[var(--tlkv-muted)]">
+                        <th className="py-1.5 font-medium">SP</th>
+                        <th className="py-1.5 font-medium">Trước</th>
+                        <th className="py-1.5 font-medium">Sau</th>
+                        <th className="py-1.5 text-right font-medium">Tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {buy.items.map((item) => (
+                        <tr key={item.id} className="border-b border-[var(--tlkv-line)]">
+                          <td className="py-2">{item.productName}</td>
+                          <td className="py-2">
+                            {formatChi(
+                              item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi,
+                            )}
+                          </td>
+                          <td className="py-2">
+                            {item.weightAfterChi != null ? formatChi(item.weightAfterChi) : "—"}
+                          </td>
+                          <td className="py-2 text-right font-medium">
+                            {formatDong(item.totalPriceDong)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-              {buy.payments.length > 0 ? (
-                <ul className="space-y-1 text-[12px]">
-                  {buy.payments.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex justify-between gap-2 border-b border-[var(--tlkv-line)] py-1"
+                  {buy.payments.length > 0 ? (
+                    <ul className="space-y-1 text-[12px]">
+                      {buy.payments.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex justify-between gap-2 border-b border-[var(--tlkv-line)] py-1"
+                        >
+                          <span>
+                            {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
+                          </span>
+                          <span className="font-medium">{formatDong(p.amountDong)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTab("docs")}
+                      className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium"
                     >
-                      <span>
-                        {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
+                      Tài liệu ({buy.attachments?.length ?? 0})
+                    </button>
+                    {canShowVoid ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVoidOpen(true);
+                          setVoidError(null);
+                        }}
+                        className="h-9 rounded-lg border border-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-[var(--tlkv-red)]"
+                      >
+                        Hủy phiếu mua
+                      </button>
+                    ) : null}
+                    {buy.status === "VOIDED" ? (
+                      <span className="inline-flex h-9 items-center rounded-lg bg-[var(--tlkv-slate-soft)] px-3 text-[12px] font-semibold text-[var(--tlkv-slate)]">
+                        Đã hủy
                       </span>
-                      <span className="font-medium">{formatDong(p.amountDong)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAttachOpen(true)}
-                  className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium"
-                >
-                  {buy.attachmentPdfPath ? "Đổi / thêm PDF" : "Đính kèm PDF"}
-                </button>
-                {canShowVoid ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setVoidOpen(true);
-                      setVoidError(null);
-                    }}
-                    className="h-9 rounded-lg border border-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-[var(--tlkv-red)]"
-                  >
-                    Hủy phiếu mua
-                  </button>
-                ) : null}
-                {buy.status === "VOIDED" ? (
-                  <span className="inline-flex h-9 items-center rounded-lg bg-[var(--tlkv-slate-soft)] px-3 text-[12px] font-semibold text-[var(--tlkv-slate)]">
-                    Đã hủy
-                  </span>
-                ) : null}
-              </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>
 
             {isBuyInMeltWorkflow(buy) ||
@@ -254,6 +284,7 @@ export function BuyDetailDrawer({
               <BuyWorkflowPanel
                 buy={buy}
                 pending={pending}
+                uploadPending={uploadPending}
                 onIssueCommitment={() =>
                   void runWorkflow(
                     () =>
@@ -285,6 +316,7 @@ export function BuyDetailDrawer({
                     { successTitle: "Đã lưu khối lượng sau nấu" },
                   )
                 }
+                onUploadFile={(file, docKind) => onUploadWorkflowFile(file, docKind)}
                 onConfirmAgree={() =>
                   void runWorkflow(
                     () =>
@@ -296,9 +328,8 @@ export function BuyDetailDrawer({
                         dueDate: buy.dueDate,
                       }),
                     {
-                      print: "form02",
-                      successTitle: "Đã xác nhận — tạo Phiếu 02 / hóa đơn",
-                      offerAttach: true,
+                      print: "invoice",
+                      successTitle: "Đã đồng ý — tạo hóa đơn bán hàng",
                     },
                   )
                 }
@@ -313,6 +344,26 @@ export function BuyDetailDrawer({
                     { successTitle: "Đã hủy giao dịch theo yêu cầu khách" },
                   )
                 }
+                onConfirmInvoice={() =>
+                  void runWorkflow(
+                    () =>
+                      confirmBuyInvoice({
+                        buyId: buy.id,
+                        idempotencyKey: workflowKey.current || undefined,
+                      }),
+                    { print: "form02", successTitle: "Đã xác nhận hóa đơn — tạo Phiếu 02" },
+                  )
+                }
+                onComplete={() =>
+                  void runWorkflow(
+                    () =>
+                      completeBuyMelt({
+                        buyId: buy.id,
+                        idempotencyKey: workflowKey.current || undefined,
+                      }),
+                    { successTitle: "Đã hoàn tất — ghi nhận kho / dòng tiền" },
+                  )
+                }
                 onPrintCommitment={() => printDocument("commitment")}
                 onPrintForm02={() => printDocument("form02")}
                 onPrintInvoice={() => printDocument("invoice")}
@@ -321,26 +372,6 @@ export function BuyDetailDrawer({
           </div>
         </div>
       </div>
-
-      {attachOpen ? (
-        <Modal title="Đính kèm PDF đã ký" onClose={() => setAttachOpen(false)}>
-          <p className="text-[13px] text-[var(--tlkv-muted)]">
-            Tải lên bản PDF đã ký (cam kết / phiếu 02 / phiếu mua). Có thể bổ sung sau từ chi tiết
-            phiếu.
-          </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            className="mt-3 block w-full text-[12px]"
-            disabled={attachPending}
-            onChange={(e) => void onUploadPdf(e.target.files?.[0] ?? null)}
-          />
-          {attachPending ? (
-            <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Đang tải lên...</p>
-          ) : null}
-        </Modal>
-      ) : null}
 
       {voidOpen ? (
         <Modal title={`Hủy phiếu ${buy.buyNo}`} onClose={() => setVoidOpen(false)}>
@@ -354,7 +385,7 @@ export function BuyDetailDrawer({
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
               className="mt-1 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px]"
-              placeholder="Ví dụ: Hủy sau kiểm thử E2E melt workflow"
+              placeholder="test flow"
             />
           </label>
           {voidError ? <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{voidError}</p> : null}
@@ -391,6 +422,30 @@ export function BuyDetailDrawer({
         )}
       </div>
     </>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${
+        active
+          ? "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]"
+          : "text-[var(--tlkv-muted)] hover:bg-[var(--tlkv-bg)]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -9,8 +9,24 @@ export type BuyWorkflowStatus =
   | "MELTING"
   | "WEIGHT_ENTERED"
   | "AWAITING_CONFIRM"
+  | "INVOICE_ISSUED"
+  | "FORM02_READY"
   | "COMPLETED"
   | "CANCELLED";
+
+/** Attachment kinds from pos_buy_attachments.doc_kind. */
+export type BuyAttachmentDocKind = "PURITY_TEST" | "RELATED" | "SIGNED_PDF";
+
+export type BuyAttachment = {
+  id: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  byteSize: number | null;
+  docKind: BuyAttachmentDocKind | string;
+  actorEmail: string;
+  createdAt: string;
+};
 
 /** Aggregate buy row status (pos_buys.status). */
 export type BuyStatus = "PROCESSING" | "COMPLETED" | "CANCELLED" | "FAILED" | "VOIDED";
@@ -182,8 +198,10 @@ export type BuyDetail = {
   form02No: string | null;
   meltingStartedAt: string | null;
   attachmentPdfPath: string | null;
+  intendedPaidDong?: number | null;
   items: BuyDetailItem[];
   payments: BuyPaymentRow[];
+  attachments: BuyAttachment[];
 };
 
 /** Payload row for pos_set_buy_melt_weights. */

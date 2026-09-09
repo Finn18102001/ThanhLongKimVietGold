@@ -6,7 +6,7 @@ import type { BuyDetail } from "../types";
 export function BuyWorkflowStepper({
   buy,
 }: {
-  buy: Pick<BuyDetail, "workflowStatus" | "status" | "form02No" | "attachmentPdfPath">;
+  buy: Pick<BuyDetail, "workflowStatus" | "status" | "form02No">;
 }) {
   const active = buyWorkflowStepIndex(buy);
   const cancelled = active < 0;

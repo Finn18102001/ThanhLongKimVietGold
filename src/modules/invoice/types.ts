@@ -80,9 +80,12 @@ export type InvoiceExportRow = InvoiceListRow & {
 
 export type InvoiceExportPage = {
   items: InvoiceExportRow[];
+  /** Total documents matching filters (before export limit). */
   total: number;
   limit: number;
   offset: number;
+  /** Documents actually included in this export (after limit). */
+  exportedDocuments?: number;
 };
 
 export type InvoiceDetail = {

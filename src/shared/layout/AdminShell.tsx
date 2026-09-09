@@ -29,8 +29,8 @@ export function AdminShell({
   const showAdminSection = admin.length > 0;
 
   return (
-    <div className="flex min-h-[100dvh] bg-[var(--tlkv-bg)]">
-      <aside className="sticky top-0 flex h-[100dvh] w-[280px] shrink-0 flex-col border-r border-[var(--tlkv-line)] bg-white">
+    <div className="flex min-h-[100dvh] bg-[var(--tlkv-bg)] print:min-h-0 print:block">
+      <aside className="sticky top-0 flex h-[100dvh] w-[280px] shrink-0 flex-col border-r border-[var(--tlkv-line)] bg-white print:hidden">
         <BrandLockup variant="sidebar" href={role === "STAFF" ? "/pos" : "/"} />
 
         <nav className="flex-1 overflow-y-auto px-3 pb-3">
@@ -95,8 +95,8 @@ export function AdminShell({
         </nav>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[var(--tlkv-line)] bg-white px-6">
+      <div className="flex min-w-0 flex-1 flex-col print:block print:min-h-0">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[var(--tlkv-line)] bg-white px-6 print:hidden">
           <GlobalSearch />
 
           <div className="flex items-center gap-2.5 border-l border-[var(--tlkv-line)] pl-4">
@@ -136,9 +136,9 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="flex-1 px-6 py-5">{children}</main>
+        <main className="flex-1 px-6 py-5 print:m-0 print:p-0 print:block">{children}</main>
 
-        <footer className="flex items-center justify-between border-t border-[var(--tlkv-line)] px-6 py-3 text-[12px] text-[var(--tlkv-muted)]">
+        <footer className="flex items-center justify-between border-t border-[var(--tlkv-line)] px-6 py-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
           <p>© 2026 Thăng Long Kim Việt. All rights reserved.</p>
           <p>Phiên bản 1.0.0</p>
         </footer>

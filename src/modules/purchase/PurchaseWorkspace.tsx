@@ -15,14 +15,17 @@ import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
   collectBuyPayment,
   completeBuy,
+  completeBuyMelt,
+  confirmBuyInvoice,
   confirmBuyMelt,
   getBuy,
   getCustomerDebtSummary,
   issueMeltCommitment,
   setBuyMeltWeights,
   startBuyMelting,
-  uploadBuyPdf,
+  uploadBuyFile,
 } from "./actions";
+import { BuyAttachmentsPanel } from "./components/BuyAttachmentsPanel";
 import { BuyWorkflowPanel } from "./components/BuyWorkflowPanel";
 import { Form02Document } from "./components/Form02Document";
 import { MarketGoldModal } from "./components/MarketGoldModal";
@@ -30,6 +33,7 @@ import { MeltCommitmentDocument } from "./components/MeltCommitmentDocument";
 import { PurchaseCartPanel } from "./components/PurchaseCartPanel";
 import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
 import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
+import { printPurchaseDocument } from "./print";
 import {
   defaultDueDateIso,
   parseDongInput,
@@ -48,6 +52,7 @@ import {
   lineHasPriceException,
   lineTotalDong,
   toBuyItemPayload,
+  type BuyAttachmentDocKind,
   type BuyDetail,
   type BuyLine,
   type BuyListRow,
@@ -60,7 +65,7 @@ import {
   type PaymentMethod,
   type PurchaseCatalogItem,
 } from "./types";
-import { isBuyInMeltWorkflow } from "./workflowLabels";
+import { canPrintCommitmentFromFlow, isBuyInMeltWorkflow } from "./workflowLabels";
 
 type PrintDocKind = "commitment" | "form02" | "invoice";
 
@@ -106,11 +111,10 @@ export function PurchaseWorkspace({
   const [collectDue, setCollectDue] = useState(defaultDueDateIso);
   const [collectPending, setCollectPending] = useState(false);
   const [workflowPending, setWorkflowPending] = useState(false);
+  const [uploadPending, setUploadPending] = useState(false);
   const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [attachPending, setAttachPending] = useState(false);
+  const [detailTab, setDetailTab] = useState<"overview" | "docs">("overview");
   const workflowKey = useRef<string | null>(null);
-  const attachFileRef = useRef<HTMLInputElement | null>(null);
 
   const totalDong = useMemo(
     () => lines.reduce((sum, line) => sum + lineTotalDong(line), 0),
@@ -374,6 +378,7 @@ export function PurchaseWorkspace({
   async function openDetail(buyId: string) {
     setDetailLoading(true);
     setDetail(null);
+    setDetailTab("overview");
     collectKey.current = null;
     workflowKey.current = null;
     setPrintDoc("invoice");
@@ -385,8 +390,14 @@ export function PurchaseWorkspace({
       setCollectDue(buy.dueDate || defaultDueDateIso());
       if (isBuyInMeltWorkflow(buy) && buy.workflowStatus === "INTAKE") {
         setPrintDoc("commitment");
-      } else if (buy.form02No && buy.status !== "COMPLETED") {
+      } else if (buy.workflowStatus === "FORM02_READY") {
         setPrintDoc("form02");
+      } else if (
+        buy.workflowStatus === "INVOICE_ISSUED" ||
+        buy.status === "COMPLETED" ||
+        buy.workflowStatus === "COMPLETED"
+      ) {
+        setPrintDoc("invoice");
       } else if (buy.meltCommitmentNo && isBuyInMeltWorkflow(buy)) {
         setPrintDoc("commitment");
       }
@@ -429,7 +440,7 @@ export function PurchaseWorkspace({
 
   async function runWorkflow(
     action: () => Promise<BuyDetail>,
-    opts?: { print?: PrintDocKind; successTitle?: string; offerAttach?: boolean },
+    opts?: { print?: PrintDocKind; successTitle?: string },
   ) {
     if (workflowPending) return;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
@@ -445,7 +456,6 @@ export function PurchaseWorkspace({
       if (opts?.successTitle) {
         setAlert({ tone: "success", title: opts.successTitle, reason: buy.buyNo });
       }
-      if (opts?.offerAttach) setAttachOpen(true);
     } catch (err) {
       setAlert({
         tone: "error",
@@ -458,31 +468,34 @@ export function PurchaseWorkspace({
     }
   }
 
-  async function onUploadPdf(file: File | null) {
-    if (!detail || !file || attachPending) return;
-    setAttachPending(true);
+  async function onUploadWorkflowFile(file: File, docKind: BuyAttachmentDocKind) {
+    if (!detail || uploadPending) return;
+    setUploadPending(true);
     try {
       const fd = new FormData();
       fd.set("buyId", detail.id);
+      fd.set("docKind", docKind);
       fd.set("file", file);
-      const result = await uploadBuyPdf(fd);
+      const result = await uploadBuyFile(fd);
       if (!result.ok) {
-        setAlert({ tone: "error", title: "Không đính kèm PDF", reason: result.message });
+        setAlert({ tone: "error", title: "Không tải được file", reason: result.message });
         return;
       }
       setDetail(result.buy);
       syncRecentFromDetail(result.buy);
-      setAttachOpen(false);
-      setAlert({ tone: "success", title: "Đã đính kèm PDF", reason: result.buy.buyNo });
+      setAlert({
+        tone: "success",
+        title: docKind === "PURITY_TEST" ? "Đã upload phiếu kiểm tra HL" : "Đã đính kèm tài liệu",
+        reason: result.buy.buyNo,
+      });
     } finally {
-      setAttachPending(false);
-      if (attachFileRef.current) attachFileRef.current.value = "";
+      setUploadPending(false);
     }
   }
 
   function printDocument(kind: PrintDocKind) {
     setPrintDoc(kind);
-    window.setTimeout(() => window.print(), 50);
+    printPurchaseDocument();
   }
 
   const searchParams = useSearchParams();
@@ -830,15 +843,31 @@ export function PurchaseWorkspace({
             <div className="flex flex-wrap gap-2">
               {detail && isBuyInMeltWorkflow(detail) ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => printDocument("commitment")}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
-                  >
-                    <Printer size={16} />
-                    In cam kết
-                  </button>
-                  {(detail.form02No || detail.status === "COMPLETED") && (
+                  {canPrintCommitmentFromFlow(String(detail.workflowStatus)) ? (
+                    <button
+                      type="button"
+                      onClick={() => printDocument("commitment")}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
+                    >
+                      <Printer size={16} />
+                      In cam kết
+                    </button>
+                  ) : null}
+                  {(detail.workflowStatus === "INVOICE_ISSUED" ||
+                    detail.workflowStatus === "FORM02_READY" ||
+                    detail.status === "COMPLETED") && (
+                    <button
+                      type="button"
+                      onClick={() => printDocument("invoice")}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium"
+                    >
+                      <Printer size={16} />
+                      In hóa đơn mua
+                    </button>
+                  )}
+                  {(detail.form02No ||
+                    detail.workflowStatus === "FORM02_READY" ||
+                    detail.status === "COMPLETED") && (
                     <button
                       type="button"
                       onClick={() => printDocument("form02")}
@@ -850,14 +879,17 @@ export function PurchaseWorkspace({
                   )}
                 </>
               ) : null}
-              <button
-                type="button"
-                onClick={() => printDocument("invoice")}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
-              >
-                <Printer size={16} />
-                In hóa đơn mua
-              </button>
+              {detail &&
+              (detail.status === "COMPLETED" || detail.workflowStatus === "COMPLETED") ? (
+                <button
+                  type="button"
+                  onClick={() => printDocument("invoice")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+                >
+                  <Printer size={16} />
+                  In hóa đơn mua
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setDetail(null)}
@@ -879,6 +911,41 @@ export function PurchaseWorkspace({
               }`}
             >
               <div className="space-y-4">
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setDetailTab("overview")}
+                    className={`h-8 rounded-lg px-2.5 text-[11px] font-semibold ${
+                      detailTab === "overview"
+                        ? "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]"
+                        : "border border-[var(--tlkv-line)] text-[var(--tlkv-muted)]"
+                    }`}
+                  >
+                    Chi tiết
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDetailTab("docs")}
+                    className={`h-8 rounded-lg px-2.5 text-[11px] font-semibold ${
+                      detailTab === "docs"
+                        ? "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]"
+                        : "border border-[var(--tlkv-line)] text-[var(--tlkv-muted)]"
+                    }`}
+                  >
+                    Tài liệu ({detail.attachments?.length ?? 0})
+                  </button>
+                </div>
+
+                {detailTab === "docs" ? (
+                  <BuyAttachmentsPanel
+                    buy={detail}
+                    onUpdated={(next) => {
+                      setDetail(next);
+                      syncRecentFromDetail(next);
+                    }}
+                  />
+                ) : (
+                  <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-[13px] font-semibold">{detail.customerName}</p>
@@ -1024,17 +1091,11 @@ export function PurchaseWorkspace({
                   )
                 ) : (
                   <p className="text-[12px] text-[var(--tlkv-muted)]">
-                    Thanh toán / nhập kho chỉ ghi nhận sau khi khách đồng ý kết quả nấu.
+                    Thanh toán / nhập kho chỉ ghi nhận khi hoàn tất (sau Phiếu 02).
                   </p>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setAttachOpen(true)}
-                  className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium"
-                >
-                  {detail.attachmentPdfPath ? "Đổi / thêm PDF đã ký" : "Đính kèm PDF đã ký"}
-                </button>
+                  </>
+                )}
               </div>
 
               {isBuyInMeltWorkflow(detail) ||
@@ -1043,6 +1104,7 @@ export function PurchaseWorkspace({
                 <BuyWorkflowPanel
                   buy={detail}
                   pending={workflowPending}
+                  uploadPending={uploadPending}
                   onIssueCommitment={() =>
                     void runWorkflow(
                       () =>
@@ -1074,6 +1136,7 @@ export function PurchaseWorkspace({
                       { successTitle: "Đã lưu khối lượng sau nấu" },
                     )
                   }
+                  onUploadFile={(file, docKind) => onUploadWorkflowFile(file, docKind)}
                   onConfirmAgree={() =>
                     void runWorkflow(
                       () =>
@@ -1082,14 +1145,11 @@ export function PurchaseWorkspace({
                           agree: true,
                           idempotencyKey: workflowKey.current || undefined,
                           paymentMethod: detail.paymentMethod as PaymentMethod,
-                          // Omit paidDong so BE uses intended_paid_dong from intake
-                          // (detail.paidDong is 0 while PROCESSING).
                           dueDate: detail.dueDate,
                         }),
                       {
-                        print: "form02",
-                        successTitle: "Đã xác nhận — tạo Phiếu 02 / hóa đơn",
-                        offerAttach: true,
+                        print: "invoice",
+                        successTitle: "Đã đồng ý — tạo hóa đơn bán hàng",
                       },
                     )
                   }
@@ -1104,6 +1164,26 @@ export function PurchaseWorkspace({
                       { successTitle: "Đã hủy giao dịch theo yêu cầu khách" },
                     )
                   }
+                  onConfirmInvoice={() =>
+                    void runWorkflow(
+                      () =>
+                        confirmBuyInvoice({
+                          buyId: detail.id,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { print: "form02", successTitle: "Đã xác nhận hóa đơn — tạo Phiếu 02" },
+                    )
+                  }
+                  onComplete={() =>
+                    void runWorkflow(
+                      () =>
+                        completeBuyMelt({
+                          buyId: detail.id,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { successTitle: "Đã hoàn tất — ghi nhận kho / dòng tiền" },
+                    )
+                  }
                   onPrintCommitment={() => printDocument("commitment")}
                   onPrintForm02={() => printDocument("form02")}
                   onPrintInvoice={() => printDocument("invoice")}
@@ -1115,25 +1195,6 @@ export function PurchaseWorkspace({
       )}
 
       {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
-
-      {attachOpen ? (
-        <Modal title="Đính kèm PDF đã ký" onClose={() => setAttachOpen(false)}>
-          <p className="text-[13px] text-[var(--tlkv-muted)]">
-            Tải lên bản PDF đã ký. Có thể bổ sung sau từ chi tiết phiếu mua.
-          </p>
-          <input
-            ref={attachFileRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            className="mt-3 block w-full text-[12px]"
-            disabled={attachPending}
-            onChange={(e) => void onUploadPdf(e.target.files?.[0] ?? null)}
-          />
-          {attachPending ? (
-            <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">Đang tải lên...</p>
-          ) : null}
-        </Modal>
-      ) : null}
 
       {detail ? (
         <div className="hidden print:block">

@@ -32,6 +32,14 @@ import { InvoiceDrawer } from "./InvoiceDrawer";
 import { StockReceiptDrawer } from "./StockReceiptDrawer";
 
 const PAGE_SIZES = [5, 10, 20] as const;
+const EXPORT_LIMIT_OPTIONS = [
+  { value: 20, label: "20 gần nhất" },
+  { value: 50, label: "50 gần nhất" },
+  { value: 100, label: "100 gần nhất" },
+  { value: 200, label: "200 gần nhất" },
+  { value: 500, label: "500 gần nhất" },
+  { value: 0, label: "Tất cả (tối đa 5000)" },
+] as const;
 const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
   { value: "", label: "Trạng thái TT: Tất cả" },
   { value: "PAID", label: "Đã thanh toán" },
@@ -65,6 +73,7 @@ export function InvoiceDirectory({
   const [receiptDetail, setReceiptDetail] = useState<StockReceiptDetail | null>(null);
   const [buyDetail, setBuyDetail] = useState<BuyDetail | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportLimit, setExportLimit] = useState<number>(50);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
 
@@ -171,6 +180,7 @@ export function InvoiceDirectory({
         to: to || null,
         paymentStatus: paymentStatus || null,
         documentType: documentType || null,
+        limit: exportLimit,
       });
       downloadCsv(
         "chung-tu.csv",
@@ -207,9 +217,10 @@ export function InvoiceDirectory({
           row.saleNo,
         ]),
       );
-      if (result.total !== page.total) {
+      const exportedDocs = result.exportedDocuments ?? result.total;
+      if (exportedDocs < result.total) {
         setError(
-          `Export ${result.total} dòng, danh sách đang hiện tổng ${page.total}. Tải lại bộ lọc rồi xuất lại.`,
+          `Đã xuất ${exportedDocs}/${result.total} chứng từ gần nhất (${result.items.length} dòng SP). Đổi giới hạn nếu cần thêm.`,
         );
       } else {
         setError(null);
@@ -241,6 +252,18 @@ export function InvoiceDirectory({
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-white pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
           </label>
+          <select
+            value={exportLimit}
+            onChange={(event) => setExportLimit(Number(event.target.value))}
+            aria-label="Số chứng từ xuất CSV"
+            className="h-10 shrink-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {EXPORT_LIMIT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                Xuất {opt.label}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={() => void onExport()}

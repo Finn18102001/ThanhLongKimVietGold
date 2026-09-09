@@ -1,29 +1,41 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckCircle,
   FilePdf,
   Fire,
   Printer,
   Scales,
+  UploadSimple,
   XCircle,
 } from "@phosphor-icons/react";
+import { IMAGE_PRESET_PRODUCT, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { formatChi } from "../labels";
-import type { BuyDetail, MeltWeightItemPayload } from "../types";
-import { isBuyInMeltWorkflow, workflowStatusLabel } from "../workflowLabels";
+import type { BuyAttachmentDocKind, BuyDetail, MeltWeightItemPayload } from "../types";
+import {
+  buyAttachmentKindLabel,
+  canPrintCommitmentFromFlow,
+  hasPurityTestAttachment,
+  isBuyInMeltWorkflow,
+  workflowStatusLabel,
+} from "../workflowLabels";
 import { BuyWorkflowStepper } from "./BuyWorkflowStepper";
 
 export type BuyWorkflowPanelProps = {
   buy: BuyDetail;
   pending?: boolean;
+  uploadPending?: boolean;
   onIssueCommitment: () => void;
   onStartMelt: () => void;
   onSetWeights: (items: MeltWeightItemPayload[]) => void;
+  onUploadFile: (file: File, docKind: BuyAttachmentDocKind) => void | Promise<void>;
   onConfirmAgree: () => void;
   onConfirmCancel: () => void;
+  onConfirmInvoice: () => void;
+  onComplete: () => void;
   onPrintCommitment: () => void;
   onPrintForm02: () => void;
   onPrintInvoice: () => void;
@@ -35,11 +47,15 @@ export type BuyWorkflowPanelProps = {
 export function BuyWorkflowPanel({
   buy,
   pending = false,
+  uploadPending = false,
   onIssueCommitment,
   onStartMelt,
   onSetWeights,
+  onUploadFile,
   onConfirmAgree,
   onConfirmCancel,
+  onConfirmInvoice,
+  onComplete,
   onPrintCommitment,
   onPrintForm02,
   onPrintInvoice,
@@ -47,6 +63,10 @@ export function BuyWorkflowPanel({
   const wf = String(buy.workflowStatus || "INTAKE");
   const inFlow = isBuyInMeltWorkflow(buy);
   const [draftWeights, setDraftWeights] = useState<Record<string, string>>({});
+  const purityRef = useRef<HTMLInputElement | null>(null);
+  const relatedRef = useRef<HTMLInputElement | null>(null);
+  const hasPurity = hasPurityTestAttachment(buy.attachments);
+  const busy = pending || uploadPending;
 
   useEffect(() => {
     const next: Record<string, string> = {};
@@ -78,6 +98,24 @@ export function BuyWorkflowPanel({
       return Number.isFinite(n) && n > 0;
     });
 
+  async function handlePick(file: File | null, docKind: BuyAttachmentDocKind) {
+    if (!file || uploadPending) return;
+    let next = file;
+    const mime = (file.type || "").toLowerCase();
+    const isPdf = mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf && mime.startsWith("image/")) {
+      const optimized = await optimizeImageFile(file, IMAGE_PRESET_PRODUCT);
+      next = optimized.file;
+    }
+    await onUploadFile(next, docKind);
+  }
+
+  const pastCommitment = !["INTAKE", "MELT_COMMITTED"].includes(wf);
+  const showPurityUpload = wf === "WEIGHT_ENTERED" && !hasPurity;
+  const showConfirm = wf === "AWAITING_CONFIRM";
+  const showInvoice = wf === "INVOICE_ISSUED";
+  const showForm02 = wf === "FORM02_READY";
+
   return (
     <aside className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3">
       <div className="flex items-start justify-between gap-2">
@@ -86,10 +124,19 @@ export function BuyWorkflowPanel({
           <p className="text-[11px] text-[var(--tlkv-muted)]">
             {workflowStatusLabel(wf)}
             {buy.meltCommitmentNo ? ` · CK ${buy.meltCommitmentNo}` : ""}
+            {buy.form02No ? ` · ${buy.form02No}` : ""}
           </p>
         </div>
         <span className="rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-amber)]">
-          {buy.status === "PROCESSING" ? "Đang xử lý" : String(buy.status)}
+          {buy.status === "PROCESSING"
+            ? "Đang xử lý"
+            : buy.status === "COMPLETED"
+              ? "Hoàn tất"
+              : buy.status === "VOIDED"
+                ? "Đã hủy"
+                : buy.status === "CANCELLED"
+                  ? "Đã hủy"
+                  : String(buy.status)}
         </span>
       </div>
 
@@ -103,29 +150,33 @@ export function BuyWorkflowPanel({
           <dd className="mt-0.5 font-medium">{buy.customerName}</dd>
         </div>
         <div className="rounded-lg border border-[var(--tlkv-line)] px-2.5 py-2">
-          <dt className="text-[10px] text-[var(--tlkv-muted)]">Tổng (ước tính)</dt>
+          <dt className="text-[10px] text-[var(--tlkv-muted)]">Tổng</dt>
           <dd className="mt-0.5 font-semibold tabular-nums">{formatDong(buy.totalDong)}</dd>
         </div>
       </dl>
 
       <ul className="mt-3 space-y-1.5 border-t border-[var(--tlkv-line)] pt-3 text-[11px] text-[var(--tlkv-muted)]">
+        <TimelineRow done={true} label="Tiếp nhận" meta={buy.buyNo} />
         <TimelineRow
-          done={true}
-          label="Tiếp nhận giao dịch"
-          meta={buy.buyNo}
-        />
-        <TimelineRow
-          done={Boolean(buy.meltCommitmentNo) || ["MELT_COMMITTED", "MELTING", "WEIGHT_ENTERED", "AWAITING_CONFIRM", "COMPLETED"].includes(wf)}
-          label="Phiếu cam kết nấu"
+          done={Boolean(buy.meltCommitmentNo) || pastCommitment || wf === "COMPLETED"}
+          label="Cam kết nấu"
           meta={buy.meltCommitmentNo || "—"}
         />
         <TimelineRow
-          done={Boolean(buy.meltingStartedAt) || ["MELTING", "WEIGHT_ENTERED", "AWAITING_CONFIRM", "COMPLETED"].includes(wf)}
+          done={
+            Boolean(buy.meltingStartedAt) ||
+            ["MELTING", "WEIGHT_ENTERED", "AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(
+              wf,
+            )
+          }
           label="Nấu vàng"
           meta={buy.meltingStartedAt ? formatViDateTime(buy.meltingStartedAt) : "—"}
         />
         <TimelineRow
-          done={buy.items.some((i) => i.weightAfterChi != null) || ["WEIGHT_ENTERED", "AWAITING_CONFIRM", "COMPLETED"].includes(wf)}
+          done={
+            buy.items.some((i) => i.weightAfterChi != null) ||
+            ["WEIGHT_ENTERED", "AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)
+          }
           label="KL sau nấu"
           meta={
             buy.items.some((i) => i.weightAfterChi != null)
@@ -136,9 +187,19 @@ export function BuyWorkflowPanel({
           }
         />
         <TimelineRow
+          done={hasPurity || ["AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)}
+          label="Phiếu kiểm tra HL"
+          meta={hasPurity ? "Đã upload" : "Bắt buộc"}
+        />
+        <TimelineRow
+          done={["INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)}
+          label="Hóa đơn mua"
+          meta={["INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf) ? buy.buyNo : "—"}
+        />
+        <TimelineRow
           done={Boolean(buy.form02No) || wf === "COMPLETED"}
-          label="Phiếu 02 / Hóa đơn"
-          meta={buy.form02No || (wf === "COMPLETED" ? buy.buyNo : "—")}
+          label="Phiếu 02"
+          meta={buy.form02No || "—"}
         />
       </ul>
 
@@ -168,6 +229,110 @@ export function BuyWorkflowPanel({
         </div>
       ) : null}
 
+      {showPurityUpload ? (
+        <div className="mt-3 space-y-2 rounded-[10px] border border-[var(--tlkv-amber)]/40 bg-[var(--tlkv-amber-soft)]/40 p-2.5">
+          <p className="text-[12px] font-semibold">Upload phiếu kiểm tra hàm lượng (bắt buộc)</p>
+          <p className="text-[11px] text-[var(--tlkv-muted)]">
+            PDF giữ nguyên PDF. Ảnh được chuyển WebP trước khi tải lên.
+          </p>
+          {/* label+input: programmatic .click() on display:none file inputs is unreliable in Safari/Chrome */}
+          <input
+            id="buy-purity-file"
+            ref={purityRef}
+            type="file"
+            accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/*"
+            className="sr-only"
+            tabIndex={-1}
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              void handlePick(f, "PURITY_TEST").finally(() => {
+                if (purityRef.current) purityRef.current.value = "";
+              });
+            }}
+          />
+          <label
+            htmlFor="buy-purity-file"
+            aria-disabled={busy || undefined}
+            className={`inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-white ${
+              busy ? "pointer-events-none opacity-40" : ""
+            }`}
+          >
+            <UploadSimple size={14} />
+            {uploadPending ? "Đang xử lý..." : "Chọn file phiếu HL"}
+          </label>
+        </div>
+      ) : null}
+
+      {showConfirm ? (
+        <div className="mt-3 space-y-2 rounded-[10px] border border-[var(--tlkv-line)] p-2.5">
+          <p className="text-[12px] font-semibold">Khách hàng xác nhận</p>
+          <ul className="space-y-1 text-[11px] text-[var(--tlkv-muted)]">
+            <li>KH: {buy.customerName}</li>
+            {buy.items.map((item) => (
+              <li key={item.id}>
+                {item.productName}: trước{" "}
+                {formatChi(item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi)} → sau{" "}
+                {item.weightAfterChi != null ? formatChi(item.weightAfterChi) : "—"} ·{" "}
+                {formatDong(item.unitPriceDong)}/chỉ · {formatDong(item.totalPriceDong)}
+              </li>
+            ))}
+            <li>
+              Phiếu HL:{" "}
+              {(buy.attachments ?? [])
+                .filter((a) => a.docKind === "PURITY_TEST")
+                .map((a) => a.fileName)
+                .join(", ") || "—"}
+            </li>
+            <li className="font-semibold text-[var(--tlkv-text)]">
+              Thành tiền: {formatDong(buy.totalDong)}
+            </li>
+          </ul>
+        </div>
+      ) : null}
+
+      {showForm02 ? (
+        <div className="mt-3 space-y-2 rounded-[10px] border border-[var(--tlkv-line)] p-2.5">
+          <p className="text-[12px] font-semibold">Tài liệu liên quan (không bắt buộc)</p>
+          <input
+            id="buy-related-file"
+            ref={relatedRef}
+            type="file"
+            accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/*"
+            className="sr-only"
+            tabIndex={-1}
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              void handlePick(f, "RELATED").finally(() => {
+                if (relatedRef.current) relatedRef.current.value = "";
+              });
+            }}
+          />
+          <label
+            htmlFor="buy-related-file"
+            aria-disabled={busy || undefined}
+            className={`inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-medium ${
+              busy ? "pointer-events-none opacity-40" : ""
+            }`}
+          >
+            <UploadSimple size={14} />
+            {uploadPending ? "Đang tải..." : "Upload tài liệu"}
+          </label>
+          {(buy.attachments ?? []).filter((a) => a.docKind === "RELATED").length > 0 ? (
+            <ul className="space-y-0.5 text-[11px] text-[var(--tlkv-muted)]">
+              {(buy.attachments ?? [])
+                .filter((a) => a.docKind === "RELATED")
+                .map((a) => (
+                  <li key={a.id}>
+                    {buyAttachmentKindLabel(a.docKind)} · {a.fileName}
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
       {inFlow || wf === "COMPLETED" ? (
         <div className="mt-3 flex flex-col gap-2">
           {wf === "INTAKE" ? (
@@ -190,7 +355,7 @@ export function BuyWorkflowPanel({
               Lưu KL sau nấu
             </PrimaryBtn>
           ) : null}
-          {wf === "WEIGHT_ENTERED" || wf === "AWAITING_CONFIRM" ? (
+          {showConfirm ? (
             <div className="grid grid-cols-2 gap-2">
               <PrimaryBtn
                 pending={pending}
@@ -201,7 +366,7 @@ export function BuyWorkflowPanel({
               </PrimaryBtn>
               <button
                 type="button"
-                disabled={pending}
+                disabled={busy}
                 onClick={onConfirmCancel}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)] px-3 text-[12px] font-semibold text-[var(--tlkv-red)] disabled:opacity-40"
               >
@@ -210,23 +375,31 @@ export function BuyWorkflowPanel({
               </button>
             </div>
           ) : null}
+          {showInvoice ? (
+            <PrimaryBtn pending={pending} onClick={onConfirmInvoice} icon={<CheckCircle size={14} />}>
+              Xác nhận hóa đơn → Phiếu 02
+            </PrimaryBtn>
+          ) : null}
+          {showForm02 ? (
+            <PrimaryBtn pending={pending} onClick={onComplete} icon={<CheckCircle size={14} />}>
+              Hoàn tất giao dịch
+            </PrimaryBtn>
+          ) : null}
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <GhostPrint
-              label="In cam kết"
-              disabled={!buy.meltCommitmentNo && wf === "INTAKE"}
-              onClick={onPrintCommitment}
-            />
-            <GhostPrint
-              label="In phiếu 02"
-              disabled={!buy.form02No && wf !== "COMPLETED"}
-              onClick={onPrintForm02}
-            />
-            <GhostPrint
-              label="In hóa đơn mua"
-              disabled={wf !== "COMPLETED" && buy.status !== "COMPLETED"}
-              onClick={onPrintInvoice}
-            />
+            {canPrintCommitmentFromFlow(wf) ? (
+              <GhostPrint label="In cam kết" onClick={onPrintCommitment} />
+            ) : null}
+            {showInvoice || wf === "FORM02_READY" || wf === "COMPLETED" ? (
+              <GhostPrint label="In hóa đơn mua" onClick={onPrintInvoice} />
+            ) : null}
+            {showForm02 || wf === "COMPLETED" ? (
+              <GhostPrint
+                label="In phiếu 02"
+                disabled={!buy.form02No}
+                onClick={onPrintForm02}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -451,7 +451,12 @@ export function InvoiceDrawer({
                     <p className="font-medium">{line.name}</p>
                     <p className="text-[11px] text-[var(--tlkv-muted)]">{line.sku}</p>
                     <p className="text-[11px] text-[var(--tlkv-muted)]">
-                      {formatDong(line.unitPriceDong)}
+                      {line.weightChi > 0
+                        ? `${formatDong(Math.round(line.unitPriceDong / line.weightChi))}/chỉ`
+                        : formatDong(line.unitPriceDong)}
+                      {line.quantity > 1
+                        ? ` · SP ${formatDong(line.unitPriceDong)}`
+                        : ""}
                     </p>
                   </td>
                   <td className="py-2 text-right align-top">

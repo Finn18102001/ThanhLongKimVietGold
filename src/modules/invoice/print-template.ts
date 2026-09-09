@@ -163,7 +163,8 @@ export function createTestPrintPayload(): InvoicePrintPayload {
         productName: "TEST PRODUCT 1",
         purity: "999.9",
         weightLabel: "0,2 chỉ",
-        unitPriceDong: 4_286_000,
+        // Đơn giá = /chỉ; thành tiền = giá SP
+        unitPriceDong: 21_430_000,
         amountDong: 4_286_000,
       },
       {
@@ -171,7 +172,7 @@ export function createTestPrintPayload(): InvoicePrintPayload {
         productName: "TEST PRODUCT 2",
         purity: "999.9",
         weightLabel: "0,5 chỉ × 2",
-        unitPriceDong: 4_286_000,
+        unitPriceDong: 8_572_000,
         amountDong: 8_572_000,
       },
       {

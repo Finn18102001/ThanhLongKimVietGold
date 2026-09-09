@@ -26,21 +26,27 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
   const paidDong = Math.max(0, invoice.paidDong);
 
   // Keep product name short so table cells stay single-line on phôi (qty goes into weight).
-  const productItems = invoice.lines.map((line, index) => ({
-    stt: index + 1,
-    productName: line.name,
-    purity: line.purity || "",
-    weightLabel:
-      line.weightChi > 0
-        ? line.quantity > 1
-          ? `${formatChi(line.weightChi)} × ${line.quantity}`
-          : formatChi(line.weightChi)
-        : line.quantity > 1
-          ? `× ${line.quantity}`
-          : "",
-    unitPriceDong: line.unitPriceDong,
-    amountDong: line.totalPriceDong,
-  }));
+  // Đơn giá on phôi = giá / 1 chỉ. unit_price_dong on sale lines is piece price.
+  const productItems = invoice.lines.map((line, index) => {
+    const pieceDong = line.unitPriceDong;
+    const perChiDong =
+      line.weightChi > 0 ? Math.round(pieceDong / line.weightChi) : pieceDong;
+    return {
+      stt: index + 1,
+      productName: line.name,
+      purity: line.purity || "",
+      weightLabel:
+        line.weightChi > 0
+          ? line.quantity > 1
+            ? `${formatChi(line.weightChi)} × ${line.quantity}`
+            : formatChi(line.weightChi)
+          : line.quantity > 1
+            ? `× ${line.quantity}`
+            : "",
+      unitPriceDong: perChiDong,
+      amountDong: line.totalPriceDong,
+    };
+  });
   const chargeItems = (invoice.charges ?? []).map((charge: InvoiceCharge, index) => ({
     stt: productItems.length + index + 1,
     productName: charge.name,

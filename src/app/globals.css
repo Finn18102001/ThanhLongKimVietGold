@@ -71,7 +71,17 @@ body {
 
   @page purchase-voucher {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 0;
+  }
+
+  @page purchase-form02 {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  @page purchase-commitment {
+    size: A4 portrait;
+    margin: 0;
   }
 
   html,
@@ -79,18 +89,48 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
   }
 
-  header,
+  /* Collapse admin shell so it does not create blank print pages. */
+  body > div {
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide admin chrome only — never hide content headers inside phôi. */
+  body > div header,
   aside,
   footer,
   .print\:hidden {
     display: none !important;
   }
 
+  .print\:block {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
   main {
     padding: 0 !important;
     margin: 0 !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
   }
 
   /* Phôi background: visible on screen, never on paper */
@@ -128,12 +168,56 @@ body {
     text-overflow: clip !important;
   }
 
+  /*
+   * Purchase phôi margins:
+   * Chrome "Default" often ignores named @page margins. Put real padding on the
+   * article so lề always shows (match phôi PDF/Word ~10–15mm).
+   */
   .purchase-print {
     page: purchase-voucher;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
     max-width: none !important;
-    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 12mm 15mm !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    overflow: visible !important;
+    transform: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  .purchase-print--commitment {
+    page: purchase-commitment;
+    padding: 10mm 12mm !important;
+  }
+
+  .purchase-print--form02 {
+    page: purchase-form02;
+    padding: 8mm 10mm !important;
+    max-width: none !important;
+  }
+
+  .purchase-print table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .purchase-print th,
+  .purchase-print td {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
 }
 

@@ -1,75 +1,113 @@
 "use client";
 
-import { formatDong, formatDongCompact, formatDongInWords } from "@/shared/lib/money";
-import { formatViClock, formatViDateOnly } from "@/shared/lib/datetime";
+import type { CSSProperties } from "react";
+import { BRAND_LOGO_MARK } from "@/shared/brand/assets";
+import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
+import { viDateLongLine } from "./printDate";
 
 /**
  * PHIẾU MUA HÀNG KIÊM NHẬP KHO VÀ CHI TIỀN
- * Columns/fields follow PHIẾU MUA HÀNG final PDF.
+ * Typography locked to PHIẾU MUA HÀNG final.pdf (title/body ~13–14pt).
+ * Full printable width — do not constrain to a left band.
  */
 export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
-  const issued = buy.completedAt ? formatViDateOnly(buy.completedAt) : "";
-  const issuedClock = buy.completedAt ? formatViClock(buy.completedAt) : "";
-  const paidWords = formatDongInWords(buy.paidDong);
+  const issuedAt = buy.completedAt;
+  const totalWords = formatDongInWords(buy.totalDong);
   const staff = buy.actorEmail.split("@")[0] || buy.actorEmail;
+  const emptyRows = Math.max(0, 1 - buy.items.length);
 
   return (
-    <article className="purchase-print mx-auto w-full max-w-[190mm] bg-white px-6 py-5 text-[#1f1f1f]">
-      <div className="text-center">
-        <p className="text-[13px] font-bold tracking-[0.06em] text-[var(--tlkv-red)]">
-          THĂNG LONG KIM VIỆT
-        </p>
-        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--tlkv-text)]">
-          Giữ vàng - Giữ phúc - Giữ niềm tin
-        </p>
-        <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
-          Địa chỉ: 322 Nguyễn Trãi, Phường Đại Mỗ, TP.HN · Hotline: 099.568.2568
-        </p>
+    <article
+      className="purchase-print purchase-print--voucher mx-auto w-full bg-white font-serif text-black"
+      style={{ boxSizing: "border-box", fontSize: "13pt", lineHeight: 1.35 }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="flex shrink-0 items-center justify-center"
+          style={{ width: "16mm", height: "16mm", background: "#b91c1c" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={BRAND_LOGO_MARK}
+            alt=""
+            width={52}
+            height={52}
+            style={{ width: "13mm", height: "13mm", objectFit: "contain" }}
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="font-bold tracking-wide text-[#b91c1c]" style={{ fontSize: "14pt" }}>
+            THĂNG LONG KIM VIỆT
+          </p>
+          <p className="font-semibold uppercase tracking-wide" style={{ fontSize: "11pt", marginTop: 2 }}>
+            Giữ vàng – Giữ phúc – Giữ niềm tin
+          </p>
+          <p style={{ fontSize: "11pt", marginTop: 2 }}>
+            Địa chỉ: 322 Nguyễn Trãi, Phường Đại Mỗ, TP.HN
+          </p>
+          <p style={{ fontSize: "11pt" }}>Hotline: 099.568.2568</p>
+        </div>
       </div>
-      <header className="mt-3 border-b-2 border-[var(--tlkv-red)] pb-3 text-center">
-        <h1 className="text-[16px] font-bold uppercase">
-          Phiếu mua hàng kiêm nhập kho và chi tiền
-        </h1>
-        <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-          Số {buy.buyNo}
-          {issued ? ` · Ngày ${issued}` : ""}
-          {issuedClock ? ` · ${issuedClock}` : ""}
-        </p>
-      </header>
 
-      <section className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-[12px]">
-        <Field label="Khách hàng" value={buy.customerName} />
-        <Field label="CCCD" value={buy.customerCitizenId || "-"} />
-        <Field label="Số điện thoại" value={buy.customerPhone || "-"} />
-        <Field label="Địa chỉ" value={buy.customerAddress || "-"} />
-        <Field label="Số tài khoản" value={buy.customerBankAccount || "-"} />
-        <Field label="Chủ tài khoản" value={buy.customerBankHolder || "-"} />
-      </section>
-
-      <p className="mt-3 text-[12px] italic text-[var(--tlkv-text)]">
-        Đồng ý bán cho Công ty TNHH Vàng bạc Thăng Long Kim Việt mặt hàng cụ thể như sau:
+      <p
+        className="text-center font-bold uppercase tracking-wide"
+        style={{ marginTop: "4mm", fontSize: "14pt" }}
+      >
+        Phiếu mua hàng kiêm nhập kho và chi tiền
+      </p>
+      <p className="text-center italic" style={{ marginTop: "2mm", fontSize: "13pt" }}>
+        {viDateLongLine(issuedAt)}
       </p>
 
-      <table className="mt-3 w-full border-collapse text-[12px]">
+      <section style={{ marginTop: "4mm" }}>
+        <DottedField label="Khách hàng" value={buy.customerName} />
+        <DottedField label="CCCD" value={buy.customerCitizenId || ""} />
+        <DottedField label="Số điện thoại" value={buy.customerPhone || ""} />
+        <DottedField label="Địa chỉ" value={buy.customerAddress || ""} />
+        <DottedField label="Số tài khoản" value={buy.customerBankAccount || ""} />
+        <DottedField label="Chủ tài khoản" value={buy.customerBankHolder || ""} />
+      </section>
+
+      <p style={{ marginTop: "3.5mm", fontSize: "13pt" }}>
+        Đồng ý bán cho Công ty TNHH Vàng bạc Thăng Long Kim Việt mặt hàng cụ thể như sau :
+      </p>
+
+      <table
+        className="border-collapse"
+        style={{ marginTop: "3mm", width: "100%", tableLayout: "fixed", fontSize: "12pt" }}
+      >
+        <colgroup>
+          <col style={{ width: "6%" }} />
+          <col style={{ width: "28%" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "12%" }} />
+          <col style={{ width: "15%" }} />
+          <col style={{ width: "17%" }} />
+        </colgroup>
         <thead>
-          <tr className="bg-[#f8f1e7] text-left">
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 font-semibold">STT</th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 font-semibold">
+          <tr>
+            <th className="border border-black text-center font-bold" style={thStyle}>
+              STT
+            </th>
+            <th className="border border-black text-center font-bold" style={thStyle}>
               Tên hàng hoá, dịch vụ
             </th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 font-semibold">
+            <th className="border border-black text-center font-bold" style={thStyle}>
               Hàm lượng vàng/bạc
             </th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 font-semibold">ĐVT</th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right font-semibold">
-              Trọng lượng
+            <th className="border border-black text-center font-bold" style={thStyle}>
+              ĐVT
             </th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right font-semibold">
+            <th className="border border-black text-center font-bold" style={thStyle}>
+              Trọng Lượng
+            </th>
+            <th className="border border-black text-center font-bold" style={thStyle}>
               Đơn giá
             </th>
-            <th className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right font-semibold">
+            <th className="border border-black text-center font-bold" style={thStyle}>
               Thành tiền
             </th>
           </tr>
@@ -77,70 +115,137 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
         <tbody>
           {buy.items.map((item, index) => (
             <tr key={item.id}>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5 text-center">{index + 1}</td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5">
+              <td className="border border-black text-center" style={tdStyle}>
+                {index + 1}
+              </td>
+              <td className="border border-black" style={{ ...tdStyle, wordBreak: "break-word" }}>
                 {item.productName}
-                {item.quantity > 1 ? ` ×${item.quantity}` : ""}
               </td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5">
-                {item.goldAge || item.goldType || "-"}
+              <td className="border border-black text-center" style={tdStyle}>
+                {item.goldAge || item.goldType || ""}
               </td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5">chỉ</td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right tabular-nums">
+              <td className="border border-black text-center" style={tdStyle}>
+                chỉ
+              </td>
+              <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatChi(item.weightChi)}
               </td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right tabular-nums">
+              <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatDongCompact(item.unitPriceDong)}
               </td>
-              <td className="border border-[var(--tlkv-line)] px-2 py-1.5 text-right font-medium tabular-nums">
+              <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatDongCompact(item.totalPriceDong)}
               </td>
             </tr>
           ))}
+          {Array.from({ length: emptyRows }).map((_, i) => (
+            <tr key={`empty-${i}`}>
+              {Array.from({ length: 7 }).map((__, j) => (
+                <td key={j} className="border border-black" style={{ ...tdStyle, height: "8mm" }}>
+                  &nbsp;
+                </td>
+              ))}
+            </tr>
+          ))}
+          <tr>
+            <td className="border border-black font-semibold" colSpan={6} style={tdStyle}>
+              Tổng cộng
+            </td>
+            <td className="border border-black text-right font-semibold tabular-nums" style={tdStyle}>
+              {formatDongCompact(buy.totalDong)}
+            </td>
+          </tr>
         </tbody>
       </table>
 
-      <section className="mt-4 text-[12px]">
-        <p>
-          <span className="text-[var(--tlkv-muted)]">Tổng cộng: </span>
-          <span className="font-semibold">{formatDong(buy.totalDong)}</span>
-        </p>
-        <p className="mt-1">
-          <span className="text-[var(--tlkv-muted)]">Số tiền bằng chữ: </span>
-          <span className="font-semibold capitalize">{paidWords || formatDongInWords(buy.totalDong)}</span>
-        </p>
-      </section>
-
-      <p className="mt-4 text-[11px] leading-relaxed text-[var(--tlkv-muted)]">
-        Khách hàng phải chịu trách nhiệm về nguồn gốc, tính hợp pháp của sản phẩm bán cho Thăng Long
-        Kim Việt. Khách hàng xác nhận đã nhận đủ số tiền ghi trên phiếu (phần đã chi).
+      <p style={{ marginTop: "4mm", fontSize: "13pt" }}>
+        <span>Số tiền bằng chữ:</span>
+        <span
+          className="capitalize"
+          style={{
+            display: "inline-block",
+            marginLeft: 6,
+            minWidth: "70%",
+            borderBottom: "1px dotted #000",
+            paddingBottom: 2,
+          }}
+        >
+          {totalWords || "\u00a0"}
+        </span>
       </p>
 
-      <section className="mt-6 grid grid-cols-3 gap-3 text-center text-[12px]">
-        <SignBox title="Người lập phiếu" name={staff} />
-        <SignBox title="Thủ quỹ" name="" />
-        <SignBox title="Khách hàng" name={buy.customerName} />
+      <section className="grid grid-cols-3 text-center" style={{ marginTop: "8mm", gap: "4mm", fontSize: "13pt" }}>
+        <div>
+          <p className="font-semibold">Người lập phiếu</p>
+          <p className="italic" style={{ fontSize: "11pt", marginTop: 2 }}>
+            (Ký, họ tên)
+          </p>
+          <p className="font-medium" style={{ marginTop: "12mm", minHeight: "5mm" }}>
+            {staff}
+          </p>
+        </div>
+        <div>
+          <p className="font-semibold">Thủ quỹ</p>
+          <p className="italic" style={{ fontSize: "11pt", marginTop: 2 }}>
+            (Ký, họ tên)
+          </p>
+          <p style={{ marginTop: "12mm", minHeight: "5mm" }}>&nbsp;</p>
+        </div>
+        <div>
+          <p className="font-semibold">Khách hàng</p>
+          <p className="italic" style={{ fontSize: "11pt", marginTop: 2 }}>
+            (Ký, họ tên)
+          </p>
+          <p className="italic" style={{ fontSize: "11pt" }}>
+            Đã nhận đủ số tiền trên
+          </p>
+          <p className="font-medium" style={{ marginTop: "8mm", minHeight: "5mm" }}>
+            {buy.customerName}
+          </p>
+        </div>
       </section>
-      <p className="mt-2 text-center text-[11px] text-[var(--tlkv-muted)]">Đã nhận đủ số tiền trên</p>
+
+      <p className="text-center italic" style={{ marginTop: "10mm", fontSize: "12pt", lineHeight: 1.45 }}>
+        Khách hàng phải chịu trách nhiệm về nguồn gốc,
+        <br />
+        tính hợp pháp của sản phẩm bán cho Thăng Long Kim Việt
+      </p>
+
+      <div className="text-center" style={{ marginTop: "8mm" }}>
+        <p className="font-semibold tracking-wide" style={{ fontSize: "13pt" }}>
+          THĂNG LONG KIM VIỆT
+        </p>
+        <p className="font-semibold uppercase tracking-wide" style={{ fontSize: "11pt", marginTop: 4 }}>
+          Giữ vàng – Giữ phúc – Giữ niềm tin
+        </p>
+      </div>
     </article>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <p>
-      <span className="text-[var(--tlkv-muted)]">{label}: </span>
-      <span className="font-medium">{value}</span>
-    </p>
-  );
-}
+const thStyle: CSSProperties = {
+  padding: "2.2mm 1.2mm",
+  verticalAlign: "middle",
+  overflow: "hidden",
+  wordBreak: "break-word",
+};
 
-function SignBox({ title, name }: { title: string; name: string }) {
+const tdStyle: CSSProperties = {
+  padding: "2.2mm 1.2mm",
+  verticalAlign: "middle",
+  overflow: "hidden",
+};
+
+function DottedField({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="font-semibold">{title}</p>
-      <p className="mt-8 text-[11px] text-[var(--tlkv-muted)]">(Ký, họ tên)</p>
-      <p className="mt-1 min-h-[18px] font-medium">{name}</p>
-    </div>
+    <p className="flex items-end gap-1" style={{ marginTop: "1.6mm", fontSize: "13pt" }}>
+      <span className="shrink-0">{label}&nbsp;:</span>
+      <span
+        className="min-w-0 flex-1 font-medium"
+        style={{ borderBottom: "1px dotted #000", paddingBottom: 1, paddingLeft: 4 }}
+      >
+        {value || "\u00a0"}
+      </span>
+    </p>
   );
 }

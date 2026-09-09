@@ -21,7 +21,7 @@ export function ResultAlert({
 }) {
   const success = alert.tone === "success";
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4 print:hidden">
       <div
         role="alertdialog"
         aria-modal="true"
