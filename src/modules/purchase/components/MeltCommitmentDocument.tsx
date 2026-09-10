@@ -14,7 +14,6 @@ import { viDateParts } from "./printDate";
 export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
   const issuedAt = buy.meltingStartedAt || buy.completedAt;
   const { day, month, year } = viDateParts(issuedAt);
-  const staff = buy.actorEmail.split("@")[0] || buy.actorEmail;
   const docNo = buy.meltCommitmentNo || buy.buyNo;
   const emptyRows = Math.max(0, 2 - buy.items.length);
 
@@ -281,18 +280,16 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
           <p className="italic" style={{ fontSize: "9.5pt", marginTop: 1 }}>
             (Ký tên)
           </p>
-          <p className="font-medium" style={{ marginTop: "10mm", minHeight: "4mm" }}>
-            {staff}
-          </p>
+          {/* Leave blank for wet-ink signature */}
+          <p style={{ marginTop: "14mm", minHeight: "4mm" }}>&nbsp;</p>
         </div>
         <div>
           <p className="font-semibold">Xác nhận khách hàng</p>
           <p className="italic" style={{ fontSize: "9.5pt", marginTop: 1 }}>
             (Ký tên)
           </p>
-          <p className="font-medium" style={{ marginTop: "10mm", minHeight: "4mm" }}>
-            {buy.customerName}
-          </p>
+          {/* Leave blank for wet-ink signature */}
+          <p style={{ marginTop: "14mm", minHeight: "4mm" }}>&nbsp;</p>
         </div>
       </section>
     </article>

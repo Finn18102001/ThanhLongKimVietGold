@@ -44,6 +44,10 @@ export function PurchaseCartPanel({
   onPaidDong,
   onDueDate,
   onNote,
+  bankAccount,
+  onBankAccount,
+  bankAccountHolder,
+  onBankAccountHolder,
   onCheckout,
 }: {
   customer: CustomerRecord | null;
@@ -57,6 +61,8 @@ export function PurchaseCartPanel({
   paidDong: number;
   dueDate: string;
   note: string;
+  bankAccount: string;
+  bankAccountHolder: string;
   pending: boolean;
   anyCatalogException: boolean;
   onOpenCustomer: () => void;
@@ -68,6 +74,8 @@ export function PurchaseCartPanel({
   onPaidDong: (n: number) => void;
   onDueDate: (v: string) => void;
   onNote: (v: string) => void;
+  onBankAccount: (v: string) => void;
+  onBankAccountHolder: (v: string) => void;
   onCheckout: () => void;
 }) {
   function setUnitPrice(line: BuyLine, next: number) {
@@ -319,6 +327,30 @@ export function PurchaseCartPanel({
             <option value="TRANSFER">Chuyển khoản</option>
             <option value="CARD">Thẻ</option>
           </select>
+        </label>
+
+        <label className="mt-3 block text-[13px]">
+          Số tài khoản
+          <input
+            type="text"
+            value={bankAccount}
+            onChange={(e) => onBankAccount(e.target.value)}
+            placeholder="Số TK ngân hàng của khách"
+            autoComplete="off"
+            className={`${purchaseInputClass} mt-1`}
+          />
+        </label>
+
+        <label className="mt-3 block text-[13px]">
+          Chủ tài khoản
+          <input
+            type="text"
+            value={bankAccountHolder}
+            onChange={(e) => onBankAccountHolder(e.target.value)}
+            placeholder="Tên chủ tài khoản"
+            autoComplete="off"
+            className={`${purchaseInputClass} mt-1`}
+          />
         </label>
 
         <fieldset className="mt-3">

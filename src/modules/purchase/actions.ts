@@ -152,6 +152,8 @@ export async function completeBuy(input: {
   dueDate?: string | null;
   approvePriceException?: boolean;
   priceExceptionReason?: string | null;
+  bankAccount?: string | null;
+  bankAccountHolder?: string | null;
   idempotencyKey?: string;
 }): Promise<CompleteBuyResult> {
   const supabase = await createServerSupabase();
@@ -165,6 +167,8 @@ export async function completeBuy(input: {
     p_due_date: input.dueDate || null,
     p_approve_price_exception: input.approvePriceException ?? false,
     p_price_exception_reason: input.priceExceptionReason || null,
+    p_bank_account: input.bankAccount?.trim() || null,
+    p_bank_account_holder: input.bankAccountHolder?.trim() || null,
   });
   if (error) {
     throw new Error(error.message);

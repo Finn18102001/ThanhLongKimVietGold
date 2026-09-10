@@ -93,6 +93,8 @@ export function PurchaseWorkspace({
   const [paidDong, setPaidDong] = useState(0);
   const [dueDate, setDueDate] = useState(defaultDueDateIso);
   const [note, setNote] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankAccountHolder, setBankAccountHolder] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [pending, setPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
@@ -234,6 +236,8 @@ export function PurchaseWorkspace({
   function resetDraft() {
     setLines([]);
     setNote("");
+    setBankAccount("");
+    setBankAccountHolder("");
     setPayMode("FULL");
     setPaidDong(0);
     setDueDate(defaultDueDateIso());
@@ -316,6 +320,8 @@ export function PurchaseWorkspace({
         dueDate: remainingDong > 0 ? dueDate : null,
         approvePriceException: false,
         priceExceptionReason: null,
+        bankAccount: bankAccount.trim() || null,
+        bankAccountHolder: bankAccountHolder.trim() || null,
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
       setSuccess({
@@ -353,6 +359,8 @@ export function PurchaseWorkspace({
       setReviewing(false);
       setLines([]);
       setNote("");
+      setBankAccount("");
+      setBankAccountHolder("");
       setPayMode("FULL");
       setPaidDong(0);
       idempotencyKey.current = null;
@@ -648,6 +656,10 @@ export function PurchaseWorkspace({
             onDueDate={setDueDate}
             note={note}
             onNote={setNote}
+            bankAccount={bankAccount}
+            onBankAccount={setBankAccount}
+            bankAccountHolder={bankAccountHolder}
+            onBankAccountHolder={setBankAccountHolder}
             pending={pending}
             anyCatalogException={anyCatalogException}
             onOpenCustomer={() => setPickingCustomer(true)}
@@ -819,6 +831,12 @@ export function PurchaseWorkspace({
               <PreviewRow label="Trả ngay" value={formatDong(effectivePaid)} />
               <PreviewRow label="Còn trả" value={formatDong(remainingDong)} accent />
               <PreviewRow label="Hình thức" value={paymentMethodLabel(paymentMethod)} />
+              {bankAccount.trim() ? (
+                <PreviewRow label="Số TK" value={bankAccount.trim()} />
+              ) : null}
+              {bankAccountHolder.trim() ? (
+                <PreviewRow label="Chủ TK" value={bankAccountHolder.trim()} />
+              ) : null}
               {remainingDong > 0 ? (
                 <PreviewRow label="Hẹn trả" value={formatViDate(dueDate)} />
               ) : null}

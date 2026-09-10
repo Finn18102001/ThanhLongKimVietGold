@@ -15,7 +15,6 @@ import { viDateLongLine } from "./printDate";
 export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
   const issuedAt = buy.completedAt;
   const totalWords = formatDongInWords(buy.totalDong);
-  const staff = buy.actorEmail.split("@")[0] || buy.actorEmail;
   const emptyRows = Math.max(0, 1 - buy.items.length);
 
   return (
@@ -180,9 +179,8 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           <p className="italic" style={{ fontSize: "11pt", marginTop: 2 }}>
             (Ký, họ tên)
           </p>
-          <p className="font-medium" style={{ marginTop: "12mm", minHeight: "5mm" }}>
-            {staff}
-          </p>
+          {/* Leave blank for wet-ink signature */}
+          <p style={{ marginTop: "16mm", minHeight: "5mm" }}>&nbsp;</p>
         </div>
         <div>
           <p className="font-semibold">Thủ quỹ</p>
