@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdminWrite } from "@/shared/auth/assert";
+import { formatVnIsoDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type { StockCountListRow, StockCountSession } from "./count-types";
 
@@ -42,6 +43,9 @@ function mapSession(raw: Record<string, unknown>): StockCountSession {
       name: String(item.name),
       brandName: item.brand_name == null ? null : String(item.brand_name),
       weightChi: Number(item.weight_chi ?? 0),
+      openingQty: Number(item.opening_qty ?? item.openingQty ?? 0),
+      qtyIn: Number(item.qty_in ?? item.qtyIn ?? 0),
+      qtyOut: Number(item.qty_out ?? item.qtyOut ?? 0),
       systemQty: Number(item.system_qty),
       actualQty: item.actual_qty === null ? null : Number(item.actual_qty),
       difference: item.difference === null ? null : Number(item.difference),
@@ -58,7 +62,7 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
     .from("pos_skus")
     .select("id, weight_chi, brands(name)")
     .in("id", skuIds);
-  if (error || !data) return session;
+  if (error || !data) return withDayMovements(session);
 
   const metaBySku = new Map<string, { brandName: string | null; weightChi: number }>();
   for (const row of data as Array<{
@@ -73,7 +77,7 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
     });
   }
 
-  return {
+  return withDayMovements({
     ...session,
     items: session.items.map((item) => {
       const meta = metaBySku.get(item.skuId);
@@ -81,6 +85,52 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
         ...item,
         brandName: meta?.brandName ?? item.brandName ?? null,
         weightChi: meta?.weightChi ?? item.weightChi,
+      };
+    }),
+  });
+}
+
+type DayMovementRow = {
+  skuId: string;
+  openingQty: number;
+  qtyIn: number;
+  qtyOut: number;
+};
+
+async function withDayMovements(session: StockCountSession): Promise<StockCountSession> {
+  if (session.items.length === 0) return session;
+  const supabase = await createServerSupabase();
+  const countDate = formatVnIsoDate(session.createdAt);
+  const skuIds = session.items.map((item) => item.skuId);
+  const { data, error } = await supabase.rpc("pos_stock_day_movements", {
+    p_sku_ids: skuIds,
+    p_on: countDate,
+  });
+  if (error) throw new Error(error.message);
+
+  const parsed = typeof data === "string" ? JSON.parse(data) : data;
+  const rows = Array.isArray(parsed) ? parsed : [];
+  const bySku = new Map<string, DayMovementRow>();
+  for (const raw of rows as Array<Record<string, unknown>>) {
+    const skuId = String(raw.skuId ?? raw.sku_id ?? "");
+    if (!skuId) continue;
+    bySku.set(skuId, {
+      skuId,
+      openingQty: Number(raw.openingQty ?? raw.opening_qty ?? 0),
+      qtyIn: Number(raw.qtyIn ?? raw.qty_in ?? 0),
+      qtyOut: Number(raw.qtyOut ?? raw.qty_out ?? 0),
+    });
+  }
+
+  return {
+    ...session,
+    items: session.items.map((item) => {
+      const movement = bySku.get(item.skuId);
+      return {
+        ...item,
+        openingQty: movement?.openingQty ?? 0,
+        qtyIn: movement?.qtyIn ?? 0,
+        qtyOut: movement?.qtyOut ?? 0,
       };
     }),
   };

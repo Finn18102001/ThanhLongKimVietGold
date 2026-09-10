@@ -473,6 +473,8 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         productName: String(row.productName ?? ""),
         quantity: quantityRaw == null || quantityRaw === "" ? null : Number(quantityRaw),
         weightChi: weightRaw == null || weightRaw === "" ? null : Number(weightRaw),
+        brandName: String(row.brandName ?? ""),
+        note: String(row.note ?? ""),
       };
     }),
     total: Number(raw?.total ?? 0),

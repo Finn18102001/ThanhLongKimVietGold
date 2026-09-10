@@ -542,6 +542,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Hạn thanh toán",
     "Nhân viên",
     "Hoàn tất lúc",
+    "Ghi chú",
   ];
   const lines = rows.map((row) =>
     [
@@ -563,6 +564,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.dueDate ?? "",
       row.actorEmail,
       row.completedAt,
+      row.note,
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
       .join(","),

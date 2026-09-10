@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Check, FileXls, Plus, XCircle } from "@phosphor-icons/react";
-import { formatViDateTime } from "@/shared/lib/datetime";
+import { formatViDate, formatViDateTime, formatVnIsoDate } from "@/shared/lib/datetime";
 import { downloadCsv } from "@/shared/lib/csv";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
@@ -18,6 +18,7 @@ import {
   COUNT_STATUS_LABEL,
   LINE_STATUS_LABEL,
   formatSystemTotalChi,
+  formatWeightChi,
   systemTotalChi,
   type StockCountListRow,
   type StockCountSession,
@@ -110,14 +111,18 @@ export function StockCountWorkspace({
 
   function exportFilteredExcel() {
     if (!session) return;
-    const stamp = new Date().toISOString().slice(0, 10);
+    const countDate = formatVnIsoDate(session.createdAt);
     downloadCsv(
-      `kiem-ke-${session.countNo}-${stamp}.csv`,
+      `kiem-ke-${session.countNo}-${countDate}.csv`,
       [
         "Mã phiên",
-        "SKU",
+        "Mã hàng",
         "Tên sản phẩm",
         "Thương hiệu",
+        "Định lượng",
+        "Tồn đầu",
+        "Nhập trong ngày",
+        "Xuất trong ngày",
         "Tồn hệ thống",
         "Tổng số chỉ",
         "Thực tế",
@@ -129,6 +134,10 @@ export function StockCountWorkspace({
         line.sku,
         line.name,
         line.brandName || "Không brand",
+        line.weightChi,
+        line.openingQty,
+        line.qtyIn,
+        line.qtyOut,
         line.systemQty,
         systemTotalChi(line.systemQty, line.weightChi),
         line.actualQty ?? "",
@@ -275,7 +284,8 @@ export function StockCountWorkspace({
               <h2 className="text-[16px] font-semibold">{session.countNo}</h2>
               <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
                 Kho {session.warehouse} · {formatScope(session.scopeType, session.scopeValue)} ·{" "}
-                {COUNT_STATUS_LABEL[session.status]}
+                {COUNT_STATUS_LABEL[session.status]} · Ngày kiểm kê{" "}
+                {formatViDate(formatVnIsoDate(session.createdAt))}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -407,11 +417,16 @@ export function StockCountWorkspace({
           </div>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-[13px]">
+            <table className="w-full min-w-[1280px] text-left text-[13px]">
               <thead className="text-[12px] text-[var(--tlkv-muted)]">
                 <tr className="border-b border-[var(--tlkv-line)]">
                   <th className="py-2 font-medium">Mã hàng</th>
+                  <th className="py-2 font-medium">Tên sản phẩm</th>
                   <th className="py-2 font-medium">Thương hiệu</th>
+                  <th className="py-2 font-medium">Định lượng</th>
+                  <th className="py-2 font-medium">Tồn đầu</th>
+                  <th className="py-2 font-medium">Nhập trong ngày</th>
+                  <th className="py-2 font-medium">Xuất trong ngày</th>
                   <th className="py-2 font-medium">Tồn hệ thống</th>
                   <th className="py-2 font-medium">Tổng số chỉ</th>
                   <th className="py-2 font-medium">Thực tế</th>
@@ -422,20 +437,24 @@ export function StockCountWorkspace({
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-[var(--tlkv-muted)]">
+                    <td colSpan={12} className="py-6 text-[var(--tlkv-muted)]">
                       Không có dòng khớp bộ lọc.
                     </td>
                   </tr>
                 ) : (
                   filteredItems.map((line) => (
                     <tr key={line.id} className="border-b border-[var(--tlkv-line)]">
-                      <td className="py-2.5">
-                        <p className="font-medium">{line.name}</p>
-                        <p className="text-[12px] text-[var(--tlkv-muted)]">{line.sku}</p>
-                      </td>
+                      <td className="py-2.5 font-semibold text-[var(--tlkv-red)]">{line.sku}</td>
+                      <td className="py-2.5 font-medium">{line.name}</td>
                       <td className="py-2.5 text-[var(--tlkv-muted)]">
                         {line.brandName || "Không brand"}
                       </td>
+                      <td className="py-2.5 tabular-nums text-[var(--tlkv-muted)]">
+                        {formatWeightChi(line.weightChi)}
+                      </td>
+                      <td className="py-2.5 tabular-nums">{line.openingQty}</td>
+                      <td className="py-2.5 tabular-nums">{line.qtyIn}</td>
+                      <td className="py-2.5 tabular-nums">{line.qtyOut}</td>
                       <td className="py-2.5 tabular-nums">{line.systemQty}</td>
                       <td className="py-2.5 tabular-nums font-medium">
                         {formatSystemTotalChi(line.systemQty, line.weightChi)}

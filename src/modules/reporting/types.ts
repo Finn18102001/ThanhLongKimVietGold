@@ -48,6 +48,8 @@ export type TransactionExportRow = {
   brandName: string;
   /** Product name from the transaction line snapshot. */
   productName: string;
+  /** Note of the sale/buy voucher mapped to this row. Empty if none. */
+  note: string;
 };
 
 export type PurchaseReportFilters = {

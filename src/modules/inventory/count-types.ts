@@ -16,6 +16,12 @@ export type StockCountLine = {
   brandName: string | null;
   /** Định lượng vàng (chỉ) của SKU — nguồn pos_skus.weight_chi. */
   weightChi: number;
+  /** Tồn cuối ngày liền trước (lịch sử ledger, không đổi tồn hiện tại). */
+  openingQty: number;
+  /** Tổng số lượng nhập kho trong ngày kiểm kê (delta dương trên ledger). */
+  qtyIn: number;
+  /** Tổng số lượng xuất kho trong ngày kiểm kê (delta âm trên ledger, lấy dương). */
+  qtyOut: number;
   systemQty: number;
   actualQty: number | null;
   difference: number | null;
@@ -31,6 +37,10 @@ export function formatSystemTotalChi(systemQty: number, weightChi: number): stri
   return `${systemTotalChi(systemQty, weightChi).toLocaleString("vi-VN", {
     maximumFractionDigits: 4,
   })} chỉ`;
+}
+
+export function formatWeightChi(weightChi: number): string {
+  return `${weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`;
 }
 
 export type StockCountSummary = {

@@ -190,6 +190,7 @@ export function InvoiceDirectory({
           "Đối tác",
           "SĐT",
           "Tên sản phẩm",
+          "Thương hiệu",
           "Số lượng",
           "Số chỉ",
           "Tổng",
@@ -199,6 +200,7 @@ export function InvoiceDirectory({
           "Hình thức",
           "Thời gian",
           "Tham chiếu",
+          "Ghi chú",
         ],
         result.items.map((row) => [
           documentTypeLabel(row.documentType),
@@ -206,6 +208,7 @@ export function InvoiceDirectory({
           row.customerName,
           row.customerPhone,
           row.productName,
+          row.brandName,
           row.quantity ?? "",
           row.weightChi == null ? "" : Number(row.weightChi.toFixed(4)),
           row.totalDong,
@@ -215,6 +218,7 @@ export function InvoiceDirectory({
           paymentLabel(row.paymentMethod),
           formatViDateTime(row.issuedAt),
           row.saleNo,
+          row.note,
         ]),
       );
       const exportedDocs = result.exportedDocuments ?? result.total;

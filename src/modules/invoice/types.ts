@@ -76,6 +76,10 @@ export type InvoiceExportRow = InvoiceListRow & {
   productName: string;
   quantity: number | null;
   weightChi: number | null;
+  /** Brand of the product line — SKU brand / buy-line brand. Empty if none. */
+  brandName: string;
+  /** Order/invoice note (not product note). Empty if staff left it blank. */
+  note: string;
 };
 
 export type InvoiceExportPage = {
