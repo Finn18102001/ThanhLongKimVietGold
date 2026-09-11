@@ -724,17 +724,32 @@ export function PosTerminal({
       })),
     };
     try {
-      const result = activeHeldOrderId
+      const actionResult = activeHeldOrderId
         ? await completeHeldSale({ ...payload, heldOrderId: activeHeldOrderId })
         : await completeSale(payload);
+      if (!actionResult.ok) {
+        const reason = /Minified React error #441|Server Components render|digest/i.test(
+          actionResult.message,
+        )
+          ? "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại."
+          : actionResult.message;
+        setAlert({
+          tone: "error",
+          title: "Không hoàn tất được giao dịch",
+          reason,
+          detail:
+            "Đơn chưa hoàn tất. Hóa đơn chưa phát hành. Kho chưa trừ. Bạn có thể thử lại với cùng đơn này.",
+        });
+        return;
+      }
+      const result = actionResult.sale;
       const closedHoldId = activeHeldOrderId;
       resetDraft();
       if (closedHoldId) {
         await reloadHeldList();
       }
-      const depositWf = (result as { deposit_workflow_status?: string | null })
-        .deposit_workflow_status;
-      const saleId = (result as { sale_id?: string }).sale_id;
+      const depositWf = result.deposit_workflow_status;
+      const saleId = result.sale_id;
       if (depositWf && saleId) {
         setDepositSaleId(saleId);
       } else {
@@ -761,10 +776,13 @@ export function PosTerminal({
         );
       });
     } catch (err) {
+      const raw = err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.";
       setAlert({
         tone: "error",
         title: "Không hoàn tất được giao dịch",
-        reason: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
+        reason: /Minified React error #441|Server Components render|digest/i.test(raw)
+          ? "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại."
+          : raw,
         detail:
           "Đơn chưa hoàn tất. Hóa đơn chưa phát hành. Kho chưa trừ. Bạn có thể thử lại với cùng đơn này.",
       });

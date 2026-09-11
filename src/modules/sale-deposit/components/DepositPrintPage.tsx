@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchDepositSale } from "../actions";
+import { formatDepositActionError } from "../labels";
 import { printDepositDocument } from "../print";
 import type { DepositDocKind, DepositSaleBundle } from "../types";
 import { DepositAgreementDocument } from "./DepositAgreementDocument";
@@ -21,11 +22,14 @@ export function DepositPrintPage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchDepositSale(saleId)
-      .then(setBundle)
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Không tải được chứng từ.");
-      });
+    void fetchDepositSale(saleId).then((result) => {
+      if (!result.ok) {
+        setError(formatDepositActionError(result.message));
+        return;
+      }
+      setError(null);
+      setBundle(result.bundle);
+    });
   }, [saleId]);
 
   useEffect(() => {

@@ -61,6 +61,15 @@ export function itemStatusLabel(status: string): string {
   return status;
 }
 
+/** Production digests hide Server Action throw messages as React #441 — prefer Result returns. */
+export function formatDepositActionError(message: string | null | undefined): string {
+  const text = String(message || "").trim();
+  if (/Minified React error #441|Server Components render|digest/i.test(text)) {
+    return "Máy chủ từ chối thao tác đặt cọc. Thử lại hoặc kiểm tra trạng thái đơn trên Hóa đơn.";
+  }
+  return text || "Không thực hiện được thao tác đặt cọc.";
+}
+
 /** Word Số: ……/TTĐC/2026 from stored TTĐC/2026-0001 or already-formatted. */
 export function formatLegalDocNo(raw: string | null | undefined, kind: "TTĐC" | "PDC" | "BBGN"): string {
   if (!raw) return `……/${kind}/${new Date().getFullYear()}`;

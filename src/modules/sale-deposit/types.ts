@@ -97,3 +97,8 @@ export type DepositSaleBundle = {
 export function isDepositWorkflow(status: string | null | undefined): boolean {
   return Boolean(status);
 }
+
+/** Prefer Result over throw — production strips Server Action error messages (React #441). */
+export type DepositActionResult =
+  | { ok: true; bundle: DepositSaleBundle }
+  | { ok: false; message: string };

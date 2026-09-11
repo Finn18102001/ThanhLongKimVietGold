@@ -22,6 +22,11 @@ type SaleResult = {
   deposit_workflow_status?: string | null;
 };
 
+/** Prefer Result over throw — production strips Server Action error messages (React #441). */
+export type CompleteSaleActionResult =
+  | { ok: true; sale: SaleResult }
+  | { ok: false; message: string };
+
 type CompleteSaleInput = {
   customerId: string;
   customerName: string;
@@ -53,21 +58,26 @@ function rpcSalePayload(input: CompleteSaleInput) {
   };
 }
 
-export async function completeSale(input: CompleteSaleInput) {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_complete_sale", {
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    ...rpcSalePayload(input),
-  });
-  if (error) {
-    throw new Error(error.message);
+export async function completeSale(input: CompleteSaleInput): Promise<CompleteSaleActionResult> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_complete_sale", {
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      ...rpcSalePayload(input),
+    });
+    if (error) return { ok: false, message: error.message };
+    revalidatePath("/");
+    revalidatePath("/pos");
+    revalidatePath("/inventory");
+    revalidatePath("/invoices");
+    revalidatePath("/customers");
+    return { ok: true, sale: data as SaleResult };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
+    };
   }
-  revalidatePath("/");
-  revalidatePath("/pos");
-  revalidatePath("/inventory");
-  revalidatePath("/invoices");
-  revalidatePath("/customers");
-  return data as SaleResult;
 }
 
 export async function saveHeldOrder(input: {
@@ -115,20 +125,27 @@ export async function cancelHeldOrder(id: string): Promise<{ ok: boolean; holdNo
 
 export async function completeHeldSale(
   input: CompleteSaleInput & { heldOrderId: string },
-): Promise<SaleResult> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_complete_held_sale", {
-    p_held_order_id: input.heldOrderId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    ...rpcSalePayload(input),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/");
-  revalidatePath("/pos");
-  revalidatePath("/inventory");
-  revalidatePath("/invoices");
-  revalidatePath("/customers");
-  return data as SaleResult;
+): Promise<CompleteSaleActionResult> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_complete_held_sale", {
+      p_held_order_id: input.heldOrderId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      ...rpcSalePayload(input),
+    });
+    if (error) return { ok: false, message: error.message };
+    revalidatePath("/");
+    revalidatePath("/pos");
+    revalidatePath("/inventory");
+    revalidatePath("/invoices");
+    revalidatePath("/customers");
+    return { ok: true, sale: data as SaleResult };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
+    };
+  }
 }
 
 /** Fresh stock only — never cache. Call on POS tab focus / enter. */

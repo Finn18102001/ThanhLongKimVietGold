@@ -9,7 +9,12 @@ import {
   prepareDepositHandover,
   saveDepositDocPayload,
 } from "../actions";
-import { DEPOSIT_INVOICE_STEPS, depositInvoiceStepIndex, itemStatusLabel } from "../labels";
+import {
+  DEPOSIT_INVOICE_STEPS,
+  depositInvoiceStepIndex,
+  formatDepositActionError,
+  itemStatusLabel,
+} from "../labels";
 import { printDepositDocument } from "../print";
 import type { DepositDocKind, DepositDocPayload, DepositSaleBundle } from "../types";
 import { DepositAgreementDocument } from "./DepositAgreementDocument";
@@ -37,16 +42,20 @@ export function InvoiceDepositPanel({
   const [previewKind, setPreviewKind] = useState<DepositDocKind | null>(null);
 
   async function reload() {
-    const next = await fetchDepositSale(saleId);
+    const result = await fetchDepositSale(saleId);
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+      return;
+    }
+    const next = result.bundle;
+    setError(null);
     setBundle(next);
     setPayload({ ...next.payload });
     setViewStep(depositInvoiceStepIndex({ ...next, remainingDong }));
   }
 
   useEffect(() => {
-    void reload().catch((err) => {
-      setError(err instanceof Error ? err.message : "Không tải được chứng từ đặt cọc.");
-    });
+    void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleId, remainingDong]);
 
@@ -54,6 +63,14 @@ export function InvoiceDepositPanel({
     setPrintKind(kind);
     setPreviewKind(null);
     window.setTimeout(() => printDepositDocument(), 250);
+  }
+
+  if (error && !bundle) {
+    return (
+      <p className="mt-3 text-[12px] text-[var(--tlkv-red)] print:hidden">
+        {error}
+      </p>
+    );
   }
 
   if (!bundle?.depositWorkflowStatus) return null;
@@ -76,44 +93,47 @@ export function InvoiceDepositPanel({
   async function saveExtras() {
     setPending(true);
     setError(null);
-    try {
-      setBundle(await saveDepositDocPayload({ saleId, payload }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không lưu được thông tin bổ sung.");
-    } finally {
-      setPending(false);
+    const result = await saveDepositDocPayload({ saleId, payload });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
     }
+    setPending(false);
   }
 
   async function onPrepare() {
     setPending(true);
     setError(null);
-    try {
-      await saveDepositDocPayload({ saleId, payload });
-      const next = await prepareDepositHandover({ saleId });
-      setBundle(next);
-      setViewStep(depositInvoiceStepIndex({ ...next, remainingDong }));
-      onReloadInvoice?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không lập được biên bản giao nhận.");
-    } finally {
+    const saved = await saveDepositDocPayload({ saleId, payload });
+    if (!saved.ok) {
+      setError(formatDepositActionError(saved.message));
       setPending(false);
+      return;
     }
+    const result = await prepareDepositHandover({ saleId });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
+      setViewStep(depositInvoiceStepIndex({ ...result.bundle, remainingDong }));
+      onReloadInvoice?.();
+    }
+    setPending(false);
   }
 
   async function onConfirmHandover() {
     setPending(true);
     setError(null);
-    try {
-      const next = await confirmDepositHandover({ saleId });
-      setBundle(next);
-      setViewStep(depositInvoiceStepIndex({ ...next, remainingDong }));
+    const result = await confirmDepositHandover({ saleId });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
+      setViewStep(depositInvoiceStepIndex({ ...result.bundle, remainingDong }));
       onReloadInvoice?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không xác nhận giao nhận được.");
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   }
 
   return (

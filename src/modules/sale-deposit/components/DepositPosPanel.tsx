@@ -11,7 +11,12 @@ import {
   saveDepositDocPayload,
 } from "../actions";
 import { DEPOSIT_COMPANY } from "../company";
-import { DEPOSIT_POS_STEPS, depositPosStepIndex, itemStatusLabel } from "../labels";
+import {
+  DEPOSIT_POS_STEPS,
+  depositPosStepIndex,
+  formatDepositActionError,
+  itemStatusLabel,
+} from "../labels";
 import { printDepositDocument } from "../print";
 import type { DepositDocKind, DepositDocPayload, DepositSaleBundle } from "../types";
 import { DepositAgreementDocument } from "./DepositAgreementDocument";
@@ -38,7 +43,13 @@ export function DepositPosPanel({
   const [previewKind, setPreviewKind] = useState<DepositDocKind | null>(null);
 
   async function reload() {
-    const next = await fetchDepositSale(saleId);
+    const result = await fetchDepositSale(saleId);
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+      return;
+    }
+    const next = result.bundle;
+    setError(null);
     setBundle(next);
     setPayload({
       place: next.payload.place || DEPOSIT_COMPANY.place,
@@ -50,9 +61,7 @@ export function DepositPosPanel({
   }
 
   useEffect(() => {
-    void reload().catch((err) => {
-      setError(err instanceof Error ? err.message : "Không tải được đơn đặt cọc.");
-    });
+    void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleId]);
 
@@ -84,32 +93,31 @@ export function DepositPosPanel({
   async function saveExtras() {
     setPending(true);
     setError(null);
-    try {
-      setBundle(await saveDepositDocPayload({ saleId, payload }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không lưu được thông tin bổ sung.");
-    } finally {
-      setPending(false);
+    const result = await saveDepositDocPayload({ saleId, payload });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
     }
+    setPending(false);
   }
 
   async function onCustomerConfirm() {
     setPending(true);
     setError(null);
-    try {
-      const next = await confirmDepositAgreement({
-        saleId,
-        deliveryPlace: payload.delivery_place || payload.place,
-        payload,
-      });
-      setBundle(next);
-      setPayload({ ...next.payload });
-      setViewStep(depositPosStepIndex(next));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không xác nhận được thỏa thuận.");
-    } finally {
-      setPending(false);
+    const result = await confirmDepositAgreement({
+      saleId,
+      deliveryPlace: payload.delivery_place || payload.place,
+      payload,
+    });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
+      setPayload({ ...result.bundle.payload });
+      setViewStep(depositPosStepIndex(result.bundle));
     }
+    setPending(false);
   }
 
   return (
