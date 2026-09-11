@@ -56,7 +56,7 @@ export function fulfillmentLabel(
   transactionType: string | null | undefined,
   fulfillmentStatus: string | null | undefined,
 ): string {
-  if (transactionType === "PREORDER") {
+  if (transactionType === "PREORDER" || transactionType === "DEPOSIT") {
     if (fulfillmentStatus === "FULFILLED") return "Đã trả hàng";
     if (fulfillmentStatus === "CANCELLED") return "Đã hủy đặt";
     if (fulfillmentStatus === "READY") return "Sẵn sàng giao";
@@ -66,7 +66,9 @@ export function fulfillmentLabel(
 }
 
 export function transactionTypeLabel(transactionType: string | null | undefined): string {
-  return transactionType === "PREORDER" ? "Đặt hàng" : "Bán ngay";
+  if (transactionType === "PREORDER") return "Đặt hàng";
+  if (transactionType === "DEPOSIT") return "Đặt cọc";
+  return "Bán ngay";
 }
 
 export function documentTypeLabel(type: string | null | undefined): string {
@@ -148,14 +150,15 @@ export function isGoldDelivered(
   transactionType: string | null | undefined,
   fulfillmentStatus: string | null | undefined,
 ): boolean {
-  if (transactionType === "PREORDER") {
+  if (fulfillmentStatus === "CANCELLED") return false;
+  if (fulfillmentStatus === "UNFULFILLED" || fulfillmentStatus === "READY") return false;
+  if (transactionType === "PREORDER" || transactionType === "DEPOSIT") {
     return fulfillmentStatus === "FULFILLED";
   }
   // Immediate sale / delivered default
   if (!fulfillmentStatus || fulfillmentStatus === "DELIVERED" || fulfillmentStatus === "FULFILLED") {
     return true;
   }
-  if (fulfillmentStatus === "CANCELLED") return false;
   return false;
 }
 
@@ -176,7 +179,7 @@ export function invoiceLifecycleStatus(
 export function invoiceLifecycleLabel(status: InvoiceLifecycleStatus): string {
   switch (status) {
     case "PARTIAL":
-      return "1 phần";
+      return "Thanh toán một phần";
     case "AWAITING_GOLD":
       return "Chưa trả vàng";
     case "AWAITING_PAYMENT":
@@ -202,4 +205,14 @@ export function invoiceLifecycleBadgeClass(status: InvoiceLifecycleStatus): stri
 /** Incomplete = not fully paid+delivered; may still collect payment / fulfill. */
 export function isInvoiceIncomplete(status: InvoiceLifecycleStatus): boolean {
   return status !== "COMPLETED";
+}
+
+/** Req: in hóa đơn bán hàng only after deposit handover is confirmed. Full-pay sales stay printable. */
+export function canPrintSalesInvoice(input: {
+  depositWorkflowStatus?: string | null;
+  fulfillmentStatus?: string | null;
+}): boolean {
+  const workflow = input.depositWorkflowStatus;
+  if (!workflow) return true;
+  return workflow === "COMPLETED" || input.fulfillmentStatus === "FULFILLED";
 }

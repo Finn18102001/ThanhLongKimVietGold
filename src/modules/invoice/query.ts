@@ -89,14 +89,17 @@ function mapListRow(invoice: {
     paymentMethod: sale?.payment_method ?? "",
     saleNo: sale?.sale_no ?? "",
     saleStatus: sale?.status ?? "",
-    transactionType: sale?.transaction_type === "PREORDER" ? "PREORDER" : "SALE",
-    fulfillmentStatus: sale?.fulfillment_status ?? "DELIVERED",
+    transactionType: asSaleTransactionType(sale?.transaction_type),
+    fulfillmentStatus: asFulfillmentStatus(
+      asSaleTransactionType(sale?.transaction_type),
+      sale?.fulfillment_status,
+    ),
     documentType: "SALE_TO_CUSTOMER",
   };
 }
 
 const SALE_COLS =
-  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id";
+  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id, deposit_workflow_status, deposit_agreement_no, deposit_slip_no, delivery_receipt_no";
 
 export async function listInvoices(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const supabase = await createServerSupabase();
@@ -287,11 +290,18 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
       reason: row.reason,
     })),
     payments: await listSalePayments(String(invoice.sale_id)),
-    transactionType: sale?.transaction_type === "PREORDER" ? "PREORDER" : "SALE",
-    fulfillmentStatus: sale?.fulfillment_status ?? "DELIVERED",
+    transactionType: asSaleTransactionType(sale?.transaction_type),
+    fulfillmentStatus: asFulfillmentStatus(
+      asSaleTransactionType(sale?.transaction_type),
+      sale?.fulfillment_status,
+    ),
     pickupDueAt: sale?.pickup_due_at ?? null,
     operatorStaffId: sale?.operator_staff_id ?? null,
     operatorName,
+    depositWorkflowStatus: (sale as { deposit_workflow_status?: string | null })?.deposit_workflow_status ?? null,
+    depositAgreementNo: (sale as { deposit_agreement_no?: string | null })?.deposit_agreement_no ?? null,
+    depositSlipNo: (sale as { deposit_slip_no?: string | null })?.deposit_slip_no ?? null,
+    deliveryReceiptNo: (sale as { delivery_receipt_no?: string | null })?.delivery_receipt_no ?? null,
     voidedAt: (invoice as { voided_at?: string | null }).voided_at ?? null,
     voidedBy: (invoice as { voided_by?: string | null }).voided_by ?? null,
     voidReason: (invoice as { void_reason?: string | null }).void_reason ?? null,
@@ -356,6 +366,21 @@ function asDocumentType(raw: string): DocumentType {
   return "SALE_TO_CUSTOMER";
 }
 
+function asSaleTransactionType(raw: unknown): "SALE" | "PREORDER" | "DEPOSIT" {
+  if (raw === "PREORDER") return "PREORDER";
+  if (raw === "DEPOSIT") return "DEPOSIT";
+  return "SALE";
+}
+
+function asFulfillmentStatus(
+  transactionType: "SALE" | "PREORDER" | "DEPOSIT",
+  raw: unknown,
+): string {
+  const value = typeof raw === "string" && raw.length > 0 ? raw : "";
+  if (value) return value;
+  return transactionType === "PREORDER" || transactionType === "DEPOSIT" ? "UNFULFILLED" : "DELIVERED";
+}
+
 export async function listDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const supabase = await createServerSupabase();
   const limit = Math.min(Math.max(filter.limit ?? 5, 1), 50);
@@ -405,8 +430,11 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
         paymentMethod: String(row.paymentMethod ?? ""),
         saleNo: String(row.refNo ?? ""),
         saleStatus: "COMPLETED",
-        transactionType: "SALE" as const,
-        fulfillmentStatus: "DELIVERED",
+        transactionType: asSaleTransactionType(row.transactionType),
+        fulfillmentStatus: asFulfillmentStatus(
+          asSaleTransactionType(row.transactionType),
+          row.fulfillmentStatus,
+        ),
         documentType,
       };
     }),
@@ -467,8 +495,11 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         paymentMethod: String(row.paymentMethod ?? ""),
         saleNo: String(row.refNo ?? ""),
         saleStatus: "COMPLETED",
-        transactionType: "SALE" as const,
-        fulfillmentStatus: "DELIVERED",
+        transactionType: asSaleTransactionType(row.transactionType),
+        fulfillmentStatus: asFulfillmentStatus(
+          asSaleTransactionType(row.transactionType),
+          row.fulfillmentStatus,
+        ),
         documentType,
         productName: String(row.productName ?? ""),
         quantity: quantityRaw == null || quantityRaw === "" ? null : Number(quantityRaw),

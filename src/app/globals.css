@@ -52,6 +52,15 @@ body {
   font-family: var(--font-be-vietnam), system-ui, sans-serif;
 }
 
+.sale-deposit-print {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13pt;
+  line-height: 1.35;
+  color: #000;
+  padding: 25.4mm;
+  box-sizing: border-box;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
@@ -76,6 +85,11 @@ body {
 
   @page purchase-form02 {
     size: A4 landscape;
+    margin: 0;
+  }
+
+  @page sale-deposit-doc {
+    size: A4 portrait;
     margin: 0;
   }
 
@@ -218,6 +232,51 @@ body {
   .purchase-print td {
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
+  }
+
+  .sale-deposit-print {
+    page: sale-deposit-doc;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 25.4mm !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    overflow: visible !important;
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 13pt !important;
+    line-height: 1.35 !important;
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /*
+   * Deposit print isolation: only the phôi is visible.
+   * body.printing-sale-deposit is toggled by printDepositDocument().
+   */
+  body.printing-sale-deposit * {
+    visibility: hidden !important;
+  }
+
+  body.printing-sale-deposit .sale-deposit-print,
+  body.printing-sale-deposit .sale-deposit-print * {
+    visibility: visible !important;
+  }
+
+  body.printing-sale-deposit .sale-deposit-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  body.printing-sale-deposit .sale-deposit-print-root {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
   }
 }
 

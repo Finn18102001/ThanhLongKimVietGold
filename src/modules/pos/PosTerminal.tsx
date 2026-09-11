@@ -38,6 +38,7 @@ import { PosCartPanel, type PosPayMode } from "./components/PosCartPanel";
 import { PosCheckoutDialog } from "./components/PosCheckoutDialog";
 import { PosHeldOrdersTable } from "./components/PosHeldOrdersTable";
 import { PosPaymentSuccess } from "./components/PosPaymentSuccess";
+import { DepositPosPanel } from "@/modules/sale-deposit/components/DepositPosPanel";
 
 type CartQtyMap = Record<string, { quantity: number; adj: number }>;
 
@@ -165,13 +166,16 @@ export function PosTerminal({
   const [paid, setPaid] = useState<{
     invoiceNo: string;
     saleNo: string;
+    saleId?: string;
     totalDong: number;
     paidDong: number;
     remainingDong: number;
     paymentMethod: "CASH" | "TRANSFER" | "CARD";
     transactionType?: string;
     fulfillmentStatus?: string;
+    depositWorkflowStatus?: string | null;
   } | null>(null);
+  const [depositSaleId, setDepositSaleId] = useState<string | null>(null);
   const returnToReview = useRef(false);
 
   useEffect(() => {
@@ -180,6 +184,11 @@ export function PosTerminal({
     setQuery(q);
     setPageIndex(0);
     searchRef.current?.focus();
+  }, [searchParams]);
+
+  useEffect(() => {
+    const resume = searchParams.get("depositSaleId")?.trim();
+    if (resume) setDepositSaleId(resume);
   }, [searchParams]);
 
   useEffect(() => {
@@ -586,8 +595,8 @@ export function PosTerminal({
     if (saleContext.isShared && !operatorStaffId) {
       return "Tài khoản dùng chung phải chọn nhân viên đứng quầy.";
     }
-    if (isPreorder && !pickupDueAt) {
-      return "Đơn đặt hàng phải có thời điểm hẹn trả hàng.";
+    if ((isPreorder || payMode !== "FULL") && !pickupDueAt) {
+      return "Đặt cọc / đặt hàng phải có thời điểm dự kiến nhận vàng.";
     }
     for (const charge of charges) {
       const named = charge.name.trim();
@@ -706,7 +715,8 @@ export function PosTerminal({
       dueDate: dueToSend,
       charges: chargePayload,
       operatorStaffId: saleContext.isShared ? operatorStaffId : null,
-      pickupDueAt: isPreorder ? new Date(pickupDueAt).toISOString() : null,
+      pickupDueAt:
+        isPreorder || payMode !== "FULL" ? new Date(pickupDueAt).toISOString() : null,
       items: lines.map((line) => ({
         sku_id: line.skuId,
         quantity: line.quantity,
@@ -722,16 +732,25 @@ export function PosTerminal({
       if (closedHoldId) {
         await reloadHeldList();
       }
-      setPaid({
-        invoiceNo: result.invoice_no,
-        saleNo: result.sale_no,
-        totalDong: Number(result.total_dong),
-        paidDong: Number(result.paid_dong),
-        remainingDong: Number(result.remaining_dong),
-        paymentMethod,
-        transactionType: result.transaction_type,
-        fulfillmentStatus: result.fulfillment_status,
-      });
+      const depositWf = (result as { deposit_workflow_status?: string | null })
+        .deposit_workflow_status;
+      const saleId = (result as { sale_id?: string }).sale_id;
+      if (depositWf && saleId) {
+        setDepositSaleId(saleId);
+      } else {
+        setPaid({
+          invoiceNo: result.invoice_no,
+          saleNo: result.sale_no,
+          saleId,
+          totalDong: Number(result.total_dong),
+          paidDong: Number(result.paid_dong),
+          remainingDong: Number(result.remaining_dong),
+          paymentMethod,
+          transactionType: result.transaction_type,
+          fulfillmentStatus: result.fulfillment_status,
+          depositWorkflowStatus: depositWf ?? null,
+        });
+      }
       idempotencyKey.current = null;
       void refreshPosStock().then((map) => {
         setCatalog((current) =>
@@ -1021,8 +1040,9 @@ export function PosTerminal({
           dueDate={payMode === "FULL" ? null : dueDate}
           pending={pending}
           isPreorder={isPreorder}
+          isDeposit={payMode === "PARTIAL"}
           operatorName={operatorName}
-          pickupDueAt={isPreorder ? pickupDueAt : null}
+          pickupDueAt={isPreorder || payMode !== "FULL" ? pickupDueAt : null}
           onClose={() => setReviewing(false)}
           onConfirm={() => void onCheckout()}
           onChangeCustomer={() => {
@@ -1030,6 +1050,14 @@ export function PosTerminal({
             setReviewing(false);
             setPickingCustomer(true);
           }}
+        />
+      ) : null}
+
+      {depositSaleId ? (
+        <DepositPosPanel
+          saleId={depositSaleId}
+          invoiceNo=""
+          onDone={() => setDepositSaleId(null)}
         />
       ) : null}
 

@@ -11,6 +11,7 @@ import {
   collectSalePayment,
   cancelInvoicePreorder,
   fulfillInvoicePreorder,
+  fetchInvoiceDetail,
   voidInvoice,
 } from "../actions";
 import {
@@ -22,6 +23,7 @@ import {
   invoiceLifecycleLabel,
   invoiceLifecycleStatus,
   isInvoiceIncomplete,
+  canPrintSalesInvoice,
   paymentBadgeClass,
   paymentLabel,
   paymentStatusBadgeClass,
@@ -29,6 +31,7 @@ import {
   transactionTypeLabel,
 } from "../labels";
 import type { InvoiceDetail, PaymentStatus } from "../types";
+import { InvoiceDepositPanel } from "@/modules/sale-deposit/components/InvoiceDepositPanel";
 
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
@@ -50,6 +53,8 @@ export function InvoiceDrawer({
     invoice.paymentStatus,
     invoice.remainingDong,
     invoice.dueDate,
+    undefined,
+    invoice.paidDong,
   );
   const lifecycle = invoiceLifecycleStatus(
     invoice.remainingDong,
@@ -58,6 +63,10 @@ export function InvoiceDrawer({
     payStatus,
   );
   const incomplete = isInvoiceIncomplete(lifecycle);
+  const allowSalesInvoicePrint = canPrintSalesInvoice({
+    depositWorkflowStatus: invoice.depositWorkflowStatus,
+    fulfillmentStatus: invoice.fulfillmentStatus,
+  });
   const isVoided = invoice.status === "VOIDED" || invoice.saleStatus === "VOIDED";
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -320,7 +329,18 @@ export function InvoiceDrawer({
             </p>
           </section>
 
+          {invoice.depositWorkflowStatus ? (
+            <InvoiceDepositPanel
+              saleId={invoice.saleId}
+              remainingDong={invoice.remainingDong}
+              onReloadInvoice={() => {
+                void fetchInvoiceDetail(invoice.invoiceNo).then((next) => onUpdated?.(next));
+              }}
+            />
+          ) : null}
+
           {invoice.transactionType === "PREORDER" &&
+          !invoice.depositWorkflowStatus &&
           !isVoided &&
           invoice.fulfillmentStatus !== "FULFILLED" &&
           invoice.fulfillmentStatus !== "CANCELLED" ? (
@@ -525,14 +545,20 @@ export function InvoiceDrawer({
               Hủy hóa đơn
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={openPrintView}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium hover:bg-[var(--tlkv-bg)]"
-          >
-            <Printer size={16} />
-            In hóa đơn
-          </button>
+          {allowSalesInvoicePrint ? (
+            <button
+              type="button"
+              onClick={openPrintView}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium hover:bg-[var(--tlkv-bg)]"
+            >
+              <Printer size={16} />
+              In hóa đơn
+            </button>
+          ) : (
+            <p className="flex-1 self-center text-[12px] text-[var(--tlkv-muted)]">
+              In hóa đơn bán hàng sau khi xác nhận giao nhận vàng.
+            </p>
+          )}
           <button
             type="button"
             onClick={onClose}

@@ -46,7 +46,7 @@ export type InvoiceListRow = {
   saleNo: string;
   saleStatus: string;
   actorEmail: string;
-  transactionType: "SALE" | "PREORDER";
+  transactionType: "SALE" | "PREORDER" | "DEPOSIT";
   fulfillmentStatus: string;
   documentType: DocumentType;
 };
@@ -57,7 +57,7 @@ export type InvoiceListFilter = {
   to?: string | null;
   paymentMethod?: "CASH" | "TRANSFER" | "CARD" | null;
   paymentStatus?: PaymentStatus | null;
-  transactionType?: "SALE" | "PREORDER" | null;
+  transactionType?: "SALE" | "PREORDER" | "DEPOSIT" | null;
   fulfillment?: "UNFULFILLED" | "FULFILLED" | null;
   documentType?: DocumentType | null;
   limit?: number;
@@ -118,11 +118,15 @@ export type InvoiceDetail = {
   lines: InvoiceLine[];
   charges: InvoiceCharge[];
   payments: SalePaymentRecord[];
-  transactionType: "SALE" | "PREORDER";
+  transactionType: "SALE" | "PREORDER" | "DEPOSIT";
   fulfillmentStatus: string;
   pickupDueAt: string | null;
   operatorStaffId: string | null;
   operatorName: string | null;
+  depositWorkflowStatus: string | null;
+  depositAgreementNo: string | null;
+  depositSlipNo: string | null;
+  deliveryReceiptNo: string | null;
   voidedAt: string | null;
   voidedBy: string | null;
   voidReason: string | null;

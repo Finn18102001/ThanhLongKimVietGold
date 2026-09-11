@@ -43,7 +43,7 @@ const EXPORT_LIMIT_OPTIONS = [
 const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
   { value: "", label: "Trạng thái TT: Tất cả" },
   { value: "PAID", label: "Đã thanh toán" },
-  { value: "PARTIALLY_PAID", label: "Một phần" },
+          { value: "PARTIALLY_PAID", label: "Thanh toán một phần" },
   { value: "UNPAID", label: "Chưa thanh toán" },
   { value: "OVERDUE", label: "Quá hạn" },
 ];
@@ -121,10 +121,18 @@ export function InvoiceDirectory({
 
   useEffect(() => {
     const q = searchParams.get("q")?.trim();
-    if (!q) return;
-    setQuery(q);
-    refresh({ query: q, offset: 0 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- áp dụng theo ?q= trên URL
+    const pay = searchParams.get("paymentStatus")?.trim();
+    if (pay === "PARTIALLY_PAID" || pay === "PAID" || pay === "UNPAID" || pay === "OVERDUE") {
+      setPaymentStatus(pay);
+    }
+    if (!q && !pay) return;
+    if (q) setQuery(q);
+    refresh({
+      query: q || query,
+      paymentStatus: (pay as PaymentStatus | undefined) || paymentStatus,
+      offset: 0,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- áp dụng theo query trên URL
   }, [searchParams]);
 
   async function openDetail(invoiceNo: string) {
@@ -366,6 +374,8 @@ export function InvoiceDirectory({
                   row.paymentStatus,
                   row.remainingDong,
                   row.dueDate,
+                  undefined,
+                  row.paidDong,
                 );
                 const lifecycle = invoiceLifecycleStatus(
                   row.remainingDong,

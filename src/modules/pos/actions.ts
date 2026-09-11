@@ -18,6 +18,8 @@ type SaleResult = {
   transaction_type?: string;
   fulfillment_status?: string;
   pickup_due_at?: string | null;
+  sale_id?: string;
+  deposit_workflow_status?: string | null;
 };
 
 type CompleteSaleInput = {

@@ -57,6 +57,8 @@ export function StockReceiptDrawer({
     receipt.paymentStatus,
     receipt.remainingDong,
     null,
+    undefined,
+    receipt.paidDong,
   );
   const staffName = receipt.actorEmail.split("@")[0] ?? receipt.actorEmail;
   const [pending, setPending] = useState(false);

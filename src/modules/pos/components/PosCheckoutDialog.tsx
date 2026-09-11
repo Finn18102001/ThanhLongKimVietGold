@@ -27,6 +27,7 @@ export function PosCheckoutDialog({
   dueDate,
   pending,
   isPreorder,
+  isDeposit = false,
   operatorName,
   pickupDueAt,
   onClose,
@@ -44,6 +45,7 @@ export function PosCheckoutDialog({
   dueDate: string | null;
   pending: boolean;
   isPreorder: boolean;
+  isDeposit?: boolean;
   operatorName: string | null;
   pickupDueAt: string | null;
   onClose: () => void;
@@ -56,7 +58,7 @@ export function PosCheckoutDialog({
 
   return (
     <Modal
-      title={isPreorder ? "Xác nhận đặt hàng" : "Xác nhận đơn hàng"}
+      title={isDeposit ? "Xác nhận đặt cọc" : isPreorder ? "Xác nhận đặt hàng" : "Xác nhận đơn hàng"}
       wide
       onClose={onClose}
       footer={
@@ -76,9 +78,11 @@ export function PosCheckoutDialog({
           >
             {pending
               ? "Đang chốt..."
-              : isPreorder
-                ? "Đặt hàng F9"
-                : "Xác nhận & thanh toán F9"}
+              : isDeposit
+                ? "Xác nhận đặt cọc F9"
+                : isPreorder
+                  ? "Đặt hàng F9"
+                  : "Xác nhận & thanh toán F9"}
           </button>
         </>
       }
@@ -86,7 +90,9 @@ export function PosCheckoutDialog({
       <div className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-amber)]">
         <Warning size={18} className="mt-0.5 shrink-0" />
         <p>
-          {isPreorder
+          {isDeposit
+            ? "Thanh toán một phần / đặt cọc. Hóa đơn lưu trạng thái thanh toán một phần. Không xuất kho tại lúc tạo đơn. Tiếp theo là thỏa thuận đặt cọc."
+            : isPreorder
             ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
             : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
         </p>
@@ -209,7 +215,7 @@ export function PosCheckoutDialog({
                 </span>
               </div>
             ) : null}
-            {isPreorder ? (
+            {isPreorder || pickupDueAt ? (
               <div className="flex justify-between">
                 <span>Hẹn trả hàng</span>
                 <span className="font-medium">

@@ -439,9 +439,9 @@ export function PosCartPanel({
           </label>
         ) : null}
 
-        {isPreorder ? (
+        {isPreorder || payMode !== "FULL" ? (
           <label className="mt-3 block text-[13px]">
-            Hẹn trả hàng
+            Thời gian dự kiến nhận vàng
             <input
               type="datetime-local"
               value={pickupDueAt}
@@ -450,7 +450,9 @@ export function PosCartPanel({
               className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
             <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-              Đơn đặt hàng. Kho chưa trừ đến khi giao.
+              {payMode === "PARTIAL"
+                ? "Đặt cọc. Không xuất kho tại lúc tạo đơn."
+                : "Đơn đặt hàng. Kho chưa trừ đến khi giao."}
             </span>
           </label>
         ) : null}
@@ -476,7 +478,7 @@ export function PosCartPanel({
             {(
               [
                 { value: "FULL" as const, label: "Đủ" },
-                { value: "PARTIAL" as const, label: "Một phần" },
+                { value: "PARTIAL" as const, label: "Đặt cọc" },
                 { value: "UNPAID" as const, label: "Chờ TT" },
               ] as const
             ).map((option) => {
@@ -560,7 +562,7 @@ export function PosCartPanel({
             onClick={onCheckout}
             className="col-span-2 h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
           >
-            {isPreorder ? "Đặt hàng F9" : "Xác nhận F9"}
+            {payMode === "PARTIAL" ? "Xác nhận đặt cọc F9" : isPreorder ? "Đặt hàng F9" : "Xác nhận F9"}
           </button>
         </div>
       </div>

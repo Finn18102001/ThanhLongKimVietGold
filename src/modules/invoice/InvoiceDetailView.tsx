@@ -23,9 +23,11 @@ import {
   invoiceLifecycleLabel,
   invoiceLifecycleStatus,
   invoiceStatusLabel,
+  canPrintSalesInvoice,
   paymentStatusLabel,
 } from "./labels";
 import type { InvoiceDetail } from "./types";
+import { InvoiceDepositPanel } from "@/modules/sale-deposit/components/InvoiceDepositPanel";
 
 export function InvoiceDetailView({
   invoice: initialInvoice,
@@ -45,6 +47,12 @@ export function InvoiceDetailView({
   const [voidReason, setVoidReason] = useState("");
   const [voidPending, startVoid] = useTransition();
   const savedDocumentTitle = useRef<string | null>(null);
+  const allowSalesInvoicePrint = canPrintSalesInvoice({
+    depositWorkflowStatus: invoice.depositWorkflowStatus,
+    fulfillmentStatus: invoice.fulfillmentStatus,
+  });
+  const allowPrintRef = useRef(allowSalesInvoicePrint);
+  allowPrintRef.current = allowSalesInvoicePrint;
 
   /** Clear HTML title so Chrome does not print "Thăng Long Kim Việt · Quản lý quầy" (+ date) in header. */
   function printWithoutBrowserChrome() {
@@ -67,6 +75,7 @@ export function InvoiceDetailView({
     function onKey(event: KeyboardEvent) {
       if (event.key === "F9") {
         event.preventDefault();
+        if (!allowPrintRef.current) return;
         setTestMode(false);
         window.setTimeout(() => printWithoutBrowserChrome(), 0);
       }
@@ -87,6 +96,7 @@ export function InvoiceDetailView({
   }, []);
 
   function printInvoice() {
+    if (!allowPrintRef.current) return;
     setTestMode(false);
     window.setTimeout(() => printWithoutBrowserChrome(), 0);
   }
@@ -142,6 +152,8 @@ export function InvoiceDetailView({
     invoice.paymentStatus,
     invoice.remainingDong,
     invoice.dueDate,
+    undefined,
+    invoice.paidDong,
   );
   const lifecycle = invoiceLifecycleStatus(
     invoice.remainingDong,
@@ -179,22 +191,30 @@ export function InvoiceDetailView({
             <Plus size={16} weight="bold" />
             Tạo đơn hàng mới
           </button>
-          <button
-            type="button"
-            onClick={printInvoice}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium"
-          >
-            <Printer size={16} />
-            In hóa đơn F9
-          </button>
-          <button
-            type="button"
-            onClick={printInvoice}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium"
-          >
-            <DownloadSimple size={16} />
-            Tải PDF
-          </button>
+          {allowSalesInvoicePrint ? (
+            <>
+              <button
+                type="button"
+                onClick={printInvoice}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium"
+              >
+                <Printer size={16} />
+                In hóa đơn F9
+              </button>
+              <button
+                type="button"
+                onClick={printInvoice}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium"
+              >
+                <DownloadSimple size={16} />
+                Tải PDF
+              </button>
+            </>
+          ) : (
+            <p className="self-center text-[12px] text-[var(--tlkv-muted)]">
+              In hóa đơn bán hàng sau khi xác nhận giao nhận vàng.
+            </p>
+          )}
           <button
             type="button"
             onClick={() =>
@@ -314,7 +334,7 @@ export function InvoiceDetailView({
           <div>
             <dt className="text-[var(--tlkv-muted)]">Hàng</dt>
             <dd className="font-medium">
-              {invoice.transactionType === "PREORDER"
+              {invoice.transactionType === "PREORDER" || invoice.transactionType === "DEPOSIT"
                 ? invoice.fulfillmentStatus === "FULFILLED"
                   ? "Đã trả hàng"
                   : invoice.fulfillmentStatus === "CANCELLED"
@@ -338,6 +358,18 @@ export function InvoiceDetailView({
           </ul>
         ) : null}
       </section>
+
+      {invoice.depositWorkflowStatus ? (
+        <div className="print:hidden">
+          <InvoiceDepositPanel
+            saleId={invoice.saleId}
+            remainingDong={invoice.remainingDong}
+            onReloadInvoice={() => {
+              window.location.reload();
+            }}
+          />
+        </div>
+      ) : null}
 
       {voidOpen ? (
         <Modal
