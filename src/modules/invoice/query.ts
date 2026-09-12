@@ -506,6 +506,16 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         weightChi: weightRaw == null || weightRaw === "" ? null : Number(weightRaw),
         brandName: String(row.brandName ?? ""),
         note: String(row.note ?? ""),
+        pickupDueAt: row.pickupDueAt ? String(row.pickupDueAt) : null,
+        goldDeliveredAt: row.goldDeliveredAt ? String(row.goldDeliveredAt) : null,
+        firstPaidDong:
+          row.firstPaidDong == null || row.firstPaidDong === ""
+            ? null
+            : Number(row.firstPaidDong),
+        secondPaidDong:
+          row.secondPaidDong == null || row.secondPaidDong === ""
+            ? null
+            : Number(row.secondPaidDong),
       };
     }),
     total: Number(raw?.total ?? 0),

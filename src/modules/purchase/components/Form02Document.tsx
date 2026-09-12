@@ -7,20 +7,25 @@ import { viDateLongLine, viDateParts } from "./printDate";
 
 /**
  * Mẫu số 02/TNDN — BẢNG KÊ THU MUA HÀNG HÓA, DỊCH VỤ (KHÔNG CÓ HÓA ĐƠN)
- * Columns/layout locked to VBTL-Mau-02-TNDN + Thông tư 20/2026/TT-BTC.
- * A4 landscape. Fill transaction data only.
+ * Layout locked to VBTL- Mau-02-TNDN.doc + Thông tư 20/2026/TT-BTC.
+ * A4 landscape. Times New Roman. Display-only fill from buy data.
  */
 export function Form02Document({ buy }: { buy: BuyDetail }) {
   const issuedAt = buy.completedAt;
   const purchaseDate = viDateParts(issuedAt).slash;
   const docNo = buy.form02No || buy.buyNo;
   const totalWords = formatDongInWords(buy.totalDong);
-  const staff = buy.actorEmail.split("@")[0] || buy.actorEmail;
   const note = buy.paymentMethod === "TRANSFER" ? "Chuyển khoản" : buy.paymentMethod === "CARD" ? "Thẻ" : "Tiền mặt";
 
   return (
-    <article className="purchase-print purchase-print--form02 mx-auto w-full bg-white font-serif text-[11px] leading-snug text-black">
-      <div className="relative">
+    <article
+      className="purchase-print purchase-print--form02 mx-auto w-full bg-white text-black"
+      style={{
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: "11pt",
+        lineHeight: 1.3,
+      }}
+    >      <div className="relative">
         <div className="absolute right-0 top-0 w-[42mm] border border-black px-2 py-1.5 text-center text-[10px] leading-tight">
           <p className="font-bold">Mẫu số: 02/TNDN</p>
           <p className="mt-0.5 italic">
@@ -194,11 +199,14 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
         <span>)</span>
       </p>
 
-      <section className="mt-6 grid grid-cols-2 gap-8 text-center text-[11px]">
+      <section className="mt-6 grid grid-cols-2 gap-8 text-center" style={{ fontSize: "11pt" }}>
         <div>
           <p className="font-semibold">Người lập bảng kê</p>
-          <p className="mt-1 text-[10px] italic">(Ký, ghi rõ họ tên)</p>
-          <p className="mt-10 min-h-[18px] font-medium">{staff}</p>
+          <p className="mt-1 italic" style={{ fontSize: "10pt" }}>
+            (Ký, ghi rõ họ tên)
+          </p>
+          {/* Leave blank for wet-ink signature */}
+          <p className="mt-10 min-h-[18px]">&nbsp;</p>
         </div>
         <div>
           <p className="font-semibold">
@@ -206,8 +214,12 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
             <br />
             của doanh nghiệp
           </p>
-          <p className="mt-1 text-[10px] italic">(Ký tên, đóng dấu)</p>
-          <p className="mt-2 text-[11px] italic">{viDateLongLine(issuedAt)}</p>
+          <p className="mt-1 italic" style={{ fontSize: "10pt" }}>
+            (Ký tên, đóng dấu)
+          </p>
+          <p className="mt-2 italic" style={{ fontSize: "11pt" }}>
+            {viDateLongLine(issuedAt)}
+          </p>
           <p className="mt-8 min-h-[18px]">&nbsp;</p>
         </div>
       </section>

@@ -8,8 +8,8 @@ import { viDateParts } from "./printDate";
 
 /**
  * PHIẾU CAM KẾT NẤU BÁN SẢN PHẨM
- * Layout locked to PHIẾU CAM KẾT NẤU SP - MỚI 2026 final.docx
- * Typography = Word baseline +1pt (title/brand +1, body +1–2). Do not enlarge further.
+ * Layout locked to: PHIẾU CAM KẾT NẤU SP - MỚI 2026 final.docx
+ * Font: Times New Roman. No business-logic changes — display only.
  */
 export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
   const issuedAt = buy.meltingStartedAt || buy.completedAt;
@@ -19,8 +19,13 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
 
   return (
     <article
-      className="purchase-print purchase-print--commitment bg-white font-serif text-black"
-      style={{ boxSizing: "border-box", fontSize: "10.5pt", lineHeight: 1.28 }}
+      className="purchase-print purchase-print--commitment bg-white text-black"
+      style={{
+        boxSizing: "border-box",
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: "11pt",
+        lineHeight: 1.3,
+      }}
     >
       <div className="flex items-start gap-2.5">
         <div
@@ -37,29 +42,29 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
           />
         </div>
         <div className="min-w-0">
-          <p className="font-bold" style={{ fontSize: "15pt", lineHeight: 1.15 }}>
+          <p className="font-bold uppercase" style={{ fontSize: "15pt", lineHeight: 1.15 }}>
             THĂNG LONG KIM VIỆT
           </p>
-          <p className="font-semibold uppercase" style={{ fontSize: "10pt", marginTop: 1 }}>
-            Giữ vàng - Giữ phúc - Giữ niềm tin
+          <p className="font-semibold uppercase" style={{ fontSize: "10.5pt", marginTop: 1 }}>
+            GIỮ VÀNG - GIỮ PHÚC - GIỮ NIỀM TIN
           </p>
-          <p style={{ fontSize: "10pt", marginTop: 1 }}>
+          <p style={{ fontSize: "10.5pt", marginTop: 1 }}>
             Địa chỉ: 322 Nguyễn Trãi, Phường Đại Mỗ, TP.HN
           </p>
-          <p style={{ fontSize: "10pt" }}>Hotline: 099.568.2568</p>
+          <p style={{ fontSize: "10.5pt" }}>Hotline: 099.568.2568</p>
         </div>
       </div>
 
       <p
         className="text-center font-bold uppercase"
-        style={{ marginTop: "3mm", fontSize: "14pt", letterSpacing: "0.02em" }}
+        style={{ marginTop: "3.5mm", fontSize: "14pt", letterSpacing: "0.02em" }}
       >
-        Phiếu cam kết nấu bán sản phẩm
+        PHIẾU CAM KẾT NẤU BÁN SẢN PHẨM
       </p>
 
       <div
         className="flex items-baseline justify-between gap-3"
-        style={{ marginTop: "1.5mm", fontSize: "10.5pt" }}
+        style={{ marginTop: "2mm", fontSize: "11pt" }}
       >
         <p>
           Số: <span className="font-semibold">{docNo}</span>
@@ -69,7 +74,8 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
         </p>
       </div>
 
-      <section style={{ marginTop: "2mm", fontSize: "10.5pt" }}>
+      {/* Word template fields: Họ tên + CCCD, SĐT only (no địa chỉ on this phôi). */}
+      <section style={{ marginTop: "2.5mm", fontSize: "11pt" }}>
         <p className="flex flex-wrap items-end gap-x-2" style={{ marginTop: "1.2mm" }}>
           <span className="shrink-0">Họ và Tên KH:</span>
           <span className="min-w-[42%] flex-1" style={dotLine}>
@@ -86,15 +92,9 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
             {buy.customerPhone || "\u00a0"}
           </span>
         </p>
-        <p className="flex items-end gap-x-2" style={{ marginTop: "1.2mm" }}>
-          <span className="shrink-0">Địa chỉ:</span>
-          <span className="min-w-0 flex-1" style={dotLine}>
-            {buy.customerAddress || "\u00a0"}
-          </span>
-        </p>
       </section>
 
-      <p className="font-bold" style={{ marginTop: "2.5mm", fontSize: "10.5pt" }}>
+      <p className="font-bold" style={{ marginTop: "2.5mm", fontSize: "11pt" }}>
         1. Thông tin sản phẩm
       </p>
 
@@ -268,27 +268,28 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
         </p>
       </section>
 
-      <p className="text-center font-semibold" style={{ marginTop: "3.5mm", fontSize: "11pt" }}>
-        Xác nhận của Công ty TNHH Vàng Bạc Thăng Long Kim Việt
-      </p>
+      <div className="text-center" style={{ marginTop: "3.5mm", fontSize: "11pt" }}>
+        <p className="font-semibold">Xác nhận của Công ty</p>
+        <p className="font-semibold" style={{ marginTop: 2 }}>
+          Công ty TNHH Vàng Bạc Thăng Long Kim Việt
+        </p>
+      </div>
       <section
         className="grid grid-cols-2 text-center"
-        style={{ marginTop: "2.5mm", gap: "6mm", fontSize: "10.5pt" }}
+        style={{ marginTop: "3mm", gap: "6mm", fontSize: "11pt" }}
       >
         <div>
           <p className="font-semibold">Nhân viên mua hàng</p>
-          <p className="italic" style={{ fontSize: "9.5pt", marginTop: 1 }}>
+          <p className="italic" style={{ fontSize: "10pt", marginTop: 1 }}>
             (Ký tên)
           </p>
-          {/* Leave blank for wet-ink signature */}
           <p style={{ marginTop: "14mm", minHeight: "4mm" }}>&nbsp;</p>
         </div>
         <div>
           <p className="font-semibold">Xác nhận khách hàng</p>
-          <p className="italic" style={{ fontSize: "9.5pt", marginTop: 1 }}>
+          <p className="italic" style={{ fontSize: "10pt", marginTop: 1 }}>
             (Ký tên)
           </p>
-          {/* Leave blank for wet-ink signature */}
           <p style={{ marginTop: "14mm", minHeight: "4mm" }}>&nbsp;</p>
         </div>
       </section>

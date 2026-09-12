@@ -207,6 +207,8 @@ body {
     page-break-inside: avoid !important;
     break-after: avoid !important;
     break-inside: avoid !important;
+    font-family: "Times New Roman", Times, serif !important;
+    color: #000 !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }

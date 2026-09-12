@@ -9,8 +9,8 @@ import { viDateLongLine } from "./printDate";
 
 /**
  * PHIẾU MUA HÀNG KIÊM NHẬP KHO VÀ CHI TIỀN
- * Typography locked to PHIẾU MUA HÀNG final.pdf (title/body ~13–14pt).
- * Full printable width — do not constrain to a left band.
+ * Layout locked to: PHIẾU MUA HÀNG final.pdf
+ * Font: Times New Roman ~13pt. Signatures blank for wet ink. Display only.
  */
 export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
   const issuedAt = buy.completedAt;
@@ -19,8 +19,13 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
 
   return (
     <article
-      className="purchase-print purchase-print--voucher mx-auto w-full bg-white font-serif text-black"
-      style={{ boxSizing: "border-box", fontSize: "13pt", lineHeight: 1.35 }}
+      className="purchase-print purchase-print--voucher mx-auto w-full bg-white text-black"
+      style={{
+        boxSizing: "border-box",
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: "13pt",
+        lineHeight: 1.35,
+      }}
     >
       <div className="flex items-start gap-3">
         <div
@@ -37,11 +42,11 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           />
         </div>
         <div className="min-w-0">
-          <p className="font-bold tracking-wide text-[#b91c1c]" style={{ fontSize: "14pt" }}>
+          <p className="font-bold uppercase tracking-wide" style={{ fontSize: "14pt", color: "#b91c1c" }}>
             THĂNG LONG KIM VIỆT
           </p>
           <p className="font-semibold uppercase tracking-wide" style={{ fontSize: "11pt", marginTop: 2 }}>
-            Giữ vàng – Giữ phúc – Giữ niềm tin
+            GIỮ VÀNG - GIỮ PHÚC - GIỮ NIỀM TIN
           </p>
           <p style={{ fontSize: "11pt", marginTop: 2 }}>
             Địa chỉ: 322 Nguyễn Trãi, Phường Đại Mỗ, TP.HN
@@ -54,7 +59,7 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
         className="text-center font-bold uppercase tracking-wide"
         style={{ marginTop: "4mm", fontSize: "14pt" }}
       >
-        Phiếu mua hàng kiêm nhập kho và chi tiền
+        PHIẾU MUA HÀNG KIÊM NHẬP KHO VÀ CHI TIỀN
       </p>
       <p className="text-center italic" style={{ marginTop: "2mm", fontSize: "13pt" }}>
         {viDateLongLine(issuedAt)}
@@ -197,9 +202,8 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           <p className="italic" style={{ fontSize: "11pt" }}>
             Đã nhận đủ số tiền trên
           </p>
-          <p className="font-medium" style={{ marginTop: "8mm", minHeight: "5mm" }}>
-            {buy.customerName}
-          </p>
+          {/* Leave blank for wet-ink — PDF template does not pre-fill name */}
+          <p style={{ marginTop: "12mm", minHeight: "5mm" }}>&nbsp;</p>
         </div>
       </section>
 
@@ -214,7 +218,7 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           THĂNG LONG KIM VIỆT
         </p>
         <p className="font-semibold uppercase tracking-wide" style={{ fontSize: "11pt", marginTop: 4 }}>
-          Giữ vàng – Giữ phúc – Giữ niềm tin
+          GIỮ VÀNG - GIỮ PHÚC - GIỮ NIỀM TIN
         </p>
       </div>
     </article>

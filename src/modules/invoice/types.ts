@@ -80,6 +80,14 @@ export type InvoiceExportRow = InvoiceListRow & {
   brandName: string;
   /** Order/invoice note (not product note). Empty if staff left it blank. */
   note: string;
+  /** Hẹn trả vàng (đặt hàng / đặt cọc). */
+  pickupDueAt: string | null;
+  /** Ngày khách thực sự nhận vàng (stock out / fulfill). */
+  goldDeliveredAt: string | null;
+  /** Số tiền thu lần 1 (đặt cọc / thanh toán đầu). */
+  firstPaidDong: number | null;
+  /** Số tiền thu lần 2 trở đi (phần còn lại đã thu). */
+  secondPaidDong: number | null;
 };
 
 export type InvoiceExportPage = {
