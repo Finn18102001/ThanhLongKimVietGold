@@ -67,7 +67,10 @@ body {
 }
 
 @media print {
-  /* Prefer zero margin so Chrome has less room for date/title headers on phôi. */
+  /*
+   * Zero @page margin so Chrome has no gutter for date / title / URL chrome.
+   * Purchase print also goes through an about:blank iframe (see purchase/print.ts).
+   */
   @page {
     size: A4 portrait;
     margin: 0;
