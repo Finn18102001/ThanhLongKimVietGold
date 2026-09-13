@@ -95,6 +95,7 @@ export function CatalogBuyModal({
       priceRowId: item.priceRowId,
       imageUrl: item.imageUrl,
       brandName: item.brandName,
+      allowDirectBuy: Boolean(item.allowDirectBuy),
     });
   }
 

@@ -495,9 +495,10 @@ export function PosTerminal({
     }
     setSavingHold(true);
     try {
+      const heldMethod = resolvePaymentMethod();
       const saved = await saveHeldOrder({
         customerId: customer.id,
-        paymentMethod: resolvePaymentMethod() === "MIXED" ? "CASH" : resolvePaymentMethod(),
+        paymentMethod: heldMethod === "MIXED" ? "CASH" : heldMethod,
         note,
         heldOrderId: activeHeldOrderId,
         items,
