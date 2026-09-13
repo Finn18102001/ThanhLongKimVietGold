@@ -6,13 +6,15 @@ import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels"
 import type { CustomerRecord } from "@/modules/customer/types";
 import {
   chargesTotalDong,
-  isUnitPriceOutOfAllowedRange,
+  isPricePerChiOutOfAllowedRange,
   lineTotalDong,
   PRICE_ADJ_LIMIT_PER_CHI,
   PRICE_OUT_OF_RANGE_INLINE,
   PRICE_UNIT_STEP_DONG,
-  unitPriceBoundsDong,
-  unitPriceToAdjustmentPerChi,
+  pricePerChiBoundsDong,
+  pricePerChiToAdjustment,
+  referencePricePerChiDong,
+  transactionPricePerChiDong,
   type PosChargeDraft,
 } from "../money";
 import type { CartLine, PosOperatorOption } from "../types";
@@ -27,7 +29,10 @@ export function PosCartPanel({
   charges,
   displayTotal,
   note,
-  paymentMethod,
+  useCash,
+  useTransfer,
+  cashDong,
+  transferDong,
   payMode,
   paidDong,
   dueDate,
@@ -40,7 +45,10 @@ export function PosCartPanel({
   onOpenCustomer,
   onClear,
   onNoteChange,
-  onPaymentChange,
+  onUseCashChange,
+  onUseTransferChange,
+  onCashDongChange,
+  onTransferDongChange,
   onPayModeChange,
   onPaidDongChange,
   onDueDateChange,
@@ -63,7 +71,10 @@ export function PosCartPanel({
   charges: PosChargeDraft[];
   displayTotal: number;
   note: string;
-  paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  useCash: boolean;
+  useTransfer: boolean;
+  cashDong: number;
+  transferDong: number;
   payMode: PosPayMode;
   paidDong: number;
   dueDate: string;
@@ -78,7 +89,10 @@ export function PosCartPanel({
   onOpenCustomer: () => void;
   onClear: () => void;
   onNoteChange: (value: string) => void;
-  onPaymentChange: (value: "CASH" | "TRANSFER" | "CARD") => void;
+  onUseCashChange: (value: boolean) => void;
+  onUseTransferChange: (value: boolean) => void;
+  onCashDongChange: (value: number) => void;
+  onTransferDongChange: (value: number) => void;
   onPayModeChange: (value: PosPayMode) => void;
   onPaidDongChange: (value: number) => void;
   onDueDateChange: (value: string) => void;
@@ -183,12 +197,21 @@ export function PosCartPanel({
                 line.quantity,
               );
               const out = line.stock <= 0;
-              const priceOut = isUnitPriceOutOfAllowedRange(
-                line.unitPriceDong,
+              const boardPerChi = referencePricePerChiDong(
                 line.referenceUnitPriceDong,
                 line.weightChi,
               );
-              const bounds = unitPriceBoundsDong(
+              const gdPerChi = transactionPricePerChiDong(
+                line.referenceUnitPriceDong,
+                line.priceAdjustmentPerChi,
+                line.weightChi,
+              );
+              const priceOut = isPricePerChiOutOfAllowedRange(
+                gdPerChi,
+                line.referenceUnitPriceDong,
+                line.weightChi,
+              );
+              const bounds = pricePerChiBoundsDong(
                 line.referenceUnitPriceDong,
                 line.weightChi,
               );
@@ -245,12 +268,12 @@ export function PosCartPanel({
                         <div className="mt-0.5 flex items-center gap-0.5">
                           <button
                             type="button"
-                            aria-label="Giảm giá"
+                            aria-label="Giảm giá / chỉ"
                             onClick={() =>
                               onAdj(
                                 line.skuId,
-                                unitPriceToAdjustmentPerChi(
-                                  line.unitPriceDong - PRICE_UNIT_STEP_DONG,
+                                pricePerChiToAdjustment(
+                                  gdPerChi - PRICE_UNIT_STEP_DONG,
                                   line.referenceUnitPriceDong,
                                   line.weightChi,
                                 ),
@@ -264,12 +287,12 @@ export function PosCartPanel({
                             type="number"
                             inputMode="numeric"
                             step={PRICE_UNIT_STEP_DONG}
-                            value={line.unitPriceDong}
+                            value={gdPerChi}
                             onChange={(event) => {
                               const raw = Number(event.target.value) || 0;
                               onAdj(
                                 line.skuId,
-                                unitPriceToAdjustmentPerChi(
+                                pricePerChiToAdjustment(
                                   raw,
                                   line.referenceUnitPriceDong,
                                   line.weightChi,
@@ -285,12 +308,12 @@ export function PosCartPanel({
                           />
                           <button
                             type="button"
-                            aria-label="Tăng giá"
+                            aria-label="Tăng giá / chỉ"
                             onClick={() =>
                               onAdj(
                                 line.skuId,
-                                unitPriceToAdjustmentPerChi(
-                                  line.unitPriceDong + PRICE_UNIT_STEP_DONG,
+                                pricePerChiToAdjustment(
+                                  gdPerChi + PRICE_UNIT_STEP_DONG,
                                   line.referenceUnitPriceDong,
                                   line.weightChi,
                                 ),
@@ -303,8 +326,8 @@ export function PosCartPanel({
                         </div>
                       </label>
                       <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
-                        Bảng {formatDong(line.referenceUnitPriceDong)} · Cho phép{" "}
-                        {formatDong(bounds.min)}–{formatDong(bounds.max)}
+                        Bảng {formatDong(boardPerChi)}/chỉ · Cho phép{" "}
+                        {formatDong(bounds.min)}–{formatDong(bounds.max)}/chỉ
                       </p>
                       {priceOut ? (
                         <p className="mt-0.5 flex items-start gap-1 text-[11px] font-medium text-[var(--tlkv-red)]">
@@ -451,26 +474,76 @@ export function PosCartPanel({
             />
             <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
               {payMode === "PARTIAL"
-                ? "Đặt cọc. Không xuất kho tại lúc tạo đơn."
+                ? "Đặt cọc / giữ vàng. Có thể thu đủ 100% nhưng chưa giao — hóa đơn vẫn là đặt hàng đến khi xác nhận giao nhận."
                 : "Đơn đặt hàng. Kho chưa trừ đến khi giao."}
             </span>
           </label>
         ) : null}
 
-        <label className="mt-3 block text-[13px]">
-          Hình thức thanh toán
-          <select
-            value={paymentMethod}
-            onChange={(event) =>
-              onPaymentChange(event.target.value as "CASH" | "TRANSFER" | "CARD")
-            }
-            className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-          >
-            <option value="CASH">Tiền mặt</option>
-            <option value="TRANSFER">Chuyển khoản</option>
-            <option value="CARD">Thẻ</option>
-          </select>
-        </label>
+        <fieldset className="mt-3">
+          <legend className="text-[13px]">Hình thức thanh toán</legend>
+          <div className="mt-1 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
+            <label className="flex items-center gap-2 text-[13px]">
+              <input
+                type="checkbox"
+                checked={useCash}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  if (!next && !useTransfer) return;
+                  onUseCashChange(next);
+                }}
+                className="h-4 w-4 accent-[var(--tlkv-red)]"
+              />
+              <span className="flex-1">Tiền mặt</span>
+              {useCash && effectivePaid > 0 ? (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cashDong > 0 ? String(cashDong) : ""}
+                  onChange={(event) => {
+                    const digits = event.target.value.replace(/[^\d]/g, "");
+                    onCashDongChange(digits ? Number(digits) : 0);
+                  }}
+                  disabled={!useTransfer}
+                  placeholder="Số tiền"
+                  className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              ) : null}
+            </label>
+            <label className="flex items-center gap-2 text-[13px]">
+              <input
+                type="checkbox"
+                checked={useTransfer}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  if (!next && !useCash) return;
+                  onUseTransferChange(next);
+                }}
+                className="h-4 w-4 accent-[var(--tlkv-red)]"
+              />
+              <span className="flex-1">Chuyển khoản / Tài khoản</span>
+              {useTransfer && effectivePaid > 0 ? (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={transferDong > 0 ? String(transferDong) : ""}
+                  onChange={(event) => {
+                    const digits = event.target.value.replace(/[^\d]/g, "");
+                    onTransferDongChange(digits ? Number(digits) : 0);
+                  }}
+                  disabled={!useCash}
+                  placeholder="Số tiền"
+                  className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              ) : null}
+            </label>
+            {useCash && useTransfer && effectivePaid > 0 ? (
+              <p className="text-[11px] text-[var(--tlkv-muted)]">
+                Tổng hai khoản phải bằng số tiền thu: {formatDong(effectivePaid)}.
+              </p>
+            ) : null}
+          </div>
+        </fieldset>
 
         <fieldset className="mt-3">
           <legend className="text-[13px]">Trạng thái thu</legend>
@@ -512,13 +585,13 @@ export function PosCartPanel({
                 const digits = event.target.value.replace(/[^\d]/g, "");
                 onPaidDongChange(digits ? Number(digits) : 0);
               }}
-              placeholder="Nhập số đã thu"
+              placeholder="Nhập số đã thu (có thể = tổng đơn)"
               className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
           </label>
         ) : null}
 
-        {payMode !== "FULL" ? (
+        {payMode !== "FULL" && remainingDong > 0 ? (
           <>
             <label className="mt-3 block text-[13px]">
               Ngày hẹn trả tiền
@@ -537,6 +610,12 @@ export function PosCartPanel({
               </span>
             </div>
           </>
+        ) : null}
+
+        {payMode === "PARTIAL" && remainingDong === 0 ? (
+          <p className="mt-2 text-[11px] text-[var(--tlkv-amber)]">
+            Đã thu đủ tiền nhưng vẫn giữ vàng tại cửa hàng đến khi xác nhận giao nhận.
+          </p>
         ) : null}
 
         <div className="mt-3 grid grid-cols-2 gap-2">

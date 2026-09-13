@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { CheckCircle, FileText, SealCheck, Wallet } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 
-const PAYMENT_LABEL = {
+const PAYMENT_LABEL: Record<string, string> = {
   CASH: "Tiền mặt",
   TRANSFER: "Chuyển khoản",
   CARD: "Thẻ",
-} as const;
+  MIXED: "Tiền mặt + Chuyển khoản",
+};
 
 export function PosPaymentSuccess({
   invoiceNo,
@@ -27,7 +28,7 @@ export function PosPaymentSuccess({
   totalDong: number;
   paidDong: number;
   remainingDong: number;
-  paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  paymentMethod: "CASH" | "TRANSFER" | "CARD" | "MIXED";
   transactionType?: string;
   fulfillmentStatus?: string;
   onViewInvoice: () => void;

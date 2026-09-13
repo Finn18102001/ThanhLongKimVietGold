@@ -145,7 +145,9 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
               onChange={(e) =>
                 onChange({
                   ...profile,
-                  amountInWordsOffsetX: Number(e.target.value) || 0,
+                  amountInWordsOffsetX: Number.isFinite(Number(e.target.value))
+                    ? Number(e.target.value)
+                    : DEFAULT_PRINTER_PROFILE.amountInWordsOffsetX,
                 })
               }
               className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"
@@ -160,7 +162,9 @@ export function PrintCalibrationPanel({ profile, onChange, onTestPrint }: Props)
               onChange={(e) =>
                 onChange({
                   ...profile,
-                  amountInWordsOffsetY: Number(e.target.value) || 0,
+                  amountInWordsOffsetY: Number.isFinite(Number(e.target.value))
+                    ? Number(e.target.value)
+                    : DEFAULT_PRINTER_PROFILE.amountInWordsOffsetY,
                 })
               }
               className="h-9 w-full rounded-lg border border-[var(--tlkv-line)] bg-white px-2 tabular-nums"

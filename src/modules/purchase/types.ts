@@ -71,6 +71,8 @@ export type PurchaseCatalogItem = {
   priceRowId: string | null;
   goldTypeHint: string | null;
   goldAgeHint: string | null;
+  /** Legacy flag from pos_skus; skip-melt popup now gates on non-market only. */
+  allowDirectBuy: boolean;
 };
 
 type BuyLineBase = {
@@ -100,6 +102,8 @@ export type CatalogBuyLine = BuyLineBase & {
   skuId: string;
   sku: string;
   imageUrl?: string | null;
+  /** Legacy SKU flag; popup skip-melt gates on !isMarketGold only. */
+  allowDirectBuy: boolean;
 };
 
 export type BuyLine = MarketBuyLine | CatalogBuyLine;
@@ -191,6 +195,8 @@ export type BuyDetail = {
   dueDate: string | null;
   actorEmail: string;
   completedAt: string | null;
+  /** Server created_at — used for print dates before melt/complete. */
+  createdAt: string | null;
   note: string | null;
   status: BuyStatus | string;
   workflowStatus: BuyWorkflowStatus | string;
@@ -199,6 +205,8 @@ export type BuyDetail = {
   meltingStartedAt: string | null;
   attachmentPdfPath: string | null;
   intendedPaidDong?: number | null;
+  /** True when buy skipped melt/purity (direct branded repurchase). */
+  skipMelt?: boolean;
   items: BuyDetailItem[];
   payments: BuyPaymentRow[];
   attachments: BuyAttachment[];

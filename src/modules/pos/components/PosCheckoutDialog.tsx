@@ -9,11 +9,12 @@ import { chargesTotalDong, lineTotalDong, type PosChargeDraft } from "../money";
 import type { CartLine } from "../types";
 import { ProductThumb } from "./CatalogCard";
 
-const PAYMENT_LABEL = {
+const PAYMENT_LABEL: Record<string, string> = {
   CASH: "Tiền mặt",
   TRANSFER: "Chuyển khoản",
   CARD: "Thẻ",
-} as const;
+  MIXED: "Tiền mặt + Chuyển khoản",
+};
 
 export function PosCheckoutDialog({
   customer,
@@ -38,7 +39,7 @@ export function PosCheckoutDialog({
   lines: CartLine[];
   charges: PosChargeDraft[];
   displayTotal: number;
-  paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  paymentMethod: "CASH" | "TRANSFER" | "CARD" | "MIXED";
   note: string;
   paidDong: number;
   remainingDong: number;

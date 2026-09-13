@@ -26,7 +26,14 @@ import {
   paymentLabel,
   paymentStatusLabel,
 } from "../labels";
-import type { DocumentType, InvoiceDetail, InvoiceListPage, InvoiceListRow, PaymentStatus } from "../types";
+import type {
+  DocumentType,
+  GoldDeliveryFilter,
+  InvoiceDetail,
+  InvoiceListPage,
+  InvoiceListRow,
+  PaymentStatus,
+} from "../types";
 import type { StockReceiptDetail } from "../types-receipt";
 import { InvoiceDrawer } from "./InvoiceDrawer";
 import { StockReceiptDrawer } from "./StockReceiptDrawer";
@@ -43,7 +50,7 @@ const EXPORT_LIMIT_OPTIONS = [
 const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
   { value: "", label: "Trạng thái TT: Tất cả" },
   { value: "PAID", label: "Đã thanh toán" },
-          { value: "PARTIALLY_PAID", label: "Thanh toán một phần" },
+  { value: "PARTIALLY_PAID", label: "Thanh toán một phần" },
   { value: "UNPAID", label: "Chưa thanh toán" },
   { value: "OVERDUE", label: "Quá hạn" },
 ];
@@ -52,6 +59,11 @@ const DOCUMENT_TYPE_OPTIONS: { value: "" | DocumentType; label: string }[] = [
   { value: "SALE_TO_CUSTOMER", label: "Bán cho khách" },
   { value: "PURCHASE_FROM_CUSTOMER", label: "Mua từ khách" },
   { value: "STOCK_RECEIPT", label: "Nhập hàng" },
+];
+const GOLD_DELIVERY_OPTIONS: { value: "" | GoldDeliveryFilter; label: string }[] = [
+  { value: "", label: "Trả vàng: Tất cả" },
+  { value: "UNFULFILLED", label: "Chưa trả vàng" },
+  { value: "DELIVERED", label: "Đã trả vàng" },
 ];
 
 export function InvoiceDirectory({
@@ -68,6 +80,7 @@ export function InvoiceDirectory({
   const [to, setTo] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatus>("");
   const [documentType, setDocumentType] = useState<"" | DocumentType>("");
+  const [goldDelivery, setGoldDelivery] = useState<"" | GoldDeliveryFilter>("");
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [receiptDetail, setReceiptDetail] = useState<StockReceiptDetail | null>(null);
@@ -90,6 +103,7 @@ export function InvoiceDirectory({
     to?: string;
     paymentStatus?: "" | PaymentStatus;
     documentType?: "" | DocumentType;
+    goldDelivery?: "" | GoldDeliveryFilter;
     limit?: number;
     offset?: number;
   }) {
@@ -98,6 +112,7 @@ export function InvoiceDirectory({
     const nextTo = next.to ?? to;
     const nextPayStatus = next.paymentStatus ?? paymentStatus;
     const nextDocumentType = next.documentType ?? documentType;
+    const nextGoldDelivery = next.goldDelivery ?? goldDelivery;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
     startTransition(async () => {
@@ -108,6 +123,7 @@ export function InvoiceDirectory({
           to: nextTo || null,
           paymentStatus: nextPayStatus || null,
           documentType: nextDocumentType || null,
+          goldDelivery: nextGoldDelivery || null,
           limit: nextLimit,
           offset: nextOffset,
         });
@@ -188,6 +204,7 @@ export function InvoiceDirectory({
         to: to || null,
         paymentStatus: paymentStatus || null,
         documentType: documentType || null,
+        goldDelivery: goldDelivery || null,
         limit: exportLimit,
       });
       downloadCsv(
@@ -199,6 +216,7 @@ export function InvoiceDirectory({
           "SĐT",
           "Tên sản phẩm",
           "Thương hiệu",
+          "Đơn giá",
           "Số lượng",
           "Số chỉ",
           "Tổng",
@@ -221,6 +239,7 @@ export function InvoiceDirectory({
           row.customerPhone,
           row.productName,
           row.brandName,
+          row.unitPriceDong ?? "",
           row.quantity ?? "",
           row.weightChi == null ? "" : Number(row.weightChi.toFixed(4)),
           row.totalDong,
@@ -294,7 +313,7 @@ export function InvoiceDirectory({
             {exporting ? "Đang xuất..." : "Xuất CSV"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
           <select
             value={documentType}
             onChange={(event) => {
@@ -345,6 +364,22 @@ export function InvoiceDirectory({
           >
             {PAYMENT_STATUS_OPTIONS.map((opt) => (
               <option key={opt.value || "all"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={goldDelivery}
+            onChange={(event) => {
+              const value = event.target.value as "" | GoldDeliveryFilter;
+              setGoldDelivery(value);
+              refresh({ goldDelivery: value, offset: 0 });
+            }}
+            aria-label="Trạng thái trả vàng"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {GOLD_DELIVERY_OPTIONS.map((opt) => (
+              <option key={opt.value || "all-gold"} value={opt.value}>
                 {opt.label}
               </option>
             ))}

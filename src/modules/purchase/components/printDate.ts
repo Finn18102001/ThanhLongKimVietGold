@@ -32,3 +32,19 @@ export function viDateLongLine(isoDateTime: string | null | undefined): string {
   if (!day || !month || !year) return "Ngày …… tháng …… năm ……";
   return `Ngày ${day} tháng ${month} năm ${year}`;
 }
+
+/** Prefer business completion / melt start; fall back to first payment time. */
+export function printBuyIssuedAt(buy: {
+  completedAt?: string | null;
+  meltingStartedAt?: string | null;
+  createdAt?: string | null;
+  payments?: Array<{ paidAt?: string | null }>;
+}): string | null {
+  return (
+    buy.completedAt ||
+    buy.meltingStartedAt ||
+    buy.createdAt ||
+    buy.payments?.[0]?.paidAt ||
+    null
+  );
+}

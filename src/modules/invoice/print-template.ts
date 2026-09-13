@@ -74,7 +74,7 @@ export const GOLD_CERTIFICATE = {
       weight: "700",
       color: "#9b0102",
     },
-    customerSign: { x: 14.33, y: 122.28, w: 47.76, h: 4.81, fontSizePt: 8.5, align: "center" as const },
+    customerSign: { x: 8.83, y: 131.28, w: 47.76, h: 4.81, fontSizePt: 8.5, align: "center" as const },
     staffSign: { x: 59.7, y: 122.28, w: 52.88, h: 4.81, fontSizePt: 8.5, align: "center" as const },
     /** Phôi may label cashier / controller; leave empty when no data. */
     cashierSign: { x: 115.0, y: 122.28, w: 40, h: 4.81, fontSizePt: 8.5, align: "center" as const },
@@ -108,13 +108,15 @@ export const DEFAULT_PRINTER_PROFILE: PrinterProfile = {
   offsetX: 0,
   offsetY: 0,
   scale: 1,
-  amountInWordsOffsetX: 0,
-  amountInWordsOffsetY: 0,
+  /** Calibrated default for “Số tiền thanh toán (Bằng chữ)” on 205×148 phôi. */
+  amountInWordsOffsetX: -33,
+  amountInWordsOffsetY: 4.5,
   totalAmountOffsetX: 0,
   totalAmountOffsetY: 0,
 };
 
-export const PRINT_PROFILE_STORAGE_KEY = "tlkv.invoice.print.gold-certificate.v2";
+/** v3: new amount-in-words defaults (-33 / 4.5). */
+export const PRINT_PROFILE_STORAGE_KEY = "tlkv.invoice.print.gold-certificate.v3";
 
 export type InvoicePrintPayload = {
   customerName: string;

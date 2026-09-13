@@ -1,39 +1,58 @@
 /**
  * Print purchase phôi without Chrome date / site-URL headers.
- * Uses an about:blank iframe so the print footer has no vercel/app path,
+ * Uses an about:blank iframe so the print footer has no app path,
  * and an empty document title so the header title slot stays blank.
  */
 export function printPurchaseDocument(): void {
-  // Wait for React to commit printDoc switch before capturing the phôi.
-  window.setTimeout(() => {
-    const node = document.querySelector(".purchase-print");
-    if (!(node instanceof HTMLElement)) {
-      printWithBlankTitle();
+  void waitForPrintNode().then((node) => {
+    if (!node) {
+      console.warn("[purchase/print] .purchase-print not found; skip print");
       return;
     }
+    printNodeInBlankFrame(node);
+  });
+}
 
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.cssText =
-      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
-    document.body.appendChild(iframe);
+function waitForPrintNode(maxMs = 1600): Promise<HTMLElement | null> {
+  const started = Date.now();
+  return new Promise((resolve) => {
+    const tick = () => {
+      const node = document.querySelector(".purchase-print");
+      if (node instanceof HTMLElement) {
+        resolve(node);
+        return;
+      }
+      if (Date.now() - started >= maxMs) {
+        resolve(null);
+        return;
+      }
+      window.setTimeout(tick, 50);
+    };
+    window.setTimeout(tick, 80);
+  });
+}
 
-    const idoc = iframe.contentDocument;
-    const iwin = iframe.contentWindow;
-    if (!idoc || !iwin) {
-      iframe.remove();
-      printWithBlankTitle();
-      return;
-    }
+function printNodeInBlankFrame(node: HTMLElement): void {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.setAttribute("title", "");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
 
-    const styleHtml = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style'),
-    )
-      .map((el) => el.outerHTML)
-      .join("\n");
+  const idoc = iframe.contentDocument;
+  const iwin = iframe.contentWindow;
+  if (!idoc || !iwin) {
+    iframe.remove();
+    return;
+  }
 
-    idoc.open();
-    idoc.write(`<!DOCTYPE html>
+  const styleHtml = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+    .map((el) => el.outerHTML)
+    .join("\n");
+
+  idoc.open();
+  idoc.write(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -49,34 +68,50 @@ ${styleHtml}
     padding: 0 !important;
     background: #fff !important;
   }
+  body > * { margin: 0 !important; }
 </style>
 </head>
 <body></body>
 </html>`);
-    idoc.close();
+  idoc.close();
+  // Keep title empty so Chrome header title slot stays blank.
+  idoc.title = "";
 
-    idoc.body.appendChild(node.cloneNode(true));
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.classList.remove("hidden");
+  clone.style.display = "block";
+  idoc.body.appendChild(clone);
 
-    const cleanup = () => {
-      iframe.remove();
-    };
+  const cleanup = () => {
+    iframe.remove();
+  };
 
-    window.setTimeout(() => {
-      try {
-        iwin.focus();
-        iwin.print();
-      } finally {
-        window.setTimeout(cleanup, 1200);
-      }
-    }, 250);
-  }, 200);
-}
+  const runPrint = () => {
+    try {
+      iwin.focus();
+      iwin.print();
+    } finally {
+      // Keep frame until the print dialog can capture layout.
+      window.setTimeout(cleanup, 1500);
+    }
+  };
 
-function printWithBlankTitle(): void {
-  const previous = document.title;
-  document.title = "";
-  window.print();
+  // Wait for cloned stylesheet links to settle when possible.
+  const links = Array.from(idoc.querySelectorAll('link[rel="stylesheet"]'));
+  if (links.length === 0) {
+    window.setTimeout(runPrint, 200);
+    return;
+  }
+  let pending = links.length;
+  const done = () => {
+    pending -= 1;
+    if (pending <= 0) window.setTimeout(runPrint, 80);
+  };
+  for (const link of links) {
+    link.addEventListener("load", done, { once: true });
+    link.addEventListener("error", done, { once: true });
+  }
   window.setTimeout(() => {
-    document.title = previous;
-  }, 800);
+    if (pending > 0) runPrint();
+  }, 900);
 }

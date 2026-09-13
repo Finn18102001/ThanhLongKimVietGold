@@ -160,8 +160,12 @@ export async function reverseStockReceipt(input: {
 }
 
 export async function searchInvoices(filter: InvoiceListFilter): Promise<InvoiceListPage> {
-  if (filter.transactionType || filter.fulfillment) {
-    return listInvoices(filter);
+  if (filter.transactionType || filter.fulfillment || filter.goldDelivery) {
+    return listInvoices({
+      ...filter,
+      // Gold-delivery filter is sale-order only.
+      documentType: filter.goldDelivery ? "SALE_TO_CUSTOMER" : filter.documentType,
+    });
   }
   return listDocuments(filter);
 }

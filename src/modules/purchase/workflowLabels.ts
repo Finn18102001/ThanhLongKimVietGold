@@ -90,9 +90,21 @@ export function isBuyInMeltWorkflow(buy: Pick<BuyDetail, "status" | "workflowSta
   );
 }
 
-/** Commitment print only while still on the commitment step. */
-export function canPrintCommitmentFromFlow(wf: string): boolean {
-  return wf === "MELT_COMMITTED";
+/**
+ * Print cam kết nấu at commitment step, or again after nhập KL sau nấu
+ * (and any later melt step while the phiếu still exists).
+ */
+export function canPrintCommitmentFromFlow(wf: string, skipMelt?: boolean): boolean {
+  if (skipMelt) return false;
+  return (
+    wf === "MELT_COMMITTED" ||
+    wf === "MELTING" ||
+    wf === "WEIGHT_ENTERED" ||
+    wf === "AWAITING_CONFIRM" ||
+    wf === "INVOICE_ISSUED" ||
+    wf === "FORM02_READY" ||
+    wf === "COMPLETED"
+  );
 }
 
 export function hasPurityTestAttachment(attachments: BuyAttachment[] | undefined): boolean {

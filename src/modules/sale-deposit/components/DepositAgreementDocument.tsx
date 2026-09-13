@@ -10,8 +10,8 @@ function depositDong(bundle: DepositSaleBundle): number {
 }
 
 /**
- * THỎA THUẬN ĐẶT CỌC MUA BÁN VÀNG
- * Layout locked to THỎA THUẬN ĐẶT CỌC MUA BÁN VÀNG.docx
+ * THỎA THUẬN ĐẶT CỌC MUA BÁN
+ * Layout locked to THỎA THUẬN ĐẶT CỌC MUA BÁN VÀNG.docx (title without “vàng”).
  * Page A4, lề 25.4mm (Word 1440 twips), Times New Roman.
  */
 export function DepositAgreementDocument({ bundle }: { bundle: DepositSaleBundle }) {
@@ -29,7 +29,7 @@ export function DepositAgreementDocument({ bundle }: { bundle: DepositSaleBundle
   return (
     <article className="sale-deposit-print bg-white text-black">
       <p className="text-center font-bold uppercase" style={{ fontSize: "16pt", letterSpacing: "0.04em" }}>
-        Thỏa thuận đặt cọc mua bán vàng
+        Thỏa thuận đặt cọc mua bán
       </p>
       <p className="text-center font-bold" style={{ marginTop: "1.5mm", fontSize: "12pt" }}>
         Số: {formatLegalDocNo(bundle.depositAgreementNo, "TTĐC")}
@@ -71,7 +71,7 @@ export function DepositAgreementDocument({ bundle }: { bundle: DepositSaleBundle
       </p>
 
       <p style={{ marginTop: "3mm" }}>
-        Hai bên thống nhất ký Thỏa thuận đặt cọc mua bán vàng với các nội dung sau:
+        Hai bên thống nhất ký Thỏa thuận đặt cọc mua bán với các nội dung sau:
       </p>
 
       <p className="font-bold uppercase" style={{ marginTop: "3mm" }}>

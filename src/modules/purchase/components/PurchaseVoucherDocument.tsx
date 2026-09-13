@@ -5,17 +5,19 @@ import { BRAND_LOGO_MARK } from "@/shared/brand/assets";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
-import { viDateLongLine } from "./printDate";
+import { printBuyIssuedAt, viDateLongLine } from "./printDate";
 
 /**
  * PHIẾU MUA HÀNG KIÊM NHẬP KHO VÀ CHI TIỀN
  * Layout locked to: PHIẾU MUA HÀNG final.pdf
- * Font: Times New Roman ~13pt. Signatures blank for wet ink. Display only.
+ * Font: Times New Roman ~13pt. Wet-ink ký; in sẵn ngày + họ tên KH dưới chữ ký.
  */
 export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
-  const issuedAt = buy.completedAt;
+  const issuedAt = printBuyIssuedAt(buy);
   const totalWords = formatDongInWords(buy.totalDong);
   const emptyRows = Math.max(0, 1 - buy.items.length);
+  const dateLine = viDateLongLine(issuedAt);
+  const customerName = buy.customerName?.trim() || "";
 
   return (
     <article
@@ -62,7 +64,7 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
         PHIẾU MUA HÀNG KIÊM NHẬP KHO VÀ CHI TIỀN
       </p>
       <p className="text-center italic" style={{ marginTop: "2mm", fontSize: "13pt" }}>
-        {viDateLongLine(issuedAt)}
+        {dateLine}
       </p>
 
       <section style={{ marginTop: "4mm" }}>
@@ -202,8 +204,13 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           <p className="italic" style={{ fontSize: "11pt" }}>
             Đã nhận đủ số tiền trên
           </p>
-          {/* Leave blank for wet-ink — PDF template does not pre-fill name */}
           <p style={{ marginTop: "12mm", minHeight: "5mm" }}>&nbsp;</p>
+          <p className="font-semibold" style={{ marginTop: "2mm" }}>
+            {customerName || "\u00a0"}
+          </p>
+          <p className="italic" style={{ fontSize: "11pt", marginTop: 2 }}>
+            {dateLine}
+          </p>
         </div>
       </section>
 

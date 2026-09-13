@@ -31,7 +31,8 @@ type CompleteSaleInput = {
   customerId: string;
   customerName: string;
   customerPhone: string;
-  paymentMethod: "CASH" | "TRANSFER" | "CARD";
+  paymentMethod: "CASH" | "TRANSFER" | "CARD" | "MIXED";
+  paymentSplits?: Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }>;
   note?: string;
   idempotencyKey?: string;
   paidDong?: number | null;
@@ -47,7 +48,8 @@ function rpcSalePayload(input: CompleteSaleInput) {
     p_customer_id: input.customerId,
     p_customer_name: input.customerName,
     p_customer_phone: input.customerPhone,
-    p_payment_method: input.paymentMethod,
+    p_payment_method: input.paymentMethod === "MIXED" ? "CASH" : input.paymentMethod,
+    p_payment_splits: input.paymentSplits ?? null,
     p_note: input.note || null,
     p_items: input.items,
     p_paid_dong: input.paidDong ?? null,
@@ -85,7 +87,7 @@ export async function saveHeldOrder(input: {
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
   note?: string;
   heldOrderId?: string | null;
-  items: Array<{ sku_id: string; quantity: number }>;
+  items: Array<{ sku_id: string; quantity: number; price_adjustment_per_chi?: number }>;
 }): Promise<HeldOrderDetail> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_save_held_order", {

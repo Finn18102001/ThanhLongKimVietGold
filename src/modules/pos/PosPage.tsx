@@ -2,15 +2,17 @@ import { Suspense } from "react";
 import { getPosSession } from "@/shared/auth/session";
 import { PosTerminal } from "./PosTerminal";
 import { listHeldOrders, listPosBrands, listPosCatalog, listPosOperators } from "./query";
+import { isSharedPosCounterEmail } from "./types";
 
 export async function PosPage() {
-  const [catalog, brands, heldOrders, session, operators] = await Promise.all([
+  const [catalog, brands, heldOrders, session] = await Promise.all([
     listPosCatalog(),
     listPosBrands(),
     listHeldOrders(),
     getPosSession(),
-    listPosOperators(),
   ]);
+  const showCounterStaffPicker = isSharedPosCounterEmail(session?.email);
+  const operators = showCounterStaffPicker ? await listPosOperators() : [];
   return (
     <Suspense fallback={<div className="p-6 text-[13px] text-[var(--tlkv-muted)]">Đang tải quầy...</div>}>
       <PosTerminal
@@ -19,7 +21,7 @@ export async function PosPage() {
         initialHeldOrders={heldOrders}
         saleContext={{
           staffId: session?.staffId ?? null,
-          isShared: Boolean(session?.isShared),
+          isShared: showCounterStaffPicker,
           operators,
         }}
       />

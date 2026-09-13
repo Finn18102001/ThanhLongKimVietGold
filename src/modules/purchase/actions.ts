@@ -205,6 +205,21 @@ export async function issueMeltCommitment(input: {
   return getBuy(input.buyId);
 }
 
+/** Skip melt/purity and jump to AWAITING_CONFIRM (SKU allow_direct_buy only). */
+export async function skipBuyMelt(input: {
+  buyId: string;
+  idempotencyKey?: string;
+}): Promise<BuyDetail> {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_buy_skip_melt", {
+    p_buy_id: input.buyId,
+    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/purchase");
+  return getBuy(input.buyId);
+}
+
 export async function startBuyMelting(input: {
   buyId: string;
   idempotencyKey?: string;
@@ -548,12 +563,15 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
     dueDate: (raw.dueDate as string | null) ?? null,
     actorEmail: String(raw.actorEmail ?? ""),
     completedAt,
+    createdAt:
+      (raw.createdAt as string | null) ?? (raw.created_at as string | null) ?? null,
     note: (raw.note as string | null) ?? null,
     ...mapWorkflowFields(raw, completedAt),
     intendedPaidDong:
       raw.intendedPaidDong != null || raw.intended_paid_dong != null
         ? asNumber(raw.intendedPaidDong ?? raw.intended_paid_dong)
         : null,
+    skipMelt: Boolean(raw.skipMelt ?? raw.skip_melt),
     items,
     payments,
     attachments,

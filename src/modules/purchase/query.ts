@@ -42,7 +42,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, weight_chi, board_unit_chi, price_row_id, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), brands!pos_skus_brand_id_fkey(name)",
+      "id, weight_chi, board_unit_chi, price_row_id, allow_direct_buy, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), brands!pos_skus_brand_id_fkey(name)",
     )
     .in("id", skuIds);
   if (error) throw new Error(error.message);
@@ -66,6 +66,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       goldTypeHint: string | null;
       goldAgeHint: string | null;
       brandName: string | null;
+      allowDirectBuy: boolean;
     }
   >();
 
@@ -90,6 +91,9 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       goldTypeHint: price?.product ? String(price.product) : null,
       goldAgeHint: price?.purity != null ? String(price.purity) : null,
       brandName: brandEmbed?.name || (price?.brand ? String(price.brand) : null),
+      allowDirectBuy: Boolean(
+        (row as { allow_direct_buy?: boolean }).allow_direct_buy,
+      ),
     });
   }
 
@@ -113,6 +117,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       priceRowId: enrich?.priceRowId ?? null,
       goldTypeHint: enrich?.goldTypeHint ?? null,
       goldAgeHint: enrich?.goldAgeHint ?? null,
+      allowDirectBuy: enrich?.allowDirectBuy ?? false,
     };
   });
 }

@@ -77,6 +77,10 @@ export type CustomerHistoryItem = {
   fulfillmentStatus: string;
   status: string;
   paymentMethod: string;
+  /** Present on Excel line export only. */
+  productName?: string;
+  brandName?: string;
+  unitPriceDong?: number | null;
 };
 
 export type CustomerListPage = {

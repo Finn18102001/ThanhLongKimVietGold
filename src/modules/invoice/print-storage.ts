@@ -15,20 +15,29 @@ export function loadPrinterProfile(): PrinterProfile {
   if (typeof window === "undefined") return DEFAULT_PRINTER_PROFILE;
   try {
     const raw = window.localStorage.getItem(PRINT_PROFILE_STORAGE_KEY);
-    // Migrate v1 key once if v2 empty.
-    const legacy =
-      raw ?? window.localStorage.getItem("tlkv.invoice.print.gold-certificate.v1");
-    if (!legacy) return DEFAULT_PRINTER_PROFILE;
-    const parsed = JSON.parse(legacy) as Partial<PrinterProfile>;
+    if (!raw) return DEFAULT_PRINTER_PROFILE;
+    const parsed = JSON.parse(raw) as Partial<PrinterProfile>;
     return {
       name: typeof parsed.name === "string" ? parsed.name : DEFAULT_PRINTER_PROFILE.name,
-      offsetX: num(parsed.offsetX),
-      offsetY: num(parsed.offsetY),
+      offsetX: num(parsed.offsetX, DEFAULT_PRINTER_PROFILE.offsetX),
+      offsetY: num(parsed.offsetY, DEFAULT_PRINTER_PROFILE.offsetY),
       scale: num(parsed.scale, 1) > 0 ? num(parsed.scale, 1) : 1,
-      amountInWordsOffsetX: num(parsed.amountInWordsOffsetX),
-      amountInWordsOffsetY: num(parsed.amountInWordsOffsetY),
-      totalAmountOffsetX: num(parsed.totalAmountOffsetX),
-      totalAmountOffsetY: num(parsed.totalAmountOffsetY),
+      amountInWordsOffsetX: num(
+        parsed.amountInWordsOffsetX,
+        DEFAULT_PRINTER_PROFILE.amountInWordsOffsetX,
+      ),
+      amountInWordsOffsetY: num(
+        parsed.amountInWordsOffsetY,
+        DEFAULT_PRINTER_PROFILE.amountInWordsOffsetY,
+      ),
+      totalAmountOffsetX: num(
+        parsed.totalAmountOffsetX,
+        DEFAULT_PRINTER_PROFILE.totalAmountOffsetX,
+      ),
+      totalAmountOffsetY: num(
+        parsed.totalAmountOffsetY,
+        DEFAULT_PRINTER_PROFILE.totalAmountOffsetY,
+      ),
     };
   } catch {
     return DEFAULT_PRINTER_PROFILE;
@@ -41,13 +50,25 @@ export function savePrinterProfile(profile: PrinterProfile): void {
     PRINT_PROFILE_STORAGE_KEY,
     JSON.stringify({
       name: profile.name.trim() || DEFAULT_PRINTER_PROFILE.name,
-      offsetX: num(profile.offsetX),
-      offsetY: num(profile.offsetY),
+      offsetX: num(profile.offsetX, DEFAULT_PRINTER_PROFILE.offsetX),
+      offsetY: num(profile.offsetY, DEFAULT_PRINTER_PROFILE.offsetY),
       scale: num(profile.scale, 1) > 0 ? num(profile.scale, 1) : 1,
-      amountInWordsOffsetX: num(profile.amountInWordsOffsetX),
-      amountInWordsOffsetY: num(profile.amountInWordsOffsetY),
-      totalAmountOffsetX: num(profile.totalAmountOffsetX),
-      totalAmountOffsetY: num(profile.totalAmountOffsetY),
+      amountInWordsOffsetX: num(
+        profile.amountInWordsOffsetX,
+        DEFAULT_PRINTER_PROFILE.amountInWordsOffsetX,
+      ),
+      amountInWordsOffsetY: num(
+        profile.amountInWordsOffsetY,
+        DEFAULT_PRINTER_PROFILE.amountInWordsOffsetY,
+      ),
+      totalAmountOffsetX: num(
+        profile.totalAmountOffsetX,
+        DEFAULT_PRINTER_PROFILE.totalAmountOffsetX,
+      ),
+      totalAmountOffsetY: num(
+        profile.totalAmountOffsetY,
+        DEFAULT_PRINTER_PROFILE.totalAmountOffsetY,
+      ),
     }),
   );
 }

@@ -37,8 +37,16 @@ export type PosOperatorOption = {
   fullName: string;
 };
 
+/** Shared counter login — only this account may pick “Nhân viên đứng quầy”. */
+export const SHARED_POS_COUNTER_EMAIL = "nhanvienthanglongkimviet@gmail.com";
+
+export function isSharedPosCounterEmail(email: string | null | undefined): boolean {
+  return (email ?? "").trim().toLowerCase() === SHARED_POS_COUNTER_EMAIL;
+}
+
 export type PosSaleContext = {
   staffId: string | null;
+  /** True only for the shared counter login (see SHARED_POS_COUNTER_EMAIL). */
   isShared: boolean;
   operators: PosOperatorOption[];
 };

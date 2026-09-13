@@ -4,18 +4,25 @@ import type { CSSProperties } from "react";
 import { BRAND_LOGO_MARK } from "@/shared/brand/assets";
 import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
-import { viDateParts } from "./printDate";
+import { printBuyIssuedAt, viDateLongLine, viDateParts } from "./printDate";
 
 /**
  * PHIẾU CAM KẾT NẤU BÁN SẢN PHẨM
  * Layout locked to: PHIẾU CAM KẾT NẤU SP - MỚI 2026 final.docx
- * Font: Times New Roman. No business-logic changes — display only.
+ * Font: Times New Roman. Display only — không in Loại vàng / Tuổi vàng vào mô tả.
  */
 export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
-  const issuedAt = buy.meltingStartedAt || buy.completedAt;
+  const issuedAt = printBuyIssuedAt({
+    completedAt: buy.completedAt,
+    meltingStartedAt: buy.meltingStartedAt,
+    createdAt: buy.createdAt,
+    payments: buy.payments,
+  });
   const { day, month, year } = viDateParts(issuedAt);
+  const dateLine = viDateLongLine(issuedAt);
   const docNo = buy.meltCommitmentNo || buy.buyNo;
   const emptyRows = Math.max(0, 2 - buy.items.length);
+  const customerName = buy.customerName?.trim() || "";
 
   return (
     <article
@@ -160,7 +167,8 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
           {buy.items.map((item, index) => {
             const before = item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi;
             const after = item.weightAfterChi;
-            const desc = [item.goldAge, item.goldType, item.brandName].filter(Boolean).join(" - ");
+            // Không đưa Loại vàng / Tuổi vàng vào cột mô tả.
+            const desc = (item.brandName || "").trim();
             const sealRows = buy.items.length + emptyRows;
             return (
               <tr key={item.id}>
@@ -291,6 +299,12 @@ export function MeltCommitmentDocument({ buy }: { buy: BuyDetail }) {
             (Ký tên)
           </p>
           <p style={{ marginTop: "14mm", minHeight: "4mm" }}>&nbsp;</p>
+          <p className="font-semibold" style={{ marginTop: "2mm" }}>
+            {customerName || "\u00a0"}
+          </p>
+          <p className="italic" style={{ fontSize: "10pt", marginTop: 2 }}>
+            {dateLine}
+          </p>
         </div>
       </section>
     </article>

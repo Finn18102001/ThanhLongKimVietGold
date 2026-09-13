@@ -2,6 +2,7 @@ export const PAYMENT_LABEL: Record<string, string> = {
   CASH: "Tiền mặt",
   TRANSFER: "Chuyển khoản",
   CARD: "Thẻ",
+  MIXED: "Tiền mặt + Chuyển khoản",
 };
 
 /** Spec §14 — independent of sale / invoice transaction status. */
@@ -51,6 +52,8 @@ export type InvoiceListRow = {
   documentType: DocumentType;
 };
 
+export type GoldDeliveryFilter = "DELIVERED" | "UNFULFILLED";
+
 export type InvoiceListFilter = {
   query?: string;
   from?: string | null;
@@ -59,6 +62,8 @@ export type InvoiceListFilter = {
   paymentStatus?: PaymentStatus | null;
   transactionType?: "SALE" | "PREORDER" | "DEPOSIT" | null;
   fulfillment?: "UNFULFILLED" | "FULFILLED" | null;
+  /** Filter đặt hàng/đặt cọc theo trạng thái trả vàng (không đổi nghiệp vụ). */
+  goldDelivery?: GoldDeliveryFilter | null;
   documentType?: DocumentType | null;
   limit?: number;
   offset?: number;
@@ -78,6 +83,8 @@ export type InvoiceExportRow = InvoiceListRow & {
   weightChi: number | null;
   /** Brand of the product line — SKU brand / buy-line brand. Empty if none. */
   brandName: string;
+  /** Snapshot unit price at transaction time (đồng / SP). */
+  unitPriceDong: number | null;
   /** Order/invoice note (not product note). Empty if staff left it blank. */
   note: string;
   /** Hẹn trả vàng (đặt hàng / đặt cọc). */

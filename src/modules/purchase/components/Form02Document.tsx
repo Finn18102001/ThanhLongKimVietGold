@@ -3,19 +3,19 @@
 import { formatDong, formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
-import { viDateLongLine, viDateParts } from "./printDate";
+import { printBuyIssuedAt, viDateLongLine, viDateParts } from "./printDate";
 
 /**
  * Mẫu số 02/TNDN — BẢNG KÊ THU MUA HÀNG HÓA, DỊCH VỤ (KHÔNG CÓ HÓA ĐƠN)
  * Layout locked to VBTL- Mau-02-TNDN.doc + Thông tư 20/2026/TT-BTC.
  * A4 landscape. Times New Roman. Display-only fill from buy data.
+ * Không có cột Ghi chú (10) trên bảng dữ liệu.
  */
 export function Form02Document({ buy }: { buy: BuyDetail }) {
-  const issuedAt = buy.completedAt;
+  const issuedAt = printBuyIssuedAt(buy);
   const purchaseDate = viDateParts(issuedAt).slash;
   const docNo = buy.form02No || buy.buyNo;
   const totalWords = formatDongInWords(buy.totalDong);
-  const note = buy.paymentMethod === "TRANSFER" ? "Chuyển khoản" : buy.paymentMethod === "CARD" ? "Thẻ" : "Tiền mặt";
 
   return (
     <article
@@ -25,7 +25,8 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
         fontSize: "11pt",
         lineHeight: 1.3,
       }}
-    >      <div className="relative">
+    >
+      <div className="relative">
         <div className="absolute right-0 top-0 w-[42mm] border border-black px-2 py-1.5 text-center text-[10px] leading-tight">
           <p className="font-bold">Mẫu số: 02/TNDN</p>
           <p className="mt-0.5 italic">
@@ -94,11 +95,6 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
               thanh toán
               <br />
               <span className="font-normal">(9)</span>
-            </th>
-            <th className="border border-black px-0.5 py-1 font-semibold" rowSpan={2}>
-              Ghi chú
-              <br />
-              <span className="font-normal">(10)</span>
             </th>
           </tr>
           <tr className="text-center">
@@ -172,14 +168,11 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
                 {formatDongCompact(item.totalPriceDong)}
               </td>
-              <td className="border border-black px-0.5 py-1.5 text-center">
-                {index === 0 ? note : ""}
-              </td>
             </tr>
           ))}
           {Array.from({ length: Math.max(0, 2 - buy.items.length) }).map((_, i) => (
             <tr key={`pad-${i}`}>
-              {Array.from({ length: 11 }).map((__, j) => (
+              {Array.from({ length: 10 }).map((__, j) => (
                 <td key={j} className="border border-black px-0.5 py-2">
                   &nbsp;
                 </td>
@@ -205,7 +198,6 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
           <p className="mt-1 italic" style={{ fontSize: "10pt" }}>
             (Ký, ghi rõ họ tên)
           </p>
-          {/* Leave blank for wet-ink signature */}
           <p className="mt-10 min-h-[18px]">&nbsp;</p>
         </div>
         <div>

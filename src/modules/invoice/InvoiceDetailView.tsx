@@ -17,6 +17,7 @@ import {
   type PrinterProfile,
 } from "./print-template";
 import { voidInvoice } from "./actions";
+import { printSalesInvoiceDocument } from "./print";
 import {
   effectivePaymentStatus,
   invoiceLifecycleBadgeClass,
@@ -46,7 +47,6 @@ export function InvoiceDetailView({
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidPending, startVoid] = useTransition();
-  const savedDocumentTitle = useRef<string | null>(null);
   const allowSalesInvoicePrint = canPrintSalesInvoice({
     depositWorkflowStatus: invoice.depositWorkflowStatus,
     fulfillmentStatus: invoice.fulfillmentStatus,
@@ -54,13 +54,9 @@ export function InvoiceDetailView({
   const allowPrintRef = useRef(allowSalesInvoicePrint);
   allowPrintRef.current = allowSalesInvoicePrint;
 
-  /** Clear HTML title so Chrome does not print "Thăng Long Kim Việt · Quản lý quầy" (+ date) in header. */
+  /** Print via blank iframe at phôi 205×148 mm (not A4/Letter). */
   function printWithoutBrowserChrome() {
-    if (savedDocumentTitle.current === null) {
-      savedDocumentTitle.current = document.title;
-    }
-    document.title = " ";
-    window.print();
+    printSalesInvoiceDocument();
   }
 
   useEffect(() => {
@@ -82,10 +78,6 @@ export function InvoiceDetailView({
     }
     function onAfterPrint() {
       setTestMode(false);
-      if (savedDocumentTitle.current !== null) {
-        document.title = savedDocumentTitle.current;
-        savedDocumentTitle.current = null;
-      }
     }
     window.addEventListener("keydown", onKey);
     window.addEventListener("afterprint", onAfterPrint);

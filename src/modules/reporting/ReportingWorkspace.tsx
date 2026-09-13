@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
+import { formatViDateTime } from "@/shared/lib/datetime";
 import {
   fetchPurchaseReport,
   fetchReportingSnapshot,
@@ -530,8 +531,9 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Khách hàng",
     "SĐT",
     "Mã hàng",
-    "Tên thương hiệu",
+    "Thương hiệu",
     "Tên sản phẩm",
+    "Đơn giá",
     "SL bán",
     "Số chỉ",
     "Tổng tiền",
@@ -554,6 +556,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.sku,
       row.brandName,
       row.productName,
+      row.unitPriceDong,
       row.quantitySold,
       Number(row.weightChiSold.toFixed(4)),
       row.totalDong,
@@ -563,7 +566,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.paymentMethod ?? "",
       row.dueDate ?? "",
       row.actorEmail,
-      row.completedAt,
+      formatViDateTime(row.completedAt),
       row.note,
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)

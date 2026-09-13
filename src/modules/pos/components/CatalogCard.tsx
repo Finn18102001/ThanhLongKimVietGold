@@ -72,7 +72,11 @@ export function CatalogCard({
       </p>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">KL: {weightLabel}</p>
       <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">
-        {item.unitPriceDong === null ? "Chưa có giá" : formatDong(item.unitPriceDong)}
+        {item.unitPriceDong === null
+          ? "Chưa có giá"
+          : item.weightChi > 0
+            ? `${formatDong(Math.round(item.unitPriceDong / item.weightChi))}/chỉ`
+            : formatDong(item.unitPriceDong)}
       </p>
       <p
         className={`mt-1 text-[12px] font-medium ${

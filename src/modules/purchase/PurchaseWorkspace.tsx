@@ -22,6 +22,7 @@ import {
   getCustomerDebtSummary,
   issueMeltCommitment,
   setBuyMeltWeights,
+  skipBuyMelt,
   startBuyMelting,
   uploadBuyFile,
 } from "./actions";
@@ -96,6 +97,7 @@ export function PurchaseWorkspace({
   const [bankAccount, setBankAccount] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
   const [reviewing, setReviewing] = useState(false);
+  const [meltChoiceOpen, setMeltChoiceOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [success, setSuccess] = useState<{
@@ -104,6 +106,7 @@ export function PurchaseWorkspace({
     totalDong: number;
     paidDong: number;
     remainingDong: number;
+    skipMelt: boolean;
   } | null>(null);
 
   const [detail, setDetail] = useState<BuyDetail | null>(null);
@@ -227,6 +230,7 @@ export function PurchaseWorkspace({
         referencePriceDongPerChi: reference,
         priceRowId: item.priceRowId,
         imageUrl: item.imageUrl,
+        allowDirectBuy: Boolean(item.allowDirectBuy),
         brandName: item.brandName,
       };
       return [...prev, next];
@@ -298,10 +302,17 @@ export function PurchaseWorkspace({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  async function onConfirmBuy() {
+  /** Popup Có/Không nấu: mọi SP thương hiệu/catalog. Vàng/bạc thị trường → bắt buộc flow nấu. */
+  const canOfferSkipMelt = useMemo(
+    () => lines.length > 0 && lines.every((line) => !line.isMarketGold),
+    [lines],
+  );
+
+  async function submitBuy(skipMelt: boolean) {
     if (!customer || pending) return;
     if (anyCatalogException) {
       setReviewing(false);
+      setMeltChoiceOpen(false);
       setAlert({
         tone: "error",
         title: "Giá ngoài khoảng cho phép",
@@ -324,12 +335,18 @@ export function PurchaseWorkspace({
         bankAccountHolder: bankAccountHolder.trim() || null,
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
+      let workflowStatus: string = "INTAKE";
+      if (skipMelt) {
+        const skipped = await skipBuyMelt({ buyId: result.buyId });
+        workflowStatus = String(skipped.workflowStatus || "AWAITING_CONFIRM");
+      }
       setSuccess({
         buyId: result.buyId,
         buyNo: result.buyNo,
         totalDong: result.totalDong,
         paidDong: result.paidDong,
         remainingDong: result.remainingDong,
+        skipMelt,
       });
       setRecentBuys((prev) => [
         {
@@ -348,7 +365,7 @@ export function PurchaseWorkspace({
           completedAt: null,
           note: note.trim() || null,
           status: "PROCESSING",
-          workflowStatus: "INTAKE",
+          workflowStatus,
           meltCommitmentNo: null,
           form02No: null,
           meltingStartedAt: null,
@@ -357,6 +374,7 @@ export function PurchaseWorkspace({
         ...prev,
       ]);
       setReviewing(false);
+      setMeltChoiceOpen(false);
       setLines([]);
       setNote("");
       setBankAccount("");
@@ -372,6 +390,7 @@ export function PurchaseWorkspace({
       void openDetail(result.buyId);
     } catch (err) {
       setReviewing(false);
+      setMeltChoiceOpen(false);
       setAlert({
         tone: "error",
         title: "Không tạo được giao dịch",
@@ -381,6 +400,15 @@ export function PurchaseWorkspace({
     } finally {
       setPending(false);
     }
+  }
+
+  function onConfirmBuyClick() {
+    if (canOfferSkipMelt) {
+      setReviewing(false);
+      setMeltChoiceOpen(true);
+      return;
+    }
+    void submitBuy(false);
   }
 
   async function openDetail(buyId: string) {
@@ -604,7 +632,10 @@ export function PurchaseWorkspace({
         {success ? (
           <div className="rounded-[12px] border border-[var(--tlkv-green)]/30 bg-[var(--tlkv-green-soft)] px-4 py-3">
             <p className="text-[14px] font-semibold text-[var(--tlkv-green)]">
-              Đã tạo giao dịch {success.buyNo} — tiếp tục phiếu cam kết nấu
+              Đã tạo giao dịch {success.buyNo}
+              {success.skipMelt
+                ? " — tiếp tục xác nhận khách (không nấu)"
+                : " — tiếp tục phiếu cam kết nấu"}
             </p>
             <p className="mt-1 text-[12px] text-[var(--tlkv-text)]">
               Tổng ước tính {formatDong(success.totalDong)} · Trả dự kiến{" "}
@@ -777,7 +808,7 @@ export function PurchaseWorkspace({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => void onConfirmBuy()}
+                onClick={() => onConfirmBuyClick()}
                 className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
               >
                 {pending ? "Đang tạo..." : "Tạo giao dịch tiếp nhận"}
@@ -850,6 +881,54 @@ export function PurchaseWorkspace({
         </Modal>
       ) : null}
 
+      {meltChoiceOpen && customer ? (
+        <Modal
+          title="Có nấu vàng không?"
+          onClose={() => !pending && setMeltChoiceOpen(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setMeltChoiceOpen(false);
+                  setReviewing(true);
+                }}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
+              >
+                Quay lại
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void submitBuy(true)}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-semibold disabled:opacity-40"
+              >
+                {pending ? "Đang tạo..." : "Không, bỏ qua bước nấu"}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void submitBuy(false)}
+                className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+              >
+                {pending ? "Đang tạo..." : "Có, nấu vàng"}
+              </button>
+            </>
+          }
+        >
+          <p className="text-[13px] text-[var(--tlkv-text)]">
+            Sản phẩm không phải vàng/bạc thị trường — có thể mua trực tiếp không cần nấu. Bạn có muốn
+            thực hiện nấu vàng không?
+          </p>
+          <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
+            Chọn <span className="font-medium">Có, nấu vàng</span> để giữ flow cam kết → nấu → phiếu
+            HL. Chọn <span className="font-medium">Không, bỏ qua bước nấu</span> để chuyển thẳng tới
+            xác nhận khách → hóa đơn mua → phiếu 02. Vàng/bạc thị trường luôn đi flow nấu.
+          </p>
+        </Modal>
+      ) : null}
+
       {(detail || detailLoading) && (
         <Modal
           title={detail ? `Phiếu ${detail.buyNo}` : "Đang tải..."}
@@ -861,7 +940,7 @@ export function PurchaseWorkspace({
             <div className="flex flex-wrap gap-2">
               {detail && isBuyInMeltWorkflow(detail) ? (
                 <>
-                  {canPrintCommitmentFromFlow(String(detail.workflowStatus)) ? (
+                  {canPrintCommitmentFromFlow(String(detail.workflowStatus), detail.skipMelt) ? (
                     <button
                       type="button"
                       onClick={() => printDocument("commitment")}

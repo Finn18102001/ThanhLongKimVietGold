@@ -34,17 +34,25 @@ function isValidIsoDate(iso: string): boolean {
   );
 }
 
+/** Display: HH:mm:ss dd/MM/yyyy in Asia/Ho_Chi_Minh (business clock). */
 export function formatViDateTime(isoDateTime: string): string {
   const date = new Date(isoDateTime);
   if (Number.isNaN(date.getTime())) {
     return isoDateTime;
   }
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const mo = String(date.getMonth() + 1).padStart(2, "0");
-  const yyyy = date.getFullYear();
-  return `${hh}:${mm} ${dd}/${mo}/${yyyy}`;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("hour")}:${get("minute")}:${get("second")} ${get("day")}/${get("month")}/${get("year")}`;
 }
 
 export function formatViClock(isoDateTime: string): string {

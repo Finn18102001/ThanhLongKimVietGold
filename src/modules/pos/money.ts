@@ -1,7 +1,7 @@
 /** Integer VND helpers for POS price adjustment and charges. Backend remains source of truth. */
 
 export const PRICE_ADJ_LIMIT_PER_CHI = 300_000;
-/** Step for +/- on transaction unit price in cart. */
+/** Step for +/- on transaction price / 1 chỉ in cart. */
 export const PRICE_UNIT_STEP_DONG = 10_000;
 
 export const PRICE_OUT_OF_RANGE_INLINE =
@@ -17,6 +17,28 @@ export type PosChargeDraft = {
   reason: string;
 };
 
+/** Giá niêm yết quy đổi về 1 chỉ (từ đơn giá SP = giá × định lượng + công). */
+export function referencePricePerChiDong(
+  referenceUnitDong: number,
+  weightChi: number,
+): number {
+  if (!Number.isFinite(referenceUnitDong)) return 0;
+  if (weightChi <= 0) return Math.trunc(referenceUnitDong);
+  return Math.round(referenceUnitDong / weightChi);
+}
+
+/** Giá giao dịch / 1 chỉ = bảng/chỉ + điều chỉnh/chỉ. */
+export function transactionPricePerChiDong(
+  referenceUnitDong: number,
+  adjustmentPerChi: number,
+  weightChi: number,
+): number {
+  return (
+    referencePricePerChiDong(referenceUnitDong, weightChi) + Math.trunc(adjustmentPerChi || 0)
+  );
+}
+
+/** Piece (SP) unit = bảng SP + round(adj × chỉ). BE complete_sale uses the same formula. */
 export function lineActualUnitDong(
   referenceUnitDong: number,
   adjustmentPerChi: number,
@@ -25,6 +47,7 @@ export function lineActualUnitDong(
   return referenceUnitDong + Math.round(adjustmentPerChi * weightChi);
 }
 
+/** Thành tiền = giá GD/chỉ × chỉ × SL ⇔ unit SP × SL. */
 export function lineTotalDong(
   referenceUnitDong: number,
   adjustmentPerChi: number,
@@ -42,7 +65,20 @@ export function clampAdjustmentPerChi(value: number): number {
   return rounded;
 }
 
-/** Convert a direct unit (piece) price into adjustment / chỉ (optionally clamped for +/-). */
+/** Convert typed price / 1 chỉ → adjustment / chỉ. */
+export function pricePerChiToAdjustment(
+  pricePerChiDong: number,
+  referenceUnitDong: number,
+  weightChi: number,
+  opts: { clamp?: boolean } = {},
+): number {
+  if (!Number.isFinite(pricePerChiDong)) return 0;
+  const refPerChi = referencePricePerChiDong(referenceUnitDong, weightChi);
+  const raw = Math.trunc(pricePerChiDong) - refPerChi;
+  return opts.clamp === false ? raw : clampAdjustmentPerChi(raw);
+}
+
+/** @deprecated Prefer pricePerChiToAdjustment — kept for hold restore from piece unit. */
 export function unitPriceToAdjustmentPerChi(
   unitPriceDong: number,
   referenceUnitDong: number,
@@ -54,7 +90,6 @@ export function unitPriceToAdjustmentPerChi(
   return opts.clamp === false ? raw : clampAdjustmentPerChi(raw);
 }
 
-/** Clamp a typed unit price into reference ± (300k × weightChi). */
 export function clampUnitPriceDong(
   unitPriceDong: number,
   referenceUnitDong: number,
@@ -64,6 +99,19 @@ export function clampUnitPriceDong(
   return lineActualUnitDong(referenceUnitDong, adj, weightChi);
 }
 
+/** Bounds for Giá GD / 1 chỉ: bảng/chỉ ± 300.000. */
+export function pricePerChiBoundsDong(
+  referenceUnitDong: number,
+  weightChi: number,
+): { min: number; max: number } {
+  const ref = referencePricePerChiDong(referenceUnitDong, weightChi);
+  return {
+    min: ref - PRICE_ADJ_LIMIT_PER_CHI,
+    max: ref + PRICE_ADJ_LIMIT_PER_CHI,
+  };
+}
+
+/** @deprecated Prefer pricePerChiBoundsDong */
 export function unitPriceBoundsDong(
   referenceUnitDong: number,
   weightChi: number,
@@ -73,6 +121,17 @@ export function unitPriceBoundsDong(
     min: referenceUnitDong - Math.round(PRICE_ADJ_LIMIT_PER_CHI * w),
     max: referenceUnitDong + Math.round(PRICE_ADJ_LIMIT_PER_CHI * w),
   };
+}
+
+export function isPricePerChiOutOfAllowedRange(
+  pricePerChiDong: number,
+  referenceUnitDong: number,
+  weightChi: number,
+): boolean {
+  if (!Number.isFinite(pricePerChiDong)) return true;
+  const bounds = pricePerChiBoundsDong(referenceUnitDong, weightChi);
+  const unit = Math.trunc(pricePerChiDong);
+  return unit < bounds.min || unit > bounds.max;
 }
 
 /** True when piece unit price is outside reference ± (300k × weightChi). */

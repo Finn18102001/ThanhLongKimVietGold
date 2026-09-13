@@ -20,9 +20,10 @@ import {
 import {
   PRICE_OUT_OF_RANGE_CONFIRM,
   chargesTotalDong,
-  isUnitPriceOutOfAllowedRange,
+  isPricePerChiOutOfAllowedRange,
   lineActualUnitDong,
   lineTotalDong,
+  transactionPricePerChiDong,
   type PosChargeDraft,
 } from "./money";
 import type {
@@ -147,7 +148,11 @@ export function PosTerminal({
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [reviewing, setReviewing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD">("CASH");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD" | "MIXED">("CASH");
+  const [useCash, setUseCash] = useState(true);
+  const [useTransfer, setUseTransfer] = useState(false);
+  const [cashDong, setCashDong] = useState(0);
+  const [transferDong, setTransferDong] = useState(0);
   const [payMode, setPayMode] = useState<PosPayMode>("FULL");
   const [paidDong, setPaidDong] = useState(0);
   const [dueDate, setDueDate] = useState(defaultDueDateIso);
@@ -170,7 +175,7 @@ export function PosTerminal({
     totalDong: number;
     paidDong: number;
     remainingDong: number;
-    paymentMethod: "CASH" | "TRANSFER" | "CARD";
+    paymentMethod: "CASH" | "TRANSFER" | "CARD" | "MIXED";
     transactionType?: string;
     fulfillmentStatus?: string;
     depositWorkflowStatus?: string | null;
@@ -291,6 +296,13 @@ export function PosTerminal({
 
   const effectivePaidDong = resolvePaidDong(payMode, paidDong, displayTotal);
   const remainingDong = Math.max(0, displayTotal - effectivePaidDong);
+
+  useEffect(() => {
+    syncPaymentAllocations(effectivePaidDong);
+    setPaymentMethod(resolvePaymentMethod());
+    // Intentionally sync when paid target / method toggles change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectivePaidDong, useCash, useTransfer]);
 
   const recentItems = recentIds
     .map((id) => catalog.find((item) => item.skuId === id))
@@ -419,6 +431,10 @@ export function PosTerminal({
     setDueDate(defaultDueDateIso());
     setReviewing(false);
     setPaymentMethod("CASH");
+    setUseCash(true);
+    setUseTransfer(false);
+    setCashDong(0);
+    setTransferDong(0);
     setActiveHeldOrderId(null);
     setActiveHoldNo(null);
     idempotencyKey.current = null;
@@ -455,9 +471,18 @@ export function PosTerminal({
       .map(([skuId, entry]) => {
         const item = catalog.find((row) => row.skuId === skuId);
         if (!item || entry.quantity <= 0) return null;
-        return { sku_id: skuId, quantity: entry.quantity };
+        return {
+          sku_id: skuId,
+          quantity: entry.quantity,
+          price_adjustment_per_chi: entry.adj,
+        };
       })
-      .filter((row): row is { sku_id: string; quantity: number } => row !== null);
+      .filter(
+        (
+          row,
+        ): row is { sku_id: string; quantity: number; price_adjustment_per_chi: number } =>
+          row !== null,
+      );
     if (items.length === 0 || pending || savingHold) return;
     if (!customer || customer.isWalkIn) {
       setAlert({
@@ -472,7 +497,7 @@ export function PosTerminal({
     try {
       const saved = await saveHeldOrder({
         customerId: customer.id,
-        paymentMethod,
+        paymentMethod: resolvePaymentMethod() === "MIXED" ? "CASH" : resolvePaymentMethod(),
         note,
         heldOrderId: activeHeldOrderId,
         items,
@@ -519,7 +544,9 @@ export function PosTerminal({
           missing.push(item.sku);
           continue;
         }
-        nextCart[item.skuId] = { quantity: item.quantity, adj: 0 };
+        const weight = cat.weightChi > 0 ? cat.weightChi : 1;
+        const adj = Math.round((item.unitPriceDong - cat.unitPriceDong) / weight);
+        nextCart[item.skuId] = { quantity: item.quantity, adj };
         if (cat.quantity > 0 && item.quantity > cat.quantity) {
           overStock.push(`${item.name} (tồn ${cat.quantity}, đơn ${item.quantity})`);
         }
@@ -537,7 +564,9 @@ export function PosTerminal({
       setRecentIds(Object.keys(nextCart));
       setCustomer(customerFromHold(detail));
       setNote(detail.note ?? "");
-      setPaymentMethod(detail.paymentMethod);
+      setPaymentMethod(detail.paymentMethod === "TRANSFER" ? "TRANSFER" : "CASH");
+      setUseCash(detail.paymentMethod !== "TRANSFER");
+      setUseTransfer(detail.paymentMethod === "TRANSFER");
       setPayMode("FULL");
       setPaidDong(0);
       setDueDate(defaultDueDateIso());
@@ -605,15 +634,85 @@ export function PosTerminal({
       if (charge.amountDong <= 0) return "Khoản thu thêm phải lớn hơn 0. Không dùng khoản âm để giảm giá.";
       if (!charge.reason.trim()) return `Khoản "${named}" cần lý do.`;
     }
-    if (payMode === "FULL") return null;
-    if (!dueDate) return "Đơn còn nợ phải có ngày hẹn trả tiền.";
+    if (payMode === "FULL") {
+      return paymentSplitValidationError(displayTotal);
+    }
+    if (effectivePaidDong < displayTotal && !dueDate) {
+      return "Đơn còn nợ phải có ngày hẹn trả tiền.";
+    }
     if (payMode === "PARTIAL") {
-      if (paidDong <= 0) return "Thanh toán một phần cần số tiền thu lớn hơn 0.";
-      if (paidDong >= displayTotal) {
-        return "Số tiền một phần phải nhỏ hơn tổng đơn. Chọn Đủ nếu thu hết.";
+      if (paidDong <= 0) return "Thanh toán một phần / đặt cọc cần số tiền thu lớn hơn 0.";
+      if (paidDong > displayTotal) {
+        return "Số tiền thu không được vượt tổng đơn.";
+      }
+    }
+    return paymentSplitValidationError(effectivePaidDong);
+  }
+
+  function paymentSplitValidationError(targetPaid: number): string | null {
+    if (targetPaid <= 0) return null;
+    if (!useCash && !useTransfer) {
+      return "Chọn ít nhất một hình thức thanh toán (Tiền mặt và/hoặc Chuyển khoản).";
+    }
+    const cashPart = useCash ? Math.max(0, Math.trunc(cashDong)) : 0;
+    const transferPart = useTransfer ? Math.max(0, Math.trunc(transferDong)) : 0;
+    if (useCash && !useTransfer && cashPart !== targetPaid) {
+      return "Số tiền mặt phải bằng số tiền thu.";
+    }
+    if (useTransfer && !useCash && transferPart !== targetPaid) {
+      return "Số tiền chuyển khoản phải bằng số tiền thu.";
+    }
+    if (useCash && useTransfer) {
+      if (cashPart <= 0 || transferPart <= 0) {
+        return "Khi chọn cả hai hình thức, mỗi khoản phải lớn hơn 0.";
+      }
+      if (cashPart + transferPart !== targetPaid) {
+        return `Tổng tiền mặt + chuyển khoản phải bằng số tiền thu (${targetPaid.toLocaleString("vi-VN")}đ).`;
       }
     }
     return null;
+  }
+
+  function resolvePaymentMethod(): "CASH" | "TRANSFER" | "MIXED" {
+    if (useCash && useTransfer) return "MIXED";
+    if (useTransfer) return "TRANSFER";
+    return "CASH";
+  }
+
+  function buildPaymentSplits(targetPaid: number): Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }> {
+    if (targetPaid <= 0) return [];
+    const splits: Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }> = [];
+    if (useCash) {
+      const amount = useTransfer ? Math.max(0, Math.trunc(cashDong)) : targetPaid;
+      if (amount > 0) splits.push({ method: "CASH", amount_dong: amount });
+    }
+    if (useTransfer) {
+      const amount = useCash ? Math.max(0, Math.trunc(transferDong)) : targetPaid;
+      if (amount > 0) splits.push({ method: "TRANSFER", amount_dong: amount });
+    }
+    return splits;
+  }
+
+  function syncPaymentAllocations(targetPaid: number, nextCash = useCash, nextTransfer = useTransfer) {
+    if (targetPaid <= 0 || (!nextCash && !nextTransfer)) {
+      setCashDong(0);
+      setTransferDong(0);
+      return;
+    }
+    if (nextCash && nextTransfer) {
+      const cash = Math.min(Math.max(0, Math.trunc(cashDong)), targetPaid);
+      const safeCash = cash > 0 && cash < targetPaid ? cash : Math.floor(targetPaid / 2);
+      setCashDong(safeCash);
+      setTransferDong(targetPaid - safeCash);
+      return;
+    }
+    if (nextCash) {
+      setCashDong(targetPaid);
+      setTransferDong(0);
+      return;
+    }
+    setCashDong(0);
+    setTransferDong(targetPaid);
   }
 
   function openReview() {
@@ -628,8 +727,12 @@ export function PosTerminal({
       return;
     }
     const priceOut = lines.some((line) =>
-      isUnitPriceOutOfAllowedRange(
-        line.unitPriceDong,
+      isPricePerChiOutOfAllowedRange(
+        transactionPricePerChiDong(
+          line.referenceUnitPriceDong,
+          line.priceAdjustmentPerChi,
+          line.weightChi,
+        ),
         line.referenceUnitPriceDong,
         line.weightChi,
       ),
@@ -667,8 +770,12 @@ export function PosTerminal({
       return;
     }
     const priceOut = lines.some((line) =>
-      isUnitPriceOutOfAllowedRange(
-        line.unitPriceDong,
+      isPricePerChiOutOfAllowedRange(
+        transactionPricePerChiDong(
+          line.referenceUnitPriceDong,
+          line.priceAdjustmentPerChi,
+          line.weightChi,
+        ),
         line.referenceUnitPriceDong,
         line.weightChi,
       ),
@@ -696,7 +803,9 @@ export function PosTerminal({
       idempotencyKey.current = crypto.randomUUID();
     }
     const paidToSend = resolvePaidDong(payMode, paidDong, displayTotal);
-    const dueToSend = payMode === "FULL" ? null : dueDate;
+    const dueToSend = paidToSend < displayTotal ? dueDate : null;
+    const method = resolvePaymentMethod();
+    const splits = buildPaymentSplits(paidToSend);
     const chargePayload = charges
       .filter((row) => row.name.trim() && row.amountDong > 0)
       .map((row) => ({
@@ -708,7 +817,8 @@ export function PosTerminal({
       customerId: customer.id,
       customerName: customer.name,
       customerPhone: customer.phone,
-      paymentMethod,
+      paymentMethod: method,
+      paymentSplits: splits,
       note,
       idempotencyKey: idempotencyKey.current,
       paidDong: paidToSend,
@@ -760,7 +870,7 @@ export function PosTerminal({
           totalDong: Number(result.total_dong),
           paidDong: Number(result.paid_dong),
           remainingDong: Number(result.remaining_dong),
-          paymentMethod,
+          paymentMethod: method,
           transactionType: result.transaction_type,
           fulfillmentStatus: result.fulfillment_status,
           depositWorkflowStatus: depositWf ?? null,
@@ -974,7 +1084,10 @@ export function PosTerminal({
             charges={charges}
             displayTotal={displayTotal}
             note={note}
-            paymentMethod={paymentMethod}
+            useCash={useCash}
+            useTransfer={useTransfer}
+            cashDong={cashDong}
+            transferDong={transferDong}
             payMode={payMode}
             paidDong={paidDong}
             dueDate={dueDate}
@@ -987,7 +1100,24 @@ export function PosTerminal({
             onOpenCustomer={() => setPickingCustomer(true)}
             onClear={clearOrder}
             onNoteChange={setNote}
-            onPaymentChange={setPaymentMethod}
+            onUseCashChange={(value) => {
+              setUseCash(value);
+              if (!value && !useTransfer) setUseTransfer(true);
+            }}
+            onUseTransferChange={(value) => {
+              setUseTransfer(value);
+              if (!value && !useCash) setUseCash(true);
+            }}
+            onCashDongChange={(value) => {
+              const capped = Math.max(0, Math.min(value, effectivePaidDong));
+              setCashDong(capped);
+              if (useTransfer) setTransferDong(Math.max(0, effectivePaidDong - capped));
+            }}
+            onTransferDongChange={(value) => {
+              const capped = Math.max(0, Math.min(value, effectivePaidDong));
+              setTransferDong(capped);
+              if (useCash) setCashDong(Math.max(0, effectivePaidDong - capped));
+            }}
             onPayModeChange={setPayMode}
             onPaidDongChange={setPaidDong}
             onDueDateChange={setDueDate}

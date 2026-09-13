@@ -72,11 +72,14 @@ body {
    * Purchase print also goes through an about:blank iframe (see purchase/print.ts).
    */
   @page {
+    /* Fallback for non-invoice prints that still use window.print.
+       Sales invoice print uses invoice/print.ts iframe with 205×148 as @page default. */
     size: A4 portrait;
     margin: 0;
   }
 
   @page gold-certificate {
+    /* Project phôi Giấy đảm bảo vàng — GOLD_CERTIFICATE 205 × 148 mm (A5 ngang). */
     size: 205mm 148mm;
     margin: 0;
   }

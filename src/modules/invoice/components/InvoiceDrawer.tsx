@@ -474,9 +474,6 @@ export function InvoiceDrawer({
                       {line.weightChi > 0
                         ? `${formatDong(Math.round(line.unitPriceDong / line.weightChi))}/chỉ`
                         : formatDong(line.unitPriceDong)}
-                      {line.quantity > 1
-                        ? ` · SP ${formatDong(line.unitPriceDong)}`
-                        : ""}
                     </p>
                   </td>
                   <td className="py-2 text-right align-top">

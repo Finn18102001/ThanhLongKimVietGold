@@ -1,0 +1,15 @@
+---
+description: Hard-test / DevTools flow — login first, never deep-link after boot
+alwaysApply: true
+---
+
+# TLKV — DevTools hard-test flow
+
+When debugging with Chrome DevTools / browser MCP / hard-test UI:
+
+1. **Boot only:** ensure `npm run dev` on **port 3000** (or 3001 if 3000 busy). Do not navigate to the feature route yet.
+2. **Login first (mandatory):** open `/login` (or app entry), sign in with the hard-test account the user gave, wait until the admin shell is ready (sidebar + session visible).
+3. **Then** navigate through normal UI (sidebar / in-app links) to the screen under test. Prefer clicking the real menu over typing a deep URL when both work.
+4. **Forbidden:** right after the port is up, jumping straight to `/purchase`, `/invoices`, `/pos`, print routes, or any deep link that skips login. That burns tokens on auth redirects, empty shells, and retries.
+5. If the session is already logged in from a prior step in the **same** conversation, reuse that tab; still do not skip login when the tab is logged out or on `about:blank`.
+6. Re-login when the session expired or you opened a fresh browser profile/tab without cookies.

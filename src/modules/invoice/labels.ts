@@ -91,6 +91,9 @@ export function paymentBadgeClass(method: string): string {
   if (method === "CARD") {
     return "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]";
   }
+  if (method === "MIXED") {
+    return "bg-[var(--tlkv-violet-soft)] text-[var(--tlkv-violet)]";
+  }
   return "bg-[var(--tlkv-slate-soft)] text-[var(--tlkv-slate)]";
 }
 
@@ -181,7 +184,7 @@ export function invoiceLifecycleLabel(status: InvoiceLifecycleStatus): string {
     case "PARTIAL":
       return "Thanh toán một phần";
     case "AWAITING_GOLD":
-      return "Chưa trả vàng";
+      return "Đặt hàng / Chờ giao hàng";
     case "AWAITING_PAYMENT":
       return "Chưa thanh toán đủ";
     case "COMPLETED":

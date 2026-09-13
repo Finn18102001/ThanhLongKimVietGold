@@ -113,7 +113,9 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const from = filter.from || null;
   const to = filter.to || null;
 
-  const needsInnerSale = Boolean(paymentMethod || paymentStatus || transactionType || fulfillment);
+  const needsInnerSale = Boolean(
+    paymentMethod || paymentStatus || transactionType || fulfillment || filter.goldDelivery,
+  );
   const saleSelect = needsInnerSale
     ? `pos_sales!inner(${SALE_COLS})`
     : `pos_sales(${SALE_COLS})`;
@@ -148,6 +150,17 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
     builder = builder.in("pos_sales.fulfillment_status", ["UNFULFILLED", "READY"]);
   } else if (fulfillment === "FULFILLED") {
     builder = builder.eq("pos_sales.fulfillment_status", "FULFILLED");
+  }
+
+  // Đặt hàng / đặt cọc: đã trả vàng | chưa trả vàng (kèm HĐ đã giao nhưng chưa đủ tiền khi chọn đã trả).
+  if (filter.goldDelivery === "UNFULFILLED") {
+    builder = builder
+      .in("pos_sales.transaction_type", ["PREORDER", "DEPOSIT"])
+      .in("pos_sales.fulfillment_status", ["UNFULFILLED", "READY"]);
+  } else if (filter.goldDelivery === "DELIVERED") {
+    builder = builder
+      .in("pos_sales.transaction_type", ["PREORDER", "DEPOSIT"])
+      .eq("pos_sales.fulfillment_status", "FULFILLED");
   }
 
   if (query) {
@@ -505,6 +518,10 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         quantity: quantityRaw == null || quantityRaw === "" ? null : Number(quantityRaw),
         weightChi: weightRaw == null || weightRaw === "" ? null : Number(weightRaw),
         brandName: String(row.brandName ?? ""),
+        unitPriceDong:
+          row.unitPriceDong == null || row.unitPriceDong === ""
+            ? null
+            : Number(row.unitPriceDong),
         note: String(row.note ?? ""),
         pickupDueAt: row.pickupDueAt ? String(row.pickupDueAt) : null,
         goldDeliveredAt: row.goldDeliveredAt ? String(row.goldDeliveredAt) : null,

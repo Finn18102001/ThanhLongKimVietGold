@@ -10,8 +10,8 @@ function depositDong(bundle: DepositSaleBundle): number {
 }
 
 /**
- * PHIẾU ĐẶT CỌC MUA VÀNG
- * Layout locked to PHIẾU ĐẶT CỌC MUA VÀNG.docx
+ * PHIẾU ĐẶT CỌC MUA HÀNG KIÊM PHIẾU THU TIỀN
+ * Layout locked to PHIẾU ĐẶT CỌC MUA VÀNG.docx (updated title).
  */
 export function DepositVoucherDocument({ bundle }: { bundle: DepositSaleBundle }) {
   const extras = bundle.payload;
@@ -26,7 +26,7 @@ export function DepositVoucherDocument({ bundle }: { bundle: DepositSaleBundle }
   return (
     <article className="sale-deposit-print bg-white text-black">
       <p className="text-center font-bold uppercase" style={{ fontSize: "16pt", letterSpacing: "0.04em" }}>
-        Phiếu đặt cọc mua vàng
+        Phiếu đặt cọc mua hàng kiêm phiếu thu tiền
       </p>
       <div className="flex items-baseline justify-between" style={{ marginTop: "2.5mm", fontSize: "12pt" }}>
         <p className="font-bold">Số: {formatLegalDocNo(bundle.depositSlipNo, "PDC")}</p>

@@ -133,7 +133,15 @@ export async function listCustomerActivity(
     supabase
       .from("pos_invoices")
       .select(
-        "id, invoice_no, issued_at, total_dong, pos_sales!inner(sale_no, paid_dong, remaining_dong, payment_status, status, payment_method, transaction_type, fulfillment_status, customer_id)",
+        `id, invoice_no, issued_at, total_dong,
+         pos_sales!inner(
+           id, sale_no, paid_dong, remaining_dong, payment_status, status, payment_method,
+           transaction_type, fulfillment_status, customer_id,
+           pos_sale_items(
+             product_name_snapshot, unit_price_dong, total_price_dong, quantity,
+             pos_skus(name, brands!pos_skus_brand_id_fkey(name))
+           )
+         )`,
       )
       .eq("customer_id", id)
       .eq("pos_sales.status", "COMPLETED")
@@ -142,7 +150,12 @@ export async function listCustomerActivity(
     supabase
       .from("pos_buys")
       .select(
-        "id, buy_no, completed_at, created_at, total_dong, paid_dong, remaining_dong, payment_status, status, payment_method",
+        `id, buy_no, completed_at, created_at, total_dong, paid_dong, remaining_dong,
+         payment_status, status, payment_method,
+         pos_buy_items(
+           product_name_snapshot, brand_name, unit_price_dong, total_price_dong, quantity,
+           pos_skus(name, brands!pos_skus_brand_id_fkey(name))
+         )`,
       )
       .eq("customer_id", id)
       .eq("status", "COMPLETED")
@@ -153,6 +166,15 @@ export async function listCustomerActivity(
   if (salesRes.error) throw new Error(salesRes.error.message);
   if (buysRes.error) throw new Error(buysRes.error.message);
 
+  type BrandEmbed = { name: string | null } | { name: string | null }[] | null;
+  type SkuEmbed = { name: string | null; brands: BrandEmbed } | null;
+  type SaleItem = {
+    product_name_snapshot: string | null;
+    unit_price_dong: number | null;
+    total_price_dong: number | null;
+    quantity: number | null;
+    pos_skus: SkuEmbed | SkuEmbed[];
+  };
   type SaleEmbed = {
     sale_no: string;
     paid_dong: number | null;
@@ -162,12 +184,37 @@ export async function listCustomerActivity(
     payment_method: string | null;
     transaction_type: string | null;
     fulfillment_status: string | null;
+    pos_sale_items: SaleItem[] | null;
+  };
+  type BuyItem = {
+    product_name_snapshot: string | null;
+    brand_name: string | null;
+    unit_price_dong: number | null;
+    total_price_dong: number | null;
+    quantity: number | null;
+    pos_skus: SkuEmbed | SkuEmbed[];
   };
 
-  const sales = (salesRes.data ?? []).map((row) => {
+  function brandNameOf(sku: SkuEmbed | SkuEmbed[] | null | undefined): string {
+    const row = Array.isArray(sku) ? sku[0] : sku;
+    const brands = row?.brands;
+    const brand = Array.isArray(brands) ? brands[0] : brands;
+    return brand?.name?.trim() || "";
+  }
+
+  function productNameOf(
+    snapshot: string | null | undefined,
+    sku: SkuEmbed | SkuEmbed[] | null | undefined,
+  ): string {
+    const row = Array.isArray(sku) ? sku[0] : sku;
+    return snapshot?.trim() || row?.name?.trim() || "";
+  }
+
+  const sales: CustomerHistoryItem[] = [];
+  for (const row of salesRes.data ?? []) {
     const sale = Array.isArray(row.pos_sales) ? row.pos_sales[0] : row.pos_sales;
     const s = sale as SaleEmbed | null;
-    return mapHistory({
+    const base = mapHistory({
       activity_id: String(row.id),
       activity_kind: "SALE",
       doc_no: row.invoice_no,
@@ -184,10 +231,26 @@ export async function listCustomerActivity(
       transaction_type: s?.transaction_type ?? "SALE",
       fulfillment_status: s?.fulfillment_status ?? "DELIVERED",
     });
-  });
+    const items = s?.pos_sale_items ?? [];
+    if (items.length === 0) {
+      sales.push(base);
+      continue;
+    }
+    for (const [idx, item] of items.entries()) {
+      sales.push({
+        ...base,
+        activityId: `${base.activityId}:${idx}`,
+        totalDong: Number(item.total_price_dong ?? base.totalDong),
+        productName: productNameOf(item.product_name_snapshot, item.pos_skus),
+        brandName: brandNameOf(item.pos_skus),
+        unitPriceDong: item.unit_price_dong == null ? null : Number(item.unit_price_dong),
+      });
+    }
+  }
 
-  const buys = (buysRes.data ?? []).map((row) =>
-    mapHistory({
+  const buys: CustomerHistoryItem[] = [];
+  for (const row of buysRes.data ?? []) {
+    const base = mapHistory({
       activity_id: String(row.id),
       activity_kind: "BUY",
       doc_no: row.buy_no,
@@ -203,8 +266,23 @@ export async function listCustomerActivity(
       payment_method: row.payment_method ?? "",
       transaction_type: "BUY",
       fulfillment_status: "RECEIVED",
-    }),
-  );
+    });
+    const items = (row.pos_buy_items ?? []) as BuyItem[];
+    if (items.length === 0) {
+      buys.push(base);
+      continue;
+    }
+    for (const [idx, item] of items.entries()) {
+      buys.push({
+        ...base,
+        activityId: `${base.activityId}:${idx}`,
+        totalDong: Number(item.total_price_dong ?? base.totalDong),
+        productName: productNameOf(item.product_name_snapshot, item.pos_skus),
+        brandName: item.brand_name?.trim() || brandNameOf(item.pos_skus),
+        unitPriceDong: item.unit_price_dong == null ? null : Number(item.unit_price_dong),
+      });
+    }
+  }
 
   return [...sales, ...buys].sort(
     (a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime(),

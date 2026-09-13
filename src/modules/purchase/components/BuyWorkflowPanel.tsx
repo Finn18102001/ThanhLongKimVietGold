@@ -66,6 +66,7 @@ export function BuyWorkflowPanel({
   const purityRef = useRef<HTMLInputElement | null>(null);
   const relatedRef = useRef<HTMLInputElement | null>(null);
   const hasPurity = hasPurityTestAttachment(buy.attachments);
+  const skipMelt = Boolean(buy.skipMelt);
   const busy = pending || uploadPending;
 
   useEffect(() => {
@@ -111,7 +112,7 @@ export function BuyWorkflowPanel({
   }
 
   const pastCommitment = !["INTAKE", "MELT_COMMITTED"].includes(wf);
-  const showPurityUpload = wf === "WEIGHT_ENTERED" && !hasPurity;
+  const showPurityUpload = wf === "WEIGHT_ENTERED" && !hasPurity && !skipMelt;
   const showConfirm = wf === "AWAITING_CONFIRM";
   const showInvoice = wf === "INVOICE_ISSUED";
   const showForm02 = wf === "FORM02_READY";
@@ -158,38 +159,71 @@ export function BuyWorkflowPanel({
       <ul className="mt-3 space-y-1.5 border-t border-[var(--tlkv-line)] pt-3 text-[11px] text-[var(--tlkv-muted)]">
         <TimelineRow done={true} label="Tiếp nhận" meta={buy.buyNo} />
         <TimelineRow
-          done={Boolean(buy.meltCommitmentNo) || pastCommitment || wf === "COMPLETED"}
+          done={
+            skipMelt ||
+            Boolean(buy.meltCommitmentNo) ||
+            pastCommitment ||
+            wf === "COMPLETED"
+          }
           label="Cam kết nấu"
-          meta={buy.meltCommitmentNo || "—"}
+          meta={
+            buy.meltCommitmentNo
+              ? buy.meltCommitmentNo
+              : skipMelt
+                ? "Bỏ qua"
+                : "—"
+          }
         />
         <TimelineRow
           done={
+            skipMelt ||
             Boolean(buy.meltingStartedAt) ||
             ["MELTING", "WEIGHT_ENTERED", "AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(
               wf,
             )
           }
           label="Nấu vàng"
-          meta={buy.meltingStartedAt ? formatViDateTime(buy.meltingStartedAt) : "—"}
+          meta={
+            buy.meltingStartedAt
+              ? formatViDateTime(buy.meltingStartedAt)
+              : skipMelt
+                ? "Bỏ qua"
+                : "—"
+          }
         />
         <TimelineRow
           done={
+            skipMelt ||
             buy.items.some((i) => i.weightAfterChi != null) ||
             ["WEIGHT_ENTERED", "AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)
           }
           label="KL sau nấu"
           meta={
-            buy.items.some((i) => i.weightAfterChi != null)
+            skipMelt
               ? buy.items
-                  .map((i) => (i.weightAfterChi != null ? formatChi(i.weightAfterChi) : "—"))
+                  .map((i) =>
+                    formatChi(
+                      i.weightAfterChi ?? i.weightBeforeChi ?? i.weightChi,
+                    ),
+                  )
                   .join(", ")
-              : "—"
+              : buy.items.some((i) => i.weightAfterChi != null)
+                ? buy.items
+                    .map((i) => (i.weightAfterChi != null ? formatChi(i.weightAfterChi) : "—"))
+                    .join(", ")
+                : "—"
           }
         />
         <TimelineRow
-          done={hasPurity || ["AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)}
+          done={
+            skipMelt ||
+            hasPurity ||
+            ["AWAITING_CONFIRM", "INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)
+          }
           label="Phiếu kiểm tra HL"
-          meta={hasPurity ? "Đã upload" : "Bắt buộc"}
+          meta={
+            hasPurity ? "Đã upload" : skipMelt ? "Không yêu cầu" : "Bắt buộc"
+          }
         />
         <TimelineRow
           done={["INVOICE_ISSUED", "FORM02_READY", "COMPLETED"].includes(wf)}
@@ -356,7 +390,14 @@ export function BuyWorkflowPanel({
             </PrimaryBtn>
           ) : null}
           {showConfirm ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              {skipMelt ? (
+                <p className="rounded-lg bg-[var(--tlkv-bg)] px-2.5 py-2 text-[11px] text-[var(--tlkv-muted)]">
+                  Nhánh không nấu — khách xác nhận bán sản phẩm theo thông tin đã nhập. Không yêu cầu
+                  phiếu cam kết / phiếu hàm lượng.
+                </p>
+              ) : null}
+              <div className="grid grid-cols-2 gap-2">
               <PrimaryBtn
                 pending={pending}
                 onClick={onConfirmAgree}
@@ -373,6 +414,7 @@ export function BuyWorkflowPanel({
                 <XCircle size={14} />
                 Không đồng ý
               </button>
+              </div>
             </div>
           ) : null}
           {showInvoice ? (
@@ -387,7 +429,7 @@ export function BuyWorkflowPanel({
           ) : null}
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {canPrintCommitmentFromFlow(wf) ? (
+            {canPrintCommitmentFromFlow(wf, skipMelt) ? (
               <GhostPrint label="In cam kết" onClick={onPrintCommitment} />
             ) : null}
             {showInvoice || wf === "FORM02_READY" || wf === "COMPLETED" ? (
