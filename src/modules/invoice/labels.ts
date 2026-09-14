@@ -66,8 +66,7 @@ export function fulfillmentLabel(
 }
 
 export function transactionTypeLabel(transactionType: string | null | undefined): string {
-  if (transactionType === "PREORDER") return "Đặt hàng";
-  if (transactionType === "DEPOSIT") return "Đặt cọc";
+  if (transactionType === "PREORDER" || transactionType === "DEPOSIT") return "Đặt hàng";
   return "Bán ngay";
 }
 

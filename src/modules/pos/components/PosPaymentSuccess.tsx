@@ -36,7 +36,7 @@ export function PosPaymentSuccess({
 }) {
   const [seconds, setSeconds] = useState(2);
   const hasReceivable = remainingDong > 0;
-  const isPreorder = transactionType === "PREORDER";
+  const isPreorder = transactionType === "PREORDER" || transactionType === "DEPOSIT";
   const unfulfilled = isPreorder && fulfillmentStatus !== "FULFILLED";
 
   useEffect(() => {

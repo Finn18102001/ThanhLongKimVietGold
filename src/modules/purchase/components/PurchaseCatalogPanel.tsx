@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import {
+  isGoldCatalogItem,
+  prioritizeGoldFirst,
+  prioritizeGoldGroupLabels,
+} from "@/shared/lib/catalog-priority";
 import type { PurchaseCatalogItem } from "../types";
 import { PurchaseCatalogCard } from "./PurchaseCatalogCard";
 
@@ -23,7 +28,7 @@ export function PurchaseCatalogPanel({
 
   const groups = useMemo(() => {
     const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
-    return ["Tất cả", ...unique];
+    return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
   }, [catalog]);
 
   const brandOptions = useMemo(() => {
@@ -35,7 +40,7 @@ export function PurchaseCatalogPanel({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return catalog.filter((item) => {
+    const rows = catalog.filter((item) => {
       const matchesBrand =
         brandName === "all" ||
         (brandName === "none"
@@ -50,6 +55,7 @@ export function PurchaseCatalogPanel({
         (item.brandName || "").toLowerCase().includes(q);
       return matchesBrand && matchesGroup && matchesQuery;
     });
+    return prioritizeGoldFirst(rows, isGoldCatalogItem);
   }, [brandName, catalog, group, query]);
 
   useEffect(() => {

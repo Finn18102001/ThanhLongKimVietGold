@@ -6,7 +6,10 @@ import type { AuditLogRow } from "../types";
 import { formatAuditPayloadSections, type AuditDetailSection } from "../snapshotDisplay";
 
 export function AuditDrawer({ row, onClose }: { row: AuditLogRow; onClose: () => void }) {
-  const sections = formatAuditPayloadSections(row.action, row.payload);
+  const sections = formatAuditPayloadSections(row.action, row.payload, {
+    voidedAt: row.createdAt,
+    voidedBy: row.actorEmail,
+  });
   const leftover = leftoverPayloadEntries(row.payload, sections);
 
   return (

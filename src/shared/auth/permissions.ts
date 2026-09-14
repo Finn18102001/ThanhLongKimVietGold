@@ -30,6 +30,7 @@ export const ADMIN_ONLY_HREFS = new Set<string>([
   ROUTES.suppliers,
   ROUTES.settings,
   ROUTES.audit,
+  ROUTES.form02,
   ROUTES.inventoryAdjust,
   ROUTES.inventoryCount,
 ]);

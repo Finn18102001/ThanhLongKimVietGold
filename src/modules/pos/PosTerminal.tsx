@@ -6,8 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowsClockwise, Barcode, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
 import type { CustomerRecord } from "@/modules/customer/types";
+import {
+  isGoldCatalogItem,
+  prioritizeGoldFirst,
+  prioritizeGoldGroupLabels,
+} from "@/shared/lib/catalog-priority";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import { Modal } from "@/shared/ui/Modal";
 import {
   cancelHeldOrder,
   completeHeldSale,
@@ -148,6 +154,7 @@ export function PosTerminal({
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [confirmZeroPay, setConfirmZeroPay] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "CARD" | "MIXED">("CASH");
   const [useCash, setUseCash] = useState(true);
   const [useTransfer, setUseTransfer] = useState(false);
@@ -242,12 +249,12 @@ export function PosTerminal({
 
   const groups = useMemo(() => {
     const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
-    return ["Tất cả", ...unique];
+    return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
   }, [catalog]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return catalog.filter((item) => {
+    const rows = catalog.filter((item) => {
       const matchesBrand =
         brandId === "all" ||
         (brandId === "none" ? !item.brandId : item.brandId === brandId);
@@ -260,6 +267,7 @@ export function PosTerminal({
         (item.brandName || "").toLowerCase().includes(q);
       return matchesBrand && matchesGroup && matchesQuery;
     });
+    return prioritizeGoldFirst(rows, isGoldCatalogItem);
   }, [brandId, catalog, group, query]);
 
   useEffect(() => {
@@ -642,7 +650,6 @@ export function PosTerminal({
       return "Đơn còn nợ phải có ngày hẹn trả tiền.";
     }
     if (payMode === "PARTIAL") {
-      if (paidDong <= 0) return "Thanh toán một phần / đặt cọc cần số tiền thu lớn hơn 0.";
       if (paidDong > displayTotal) {
         return "Số tiền thu không được vượt tổng đơn.";
       }
@@ -753,6 +760,10 @@ export function PosTerminal({
         title: "Không thể xác nhận thanh toán",
         reason: error,
       });
+      return;
+    }
+    if (resolvePaidDong(payMode, paidDong, displayTotal) === 0) {
+      setConfirmZeroPay(true);
       return;
     }
     setReviewing(true);
@@ -1227,6 +1238,38 @@ export function PosTerminal({
             router.push(invoiceDetailPath(no));
           }}
         />
+      ) : null}
+
+      {confirmZeroPay ? (
+        <Modal
+          title="Xác nhận thanh toán 0 đ"
+          onClose={() => setConfirmZeroPay(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setConfirmZeroPay(false)}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
+              >
+                Không
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmZeroPay(false);
+                  setReviewing(true);
+                }}
+                className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
+              >
+                Có, tiếp tục
+              </button>
+            </>
+          }
+        >
+          <p className="text-[13.5px] leading-relaxed">
+            Khách hàng chưa thanh toán tiền. Bạn có chắc chắn muốn tiếp tục không?
+          </p>
+        </Modal>
       ) : null}
 
       {replaceHoldId || cancelHoldId ? (

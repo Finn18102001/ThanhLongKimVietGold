@@ -54,6 +54,14 @@ type VoidSnapshot = {
   invoice_no?: string | null;
   buy_no?: string | null;
   receipt_no?: string | null;
+  received_at?: string | null;
+  receivedAt?: string | null;
+  received_by?: string | null;
+  receivedBy?: string | null;
+  total_quantity?: number | null;
+  totalQuantity?: number | null;
+  total_weight_chi?: number | null;
+  totalWeightChi?: number | null;
   items?: SnapshotItem[];
   payments?: SnapshotPayment[];
 };
@@ -88,8 +96,60 @@ function asSnapshot(payload: Record<string, unknown> | null | undefined): VoidSn
   return raw as VoidSnapshot;
 }
 
-function buyOrSaleSections(snapshot: VoidSnapshot, mode: "buy" | "sale"): AuditDetailSection[] {
+function itemWeight(item: SnapshotItem): number {
+  const w =
+    item.weight_chi ??
+    item.weightChi ??
+    item.weight_after_chi ??
+    item.weightAfterChi ??
+    item.weight_before_chi ??
+    item.weightBeforeChi;
+  return w == null || !Number.isFinite(Number(w)) ? 0 : Number(w);
+}
+
+function sumSaleWeightChi(items: SnapshotItem[]): number {
+  return items.reduce((sum, item) => {
+    const qty = item.quantity == null || !Number.isFinite(Number(item.quantity)) ? 1 : Number(item.quantity);
+    return sum + itemWeight(item) * qty;
+  }, 0);
+}
+
+function sumPurchaseQty(items: SnapshotItem[]): number {
+  return items.reduce((sum, item) => {
+    const qty = item.quantity == null || !Number.isFinite(Number(item.quantity)) ? 0 : Number(item.quantity);
+    return sum + qty;
+  }, 0);
+}
+
+function sumPurchaseWeight(items: SnapshotItem[]): number {
+  return items.reduce((sum, item) => {
+    const qty = item.quantity == null || !Number.isFinite(Number(item.quantity)) ? 0 : Number(item.quantity);
+    return sum + itemWeight(item) * qty;
+  }, 0);
+}
+
+function saleVoidSections(
+  snapshot: VoidSnapshot,
+  meta: { voidedAt: string | null; voidedBy: string | null },
+): AuditDetailSection[] {
+  const items = snapshot.items ?? [];
+  const totalChi = snapshot.total_weight_chi ?? snapshot.totalWeightChi ?? sumSaleWeightChi(items);
+
   const sections: AuditDetailSection[] = [
+    {
+      title: "Tóm tắt hủy hóa đơn bán",
+      rows: [
+        { label: "Số HĐ", value: text(snapshot.invoice_no) },
+        { label: "Khách hàng (bán cho)", value: text(snapshot.customer_name) },
+        { label: "Số chỉ", value: formatChi(totalChi) },
+        { label: "Tổng tiền", value: dong(snapshot.total_dong) },
+        {
+          label: "Thời gian hủy",
+          value: meta.voidedAt ? formatViDateTime(meta.voidedAt) : "—",
+        },
+        { label: "Người thực hiện hủy", value: text(meta.voidedBy) },
+      ],
+    },
     {
       title: "Thông tin khách hàng",
       rows: [
@@ -97,16 +157,72 @@ function buyOrSaleSections(snapshot: VoidSnapshot, mode: "buy" | "sale"): AuditD
         { label: "CCCD", value: text(snapshot.customer_citizen_id) },
         { label: "SĐT", value: text(snapshot.customer_phone) },
         { label: "Hình thức", value: paymentMethodVi(snapshot.payment_method) },
-        {
-          label: mode === "buy" ? "Đã chi" : "Đã thu",
-          value: dong(snapshot.paid_dong),
-        },
+        { label: "Đã thu", value: dong(snapshot.paid_dong) },
         { label: "Còn lại", value: dong(snapshot.remaining_dong) },
       ],
     },
   ];
 
+  if (items.length > 0) {
+    sections.push({
+      title: "Chi tiết sản phẩm",
+      blocks: items.map((item) => {
+        const name = item.product_name ?? item.productName ?? "—";
+        const total = item.total_dong ?? item.totalDong ?? item.total_price_dong;
+        return [
+          { label: "Sản phẩm", value: text(name) },
+          { label: "KL", value: formatChi(item.weight_chi ?? item.weightChi) },
+          { label: "SL", value: String(item.quantity ?? "—") },
+          { label: "Tiền", value: dong(total) },
+        ];
+      }),
+    });
+  }
+
+  return sections;
+}
+
+function buyVoidSections(
+  snapshot: VoidSnapshot,
+  meta: { voidedAt: string | null; voidedBy: string | null },
+): AuditDetailSection[] {
   const items = snapshot.items ?? [];
+  const totalChi =
+    snapshot.total_weight_chi ??
+    snapshot.totalWeightChi ??
+    items.reduce((sum, item) => {
+      const after = item.weight_after_chi ?? item.weightAfterChi ?? item.weight_chi ?? item.weightChi;
+      return sum + (after == null || !Number.isFinite(Number(after)) ? 0 : Number(after));
+    }, 0);
+
+  const sections: AuditDetailSection[] = [
+    {
+      title: "Tóm tắt hủy phiếu mua",
+      rows: [
+        { label: "Số phiếu", value: text(snapshot.buy_no) },
+        { label: "Người bán", value: text(snapshot.customer_name) },
+        { label: "Số chỉ", value: formatChi(totalChi) },
+        { label: "Tổng tiền", value: dong(snapshot.total_dong) },
+        {
+          label: "Thời gian hủy",
+          value: meta.voidedAt ? formatViDateTime(meta.voidedAt) : "—",
+        },
+        { label: "Người thực hiện hủy", value: text(meta.voidedBy) },
+      ],
+    },
+    {
+      title: "Thông tin khách hàng",
+      rows: [
+        { label: "Khách", value: text(snapshot.customer_name) },
+        { label: "CCCD", value: text(snapshot.customer_citizen_id) },
+        { label: "SĐT", value: text(snapshot.customer_phone) },
+        { label: "Hình thức", value: paymentMethodVi(snapshot.payment_method) },
+        { label: "Đã chi", value: dong(snapshot.paid_dong) },
+        { label: "Còn lại", value: dong(snapshot.remaining_dong) },
+      ],
+    },
+  ];
+
   if (items.length > 0) {
     sections.push({
       title: "Chi tiết sản phẩm",
@@ -117,20 +233,12 @@ function buyOrSaleSections(snapshot: VoidSnapshot, mode: "buy" | "sale"): AuditD
         const after =
           item.weight_after_chi ?? item.weightAfterChi ?? item.weight_chi ?? item.weightChi;
         const total = item.total_dong ?? item.totalDong ?? item.total_price_dong;
-        const rows: AuditDetailRow[] = [{ label: "Sản phẩm", value: text(name) }];
-        if (mode === "buy") {
-          rows.push(
-            { label: "Trước", value: formatChi(before == null ? null : Number(before)) },
-            { label: "Sau", value: formatChi(after == null ? null : Number(after)) },
-          );
-        } else {
-          rows.push(
-            { label: "KL", value: formatChi(item.weight_chi ?? item.weightChi) },
-            { label: "SL", value: String(item.quantity ?? "—") },
-          );
-        }
-        rows.push({ label: "Tiền", value: dong(total) });
-        return rows;
+        return [
+          { label: "Sản phẩm", value: text(name) },
+          { label: "Trước", value: formatChi(before == null ? null : Number(before)) },
+          { label: "Sau", value: formatChi(after == null ? null : Number(after)) },
+          { label: "Tiền", value: dong(total) },
+        ];
       }),
     });
   }
@@ -138,13 +246,45 @@ function buyOrSaleSections(snapshot: VoidSnapshot, mode: "buy" | "sale"): AuditD
   return sections;
 }
 
-function purchaseSections(snapshot: VoidSnapshot): AuditDetailSection[] {
+function purchaseVoidSections(
+  snapshot: VoidSnapshot,
+  meta: { voidedAt: string | null; voidedBy: string | null },
+): AuditDetailSection[] {
+  const items = snapshot.items ?? [];
+  const receivedAt = snapshot.received_at ?? snapshot.receivedAt ?? null;
+  const receivedBy = snapshot.received_by ?? snapshot.receivedBy ?? null;
+  const totalQty = snapshot.total_quantity ?? snapshot.totalQuantity ?? sumPurchaseQty(items);
+  const totalWeight =
+    snapshot.total_weight_chi ?? snapshot.totalWeightChi ?? sumPurchaseWeight(items);
+
   const sections: AuditDetailSection[] = [
+    {
+      title: "Tóm tắt hủy phiếu nhập",
+      rows: [
+        { label: "Số phiếu", value: text(snapshot.receipt_no) },
+        {
+          label: "Ngày nhập",
+          value: receivedAt ? formatViDateTime(String(receivedAt)) : "—",
+        },
+        { label: "Nguồn hàng / Người bán", value: text(snapshot.supplier_name) },
+        {
+          label: "Số lượng / Số chỉ",
+          value: `${Number(totalQty).toLocaleString("vi-VN")} / ${formatChi(totalWeight)}`,
+        },
+        { label: "Tổng tiền", value: dong(snapshot.total_dong) },
+        { label: "Người thực hiện nhập", value: text(receivedBy) },
+        {
+          label: "Thời gian hủy",
+          value: meta.voidedAt ? formatViDateTime(meta.voidedAt) : "—",
+        },
+        { label: "Người thực hiện hủy", value: text(meta.voidedBy) },
+      ],
+    },
     {
       title: "Thông tin phiếu",
       rows: [
         { label: "Nguồn hàng", value: text(snapshot.supplier_name) },
-        { label: "Lý do", value: text(snapshot.reason) },
+        { label: "Lý do nhập", value: text(snapshot.reason) },
       ],
     },
     {
@@ -158,7 +298,6 @@ function purchaseSections(snapshot: VoidSnapshot): AuditDetailSection[] {
     },
   ];
 
-  const items = snapshot.items ?? [];
   if (items.length > 0) {
     sections.push({
       title: "Chi tiết hàng",
@@ -167,6 +306,7 @@ function purchaseSections(snapshot: VoidSnapshot): AuditDetailSection[] {
         { label: "Mã hàng", value: text(item.sku) },
         { label: "Thương hiệu", value: text(item.brand_name ?? item.brandName) },
         { label: "SL", value: String(item.quantity ?? "—") },
+        { label: "Số chỉ/SP", value: formatChi(item.weight_chi ?? item.weightChi) },
         {
           label: "Giá vốn/cái",
           value: dong(item.cost_price_dong ?? item.unit_price_dong ?? item.unitPriceDong),
@@ -204,19 +344,25 @@ function purchaseSections(snapshot: VoidSnapshot): AuditDetailSection[] {
 export function formatAuditPayloadSections(
   action: string,
   payload: Record<string, unknown> | null | undefined,
+  meta: { voidedAt?: string | null; voidedBy?: string | null } = {},
 ): AuditDetailSection[] {
   const snapshot = asSnapshot(payload);
   if (!snapshot) return [];
 
+  const voidMeta = {
+    voidedAt: meta.voidedAt ?? null,
+    voidedBy: meta.voidedBy ?? null,
+  };
+
   const kind = (snapshot.kind || action || "").toUpperCase();
   if (kind.includes("BUY") || action === "BUY_VOID") {
-    return buyOrSaleSections(snapshot, "buy");
+    return buyVoidSections(snapshot, voidMeta);
   }
   if (kind.includes("PURCHASE") || action === "PURCHASE_VOID") {
-    return purchaseSections(snapshot);
+    return purchaseVoidSections(snapshot, voidMeta);
   }
   if (kind.includes("SALE") || kind.includes("INVOICE") || action === "INVOICE_VOID") {
-    return buyOrSaleSections(snapshot, "sale");
+    return saleVoidSections(snapshot, voidMeta);
   }
-  return buyOrSaleSections(snapshot, "sale");
+  return saleVoidSections(snapshot, voidMeta);
 }

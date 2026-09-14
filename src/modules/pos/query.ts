@@ -19,16 +19,19 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
  * Not using unstable_cache: createServerSupabase is cookie-bound.
  * Client keeps meta in memory; only stock is refreshed on tab focus.
  *
- * POS lists every SKU in DB. Website "Hiển thị" (`products.is_active`) must not
- * hide items here — store can sell catalog-hidden products.
+ * Active non-market SKUs only. Market gold/silver stays on the buy slip
+ * (is_market_gold) and must not appear as POS/purchase product cards.
+ * Website `products.is_active` still does not gate store selling.
  */
 async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
+    .eq("is_active", true)
+    .eq("is_market_gold", false)
     .order("name");
   if (error) throw new Error(error.message);
 

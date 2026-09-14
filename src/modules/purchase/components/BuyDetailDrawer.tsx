@@ -8,7 +8,7 @@ import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
   completeBuyMelt,
-  confirmBuyInvoice,
+  confirmBuyInvoiceAndComplete,
   confirmBuyMelt,
   issueMeltCommitment,
   setBuyMeltWeights,
@@ -347,11 +347,14 @@ export function BuyDetailDrawer({
                 onConfirmInvoice={() =>
                   void runWorkflow(
                     () =>
-                      confirmBuyInvoice({
+                      confirmBuyInvoiceAndComplete({
                         buyId: buy.id,
                         idempotencyKey: workflowKey.current || undefined,
                       }),
-                    { print: "form02", successTitle: "Đã xác nhận hóa đơn — tạo Phiếu 02" },
+                    {
+                      print: "form02",
+                      successTitle: "Đã hoàn thành — Phiếu 02 + ghi nhận kho / dòng tiền",
+                    },
                   )
                 }
                 onComplete={() =>
@@ -361,7 +364,9 @@ export function BuyDetailDrawer({
                         buyId: buy.id,
                         idempotencyKey: workflowKey.current || undefined,
                       }),
-                    { successTitle: "Đã hoàn tất — ghi nhận kho / dòng tiền" },
+                    {
+                      successTitle: "Đã hoàn thành — ghi nhận kho / dòng tiền",
+                    },
                   )
                 }
                 onPrintCommitment={() => printDocument("commitment")}

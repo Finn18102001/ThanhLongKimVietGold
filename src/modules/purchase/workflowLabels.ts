@@ -1,18 +1,22 @@
 import type { BuyAttachment, BuyDetail, BuyWorkflowStatus } from "./types";
 
 /**
- * Official melt buy stepper:
- * Tiếp nhận → Cam kết → Nấu → KL + phiếu HL → Xác nhận → HĐ mua → Phiếu 02 → Hoàn tất
+ * Official melt buy stepper (7 steps). Completion is at step 7:
+ * Tiếp nhận → Cam kết nấu → Nấu vàng → Nhập KL sau nấu → Xác nhận KH → Hóa đơn mua → Xác nhận HĐ → Phiếu 02
+ * (no separate “Hoàn tất giao dịch” step).
  */
 export const BUY_WORKFLOW_STEPS = [
   { id: "intake", label: "Tiếp nhận", status: "INTAKE" as const },
   { id: "commitment", label: "Cam kết nấu", status: "MELT_COMMITTED" as const },
   { id: "melting", label: "Nấu vàng", status: "MELTING" as const },
-  { id: "weight", label: "KL + phiếu HL", status: "WEIGHT_ENTERED" as const },
+  { id: "weight", label: "Nhập KL sau nấu", status: "WEIGHT_ENTERED" as const },
   { id: "confirm", label: "Xác nhận KH", status: "AWAITING_CONFIRM" as const },
   { id: "invoice", label: "Hóa đơn mua", status: "INVOICE_ISSUED" as const },
-  { id: "form02", label: "Phiếu 02", status: "FORM02_READY" as const },
-  { id: "done", label: "Hoàn tất", status: "COMPLETED" as const },
+  {
+    id: "form02",
+    label: "Xác nhận HĐ → Phiếu 02",
+    status: "FORM02_READY" as const,
+  },
 ] as const;
 
 export type BuyWorkflowStepId = (typeof BUY_WORKFLOW_STEPS)[number]["id"];
@@ -23,9 +27,9 @@ export const BUY_WORKFLOW_STATUS_LABEL: Record<BuyWorkflowStatus, string> = {
   MELTING: "Đang nấu vàng",
   WEIGHT_ENTERED: "Đã nhập KL — chờ phiếu HL",
   AWAITING_CONFIRM: "Chờ xác nhận khách",
-  INVOICE_ISSUED: "Hóa đơn bán hàng",
-  FORM02_READY: "Phiếu 02",
-  COMPLETED: "Hoàn tất",
+  INVOICE_ISSUED: "Hóa đơn mua — chờ xác nhận",
+  FORM02_READY: "Phiếu 02 — đang hoàn tất",
+  COMPLETED: "Hoàn thành",
   CANCELLED: "Đã hủy",
 };
 
@@ -44,7 +48,9 @@ export function buyAttachmentKindLabel(kind: string): string {
 }
 
 /**
- * Active step index 0..7 for the horizontal stepper.
+ * Active step index 0..6 for the horizontal stepper.
+ * COMPLETED → 7 so every step is marked done.
+ * FORM02_READY is a brief/orphan state still on the last step.
  */
 export function buyWorkflowStepIndex(
   buy: Pick<BuyDetail, "workflowStatus" | "status" | "form02No">,

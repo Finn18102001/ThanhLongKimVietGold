@@ -29,6 +29,7 @@ export const ROUTES = {
   suppliers: "/suppliers",
   settings: "/settings",
   audit: "/audit",
+  form02: "/form02",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

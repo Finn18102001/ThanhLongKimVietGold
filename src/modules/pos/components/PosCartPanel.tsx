@@ -474,7 +474,7 @@ export function PosCartPanel({
             />
             <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
               {payMode === "PARTIAL"
-                ? "Đặt cọc / giữ vàng. Có thể thu đủ 100% nhưng chưa giao — hóa đơn vẫn là đặt hàng đến khi xác nhận giao nhận."
+                ? "Đặt cọc / giữ vàng. Cho phép 0 đ, một phần hoặc đủ 100% nhưng chưa giao — hóa đơn vẫn là đặt hàng (DH) đến khi xác nhận giao nhận."
                 : "Đơn đặt hàng. Kho chưa trừ đến khi giao."}
             </span>
           </label>
@@ -585,11 +585,11 @@ export function PosCartPanel({
                 const digits = event.target.value.replace(/[^\d]/g, "");
                 onPaidDongChange(digits ? Number(digits) : 0);
               }}
-              placeholder="Nhập số đã thu (có thể = tổng đơn)"
-              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-            />
-          </label>
-        ) : null}
+                  placeholder="Nhập số đã thu (0 đ hoặc một phần / đủ tổng)"
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+                />
+              </label>
+            ) : null}
 
         {payMode !== "FULL" && remainingDong > 0 ? (
           <>

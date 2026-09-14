@@ -16,7 +16,7 @@ import {
   collectBuyPayment,
   completeBuy,
   completeBuyMelt,
-  confirmBuyInvoice,
+  confirmBuyInvoiceAndComplete,
   confirmBuyMelt,
   getBuy,
   getCustomerDebtSummary,
@@ -1188,7 +1188,7 @@ export function PurchaseWorkspace({
                   )
                 ) : (
                   <p className="text-[12px] text-[var(--tlkv-muted)]">
-                    Thanh toán / nhập kho chỉ ghi nhận khi hoàn tất (sau Phiếu 02).
+                    Thanh toán / nhập kho ghi nhận khi xác nhận hóa đơn → Phiếu 02 (điểm hoàn thành).
                   </p>
                 )}
                   </>
@@ -1264,11 +1264,14 @@ export function PurchaseWorkspace({
                   onConfirmInvoice={() =>
                     void runWorkflow(
                       () =>
-                        confirmBuyInvoice({
+                        confirmBuyInvoiceAndComplete({
                           buyId: detail.id,
                           idempotencyKey: workflowKey.current || undefined,
                         }),
-                      { print: "form02", successTitle: "Đã xác nhận hóa đơn — tạo Phiếu 02" },
+                      {
+                        print: "form02",
+                        successTitle: "Đã hoàn thành — Phiếu 02 + ghi nhận kho / dòng tiền",
+                      },
                     )
                   }
                   onComplete={() =>
@@ -1278,7 +1281,9 @@ export function PurchaseWorkspace({
                           buyId: detail.id,
                           idempotencyKey: workflowKey.current || undefined,
                         }),
-                      { successTitle: "Đã hoàn tất — ghi nhận kho / dòng tiền" },
+                      {
+                        successTitle: "Đã hoàn thành — ghi nhận kho / dòng tiền",
+                      },
                     )
                   }
                   onPrintCommitment={() => printDocument("commitment")}

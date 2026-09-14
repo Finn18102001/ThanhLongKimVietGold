@@ -132,7 +132,7 @@ export function BuyWorkflowPanel({
           {buy.status === "PROCESSING"
             ? "Đang xử lý"
             : buy.status === "COMPLETED"
-              ? "Hoàn tất"
+              ? "Hoàn thành"
               : buy.status === "VOIDED"
                 ? "Đã hủy"
                 : buy.status === "CANCELLED"
@@ -424,7 +424,7 @@ export function BuyWorkflowPanel({
           ) : null}
           {showForm02 ? (
             <PrimaryBtn pending={pending} onClick={onComplete} icon={<CheckCircle size={14} />}>
-              Hoàn tất giao dịch
+              Tiếp tục hoàn thành (Phiếu 02 đã tạo)
             </PrimaryBtn>
           ) : null}
 

@@ -1247,6 +1247,8 @@ Bổ sung event:
 CREATE_PURCHASE
 UPDATE_PURCHASE
 COMPLETE_PURCHASE
+  (melt buy: COMPLETE_PURCHASE / BUY_COMPLETE gắn với bước
+   “Xác nhận hóa đơn → Phiếu 02”; không còn bước UI “Hoàn tất giao dịch”)
 
 CREATE_SALE
 UPDATE_SALE

@@ -1,6 +1,7 @@
 import {
   ChartBar,
   FolderSimple,
+  Files,
   GearSix,
   HandCoins,
   House,
@@ -40,6 +41,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: ROUTES.employees, label: "Nhân viên", icon: IdentificationBadge },
   { href: ROUTES.suppliers, label: "Nhà cung cấp", icon: Truck },
   { href: ROUTES.cashflow, label: "Quản lý dòng tiền", icon: Wallet },
+  { href: ROUTES.form02, label: "Quản lý Phiếu 02", icon: Files },
   { href: ROUTES.settings, label: "Cài đặt", icon: GearSix },
   { href: ROUTES.audit, label: "Nhật ký hệ thống", icon: Scroll },
 ];

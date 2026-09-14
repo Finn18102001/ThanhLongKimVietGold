@@ -814,6 +814,33 @@ Không tự động cộng 10.
 
 ---
 
+# 21.1. MUA HÀNG TỪ KHÁCH (MELT / PHIẾU 02)
+
+Flow 7 bước:
+
+```text
+Tiếp nhận → Cam kết nấu → Nấu vàng → Nhập KL sau nấu
+  → Xác nhận KH → Hóa đơn mua → Xác nhận hóa đơn → Phiếu 02
+```
+
+**Điểm hoàn thành:** bước “Xác nhận hóa đơn → Phiếu 02”.
+
+Khi xác nhận bước này:
+
+```text
+1) Mint / gắn Phiếu 02
+2) status → COMPLETED
+3) Inventory IN (PURCHASE_RECEIVED / CUSTOMER_BUY) theo dòng
+4) Ghi nhận thanh toán intended + payable (nếu còn)
+```
+
+- **Không** có bước UI riêng “Hoàn tất giao dịch”.
+- **Không** trừ/cộng kho ở các bước trước bước 7.
+- In hóa đơn mua / Phiếu 02 vẫn dùng được sau khi hoàn thành.
+- Chi tiết giá / thị trường / ±300k: `docs/SRS_PURCHASE_Mua_Hang_Tu_Khach.md`.
+
+---
+
 # 22. RETURN
 
 Không sửa sale cũ thành trạng thái khác để che giấu lịch sử.

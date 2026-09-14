@@ -315,6 +315,26 @@ export async function completeBuyMelt(input: {
   return getBuy(input.buyId);
 }
 
+/**
+ * Step 7 completion point: Xác nhận hóa đơn → mint Phiếu 02 → COMPLETED
+ * (stock IN + cash/payable). Same BE RPCs as before; no separate “Hoàn tất” step.
+ * Idempotency keys are distinct so a partial success can resume via completeBuyMelt.
+ */
+export async function confirmBuyInvoiceAndComplete(input: {
+  buyId: string;
+  idempotencyKey?: string;
+}): Promise<BuyDetail> {
+  const base = input.idempotencyKey || crypto.randomUUID();
+  await confirmBuyInvoice({
+    buyId: input.buyId,
+    idempotencyKey: `${base}:form02`,
+  });
+  return completeBuyMelt({
+    buyId: input.buyId,
+    idempotencyKey: `${base}:complete`,
+  });
+}
+
 const BUY_PDF_BUCKET = "buy-attachments";
 
 const ALLOWED_UPLOAD_MIME = new Set([
