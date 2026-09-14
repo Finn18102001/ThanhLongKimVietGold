@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { DownloadSimple, Eye, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
@@ -37,6 +37,8 @@ import type {
 import type { StockReceiptDetail } from "../types-receipt";
 import { InvoiceDrawer } from "./InvoiceDrawer";
 import { StockReceiptDrawer } from "./StockReceiptDrawer";
+
+const SEARCH_DEBOUNCE_MS = 350;
 
 const PAGE_SIZES = [5, 10, 20] as const;
 const EXPORT_LIMIT_OPTIONS = [
@@ -89,6 +91,8 @@ export function InvoiceDirectory({
   const [exportLimit, setExportLimit] = useState<number>(50);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestSeqRef = useRef(0);
 
   const currentPage = Math.floor(page.offset / page.limit) + 1;
   const pageCount = Math.max(1, Math.ceil(page.total / page.limit));
@@ -96,6 +100,12 @@ export function InvoiceDirectory({
   const toRow = Math.min(page.offset + page.items.length, page.total);
 
   const pages = useMemo(() => pageNumbers(currentPage, pageCount), [currentPage, pageCount]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   function refresh(next: {
     query?: string;
@@ -115,6 +125,7 @@ export function InvoiceDirectory({
     const nextGoldDelivery = next.goldDelivery ?? goldDelivery;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
+    const seq = ++requestSeqRef.current;
     startTransition(async () => {
       try {
         const result = await searchInvoices({
@@ -127,12 +138,22 @@ export function InvoiceDirectory({
           limit: nextLimit,
           offset: nextOffset,
         });
+        if (seq !== requestSeqRef.current) return;
         setPage(result);
         setError(null);
       } catch (err) {
+        if (seq !== requestSeqRef.current) return;
         setError(err instanceof Error ? err.message : "Không tải được hóa đơn.");
       }
     });
+  }
+
+  function scheduleSearch(nextQuery: string) {
+    setQuery(nextQuery);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      refresh({ query: nextQuery, offset: 0 });
+    }, SEARCH_DEBOUNCE_MS);
   }
 
   useEffect(() => {
@@ -282,11 +303,7 @@ export function InvoiceDirectory({
             />
             <input
               value={query}
-              onChange={(event) => {
-                const value = event.target.value;
-                setQuery(value);
-                refresh({ query: value, offset: 0 });
-              }}
+              onChange={(event) => scheduleSearch(event.target.value)}
               placeholder="Tìm số chứng từ, tên khách, SĐT"
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-white pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />

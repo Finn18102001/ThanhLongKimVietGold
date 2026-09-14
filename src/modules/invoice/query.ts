@@ -113,12 +113,8 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const from = filter.from || null;
   const to = filter.to || null;
 
-  const needsInnerSale = Boolean(
-    paymentMethod || paymentStatus || transactionType || fulfillment || filter.goldDelivery,
-  );
-  const saleSelect = needsInnerSale
-    ? `pos_sales!inner(${SALE_COLS})`
-    : `pos_sales(${SALE_COLS})`;
+  // Always inner-join sales so VOIDED sales never appear in list/search.
+  const saleSelect = `pos_sales!inner(${SALE_COLS})`;
 
   let builder = supabase
     .from("pos_invoices")
@@ -126,6 +122,9 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
       `id, invoice_no, total_dong, issued_at, status, actor_email, customer_id, ${saleSelect}, pos_customers(name, phone, customer_no, is_walk_in)`,
       { count: "exact" },
     )
+    .neq("status", "VOIDED")
+    .is("voided_at", null)
+    .eq("pos_sales.status", "COMPLETED")
     .order("issued_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -164,25 +163,46 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   }
 
   if (query) {
-    const { data: customers, error: customerError } = await supabase
-      .from("pos_customers")
-      .select("id")
-      .or(`name.ilike.%${query}%,phone.ilike.%${query}%,customer_no.ilike.%${query}%`)
-      .limit(50);
-    if (customerError) throw new Error(customerError.message);
-    const ids = (customers ?? []).map((row) => row.id);
-    if (ids.length > 0) {
-      builder = builder.or(`invoice_no.ilike.%${query}%,customer_id.in.(${ids.join(",")})`);
+    const looksLikeDocNo = /^[0-9a-z\-]+$/i.test(query) && /\d/.test(query);
+    if (looksLikeDocNo) {
+      // Prefer indexed document/phone match; skip broad customer-name scan.
+      const { data: customers, error: customerError } = await supabase
+        .from("pos_customers")
+        .select("id")
+        .ilike("phone", `%${query}%`)
+        .limit(30);
+      if (customerError) throw new Error(customerError.message);
+      const ids = (customers ?? []).map((row) => row.id);
+      if (ids.length > 0) {
+        builder = builder.or(`invoice_no.ilike.%${query}%,customer_id.in.(${ids.join(",")})`);
+      } else {
+        builder = builder.ilike("invoice_no", `%${query}%`);
+      }
     } else {
-      builder = builder.ilike("invoice_no", `%${query}%`);
+      const { data: customers, error: customerError } = await supabase
+        .from("pos_customers")
+        .select("id")
+        .or(`name.ilike.%${query}%,phone.ilike.%${query}%,customer_no.ilike.%${query}%`)
+        .limit(50);
+      if (customerError) throw new Error(customerError.message);
+      const ids = (customers ?? []).map((row) => row.id);
+      if (ids.length > 0) {
+        builder = builder.or(`invoice_no.ilike.%${query}%,customer_id.in.(${ids.join(",")})`);
+      } else {
+        builder = builder.ilike("invoice_no", `%${query}%`);
+      }
     }
   }
 
   const { data, error, count } = await builder;
   if (error) throw new Error(error.message);
 
+  const items = (data ?? [])
+    .map((row) => mapListRow(row))
+    .filter((row) => row.status !== "VOIDED" && row.saleStatus !== "VOIDED");
+
   return {
-    items: (data ?? []).map((row) => mapListRow(row)),
+    items,
     total: count ?? 0,
     limit,
     offset,
