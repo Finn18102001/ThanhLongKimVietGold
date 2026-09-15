@@ -308,7 +308,6 @@ export async function completeBuyMelt(input: {
     p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
   revalidatePath("/inventory");
   revalidatePath("/customers");
   revalidatePath("/invoices");
@@ -325,14 +324,28 @@ export async function confirmBuyInvoiceAndComplete(input: {
   idempotencyKey?: string;
 }): Promise<BuyDetail> {
   const base = input.idempotencyKey || crypto.randomUUID();
-  await confirmBuyInvoice({
-    buyId: input.buyId,
-    idempotencyKey: `${base}:form02`,
+  const supabase = await createServerSupabase();
+  const { error: confirmError } = await supabase.rpc("pos_confirm_buy_invoice", {
+    p_buy_id: input.buyId,
+    p_idempotency_key: `${base}:form02`,
   });
-  return completeBuyMelt({
-    buyId: input.buyId,
-    idempotencyKey: `${base}:complete`,
+  if (confirmError) throw new Error(confirmError.message);
+
+  const { error: completeError } = await supabase.rpc("pos_complete_buy_melt", {
+    p_buy_id: input.buyId,
+    p_idempotency_key: `${base}:complete`,
   });
+  if (completeError) {
+    // The first idempotent step may have succeeded; expose its state on reload/retry.
+    revalidatePath("/purchase");
+    revalidatePath("/invoices");
+    throw new Error(completeError.message);
+  }
+
+  revalidatePath("/inventory");
+  revalidatePath("/customers");
+  revalidatePath("/invoices");
+  return getBuy(input.buyId);
 }
 
 const BUY_PDF_BUCKET = "buy-attachments";

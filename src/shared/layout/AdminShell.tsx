@@ -42,6 +42,9 @@ export function AdminShell({
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    prefetch={false}
+                    onMouseEnter={() => router.prefetch(item.href)}
+                    onFocus={() => router.prefetch(item.href)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
                       active
                         ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"
@@ -73,6 +76,9 @@ export function AdminShell({
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        prefetch={false}
+                        onMouseEnter={() => router.prefetch(item.href)}
+                        onFocus={() => router.prefetch(item.href)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
                           active
                             ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"

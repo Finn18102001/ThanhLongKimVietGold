@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { FileXls, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { formatViDateOnly } from "@/shared/lib/datetime";
@@ -28,6 +28,7 @@ import type {
 import { CUSTOMER_GROUPS } from "./types";
 
 const PAGE_SIZES = [10, 20, 50] as const;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function CustomerDirectory({
   initial,
@@ -49,6 +50,8 @@ export function CustomerDirectory({
   const [exporting, setExporting] = useState(false);
   const [pending, startTransition] = useTransition();
   const searchParams = useSearchParams();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestSeqRef = useRef(0);
 
   const currentPage = Math.floor(page.offset / page.limit) + 1;
   const pageCount = Math.max(1, Math.ceil(page.total / page.limit));
@@ -69,6 +72,7 @@ export function CustomerDirectory({
     const nextActivity = next.activity ?? activity;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
+    const seq = ++requestSeqRef.current;
 
     startTransition(async () => {
       try {
@@ -80,6 +84,7 @@ export function CustomerDirectory({
           offset: nextOffset,
           sort: "newest",
         });
+        if (seq !== requestSeqRef.current) return;
         setPage(result);
         setError(null);
 
@@ -87,15 +92,35 @@ export function CustomerDirectory({
         const stillVisible = pickId && result.items.some((row) => row.id === pickId);
         const nextSelected = stillVisible ? pickId : null;
         setSelectedId(nextSelected);
-        if (nextSelected) {
-          setDetail(await fetchCustomer(nextSelected));
-        } else {
+        if (
+          nextSelected &&
+          Object.prototype.hasOwnProperty.call(next, "selectId")
+        ) {
+          const selectedDetail = await fetchCustomer(nextSelected);
+          if (seq !== requestSeqRef.current) return;
+          setDetail(selectedDetail);
+        } else if (!nextSelected) {
           setDetail(null);
         }
       } catch (err) {
+        if (seq !== requestSeqRef.current) return;
         setError(err instanceof Error ? err.message : "Không tải được khách hàng");
       }
     });
+  }
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
+
+  function scheduleSearch(nextQuery: string) {
+    setQuery(nextQuery);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      refresh({ query: nextQuery, offset: 0 });
+    }, SEARCH_DEBOUNCE_MS);
   }
 
   useEffect(() => {
@@ -174,11 +199,7 @@ export function CustomerDirectory({
             />
             <input
               value={query}
-              onChange={(event) => {
-                const value = event.target.value;
-                setQuery(value);
-                refresh({ query: value, offset: 0 });
-              }}
+              onChange={(event) => scheduleSearch(event.target.value)}
               placeholder="Tìm theo tên, SĐT, mã KH, CCCD hoặc MST"
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />

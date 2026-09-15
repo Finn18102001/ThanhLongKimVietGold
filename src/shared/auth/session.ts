@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type { StaffRole } from "./permissions";
 
@@ -10,7 +11,7 @@ export type PosSession = {
   isShared: boolean;
 };
 
-export async function getPosSession(): Promise<PosSession | null> {
+export const getPosSession = cache(async (): Promise<PosSession | null> => {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_get_session");
   if (error || !data) return null;
@@ -38,4 +39,4 @@ export async function getPosSession(): Promise<PosSession | null> {
     staffId: row.staff_id ?? null,
     isShared: Boolean(row.is_shared),
   };
-}
+});

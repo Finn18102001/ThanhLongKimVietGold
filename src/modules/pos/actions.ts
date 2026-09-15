@@ -68,8 +68,8 @@ export async function completeSale(input: CompleteSaleInput): Promise<CompleteSa
       ...rpcSalePayload(input),
     });
     if (error) return { ok: false, message: error.message };
-    revalidatePath("/");
-    revalidatePath("/pos");
+    // POS updates its current stock locally from the affected SKU ids.
+    // Only invalidate other route snapshots changed by this transaction.
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");
@@ -136,8 +136,7 @@ export async function completeHeldSale(
       ...rpcSalePayload(input),
     });
     if (error) return { ok: false, message: error.message };
-    revalidatePath("/");
-    revalidatePath("/pos");
+    // POS updates its current stock and held-order list locally.
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");

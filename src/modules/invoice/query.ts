@@ -221,14 +221,6 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   if (error) throw new Error(error.message);
   if (!invoice) return null;
 
-  const { data: items, error: itemError } = await supabase
-    .from("pos_sale_items")
-    .select(
-      "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
-    )
-    .eq("sale_id", invoice.sale_id);
-  if (itemError) throw new Error(itemError.message);
-
   type InvoiceCustomerEmbed = {
     name: string;
     phone: string;
@@ -243,6 +235,34 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   );
   const sale = firstEmbed(invoice.pos_sales as SaleEmbed & { note: string | null } | (SaleEmbed & { note: string | null })[] | null);
   const totalDong = Number(invoice.total_dong);
+
+  const operatorPromise = sale?.operator_staff_id
+    ? supabase
+        .from("pos_staff")
+        .select("full_name")
+        .eq("id", sale.operator_staff_id)
+        .maybeSingle()
+        .then(({ data }) => data?.full_name ?? null)
+    : Promise.resolve(null);
+
+  const [itemResult, chargeResult, payments, operatorName] = await Promise.all([
+    supabase
+      .from("pos_sale_items")
+      .select(
+        "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
+      )
+      .eq("sale_id", invoice.sale_id),
+    supabase
+      .from("pos_sale_charges")
+      .select("id, name, amount_dong, reason")
+      .eq("sale_id", invoice.sale_id)
+      .order("created_at", { ascending: true }),
+    listSalePayments(String(invoice.sale_id)),
+    operatorPromise,
+  ]);
+  if (itemResult.error) throw new Error(itemResult.error.message);
+  const items = itemResult.data;
+  const chargeRows = chargeResult.data;
 
   const lines: InvoiceLine[] = (items ?? []).map((item) => {
     const sku = firstEmbed(item.pos_skus);
@@ -276,22 +296,6 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const paidDong = Number(sale?.paid_dong ?? 0);
   const remainingDong = Number(sale?.remaining_dong ?? Math.max(0, totalDong - paidDong));
 
-  const { data: chargeRows } = await supabase
-    .from("pos_sale_charges")
-    .select("id, name, amount_dong, reason")
-    .eq("sale_id", invoice.sale_id)
-    .order("created_at", { ascending: true });
-
-  let operatorName: string | null = null;
-  if (sale?.operator_staff_id) {
-    const { data: operator } = await supabase
-      .from("pos_staff")
-      .select("full_name")
-      .eq("id", sale.operator_staff_id)
-      .maybeSingle();
-    operatorName = operator?.full_name ?? null;
-  }
-
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
@@ -322,7 +326,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
       amountDong: Number(row.amount_dong),
       reason: row.reason,
     })),
-    payments: await listSalePayments(String(invoice.sale_id)),
+    payments,
     transactionType: asSaleTransactionType(sale?.transaction_type),
     fulfillmentStatus: asFulfillmentStatus(
       asSaleTransactionType(sale?.transaction_type),

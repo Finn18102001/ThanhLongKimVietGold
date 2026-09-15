@@ -205,8 +205,14 @@ export function PosTerminal({
 
   useEffect(() => {
     let cancelled = false;
+    let refreshInFlight = false;
+    let lastRefreshAt = 0;
 
     async function pullStock() {
+      const now = Date.now();
+      if (refreshInFlight || now - lastRefreshAt < 2_000) return;
+      refreshInFlight = true;
+      lastRefreshAt = now;
       setStockRefreshing(true);
       try {
         const map = await refreshPosStock();
@@ -225,11 +231,10 @@ export function PosTerminal({
           reason: err instanceof Error ? err.message : "Không tải được số lượng tồn hiện tại.",
         });
       } finally {
+        refreshInFlight = false;
         if (!cancelled) setStockRefreshing(false);
       }
     }
-
-    void pullStock();
 
     function onVisibility() {
       if (document.visibilityState === "visible") void pullStock();
@@ -269,10 +274,6 @@ export function PosTerminal({
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
   }, [brandId, catalog, group, query]);
-
-  useEffect(() => {
-    setPageIndex(0);
-  }, [brandId, group, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -315,10 +316,6 @@ export function PosTerminal({
   const recentItems = recentIds
     .map((id) => catalog.find((item) => item.skuId === id))
     .filter((item): item is PosCatalogItem => Boolean(item));
-
-  useEffect(() => {
-    setPageIndex(0);
-  }, [query, group]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -866,6 +863,7 @@ export function PosTerminal({
       }
       const result = actionResult.sale;
       const closedHoldId = activeHeldOrderId;
+      const changedSkuIds = Array.from(new Set(lines.map((line) => line.skuId)));
       resetDraft();
       if (closedHoldId) {
         await reloadHeldList();
@@ -889,7 +887,7 @@ export function PosTerminal({
         });
       }
       idempotencyKey.current = null;
-      void refreshPosStock().then((map) => {
+      void refreshPosStock(changedSkuIds).then((map) => {
         setCatalog((current) =>
           current.map((item) => ({
             ...item,
@@ -955,7 +953,10 @@ export function PosTerminal({
             <input
               ref={searchRef}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPageIndex(0);
+              }}
               placeholder="Tìm kiếm: nhập tên sản phẩm hoặc mã hàng..."
               className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-white pr-14 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
@@ -967,7 +968,10 @@ export function PosTerminal({
             <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Thương hiệu</span>
             <select
               value={brandId}
-              onChange={(event) => setBrandId(event.target.value)}
+              onChange={(event) => {
+                setBrandId(event.target.value);
+                setPageIndex(0);
+              }}
               className="max-w-[200px] bg-transparent text-[13px] font-medium outline-none"
             >
               <option value="all">Tất cả thương hiệu</option>
@@ -1007,7 +1011,10 @@ export function PosTerminal({
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setGroup(item)}
+                    onClick={() => {
+                      setGroup(item);
+                      setPageIndex(0);
+                    }}
                     className={`h-9 shrink-0 rounded-full px-3 text-[13px] font-medium ${
                       active
                         ? "bg-[var(--tlkv-red)] text-white"

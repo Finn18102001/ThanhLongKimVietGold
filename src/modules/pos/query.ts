@@ -7,7 +7,32 @@ type ProductEmbed =
   | { image: string | null; category: string | null }[]
   | null;
 
-type CatalogMeta = Omit<PosCatalogItem, "quantity">;
+type PriceEmbed = {
+  sell: number | string | null;
+  buy: number | string | null;
+  product: string | null;
+  purity: string | null;
+  brand: string | null;
+};
+
+type CatalogMeta = PosCatalogItem & {
+  priceRowId: string | null;
+  referenceSellDongPerChi: number;
+  suggestedBuyDongPerChi: number;
+  goldTypeHint: string | null;
+  goldAgeHint: string | null;
+  allowDirectBuy: boolean;
+};
+
+export type PosCatalogPricingItem = PosCatalogItem & Pick<
+  CatalogMeta,
+  | "priceRowId"
+  | "referenceSellDongPerChi"
+  | "suggestedBuyDongPerChi"
+  | "goldTypeHint"
+  | "goldAgeHint"
+  | "allowDirectBuy"
+>;
 
 function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
@@ -15,9 +40,10 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
 }
 
 /**
- * Catalog meta (image, sku, name, price) — no stock.
+ * Catalog metadata plus the initial authoritative stock snapshot.
  * Not using unstable_cache: createServerSupabase is cookie-bound.
- * Client keeps meta in memory; only stock is refreshed on tab focus.
+ * Initial stock comes from the same authoritative table in this query.
+ * Client refreshes only stock through the scoped RPC after mount.
  *
  * Active non-market SKUs only. Market gold/silver stays on the buy slip
  * (is_market_gold) and must not appear as POS/purchase product cards.
@@ -28,7 +54,7 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   const { data, error } = await supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .eq("is_active", true)
     .eq("is_market_gold", false)
@@ -36,16 +62,28 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => {
-    const price = firstEmbed(row.gold_price_rows);
+    const price = firstEmbed(row.gold_price_rows as PriceEmbed | PriceEmbed[] | null);
     const product = firstEmbed(row.products as ProductEmbed);
+    const stock = firstEmbed(
+      row.pos_inventory_stock as
+        | { quantity: number | string | null }
+        | { quantity: number | string | null }[]
+        | null,
+    );
     const brand = firstEmbed(
       (row as { brands?: { id: string; name: string } | { id: string; name: string }[] | null })
         .brands,
     );
-    const sell = price?.sell === undefined ? null : Number(price.sell);
+    const sell = price?.sell == null ? 0 : Number(price.sell);
+    const buy = price?.buy == null ? 0 : Number(price.buy);
+    const boardUnitChi = Number(row.board_unit_chi);
+    const perChiDivisor = boardUnitChi > 0 ? boardUnitChi : 1;
+    const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
+    const suggestedBuyDongPerChi =
+      buy > 0 ? Math.round(buy / perChiDivisor) : referenceSellDongPerChi;
     const unitPriceDong =
       sell && sell > 0
-        ? Math.round(sell * (Number(row.weight_chi) / Number(row.board_unit_chi))) +
+        ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) +
           Number(row.labor_fee_dong)
         : null;
     const category = product?.category ?? "Khác";
@@ -59,7 +97,14 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
       category,
       browseGroup: browseGroupFromProduct(row.name, category),
       brandId: brand?.id ?? row.brand_id ?? null,
-      brandName: brand?.name ?? null,
+      brandName: brand?.name ?? price?.brand ?? null,
+      quantity: Number(stock?.quantity ?? 0),
+      priceRowId: row.price_row_id != null ? String(row.price_row_id) : null,
+      referenceSellDongPerChi,
+      suggestedBuyDongPerChi,
+      goldTypeHint: price?.product ? String(price.product) : null,
+      goldAgeHint: price?.purity != null ? String(price.purity) : null,
+      allowDirectBuy: Boolean(row.allow_direct_buy),
     };
   });
 }
@@ -101,11 +146,25 @@ async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, numbe
 }
 
 export async function listPosCatalog(): Promise<PosCatalogItem[]> {
-  const [meta, stock] = await Promise.all([fetchPosCatalogMeta(), fetchPosStockMap()]);
+  const meta = await fetchPosCatalogMeta();
   return meta.map((item) => ({
-    ...item,
-    quantity: stock[item.skuId] ?? 0,
+    skuId: item.skuId,
+    sku: item.sku,
+    name: item.name,
+    weightChi: item.weightChi,
+    unitPriceDong: item.unitPriceDong,
+    imageUrl: item.imageUrl,
+    category: item.category,
+    browseGroup: item.browseGroup,
+    brandId: item.brandId,
+    brandName: item.brandName,
+    quantity: item.quantity,
   }));
+}
+
+/** Published catalog contract for consumers that also need board buy/sell metadata. */
+export async function listPosCatalogWithPricing(): Promise<PosCatalogPricingItem[]> {
+  return fetchPosCatalogMeta();
 }
 
 export async function listPosStockOnly(skuIds?: string[]): Promise<Record<string, number>> {
