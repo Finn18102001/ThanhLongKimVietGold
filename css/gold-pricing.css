@@ -1042,44 +1042,62 @@
     white-space: normal !important;
   }
 
-  .tlkv-gold-dashboard .gold-table-content td.price {
+  /* Chỉ 2 cột Mua vào / Bán ra trên mobile: đủ chỗ 1 dòng, ▲/▼ độc lập, không co số. */
+  .tlkv-gold-dashboard .gold-table-content td.price,
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked tbody td.price {
     white-space: nowrap !important;
-    font-size: 13.5px !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    font-size: clamp(11.5px, 3.2vw, 13.5px) !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    overflow: visible !important;
   }
 
-  /* price-wrapper: full-width flex row, centered as a unit */
   .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
     flex-wrap: nowrap !important;
-    gap: 2px !important;
+    gap: 0.2em !important;
     width: 100% !important;
     height: auto !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     white-space: nowrap !important;
     overflow: visible !important;
   }
 
-  /* price-value */
   .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner .tv-price-text {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    max-width: none !important;
     white-space: nowrap !important;
     overflow: visible !important;
     text-overflow: clip !important;
     font-weight: 600 !important;
     line-height: 1 !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
   }
 
-  /* price-icon: slightly smaller than the number, never shrinks or wraps */
   .tlkv-gold-dashboard td.price .gold-price-trend {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
     flex-shrink: 0 !important;
-    margin-left: 0 !important;
-    font-size: 10.5px !important;
+    order: 0 !important;
+    position: static !important;
+    inset: auto !important;
+    margin: 0 !important;
+    font-size: 0.8em !important;
     line-height: 1 !important;
   }
   .tlkv-gold-dashboard td.price .gold-price-trend svg {
-    width: 11.55px !important;
-    height: 11.55px !important;
+    width: 0.85em !important;
+    height: 0.85em !important;
   }
 
   .tlkv-gold-dashboard .gold-brand-cell {
@@ -1100,6 +1118,33 @@
 @media (max-width: 767.98px) {
   .tlkv-gold-dashboard .tlkv-world-xau-title.tlkv-gp-title {
     font-size: 20px !important;
+  }
+}
+
+/* Điện thoại hẹp: chỉ nới padding/gap/font 2 cột giá, không đụng cột khác. */
+@media (max-width: 359.98px) {
+  .tlkv-gold-dashboard .gold-table-content td.price,
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked tbody td.price {
+    font-size: 11px !important;
+    padding-left: 1px !important;
+    padding-right: 1px !important;
+  }
+
+  .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+    gap: 0.12em !important;
+  }
+}
+
+@media (min-width: 360px) and (max-width: 400px) {
+  .tlkv-gold-dashboard .gold-table-content td.price,
+  .tlkv-gold-dashboard .gold-table-content.gold-table--stacked tbody td.price {
+    font-size: 12.5px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  .tlkv-gold-dashboard td.price .tlkv-gp-cell__inner {
+    gap: 0.18em !important;
   }
 }
 
