@@ -19,6 +19,10 @@ export type LabelPiece = {
   id: string;
   msp: string;
   barcode: string;
+  /** Editable product-type prefix (e.g. VBTMC). */
+  typeCode: string;
+  /** System serial (e.g. 000008) — immutable after mint. */
+  serialNo: string;
   skuId: string;
   createdAt: string;
   createdBy: string;
@@ -73,6 +77,22 @@ export type LabelHistoryFilter = {
   actorQuery: string;
   codeQuery: string;
 };
+
+/** Server-side history page (limit 2–30). */
+export type LabelHistoryQuery = LabelHistoryFilter & {
+  limit: number;
+  offset: number;
+};
+
+export type LabelHistoryPage = {
+  items: LabelPrintLogRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export const LABEL_HISTORY_PAGE_SIZES = [10, 20, 30] as const;
+export const DEFAULT_LABEL_HISTORY_PAGE_SIZE = 20;
 
 export const DEFAULT_COMPANY_NAME = "Công ty TNHH Vàng Bạc Thăng Long Kim Việt";
 export const DEFAULT_COMPANY_SHORT = "Vàng Thăng Long Kim Việt";

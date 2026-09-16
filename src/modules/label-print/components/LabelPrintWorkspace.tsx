@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Printer, Plus, ArrowClockwise } from "@phosphor-icons/react";
 import { formatViDateTime } from "@/shared/lib/datetime";
-import { mintLabelPiece, recordLabelPrint, listPiecesForSkuAction } from "../actions";
+import {
+  mintLabelPiece,
+  recordLabelPrint,
+  listPiecesForSkuAction,
+  setLabelPieceTypeCode,
+  fetchPrintHistoryPage,
+  pieceHasLabelPrintAction,
+} from "../actions";
 import {
   ACTION_LABEL,
   STOCK_SIZE_LABEL,
@@ -44,6 +51,8 @@ import type {
 import {
   DEFAULT_ADDRESS_LINE,
   DEFAULT_COMPANY_SHORT,
+  DEFAULT_LABEL_HISTORY_PAGE_SIZE,
+  LABEL_HISTORY_PAGE_SIZES,
 } from "../types";
 
 type Tab = "print" | "history";
@@ -58,15 +67,23 @@ const EMPTY_HISTORY_FILTER: LabelHistoryFilter = {
   codeQuery: "",
 };
 
-export function LabelPrintWorkspace({
-  skus,
-  initialHistory,
-}: {
-  skus: LabelSkuOption[];
-  initialHistory: LabelPrintLogRow[];
-}) {
+const HISTORY_FILTER_DEBOUNCE_MS = 300;
+
+function historyCacheKey(filter: LabelHistoryFilter, pageSize: number): string {
+  return [
+    filter.dateFrom,
+    filter.dateTo,
+    filter.productType,
+    filter.productQuery.trim().toLowerCase(),
+    filter.brand,
+    filter.actorQuery.trim().toLowerCase(),
+    filter.codeQuery.trim().toLowerCase(),
+    String(pageSize),
+  ].join("|");
+}
+
+export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
   const [tab, setTab] = useState<Tab>("print");
-  const [history, setHistory] = useState(initialHistory);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -74,6 +91,8 @@ export function LabelPrintWorkspace({
   const [skuId, setSkuId] = useState("");
   const [pieces, setPieces] = useState<LabelPiece[]>([]);
   const [pieceId, setPieceId] = useState("");
+  /** Editable product-type prefix; composed MSP = typeCodeDraft + serialNo. */
+  const [typeCodeDraft, setTypeCodeDraft] = useState("");
   const [stockSize, setStockSize] = useState<LabelStockSize>("90x14");
   const [printQty, setPrintQty] = useState(1);
   const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_SHORT);
@@ -81,6 +100,16 @@ export function LabelPrintWorkspace({
   const [laborFeeDong, setLaborFeeDong] = useState(0);
   const [priceDong, setPriceDong] = useState(0);
   const [historyFilter, setHistoryFilter] = useState(EMPTY_HISTORY_FILTER);
+  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_LABEL_HISTORY_PAGE_SIZE);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyRows, setHistoryRows] = useState<LabelPrintLogRow[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const historyCacheRef = useRef<Map<string, Map<number, LabelPrintLogRow[]>>>(new Map());
+  const historyTotalRef = useRef<Map<string, number>>(new Map());
+  const historyReqSeq = useRef(0);
+  const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [printedPieceIds, setPrintedPieceIds] = useState<Set<string>>(() => new Set());
   const [offsets, setOffsets] = useState<LabelPrintOffsets>(DEFAULT_LABEL_OFFSETS);
   const [fonts, setFonts] = useState<LabelPrintFonts>(DEFAULT_LABEL_FONTS);
 
@@ -96,6 +125,99 @@ export function LabelPrintWorkspace({
   useEffect(() => {
     saveLabelFonts(fonts);
   }, [fonts]);
+
+  useEffect(() => {
+    return () => {
+      if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
+    };
+  }, []);
+
+  function invalidateHistoryCache() {
+    historyCacheRef.current = new Map();
+    historyTotalRef.current = new Map();
+    setHistoryLoaded(false);
+  }
+
+  function ensureHistoryPage(
+    page: number,
+    filter: LabelHistoryFilter,
+    pageSize: number,
+    opts?: { force?: boolean },
+  ) {
+    const safePage = Math.max(1, page);
+    const key = historyCacheKey(filter, pageSize);
+    const cachedPages = historyCacheRef.current.get(key);
+    const cached = cachedPages?.get(safePage);
+    if (!opts?.force && cached) {
+      setHistoryRows(cached);
+      setHistoryTotal(historyTotalRef.current.get(key) ?? cached.length);
+      setHistoryPage(safePage);
+      setHistoryLoaded(true);
+      return;
+    }
+
+    const seq = ++historyReqSeq.current;
+    const offset = (safePage - 1) * pageSize;
+    startTransition(async () => {
+      try {
+        const result = await fetchPrintHistoryPage({
+          ...filter,
+          limit: pageSize,
+          offset,
+        });
+        if (seq !== historyReqSeq.current) return;
+        const pageMap = historyCacheRef.current.get(key) ?? new Map<number, LabelPrintLogRow[]>();
+        pageMap.set(safePage, result.items);
+        historyCacheRef.current.set(key, pageMap);
+        historyTotalRef.current.set(key, result.total);
+        setHistoryRows(result.items);
+        setHistoryTotal(result.total);
+        setHistoryPage(safePage);
+        setHistoryLoaded(true);
+        setError(null);
+      } catch (err) {
+        if (seq !== historyReqSeq.current) return;
+        setError(err instanceof Error ? err.message : "Không tải được lịch sử in");
+      }
+    });
+  }
+
+  function openHistoryTab() {
+    setTab("history");
+    if (!historyLoaded) {
+      ensureHistoryPage(1, historyFilter, historyPageSize);
+    }
+  }
+
+  function patchHistoryFilter(patch: Partial<LabelHistoryFilter>) {
+    const next = { ...historyFilter, ...patch };
+    setHistoryFilter(next);
+    const isText =
+      "productQuery" in patch || "actorQuery" in patch || "codeQuery" in patch;
+    if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
+    if (isText) {
+      filterDebounceRef.current = setTimeout(() => {
+        ensureHistoryPage(1, next, historyPageSize, { force: true });
+      }, HISTORY_FILTER_DEBOUNCE_MS);
+      return;
+    }
+    ensureHistoryPage(1, next, historyPageSize, { force: true });
+  }
+
+  function clearHistoryFilter() {
+    if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current);
+    setHistoryFilter(EMPTY_HISTORY_FILTER);
+    ensureHistoryPage(1, EMPTY_HISTORY_FILTER, historyPageSize, { force: true });
+  }
+
+  function changeHistoryPageSize(nextSize: number) {
+    setHistoryPageSize(nextSize);
+    ensureHistoryPage(1, historyFilter, nextSize, { force: true });
+  }
+
+  function goHistoryPage(nextPage: number) {
+    ensureHistoryPage(nextPage, historyFilter, historyPageSize);
+  }
 
   function patchZone(
     zone: keyof LabelPrintOffsets,
@@ -138,6 +260,35 @@ export function LabelPrintWorkspace({
     [pieces, pieceId],
   );
 
+  const composedMsp = selectedPiece
+    ? `${typeCodeDraft.trim().toUpperCase()}${selectedPiece.serialNo}`
+    : "";
+
+  useEffect(() => {
+    setTypeCodeDraft(selectedPiece?.typeCode ?? "");
+  }, [selectedPiece?.id, selectedPiece?.typeCode]);
+
+  useEffect(() => {
+    if (!pieceId) return;
+    let cancelled = false;
+    void pieceHasLabelPrintAction(pieceId)
+      .then((has) => {
+        if (cancelled || !has) return;
+        setPrintedPieceIds((prev) => {
+          if (prev.has(pieceId)) return prev;
+          const next = new Set(prev);
+          next.add(pieceId);
+          return next;
+        });
+      })
+      .catch(() => {
+        /* print-tab only; ignore lookup errors */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pieceId]);
+
   const kltChi = selectedSku?.weightChi ?? 0;
   const klvChi = selectedSku?.weightChi ?? 0;
 
@@ -176,7 +327,7 @@ export function LabelPrintWorkspace({
     selectedSku && selectedPiece
       ? {
           pieceId: selectedPiece.id,
-          msp: selectedPiece.msp,
+          msp: composedMsp || selectedPiece.msp,
           barcode: selectedPiece.barcode,
           productName: selectedSku.name,
           productType: selectedSku.category,
@@ -193,10 +344,7 @@ export function LabelPrintWorkspace({
         }
       : null;
 
-  const hasPrintedBefore = useMemo(
-    () => (selectedPiece ? history.some((h) => h.pieceId === selectedPiece.id) : false),
-    [history, selectedPiece],
-  );
+  const hasPrintedBefore = Boolean(selectedPiece && printedPieceIds.has(selectedPiece.id));
 
   function onMint() {
     if (!skuId) return;
@@ -204,13 +352,50 @@ export function LabelPrintWorkspace({
     setMessage(null);
     startTransition(async () => {
       try {
-        const minted = await mintLabelPiece(skuId);
+        const minted = await mintLabelPiece(skuId, typeCodeDraft);
         const rows = await listPiecesForSkuAction(skuId);
         setPieces(rows);
         setPieceId(minted.id);
+        setTypeCodeDraft(minted.typeCode);
         setMessage(`Đã tạo MSP ${minted.msp} / ${minted.barcode}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tạo được MSP");
+      }
+    });
+  }
+
+  async function flushTypeCodeIfNeeded(): Promise<LabelPiece | null> {
+    if (!selectedPiece) return null;
+    const next = typeCodeDraft.trim().toUpperCase();
+    if (next === selectedPiece.typeCode) return selectedPiece;
+    const updated = await setLabelPieceTypeCode(selectedPiece.id, next);
+    const patched: LabelPiece = {
+      ...selectedPiece,
+      msp: updated.msp,
+      typeCode: updated.typeCode,
+      serialNo: updated.serialNo,
+      barcode: updated.barcode,
+    };
+    setPieces((prev) => prev.map((p) => (p.id === patched.id ? patched : p)));
+    setTypeCodeDraft(updated.typeCode);
+    return patched;
+  }
+
+  function onTypeCodeBlur() {
+    if (!selectedPiece) return;
+    const next = typeCodeDraft.trim().toUpperCase();
+    if (next === selectedPiece.typeCode) return;
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const patched = await flushTypeCodeIfNeeded();
+        if (patched) {
+          setMessage(`Đã cập nhật MSP ${patched.msp}`);
+        }
+      } catch (err) {
+        setTypeCodeDraft(selectedPiece.typeCode);
+        setError(err instanceof Error ? err.message : "Không cập nhật được mã loại");
       }
     });
   }
@@ -222,8 +407,9 @@ export function LabelPrintWorkspace({
     const actionType: LabelPrintAction = hasPrintedBefore ? "REPRINT" : "FIRST_PRINT";
     startTransition(async () => {
       try {
+        const piece = (await flushTypeCodeIfNeeded()) ?? selectedPiece;
         const recorded = await recordLabelPrint({
-          pieceId: selectedPiece.id,
+          pieceId: piece.id,
           printQty,
           stockSize,
           actionType,
@@ -234,35 +420,15 @@ export function LabelPrintWorkspace({
           laborFeeDong,
           priceDong,
         });
-        const now = new Date().toISOString();
-        setHistory((prev) => [
-          {
-            id: recorded.logId,
-            printedAt: now,
-            msp: selectedPiece.msp,
-            barcode: selectedPiece.barcode,
-            productName: selectedSku.name,
-            productType: selectedSku.category,
-            brandName: selectedSku.brandName ?? "—",
-            kltChi,
-            klvChi,
-            laborFeeDong,
-            priceDong,
-            printQty,
-            stockSize,
-            actorEmail: recorded.actorEmail || "—",
-            actionType,
-            pieceId: selectedPiece.id,
-            skuId: selectedSku.skuId,
-            companyName,
-            addressLine,
-          },
-          ...prev,
-        ]);
+        setPrintedPieceIds((prev) => {
+          const next = new Set(prev);
+          next.add(piece.id);
+          return next;
+        });
+        invalidateHistoryCache();
         setMessage(
-          `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${selectedPiece.msp} (không đổi tồn kho).`,
+          `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${recorded.msp || piece.msp} (không đổi tồn kho).`,
         );
-        // Preview batch then open print dialog
         window.setTimeout(() => printLabelNodes(stockSize), 120);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không ghi lịch sử in");
@@ -274,6 +440,11 @@ export function LabelPrintWorkspace({
     setTab("print");
     setSkuId(row.skuId);
     setPieceId(row.pieceId);
+    setPrintedPieceIds((prev) => {
+      const next = new Set(prev);
+      next.add(row.pieceId);
+      return next;
+    });
     setStockSize("90x14");
     setPrintQty(1);
     setCompanyName(row.companyName || DEFAULT_COMPANY_SHORT);
@@ -283,37 +454,24 @@ export function LabelPrintWorkspace({
     setMessage(`Đã nạp MSP ${row.msp} để in lại. Layout phôi 90×14 mm.`);
   }
 
-  const filteredHistory = useMemo(() => {
-    const q = historyFilter.productQuery.trim().toLowerCase();
-    const actor = historyFilter.actorQuery.trim().toLowerCase();
-    const code = historyFilter.codeQuery.trim().toLowerCase();
-    return history.filter((row) => {
-      const day = row.printedAt.slice(0, 10);
-      if (historyFilter.dateFrom && day < historyFilter.dateFrom) return false;
-      if (historyFilter.dateTo && day > historyFilter.dateTo) return false;
-      if (historyFilter.productType && row.productType !== historyFilter.productType) return false;
-      if (historyFilter.brand && row.brandName !== historyFilter.brand) return false;
-      if (q && !row.productName.toLowerCase().includes(q)) return false;
-      if (actor && !row.actorEmail.toLowerCase().includes(actor)) return false;
-      if (
-        code &&
-        !row.msp.toLowerCase().includes(code) &&
-        !row.barcode.toLowerCase().includes(code)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [history, historyFilter]);
-
   const historyTypes = useMemo(
-    () => Array.from(new Set(history.map((h) => h.productType).filter(Boolean))),
-    [history],
+    () =>
+      Array.from(new Set(skus.map((s) => s.category).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, "vi"),
+      ),
+    [skus],
   );
   const historyBrands = useMemo(
-    () => Array.from(new Set(history.map((h) => h.brandName).filter((b) => b && b !== "—"))),
-    [history],
+    () =>
+      Array.from(
+        new Set(skus.map((s) => s.brandName).filter((b): b is string => Boolean(b))),
+      ).sort((a, b) => a.localeCompare(b, "vi")),
+    [skus],
   );
+
+  const historyPageCount = Math.max(1, Math.ceil(historyTotal / historyPageSize));
+  const historyFromRow = historyTotal === 0 ? 0 : (historyPage - 1) * historyPageSize + 1;
+  const historyToRow = Math.min(historyPage * historyPageSize, historyTotal);
 
   return (
     <div className="flex flex-col gap-4">
@@ -335,7 +493,7 @@ export function LabelPrintWorkspace({
           <button
             key={item.id}
             type="button"
-            onClick={() => setTab(item.id)}
+            onClick={() => (item.id === "history" ? openHistoryTab() : setTab(item.id))}
             className={`h-9 rounded-full px-3 text-[13px] font-medium ${
               tab === item.id
                 ? "bg-[var(--tlkv-red)] text-white"
@@ -412,11 +570,31 @@ export function LabelPrintWorkspace({
               </div>
 
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                MSP
+                Mã loại sản phẩm
                 <input
-                  value={selectedPiece?.msp ?? ""}
+                  value={typeCodeDraft}
+                  disabled={!selectedPiece && !skuId}
+                  onChange={(e) => setTypeCodeDraft(e.target.value.toUpperCase())}
+                  onBlur={() => onTypeCodeBlur()}
+                  placeholder="VD: VBTMC"
+                  maxLength={24}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                Số sản phẩm
+                <input
+                  value={selectedPiece?.serialNo ?? ""}
                   disabled
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] text-[var(--tlkv-text)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                MSP hoàn chỉnh
+                <input
+                  value={composedMsp || selectedPiece?.msp || ""}
+                  disabled
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] font-medium text-[var(--tlkv-text)]"
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
@@ -645,13 +823,22 @@ export function LabelPrintWorkspace({
         </div>
       ) : (
         <HistoryPanel
-          rows={filteredHistory}
+          rows={historyRows}
           filter={historyFilter}
-          onFilter={(patch) => setHistoryFilter((f) => ({ ...f, ...patch }))}
+          onFilter={patchHistoryFilter}
           types={historyTypes}
           brands={historyBrands}
           onReprint={loadReprint}
-          onClear={() => setHistoryFilter(EMPTY_HISTORY_FILTER)}
+          onClear={clearHistoryFilter}
+          page={historyPage}
+          pageSize={historyPageSize}
+          total={historyTotal}
+          fromRow={historyFromRow}
+          toRow={historyToRow}
+          pageCount={historyPageCount}
+          pending={pending}
+          onPageChange={goHistoryPage}
+          onPageSizeChange={changeHistoryPageSize}
         />
       )}
     </div>
@@ -767,6 +954,15 @@ function HistoryPanel({
   brands,
   onReprint,
   onClear,
+  page,
+  pageSize,
+  total,
+  fromRow,
+  toRow,
+  pageCount,
+  pending,
+  onPageChange,
+  onPageSizeChange,
 }: {
   rows: LabelPrintLogRow[];
   filter: LabelHistoryFilter;
@@ -775,6 +971,15 @@ function HistoryPanel({
   brands: string[];
   onReprint: (row: LabelPrintLogRow) => void;
   onClear: () => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  fromRow: number;
+  toRow: number;
+  pageCount: number;
+  pending: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }) {
   return (
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
@@ -856,11 +1061,30 @@ function HistoryPanel({
           />
         </label>
       </div>
-      <div className="mt-2 flex justify-between text-[12px] text-[var(--tlkv-muted)]">
-        <span>{rows.length} bản ghi</span>
-        <button type="button" onClick={onClear} className="hover:underline">
-          Xóa bộ lọc
-        </button>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--tlkv-muted)]">
+        <span>
+          {total === 0 ? "0 bản ghi" : `${fromRow}–${toRow} / ${total} bản ghi`}
+          {pending ? " · đang tải…" : ""}
+        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-1.5">
+            Mỗi trang
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="h-8 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)]"
+            >
+              {LABEL_HISTORY_PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={onClear} className="hover:underline">
+            Xóa bộ lọc
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 overflow-x-auto">
@@ -888,7 +1112,7 @@ function HistoryPanel({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={15} className="px-2 py-10 text-center text-[var(--tlkv-muted)]">
-                  Chưa có lịch sử in tem phù hợp bộ lọc.
+                  {pending ? "Đang tải lịch sử in tem…" : "Chưa có lịch sử in tem phù hợp bộ lọc."}
                 </td>
               </tr>
             ) : (
@@ -927,6 +1151,30 @@ function HistoryPanel({
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12px] text-[var(--tlkv-muted)]">
+          Trang {page} / {pageCount}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={pending || page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            className="h-8 rounded-md border border-[var(--tlkv-line)] px-3 text-[12px] font-medium disabled:opacity-40 hover:bg-[var(--tlkv-bg)]"
+          >
+            Trước
+          </button>
+          <button
+            type="button"
+            disabled={pending || page >= pageCount}
+            onClick={() => onPageChange(page + 1)}
+            className="h-8 rounded-md border border-[var(--tlkv-line)] px-3 text-[12px] font-medium disabled:opacity-40 hover:bg-[var(--tlkv-bg)]"
+          >
+            Sau
+          </button>
+        </div>
       </div>
     </section>
   );

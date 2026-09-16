@@ -1,7 +1,7 @@
 import { LabelPrintWorkspace } from "./components/LabelPrintWorkspace";
-import { listLabelSkus, listPrintHistory } from "./query";
+import { listLabelSkus } from "./query";
 
 export async function LabelPrintPage() {
-  const [skus, history] = await Promise.all([listLabelSkus(), listPrintHistory()]);
-  return <LabelPrintWorkspace skus={skus} initialHistory={history} />;
+  const skus = await listLabelSkus();
+  return <LabelPrintWorkspace skus={skus} />;
 }
