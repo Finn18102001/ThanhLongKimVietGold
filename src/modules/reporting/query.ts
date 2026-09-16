@@ -149,6 +149,7 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
     brandName: String(raw.brandName ?? ""),
     productName: String(raw.productName ?? ""),
     unitPriceDong: Number(raw.unitPriceDong ?? 0),
+    customerCccd: String(raw.customerCccd ?? ""),
     note: String(raw.note ?? ""),
   };
 }

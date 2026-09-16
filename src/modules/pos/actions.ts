@@ -180,6 +180,7 @@ export async function fulfillPreorder(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/invoices");
   revalidatePath("/inventory");
+  revalidatePath("/gold-management");
   revalidatePath("/pos");
   const payload = data as {
     fulfillment_status: string;
@@ -206,6 +207,7 @@ export async function cancelPreorder(input: {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/invoices");
+  revalidatePath("/gold-management");
   revalidatePath("/pos");
   const payload = data as { fulfillment_status: string };
   return { fulfillmentStatus: payload.fulfillment_status };

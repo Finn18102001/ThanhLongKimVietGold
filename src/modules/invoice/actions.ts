@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/shared/supabase/server";
-import { getInvoiceByNo, listDocuments, listInvoices, listSalePayments, exportDocuments } from "./query";
+import { getInvoiceByNo, listDocuments, listInvoices, listSalePayments, exportDocuments, assertCanMutateInvoice, assertCanMutateSale } from "./query";
 import type {
   InvoiceDetail,
   InvoiceExportPage,
@@ -203,6 +203,7 @@ export async function collectSalePayment(input: {
   if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
     throw new Error("Số tiền thu phải là số nguyên VND > 0");
   }
+  await assertCanMutateSale(input.saleId);
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_collect_sale_payment", {
     p_sale_id: input.saleId,
@@ -235,6 +236,7 @@ export async function fulfillInvoicePreorder(input: {
   saleId: string;
   operatorStaffId?: string | null;
 }): Promise<{ fulfillmentStatus: string; remainingDong: number; paymentStatus: string }> {
+  await assertCanMutateSale(input.saleId);
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
     p_sale_id: input.saleId,
@@ -244,6 +246,7 @@ export async function fulfillInvoicePreorder(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/invoices");
   revalidatePath("/inventory");
+  revalidatePath("/gold-management");
   revalidatePath("/pos");
   const payload = data as {
     fulfillment_status: string;
@@ -261,6 +264,7 @@ export async function cancelInvoicePreorder(input: {
   saleId: string;
   reason?: string;
 }): Promise<{ fulfillmentStatus: string }> {
+  await assertCanMutateSale(input.saleId);
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_cancel_preorder", {
     p_sale_id: input.saleId,
@@ -269,6 +273,7 @@ export async function cancelInvoicePreorder(input: {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/invoices");
+  revalidatePath("/gold-management");
   revalidatePath("/pos");
   const payload = data as { fulfillment_status: string };
   return { fulfillmentStatus: payload.fulfillment_status };
@@ -286,6 +291,7 @@ export async function voidInvoice(input: {
   if (reason.length < 3) {
     throw new Error("Phải nhập lý do hủy hóa đơn (tối thiểu 3 ký tự).");
   }
+  await assertCanMutateInvoice(input.invoiceId);
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_void_invoice", {
     p_invoice_id: input.invoiceId,

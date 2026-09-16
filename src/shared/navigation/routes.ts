@@ -15,6 +15,8 @@ export const ROUTES = {
   inventoryAdjust: "/inventory/adjust",
   inventoryCount: "/inventory/count",
   inventoryHistory: "/inventory/history",
+  goldManagement: "/gold-management",
+  labelPrint: "/label-print",
   customers: "/customers",
   customerCreate: "/customers?action=create",
   invoices: "/invoices",

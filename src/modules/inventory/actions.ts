@@ -12,6 +12,7 @@ function revalidateInventory() {
   revalidatePath("/inventory/history");
   revalidatePath("/inventory/outbound");
   revalidatePath("/inventory/return");
+  revalidatePath("/gold-management");
   revalidatePath("/invoices");
   revalidatePath("/cashflow");
   revalidatePath("/");

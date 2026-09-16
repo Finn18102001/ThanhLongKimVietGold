@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/shared/supabase/server";
+import { assertActorOwnsInvoice, getInvoiceAccessScope } from "./access";
 import type {
   InvoiceDetail,
   InvoiceExportPage,
@@ -102,6 +103,7 @@ const SALE_COLS =
   "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id, deposit_workflow_status, deposit_agreement_no, deposit_slip_no, delivery_receipt_no";
 
 export async function listInvoices(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
+  const scope = await getInvoiceAccessScope();
   const supabase = await createServerSupabase();
   const limit = Math.min(Math.max(filter.limit ?? 5, 1), 50);
   const offset = Math.max(filter.offset ?? 0, 0);
@@ -127,6 +129,10 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
     .eq("pos_sales.status", "COMPLETED")
     .order("issued_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (!scope.seeAll) {
+    builder = builder.eq("actor_email", scope.email);
+  }
 
   if (from) builder = builder.gte("issued_at", `${from}T00:00:00+07:00`);
   if (to) builder = builder.lte("issued_at", `${to}T23:59:59.999+07:00`);
@@ -209,7 +215,37 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   };
 }
 
+/** Backend gate: STAFF may only mutate sales they created; Admin may mutate all. */
+export async function assertCanMutateSale(saleId: string): Promise<void> {
+  const scope = await getInvoiceAccessScope();
+  if (scope.seeAll) return;
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_sales")
+    .select("actor_email")
+    .eq("id", saleId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Không tìm thấy đơn bán.");
+  assertActorOwnsInvoice(scope, data.actor_email);
+}
+
+export async function assertCanMutateInvoice(invoiceId: string): Promise<void> {
+  const scope = await getInvoiceAccessScope();
+  if (scope.seeAll) return;
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_invoices")
+    .select("actor_email")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Không tìm thấy hóa đơn.");
+  assertActorOwnsInvoice(scope, data.actor_email);
+}
+
 export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail | null> {
+  const scope = await getInvoiceAccessScope();
   const supabase = await createServerSupabase();
   const { data: invoice, error } = await supabase
     .from("pos_invoices")
@@ -220,6 +256,12 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!invoice) return null;
+
+  try {
+    assertActorOwnsInvoice(scope, String(invoice.actor_email ?? ""));
+  } catch {
+    return null;
+  }
 
   type InvoiceCustomerEmbed = {
     name: string;

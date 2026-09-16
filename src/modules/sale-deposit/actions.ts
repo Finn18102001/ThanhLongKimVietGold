@@ -9,6 +9,7 @@ function revalidateDeposit() {
   revalidatePath("/pos");
   revalidatePath("/invoices");
   revalidatePath("/inventory");
+  revalidatePath("/gold-management");
   revalidatePath("/customers");
 }
 

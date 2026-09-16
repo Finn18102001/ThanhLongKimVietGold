@@ -48,8 +48,10 @@ export type TransactionExportRow = {
   brandName: string;
   /** Product name from the transaction line snapshot. */
   productName: string;
-  /** Unit price snapshot at transaction time (đồng / SP). */
+  /** Unit price snapshot at transaction time, quy đổi / 1 chỉ (đồng). */
   unitPriceDong: number;
+  /** CCCD khách hàng gắn giao dịch; rỗng nếu chưa có. */
+  customerCccd: string;
   /** Note of the sale/buy voucher mapped to this row. Empty if none. */
   note: string;
 };

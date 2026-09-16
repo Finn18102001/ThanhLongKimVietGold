@@ -2,7 +2,7 @@
 
 > Spec gốc: [`TLKV_AI_IMPLEMENTATION_SPEC.md`](./TLKV_AI_IMPLEMENTATION_SPEC.md)  
 > Contract kỹ thuật: [`SYSTEM_DEVELOPMENT_RULES.md`](./SYSTEM_DEVELOPMENT_RULES.md)  
-> Cập nhật: 2026-08-23 (SRS Purchase: tách catalog ±300k vs market gold nhập tay + UI mockup)  
+> Cập nhật: 2026-09-15 (module Quản lý vàng — xem [`GOLD_MANAGEMENT.md`](./GOLD_MANAGEMENT.md))  
 > **Tiến độ tổng (ước lượng): ~72%**
 
 Cách tính: `Σ(trọng_số × %_epic)`. Chỉ đánh dấu ✅ khi đã có DB + backend enforce + UI dùng được trên môi trường thật.

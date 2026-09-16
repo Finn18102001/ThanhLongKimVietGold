@@ -14,6 +14,7 @@ export const STAFF_ALLOWED_HREFS = new Set<string>([
   ROUTES.inventoryReceive,
   ROUTES.inventoryOutbound,
   ROUTES.inventoryHistory,
+  ROUTES.labelPrint,
   ROUTES.customers,
   ROUTES.invoices,
 ]);
@@ -31,6 +32,7 @@ export const ADMIN_ONLY_HREFS = new Set<string>([
   ROUTES.settings,
   ROUTES.audit,
   ROUTES.form02,
+  ROUTES.goldManagement,
   ROUTES.inventoryAdjust,
   ROUTES.inventoryCount,
 ]);
