@@ -10,6 +10,7 @@ import type { HeldOrderListItem } from "../types";
 export function PosHeldOrdersTable({
   items,
   visibleToAll,
+  seesAll,
   activeHoldId,
   loading,
   busyId,
@@ -18,22 +19,26 @@ export function PosHeldOrdersTable({
 }: {
   items: HeldOrderListItem[];
   visibleToAll: boolean;
+  seesAll: boolean;
   activeHoldId: string | null;
   loading: boolean;
   busyId: string | null;
   onResume: (id: string) => void;
   onCancel: (id: string) => void;
 }) {
+  const showSaver = seesAll;
+  const hint = visibleToAll
+    ? "Chưa thanh toán. Mọi tài khoản quầy đều thấy danh sách này."
+    : seesAll
+      ? "Chưa thanh toán. Admin thấy mọi đơn lưu trong hệ thống."
+      : "Chưa thanh toán. Chỉ tài khoản đã lưu mới thấy và mở lại được.";
+
   return (
     <section className="rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)]">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-[15px] font-semibold">Đơn đã lưu ({items.length})</h2>
-          <p className="mt-0.5 text-[12px] text-[var(--tlkv-muted)]">
-            {visibleToAll
-              ? "Chưa thanh toán. Mọi tài khoản quầy đều thấy danh sách này."
-              : "Chưa thanh toán. Chỉ tài khoản đã lưu mới thấy và mở lại được."}
-          </p>
+          <p className="mt-0.5 text-[12px] text-[var(--tlkv-muted)]">{hint}</p>
         </div>
       </div>
 
@@ -46,7 +51,7 @@ export function PosHeldOrdersTable({
               <th className="py-2 pr-3 font-medium">Số SP</th>
               <th className="py-2 pr-3 text-right font-medium">Tạm tính</th>
               <th className="py-2 pr-3 font-medium">Lưu lúc</th>
-              {visibleToAll ? <th className="py-2 pr-3 font-medium">Nhân viên</th> : null}
+              {showSaver ? <th className="py-2 pr-3 font-medium">Nhân viên</th> : null}
               <th className="py-2 pr-3 font-medium">Trạng thái</th>
               <th className="py-2 text-right font-medium">Thao tác</th>
             </tr>
@@ -55,7 +60,7 @@ export function PosHeldOrdersTable({
             {loading ? (
               [0, 1, 2].map((row) => (
                 <tr key={row} className="border-b border-[var(--tlkv-line)]">
-                  <td colSpan={visibleToAll ? 8 : 7} className="py-3">
+                  <td colSpan={showSaver ? 8 : 7} className="py-3">
                     <div className="h-8 animate-pulse rounded-md bg-[var(--tlkv-bg)]" />
                   </td>
                 </tr>
@@ -63,7 +68,7 @@ export function PosHeldOrdersTable({
             ) : items.length === 0 ? (
               <tr>
                 <td
-                  colSpan={visibleToAll ? 8 : 7}
+                  colSpan={showSaver ? 8 : 7}
                   className="py-8 text-center text-[13px] text-[var(--tlkv-muted)]"
                 >
                   Chưa có đơn lưu. Khi khách đi rút tiền, chọn Lưu đơn trên giỏ hàng.
@@ -96,7 +101,7 @@ export function PosHeldOrdersTable({
                     <td className="py-2.5 pr-3 text-[12px] text-[var(--tlkv-muted)]">
                       {formatViDateTime(item.updatedAt || item.createdAt)}
                     </td>
-                    {visibleToAll ? (
+                    {showSaver ? (
                       <td className="py-2.5 pr-3 text-[12px] text-[var(--tlkv-muted)]">
                         {item.savedByEmail}
                       </td>

@@ -78,9 +78,13 @@ function mapHeldLine(row: RpcHeldLine): HeldOrderLine {
 export function mapHeldOrderList(data: unknown): HeldOrderListResult {
   const payload = asObject(data);
   const items = Array.isArray(payload.items) ? (payload.items as RpcHeldItem[]) : [];
+  const visibleToAll = Boolean(payload.visible_to_all);
+  const seesAll =
+    payload.sees_all !== undefined ? Boolean(payload.sees_all) : visibleToAll;
   return {
     ok: payload.ok !== false,
-    visibleToAll: Boolean(payload.visible_to_all),
+    visibleToAll,
+    seesAll,
     items: items.map(mapHeldOrderListItem),
   };
 }
@@ -88,9 +92,13 @@ export function mapHeldOrderList(data: unknown): HeldOrderListResult {
 export function mapHeldOrderDetail(data: unknown): HeldOrderDetail {
   const payload = asObject(data);
   const items = Array.isArray(payload.items) ? (payload.items as RpcHeldLine[]) : [];
+  const visibleToAll = Boolean(payload.visible_to_all);
+  const seesAll =
+    payload.sees_all !== undefined ? Boolean(payload.sees_all) : visibleToAll;
   return {
     ...mapHeldOrderListItem(payload as unknown as RpcHeldItem),
     items: items.map(mapHeldLine),
-    visibleToAll: Boolean(payload.visible_to_all),
+    visibleToAll,
+    seesAll,
   };
 }

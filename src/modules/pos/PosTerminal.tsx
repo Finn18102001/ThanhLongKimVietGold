@@ -168,6 +168,7 @@ export function PosTerminal({
   const [savingHold, setSavingHold] = useState(false);
   const [heldList, setHeldList] = useState(initialHeldOrders.items);
   const [heldVisibleToAll, setHeldVisibleToAll] = useState(initialHeldOrders.visibleToAll);
+  const [heldSeesAll, setHeldSeesAll] = useState(initialHeldOrders.seesAll);
   const [heldLoading, setHeldLoading] = useState(false);
   const [heldBusyId, setHeldBusyId] = useState<string | null>(null);
   const [activeHeldOrderId, setActiveHeldOrderId] = useState<string | null>(null);
@@ -466,6 +467,7 @@ export function PosTerminal({
       const result = await fetchHeldOrders();
       setHeldList(result.items);
       setHeldVisibleToAll(result.visibleToAll);
+      setHeldSeesAll(result.seesAll);
     } finally {
       setHeldLoading(false);
     }
@@ -1158,6 +1160,7 @@ export function PosTerminal({
         <PosHeldOrdersTable
           items={heldList}
           visibleToAll={heldVisibleToAll}
+          seesAll={heldSeesAll}
           activeHoldId={activeHeldOrderId}
           loading={heldLoading}
           busyId={heldBusyId}
