@@ -123,9 +123,17 @@
                 <tbody id="admin-rows"></tbody>
                 <tfoot>
                   <tr id="admin-gold-total-row" class="admin-gold-total-row">
-                    <td colspan="7">Tổng vốn hàng</td>
+                    <td colspan="7">
+                      <div class="admin-gold-footer-stack">
+                        <span class="admin-gold-footer-market-label">Tổng giá trị tồn (thị trường)</span>
+                        <span class="admin-gold-footer-share" id="admin-gold-total-share">
+                          Tỷ trọng vốn: Vàng <span id="admin-gold-footer-gold-pct">0.0%</span>
+                          · Bạc <span id="admin-gold-footer-silver-pct">0.0%</span>
+                        </span>
+                      </div>
+                    </td>
                     <td class="admin-gold-amount-cell" id="admin-gold-total-amount">0đ</td>
-                    <td class="admin-gold-pct-cell" id="admin-gold-total-pct">0.0%</td>
+                    <td class="admin-gold-pct-cell admin-gold-pct-cell--footer-spacer" aria-hidden="true"></td>
                   </tr>
                 </tfoot>
               </table>
@@ -134,9 +142,35 @@
           </div>
         </div>
         <section id="admin-gold-capital-alloc" class="admin-gold-capital" hidden>
-          <h3 class="admin-gold-capital-title">Phân bổ vốn tồn kho</h3>
-          <p class="admin-gold-capital-total" id="admin-gold-capital-total-label">Tổng vốn hàng: 0đ</p>
+          <h3 class="admin-gold-capital-title">Phân bổ vốn (SRS)</h3>
+          <div class="admin-capital-kpis" aria-label="Tỷ lệ vốn vàng và bạc">
+            <article class="admin-capital-kpi">
+              <span class="admin-capital-kpi-label">
+                % Vàng / Tổng vốn
+                <button type="button" class="admin-capital-tip" aria-label="Giải thích % Vàng"
+                  title="% vốn có thể >100% hoặc <0%. Đây là kết quả trực tiếp của công thức SRS, không được clamp về 0–100%.">ⓘ</button>
+              </span>
+              <span class="admin-capital-kpi-value" id="admin-capital-gold-pct">0.0%</span>
+              <span class="admin-capital-kpi-detail" id="admin-capital-gold-detail">0 chỉ / 0 chỉ</span>
+            </article>
+            <article class="admin-capital-kpi">
+              <span class="admin-capital-kpi-label">
+                % Bạc / Tổng vốn
+                <button type="button" class="admin-capital-tip" aria-label="Giải thích % Bạc"
+                  title="% vốn có thể >100% hoặc <0%. Đây là kết quả trực tiếp của công thức SRS, không được clamp về 0–100%.">ⓘ</button>
+              </span>
+              <span class="admin-capital-kpi-value" id="admin-capital-silver-pct">0.0%</span>
+              <span class="admin-capital-kpi-detail" id="admin-capital-silver-detail">0 chỉ / 0 chỉ</span>
+            </article>
+            <article class="admin-capital-kpi">
+              <span class="admin-capital-kpi-label">Tiền thực tế</span>
+              <span class="admin-capital-kpi-value admin-capital-kpi-value--money" id="admin-capital-money-actual">0đ</span>
+              <span class="admin-capital-kpi-detail">Mặt + NH + phải thu − nợ khách</span>
+            </article>
+          </div>
+          <p class="admin-gold-capital-total" id="admin-gold-capital-total-label">Giá trị tồn (thị trường): 0đ</p>
           <div id="admin-gold-capital-groups" class="admin-gold-capital-groups"></div>
+          <div id="admin-capital-recon" class="admin-capital-recon" hidden></div>
         </section>
         <p class="hint">
           Mỗi dòng một hàng (dễ sửa nhanh). Bấm <strong>Sửa</strong> trên một hoặc nhiều dòng để chỉnh <strong>Sản phẩm

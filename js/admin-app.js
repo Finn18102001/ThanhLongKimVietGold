@@ -54,6 +54,8 @@ function showToast(message, type = 'success') {
   /** Các id dòng đang sửa inline (có thể nhiều dòng cùng lúc). */
   var goldInlineEditRowIds = Object.create(null);
   var goldSkuStocksCache = null;
+  var goldMoneySnapshotCache = null;
+  var goldMetalObligationsCache = null;
   var goldCapitalSnapshot = null;
   function goldInlineEditHasAny() {
     return Object.keys(goldInlineEditRowIds).length > 0;
@@ -591,20 +593,82 @@ function showToast(message, type = 'success') {
     return window.TLKVGold.getGoldTable({ forceRefresh: forceRefresh === true });
   }
 
-  async function ensureGoldCapitalStocks(force) {
-    if (!force && goldSkuStocksCache) return goldSkuStocksCache;
+  async function ensureGoldCapitalInputs(force) {
     var Cap = window.TLKVGoldInventoryCapital;
-    if (!sb || !Cap || typeof Cap.fetchSkuStocks !== "function") {
-      goldSkuStocksCache = [];
-      return goldSkuStocksCache;
+    if (!force && goldSkuStocksCache && goldMoneySnapshotCache && goldMetalObligationsCache) {
+      return {
+        skuStocks: goldSkuStocksCache,
+        money: goldMoneySnapshotCache,
+        metalObligations: goldMetalObligationsCache.items || [],
+        unclassifiedObligationCount: goldMetalObligationsCache.unclassifiedCount || 0,
+      };
     }
-    try {
-      goldSkuStocksCache = await Cap.fetchSkuStocks(sb);
-    } catch (err) {
-      console.warn("[TLKV capital] Không đọc được tồn kho POS:", err);
+    if (!sb || !Cap) {
       goldSkuStocksCache = [];
+      goldMoneySnapshotCache = Cap && Cap.emptyMoneySnapshot ? Cap.emptyMoneySnapshot() : {
+        cashDong: 0,
+        bankDong: 0,
+        receivableDong: 0,
+        payableDong: 0,
+        moneyActualDong: 0,
+      };
+      goldMetalObligationsCache = { items: [], unclassifiedCount: 0 };
+      return {
+        skuStocks: [],
+        money: goldMoneySnapshotCache,
+        metalObligations: [],
+        unclassifiedObligationCount: 0,
+      };
     }
-    return goldSkuStocksCache;
+
+    var stocksP =
+      typeof Cap.fetchSkuStocks === "function"
+        ? Cap.fetchSkuStocks(sb).catch(function (err) {
+            console.warn("[TLKV capital] Không đọc được tồn kho POS:", err);
+            return [];
+          })
+        : Promise.resolve([]);
+    var moneyP =
+      typeof Cap.fetchMoneySnapshot === "function"
+        ? Cap.fetchMoneySnapshot(sb).catch(function (err) {
+            console.warn("[TLKV capital] Không đọc được tiền/công nợ:", err);
+            return Cap.emptyMoneySnapshot ? Cap.emptyMoneySnapshot() : {
+              cashDong: 0,
+              bankDong: 0,
+              receivableDong: 0,
+              payableDong: 0,
+              moneyActualDong: 0,
+            };
+          })
+        : Promise.resolve(
+            Cap.emptyMoneySnapshot
+              ? Cap.emptyMoneySnapshot()
+              : { cashDong: 0, bankDong: 0, receivableDong: 0, payableDong: 0, moneyActualDong: 0 }
+          );
+    var metalP =
+      typeof Cap.fetchMetalObligations === "function"
+        ? Cap.fetchMetalObligations(sb).catch(function (err) {
+            console.warn("[TLKV capital] Không đọc được vàng/bạc phải thu-trả:", err);
+            return { items: [], unclassifiedCount: 0 };
+          })
+        : Promise.resolve({ items: [], unclassifiedCount: 0 });
+
+    var results = await Promise.all([stocksP, moneyP, metalP]);
+    goldSkuStocksCache = results[0] || [];
+    goldMoneySnapshotCache = results[1];
+    goldMetalObligationsCache = results[2] || { items: [], unclassifiedCount: 0 };
+    return {
+      skuStocks: goldSkuStocksCache,
+      money: goldMoneySnapshotCache,
+      metalObligations: goldMetalObligationsCache.items || [],
+      unclassifiedObligationCount: goldMetalObligationsCache.unclassifiedCount || 0,
+    };
+  }
+
+  /** @deprecated use ensureGoldCapitalInputs */
+  async function ensureGoldCapitalStocks(force) {
+    var inputs = await ensureGoldCapitalInputs(force);
+    return inputs.skuStocks;
   }
 
   function renderGoldCapitalAllocation(snapshot, loadError) {
@@ -614,9 +678,53 @@ function showToast(message, type = 'success') {
     var Cap = window.TLKVGoldInventoryCapital;
     if (!section || !host || !Cap) return;
     section.hidden = false;
+
+    var goldPct = snapshot
+      ? snapshot.gold && snapshot.gold.percent != null
+        ? snapshot.gold.percent
+        : snapshot.goldPercent
+      : 0;
+    var silverPct = snapshot
+      ? snapshot.silver && snapshot.silver.percent != null
+        ? snapshot.silver.percent
+        : snapshot.silverPercent
+      : 0;
+    var money = (snapshot && snapshot.money) || {};
+    var gold = (snapshot && snapshot.gold) || {};
+    var silver = (snapshot && snapshot.silver) || {};
+    var marketValue =
+      snapshot && snapshot.marketInventoryValue != null
+        ? snapshot.marketInventoryValue
+        : snapshot
+          ? snapshot.totalDong
+          : 0;
+
+    var goldPctEl = $("admin-capital-gold-pct");
+    var silverPctEl = $("admin-capital-silver-pct");
+    var moneyEl = $("admin-capital-money-actual");
+    var goldDetailEl = $("admin-capital-gold-detail");
+    var silverDetailEl = $("admin-capital-silver-detail");
+    if (goldPctEl) goldPctEl.textContent = Cap.formatPercent(goldPct);
+    if (silverPctEl) silverPctEl.textContent = Cap.formatPercent(silverPct);
+    if (moneyEl) moneyEl.textContent = Cap.formatDong(money.moneyActualDong || 0);
+    if (goldDetailEl) {
+      goldDetailEl.textContent =
+        Cap.formatChi(gold.metalActualChi || 0) +
+        " / " +
+        Cap.formatChi(gold.totalCapitalChi || 0) +
+        (gold.avgPricePerChi > 0 ? " · TB " + Cap.formatDong(gold.avgPricePerChi) + "/chỉ" : "");
+    }
+    if (silverDetailEl) {
+      silverDetailEl.textContent =
+        Cap.formatChi(silver.metalActualChi || 0) +
+        " / " +
+        Cap.formatChi(silver.totalCapitalChi || 0) +
+        (silver.avgPricePerChi > 0 ? " · TB " + Cap.formatDong(silver.avgPricePerChi) + "/chỉ" : "");
+    }
+
     if (totalEl) {
       totalEl.innerHTML =
-        "Tổng vốn hàng: <strong>" + Cap.formatDong(snapshot ? snapshot.totalDong : 0) + "</strong>";
+        "Giá trị tồn (thị trường): <strong>" + Cap.formatDong(marketValue) + "</strong>";
     }
     host.innerHTML = "";
     if (loadError) {
@@ -625,8 +733,18 @@ function showToast(message, type = 'success') {
       warn.textContent = "Chưa đọc được số lượng tồn kho. % vốn đang là 0 cho đến khi tải được kho.";
       host.appendChild(warn);
     }
+    if (snapshot && snapshot.unclassifiedObligationCount > 0) {
+      var skip = document.createElement("p");
+      skip.className = "admin-gold-capital-warn";
+      skip.setAttribute("data-recon-state", "unclassified");
+      skip.textContent =
+        "⚠ Có " +
+        snapshot.unclassifiedObligationCount +
+        " khoản nghĩa vụ chưa xác định loại kim loại — không đưa vào Gold/Silver (không fallback).";
+      host.appendChild(skip);
+    }
     var groups = (snapshot && snapshot.groups) || Cap.CAPITAL_GROUPS.map(function (g) {
-      return { id: g.id, label: g.label, valueDong: 0, percent: 0 };
+      return { id: g.id, label: g.label, valueDong: 0, percent: 0, convertedChi: 0 };
     });
     groups.forEach(function (group) {
       var item = document.createElement("article");
@@ -640,12 +758,21 @@ function showToast(message, type = 'success') {
       pct.textContent = Cap.formatPercent(group.percent);
       var amount = document.createElement("span");
       amount.className = "admin-gold-capital-item-amount";
-      amount.textContent = Cap.formatDong(group.valueDong);
+      amount.textContent =
+        Cap.formatChi(group.shareChi != null ? group.shareChi : group.convertedChi || 0) +
+        " · " +
+        Cap.formatDong(group.valueDong);
       var bar = document.createElement("div");
       bar.className = "admin-gold-capital-bar";
       bar.setAttribute("aria-hidden", "true");
       var fill = document.createElement("span");
-      fill.style.width = Math.max(0, Math.min(100, Number(group.percent) || 0)) + "%";
+      fill.style.width =
+        (function () {
+          var p = Number(group.percent);
+          if (!Number.isFinite(p) || p <= 0) return "0%";
+          // Bar width only — displayed % text is never clamped.
+          return Math.min(100, p) + "%";
+        })();
       bar.appendChild(fill);
       item.appendChild(name);
       item.appendChild(pct);
@@ -653,6 +780,79 @@ function showToast(message, type = 'success') {
       item.appendChild(bar);
       host.appendChild(item);
     });
+
+    renderCapitalReconciliation(snapshot, Cap);
+  }
+
+  function renderCapitalReconciliation(snapshot, Cap) {
+    var host = $("admin-capital-recon");
+    if (!host || !Cap || !snapshot) return;
+    var gold = snapshot.gold || {};
+    var silver = snapshot.silver || {};
+    var recon = snapshot.reconciliation || {};
+    host.hidden = false;
+    host.innerHTML = "";
+
+    function addMetalBlock(title, eng, reconMetal) {
+      var block = document.createElement("div");
+      block.className = "admin-capital-recon-block";
+      var h = document.createElement("h4");
+      h.className = "admin-capital-recon-title";
+      h.textContent = title;
+      block.appendChild(h);
+      var list = document.createElement("ul");
+      list.className = "admin-capital-recon-list";
+      function li(label, pct, chi) {
+        var item = document.createElement("li");
+        item.innerHTML =
+          "<span>" +
+          escapeHtml(label) +
+          "</span><strong>" +
+          escapeHtml(Cap.formatPercent(pct)) +
+          "</strong><em>" +
+          escapeHtml(Cap.formatChi(chi)) +
+          "</em>";
+        list.appendChild(item);
+      }
+      li("Tồn theo sản phẩm", eng.inventoryPercent, eng.stockConvertedChi);
+      li("Phải thu (đã phân bổ)", percentOfSafe(eng.receivableAllocatedChi, eng.totalCapitalChi), eng.receivableAllocatedChi);
+      li(
+        "Phải thu chưa phân bổ",
+        percentOfSafe(eng.receivableUnallocatedChi, eng.totalCapitalChi),
+        eng.receivableUnallocatedChi
+      );
+      li(
+        "Phải trả (đã phân bổ)",
+        percentOfSafe(-(eng.payableAllocatedChi || 0), eng.totalCapitalChi),
+        -(eng.payableAllocatedChi || 0)
+      );
+      li(
+        "Phải trả chưa phân bổ",
+        percentOfSafe(-(eng.payableUnallocatedChi || 0), eng.totalCapitalChi),
+        -(eng.payableUnallocatedChi || 0)
+      );
+      li("Tiền quy kim loại", eng.moneyPercent, eng.moneyConvertedChi != null ? eng.moneyConvertedChi : eng.moneyAsMetalChi);
+      li("Tổng vốn quy kim loại", eng.totalCapitalChi === 0 ? 0 : 100, eng.totalCapitalChi);
+      block.appendChild(list);
+      if (reconMetal && reconMetal.ok === false) {
+        var warn = document.createElement("p");
+        warn.className = "admin-gold-capital-warn";
+        warn.textContent =
+          "Reconciliation lệch " + Cap.formatChi(reconMetal.deltaChi) + " — kiểm tra log console.";
+        block.appendChild(warn);
+      }
+      host.appendChild(block);
+    }
+
+    function percentOfSafe(part, total) {
+      var t = Number(total);
+      var p = Number(part);
+      if (!Number.isFinite(t) || t === 0 || !Number.isFinite(p)) return 0;
+      return (p / t) * 100;
+    }
+
+    addMetalBlock("Đối soát Vàng (SRS)", gold, recon.gold);
+    addMetalBlock("Đối soát Bạc (SRS)", silver, recon.silver);
   }
 
   function applyGoldCapitalToTable(data) {
@@ -672,9 +872,14 @@ function showToast(message, type = 'success') {
             return window.TLKVGold.variantParentProduct(rows, index);
           }
         : null;
+    var money = goldMoneySnapshotCache || (Cap.emptyMoneySnapshot ? Cap.emptyMoneySnapshot() : {});
+    var metalBag = goldMetalObligationsCache || { items: [], unclassifiedCount: 0 };
     goldCapitalSnapshot = Cap.calculateInventoryCapital({
       rows: (data && data.rows) || [],
       skuStocks: goldSkuStocksCache || [],
+      money: money,
+      metalObligations: metalBag.items || [],
+      unclassifiedObligationCount: metalBag.unclassifiedCount || 0,
       parsePrice: parse,
       parentProductAt: parentAt,
     });
@@ -695,15 +900,33 @@ function showToast(message, type = 'success') {
         continue;
       }
       cell.textContent = Cap.formatPercent(row.percent);
-      cell.title = Cap.formatDong(row.valueDong);
-      cell.classList.toggle("is-zero", !(row.valueDong > 0));
+      cell.title =
+        Cap.formatChi(row.shareChi != null ? row.shareChi : row.convertedChi || 0) +
+        " · TB " +
+        Cap.formatDong(row.listedAvg || 0) +
+        " · " +
+        Cap.formatDong(row.valueDong) +
+        (row.metal === "silver" ? " (mẫu số: tổng vốn quy bạc)" : " (mẫu số: tổng vốn quy vàng)");
+      cell.classList.toggle("is-zero", !(Number(row.shareChi) || Number(row.convertedChi) || Number(row.valueDong)));
     }
     var amountEl = $("admin-gold-total-amount");
-    var pctEl = $("admin-gold-total-pct");
-    if (amountEl) amountEl.textContent = Cap.formatDong(goldCapitalSnapshot.totalDong);
-    if (pctEl) {
-      pctEl.textContent = goldCapitalSnapshot.totalDong > 0 ? "100.0%" : "0.0%";
-    }
+    var footerGoldPct = $("admin-gold-footer-gold-pct");
+    var footerSilverPct = $("admin-gold-footer-silver-pct");
+    var marketValue =
+      goldCapitalSnapshot.marketInventoryValue != null
+        ? goldCapitalSnapshot.marketInventoryValue
+        : goldCapitalSnapshot.totalDong;
+    var goldPct =
+      goldCapitalSnapshot.gold && goldCapitalSnapshot.gold.percent != null
+        ? goldCapitalSnapshot.gold.percent
+        : goldCapitalSnapshot.goldPercent;
+    var silverPct =
+      goldCapitalSnapshot.silver && goldCapitalSnapshot.silver.percent != null
+        ? goldCapitalSnapshot.silver.percent
+        : goldCapitalSnapshot.silverPercent;
+    if (amountEl) amountEl.textContent = Cap.formatDong(marketValue);
+    if (footerGoldPct) footerGoldPct.textContent = Cap.formatPercent(goldPct);
+    if (footerSilverPct) footerSilverPct.textContent = Cap.formatPercent(silverPct);
     renderGoldCapitalAllocation(goldCapitalSnapshot, false);
   }
 
@@ -854,7 +1077,7 @@ function showToast(message, type = 'success') {
     if (goldAdminRefreshInFlight) return goldAdminRefreshInFlight;
     goldAdminRefreshInFlight = getGoldAdminData(opts.forceRefresh === true)
       .then(function (data) {
-        return ensureGoldCapitalStocks(true).then(function () {
+        return ensureGoldCapitalInputs(true).then(function () {
           return Promise.all([refreshMetaForm(data || {}), refreshTable(data || {})]).then(function () {
             return data;
           });

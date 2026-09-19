@@ -1,0 +1,298 @@
+---
+description: SRS phân bổ vốn % Vàng/% Bạc trên tab /admin (website Express :5190). Áp dụng khi sửa calculation hoặc UI vốn.
+globs: admin/**/*,js/admin/**/*,js/admin-app.js
+alwaysApply: false
+---
+
+# Admin `/admin` — Phân bổ vốn (SRS)
+
+Scope: **chỉ** calculation + hiển thị % vốn trên website Express **port 5190** (`/admin` tab Giá vàng).
+
+Không đụng: POS checkout, Inventory/Invoice/Product CRUD, price management, schema không liên quan, POS port 3000.
+
+## Files
+
+| File | Role |
+|------|------|
+| `js/admin/gold-inventory-capital.js` | **Single engine** `calculateInventoryCapital` + fetch money/debt |
+| `js/admin-app.js` | Wire data → render KPI / rows / brands / reconciliation |
+| `admin/index.html` | Markup KPI + brand cards + đối soát |
+| `admin/admin.css` | Styles |
+| `js/admin/admin-access.js` | Tab visibility (unrelated to formula) |
+
+## Single Calculation Engine
+
+`TLKVGoldInventoryCapital.calculateInventoryCapital()` là **single source of truth**.
+
+Engine trả về tối thiểu:
+
+```text
+gold / silver:
+  avg (avgPricePerChi)
+  inventoryConvertedChi
+  receivableConvertedChi
+  payableConvertedChi
+  metalActualChi
+  moneyConvertedChi
+  totalCapitalChi
+  percent (metalPercent)
+
+rows[]
+brands[] (alias groups[])
+reconciliation { gold, silver, doubleCountAudit }
+unclassifiedObligationCount
+```
+
+`admin-app.js` **chỉ consume snapshot**. Không tự tính lại công thức ở KPI / product row / brand card / reconciliation / UI helper riêng.
+
+## Hai khái niệm tách biệt
+
+1. **Giá trị tồn (thị trường)** = Σ inventory × giá thị trường (đồng). KPI riêng. **Không** làm mẫu số SRS.
+2. **Tổng vốn quy kim loại** = kim loại thực tế + tiền quy đổi. Đây là mẫu số SRS.
+
+## Gold / Silver độc lập
+
+```
+GOLD: inventory → avgGold → convert → ± AR/AP gold → + money/avgGold → % Vàng
+SILVER: tương tự với avgSilver
+```
+
+Không dùng giá vàng để quy bạc và ngược lại.
+
+## Công thức cốt lõi
+
+### Giá TB dòng
+
+- Brand: `(mua + bán) / 2` (thiếu bán → mua)
+- Vàng/bạc thị trường: **chỉ giá mua**
+
+### Portfolio avg (riêng từng kim loại)
+
+Gold và Silver tính độc lập, **chỉ từ inventory/product rows** thuộc đúng metal:
+
+```text
+avgGold   = Σ(qtyChi × pricePerChi) / Σ(qtyChi)
+avgSilver = Σ(qtyChi × pricePerChi) / Σ(qtyChi)
+```
+
+**Không** đưa vào portfolio average: tiền mặt, NH, tiền phải thu, tiền nợ khách, phải thu/trả kim loại.
+
+Không làm tròn intermediate value.
+
+### Giá theo 1 chỉ
+
+```text
+pricePerChi = listedAvg / boardUnitChi
+```
+
+`boardUnitChi` = trọng lượng mà giá bảng giá đại diện (0.1 / 0.2 / 0.5 / 1 …).
+
+Mọi calculation vốn dùng `pricePerChi`. Không lấy `listedAvg` làm giá 1 chỉ khi `boardUnitChi != 1`.
+
+### Quy đổi tồn dòng
+
+```text
+inventoryConvertedChi = qtyChi × pricePerChi / avgMetal
+```
+
+### Tiền thực tế
+
+```text
+moneyActual = cash + bank + receivableMoney − customerDebt
+```
+
+Missing fetch → từng phần = `0`, vẫn render (không NaN / N/A / block UI).
+
+### Tiền quy đổi
+
+Cùng một `moneyActual` quy đổi độc lập:
+
+```text
+moneyConvertedGoldChi   = moneyActual / avgGold
+moneyConvertedSilverChi = moneyActual / avgSilver
+```
+
+- Không chia tiền theo tỷ lệ Gold/Silver.
+- **Không** phân bổ `moneyConvertedChi` xuống product row hoặc brand.
+- Chỉ tham gia `totalCapital = metalActual + moneyConvertedChi`.
+
+### Kim loại thực tế
+
+```text
+metalActualChi
+  = inventoryConvertedChi
+  + totalReceivableConvertedChi
+  − totalPayableConvertedChi
+```
+
+### Tổng vốn & % kim loại
+
+```text
+totalCapitalChi = metalActualChi + moneyConvertedChi
+% metal = metalActualChi / totalCapitalChi × 100
+```
+
+### % vốn từng dòng / brand
+
+```text
+shareChi
+  = inventoryConvertedChi
+  + allocatedReceivableChi
+  − allocatedPayableChi
+
+rowPercent = shareChi / totalCapital(metal) × 100
+```
+
+- `moneyConvertedChi` **không** vào `shareChi`.
+- Brand:
+
+```text
+brandShareChi = Σ shareChi (cùng brand + metal)
+brandPercent  = brandShareChi / totalCapital(metal) × 100
+```
+
+Brand aggregate từ rows — không API/công thức riêng.
+
+## Công nợ kim loại
+
+Phải phân biệt **2 trường hợp**:
+
+### 1. Unknown / Unclassified metal
+
+`metal = null / unknown / không xác định`:
+
+- Không vào Gold pool, không vào Silver pool.
+- Không fallback sang Gold.
+- Tăng `unclassifiedObligationCount`.
+- Hiển thị reconciliation / error state để kiểm tra metadata.
+
+### 2. Known metal nhưng Unallocated
+
+`metal = gold | silver` nhưng không có `priceRowId` hợp lệ / không map được product/brand:
+
+- **Vẫn** tính vào `metalActual` và `totalCapital`.
+- Không gán sang product/brand khác, không chia đều.
+- Đưa vào `unallocatedReceivableChi` hoặc `unallocatedPayableChi`.
+- Hiện trong khối Reconciliation.
+
+Tóm lại: Unknown → loại khỏi pool. Known + chưa map → vẫn tính vốn, chưa phân bổ row/brand.
+
+## Không clamp / Denominator = 0
+
+Cho phép `% > 100` và `% âm`. Thanh bar CSS có thể giới hạn width; **số % text không clamp**.
+
+Nếu `totalCapital(metal) === 0` → `percent = 0.0%`. Không render NaN% / Infinity% / undefined%. Không dùng clamp để xử lý case này.
+
+## Double-count
+
+Các khoản phải thu/trả kim loại chỉ tính **một lần**. Engine phải đảm bảo:
+
+```text
+Inventory + Receivable − Payable
+```
+
+không chứa cùng quantity/obligation hai lần. Không xử lý double-count bằng trừ/cộng thủ công ở UI.
+
+### Audit POS hiện tại
+
+| Nguồn | Hành vi kho | SRS |
+|-------|-------------|-----|
+| Purchase receivable (chưa/nhận một phần) | Stock chỉ tăng khi nhận | Cộng receivable — **không** double |
+| Sale payable PREORDER/DEPOSIT | `complete_sale` chỉ trừ kho khi `SALE` | Trừ payable — **không** double |
+
+Nếu RPC kho / fulfill đổi → **re-audit** trước khi release.
+
+## Reconciliation
+
+Tất cả giá trị quy về đơn vị `chi`.
+
+```text
+inventoryConvertedChi = Σ product inventoryConvertedChi
+
+metalActualChi
+  = inventoryConvertedChi
+  + totalReceivableConvertedChi
+  − totalPayableConvertedChi
+
+totalCapitalChi = metalActualChi + moneyConvertedChi
+
+Σ product shareChi
+  + unallocatedReceivableChi
+  − unallocatedPayableChi
+  + moneyConvertedChi
+  = totalCapitalChi
+```
+
+Lệch → `reconciliation.*.ok = false` + `console.warn` + cảnh báo UI.
+
+**Không** normalize / scale / cộng bù / % giả / ép tổng 100%.
+
+Tổng brand **không** buộc = 100% (còn tiền + công nợ unallocated).
+
+## UI KPI
+
+1. `% Vàng / Tổng vốn` + ⓘ tooltip (có thể >100% / <0%, không clamp) + chỉ thực tế / tổng vốn quy vàng + TB đ/chỉ
+2. `% Bạc / Tổng vốn` + ⓘ tooltip tương tự
+3. `Tiền thực tế`
+4. Brand cards từ cùng engine
+5. Khối đối soát Gold/Silver (luôn có dòng phải thu/trả **đã phân bổ** và **chưa phân bổ**, kể cả 0.0% / 0 chỉ)
+6. Cảnh báo unclassified khi `unclassifiedObligationCount > 0`
+7. Footer bảng giá — **hai khái niệm tách dòng**:
+   - `Tổng giá trị tồn (thị trường)` ← `snapshot.marketInventoryValue` (alias `totalDong`)
+   - `Tỷ trọng vốn: Vàng X% · Bạc Y%` ← `snapshot.gold.percent` / `snapshot.silver.percent`
+
+### Unallocated vs Unclassified (UI)
+
+| | Unallocated | Unclassified |
+|---|-------------|--------------|
+| Metal | Đã biết gold/silver | Không biết |
+| Vào totalCapital | Có | Không |
+| Vào row/brand | Không | Không |
+| Hiển thị | Dòng “chưa phân bổ” trong đối soát | Cảnh báo ⚠ số khoản |
+
+### Tooltip (ngắn)
+
+`% vốn có thể >100% hoặc <0%. Đây là kết quả trực tiếp của công thức SRS, không được clamp về 0–100%.`
+
+UI **không** tính lại % — chỉ format snapshot.
+
+## Tuyệt đối không
+
+- Dùng giá trị tồn thị trường làm mẫu số SRS
+- Clamp % về 0–100
+- Fallback unknown metal → gold
+- Bỏ known-unallocated khỏi totalCapital
+- Phân bổ tiền xuống row/brand
+- Gộp gold+silver một pool
+- Làm tròn trước khi cộng
+- Hard-code số ví dụ
+- Ép tổng brand = 100%
+- Sửa flow POS/Inventory/Invoice ngoài calculation vốn admin
+
+## Acceptance Criteria
+
+- **AC01** Gold chỉ dùng `avgGold`; Silver chỉ dùng `avgSilver`
+- **AC02** Cùng `moneyActual` quy đổi độc lập; không chia tỷ lệ
+- **AC03** Product `%` = `shareChi / totalCapital(metal) × 100`
+- **AC04** Brand `%` = aggregate rows cùng brand + metal
+- **AC05** `moneyConvertedChi` không phân bổ xuống product/brand
+- **AC06** Known + unallocated → vẫn trong totalCapital; không vào row/brand; hiện recon
+- **AC07** Unknown metal → không vào Gold/Silver; tăng `unclassifiedObligationCount`
+- **AC08** No double count Inventory + AR/AP
+- **AC09** Gold và Silver mỗi bên có reconciliation riêng
+- **AC10** Không fake-normalize tổng % về 100%
+- **AC11** Cho phép âm và >100%
+- **AC12** `totalCapital === 0` → `0.0%`
+- **AC13** Market value chỉ ảnh hưởng KPI tồn thị trường; không làm mẫu số SRS
+- **AC14** KPI / row / brand / recon cùng snapshot `calculateInventoryCapital()`
+- **AC15** Footer tách `marketInventoryValue` và tỷ trọng vốn (gold.percent / silver.percent)
+- **AC16** Đối soát luôn hiện unallocated (kể cả 0); unclassified chỉ cảnh báo, không vào pool
+- **AC17** Tooltip KPI giải thích % có thể >100% / <0%, không clamp; không đổi số liệu
+
+## Verify
+
+```bash
+node -e "console.log(require('./js/admin/gold-inventory-capital.js').selfCheck())"
+```
+
+Manual: http://127.0.0.1:5190/admin (không dùng :3000).

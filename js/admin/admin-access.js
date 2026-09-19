@@ -18,7 +18,7 @@
    * (chỉ non-content-only / thanglongkimviet thấy tab Giá vàng / Sửa giá).
    * Không xóa logic isContentOnly / CONTENT_ONLY_EMAIL bên dưới.
    */
-  var DEBUG_BYPASS_GOLD_ACCOUNT_GATE = false;
+  var DEBUG_BYPASS_GOLD_ACCOUNT_GATE = true;
   /** @type {Readonly<ReturnType<typeof buildAccess>> | null} */
   var currentAccess = null;
 

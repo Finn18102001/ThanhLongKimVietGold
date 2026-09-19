@@ -294,6 +294,48 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
 .admin-gold-total-row td:first-child {
   letter-spacing: 0.01em;
 }
+.admin-gold-footer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+}
+.admin-gold-footer-market-label {
+  font-weight: 700;
+  color: #330e0a;
+}
+.admin-gold-footer-share {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b1d1d;
+  font-variant-numeric: tabular-nums;
+}
+.admin-gold-pct-cell--footer-spacer {
+  border-left: none !important;
+}
+.admin-capital-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0;
+  width: 1.15em;
+  height: 1.15em;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 12px;
+  line-height: 1;
+  cursor: help;
+  vertical-align: middle;
+}
+.admin-capital-tip:hover,
+.admin-capital-tip:focus-visible {
+  color: #8b1d1d;
+  outline: none;
+}
 .admin-gold-capital {
   margin-top: 0;
   margin-bottom: 20px;
@@ -308,6 +350,49 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   font-size: 18px;
   font-weight: 750;
   color: #8b1d1d;
+}
+.admin-capital-kpis {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+@media (min-width: 768px) {
+  .admin-capital-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.admin-capital-kpi {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  background: #faf7f4;
+}
+.admin-capital-kpi-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+}
+.admin-capital-kpi-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 750;
+  color: #330e0a;
+  font-variant-numeric: tabular-nums;
+}
+.admin-capital-kpi-value--money {
+  font-size: 20px;
+}
+.admin-capital-kpi-detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #52525b;
+  font-variant-numeric: tabular-nums;
 }
 .admin-gold-capital-total {
   margin: 0 0 14px;
@@ -381,6 +466,60 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   margin: 0 0 10px;
   font-size: 12px;
   color: #b45309;
+}
+.admin-capital-recon {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 900px) {
+  .admin-capital-recon {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.admin-capital-recon-block {
+  padding: 12px 14px;
+  border: 1px dashed #e4ddd4;
+  border-radius: 10px;
+  background: #fcfbf9;
+}
+.admin-capital-recon-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b1d1d;
+}
+.admin-capital-recon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.admin-capital-recon-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0ebe4;
+  font-size: 12px;
+  color: #52525b;
+}
+.admin-capital-recon-list li:last-child {
+  border-bottom: none;
+  font-weight: 650;
+  color: #330e0a;
+}
+.admin-capital-recon-list strong {
+  font-variant-numeric: tabular-nums;
+  color: #330e0a;
+}
+.admin-capital-recon-list em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: #71717a;
+  min-width: 7.5rem;
+  text-align: right;
 }
 .admin-btn-thay-doi {
   position: absolute;
