@@ -53,9 +53,8 @@ export type PosSaleContext = {
 
 /**
  * Parked unpaid POS cart. Not a sale and not an invoice.
- * `visibleToAll` maps `pos_held_order_settings.visible_to_all` (default false:
- * only the saver sees/resumes/cancels). Flip that DB flag if cashiers must share holds.
- * `seesAll` is true when the setting is on OR the actor is Admin (system-wide list).
+ * Every authenticated POS user can list / resume / cancel every HELD order
+ * (`sees_all` / `visible_to_all` are always true from the list RPC).
  */
 export type HeldOrderStatus = "HELD" | "CANCELLED" | "COMPLETED";
 

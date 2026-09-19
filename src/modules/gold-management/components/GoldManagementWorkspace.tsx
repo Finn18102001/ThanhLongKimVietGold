@@ -124,11 +124,10 @@ export function GoldManagementWorkspace({
   }
 
   function onExportExcel() {
-    const stamp = new Date().toISOString().slice(0, 10);
     const tabSlug =
       tab === "overview" ? "tong-quan" : tab === "receivable" ? "phai-thu" : "phai-tra";
     downloadCsv(
-      `quan-ly-vang-${tabSlug}-${stamp}.csv`,
+      `quan-ly-vang-${tabSlug}.csv`,
       [
         "STT",
         "Ngày tháng năm",

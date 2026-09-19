@@ -465,7 +465,7 @@ function downloadCustomerActivityCsv(
   ]);
   const safeNo = customerNo.replace(/[^\w-]+/g, "_");
   downloadCsv(
-    `hoat-dong-${safeNo}-${new Date().toISOString().slice(0, 10)}.csv`,
+    `hoat-dong-${safeNo}.csv`,
     headers,
     data,
   );

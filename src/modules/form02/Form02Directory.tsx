@@ -117,7 +117,7 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
           actor: actor || null,
         });
         downloadCsv(
-          `phieu-02-${new Date().toISOString().slice(0, 10)}.csv`,
+          "phieu-02.csv",
           [
             "STT",
             "Ngày tháng năm mua hàng",

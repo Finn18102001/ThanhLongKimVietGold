@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { withExportTime } from "@/shared/lib/csv";
 import {
   fetchPurchaseReport,
   fetchReportingSnapshot,
@@ -581,7 +582,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
   anchor.href = url;
   const fromStamp = from.replaceAll("-", "");
   const toStamp = to.replaceAll("-", "");
-  anchor.download = `tlkv-giao-dich-${fromStamp}-${toStamp}.csv`;
+  anchor.download = withExportTime(`tlkv-giao-dich-${fromStamp}-${toStamp}.csv`);
   anchor.click();
   URL.revokeObjectURL(url);
 }

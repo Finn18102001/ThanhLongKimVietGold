@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FileXls, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { formatViDateOnly } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
+import { withExportTime } from "@/shared/lib/csv";
 import { exportCustomers, fetchCustomer, searchCustomers } from "./actions";
 import { CustomerDetailPanel } from "./components/CustomerDetailPanel";
 import { CustomerFormModal } from "./components/CustomerFormModal";
@@ -491,7 +492,7 @@ function downloadCustomersCsv(rows: CustomerRecord[]) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `khach-hang-${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.download = withExportTime("khach-hang.csv");
   anchor.click();
   URL.revokeObjectURL(url);
 }

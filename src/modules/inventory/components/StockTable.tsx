@@ -58,9 +58,8 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
   const pageRows = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   function onExportExcel() {
-    const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(
-      `ton-kho-${stamp}.csv`,
+      "ton-kho.csv",
       [
         "Mã hàng",
         "Sản phẩm",

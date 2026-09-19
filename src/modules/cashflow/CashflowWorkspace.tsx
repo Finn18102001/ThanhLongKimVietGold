@@ -167,9 +167,8 @@ export function CashflowWorkspace({
           direction: direction || null,
           q: q || null,
         });
-        const stamp = new Date().toISOString().slice(0, 10);
         downloadCsv(
-          `dong-tien-${from}_${to}-${stamp}.csv`,
+          `dong-tien-${from}_${to}.csv`,
           [
             "Thời gian",
             "Loại giao dịch",

@@ -111,9 +111,8 @@ export function StockCountWorkspace({
 
   function exportFilteredExcel() {
     if (!session) return;
-    const countDate = formatVnIsoDate(session.createdAt);
     downloadCsv(
-      `kiem-ke-${session.countNo}-${countDate}.csv`,
+      `kiem-ke-${session.countNo}.csv`,
       [
         "Mã phiên",
         "Mã hàng",
