@@ -99,6 +99,9 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
   const [addressLine, setAddressLine] = useState(DEFAULT_ADDRESS_LINE);
   const [laborFeeDong, setLaborFeeDong] = useState(0);
   const [priceDong, setPriceDong] = useState(0);
+  const [kltChi, setKltChi] = useState(0);
+  const [klvChi, setKlvChi] = useState(0);
+  const [kldChi, setKldChi] = useState(0);
   const [historyFilter, setHistoryFilter] = useState(EMPTY_HISTORY_FILTER);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_LABEL_HISTORY_PAGE_SIZE);
   const [historyPage, setHistoryPage] = useState(1);
@@ -289,17 +292,14 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
     };
   }, [pieceId]);
 
-  const kltChi = selectedSku?.weightChi ?? 0;
-  const klvChi = selectedSku?.weightChi ?? 0;
-
   useEffect(() => {
     if (!selectedSku) {
       setLaborFeeDong(0);
       setPriceDong(0);
-      return;
+      setKltChi(0);
+      setKlvChi(0);
+      setKldChi(0);
     }
-    setLaborFeeDong(selectedSku.laborFeeDong);
-    setPriceDong(selectedSku.unitPriceDong ?? 0);
   }, [selectedSku]);
 
   useEffect(() => {
@@ -336,6 +336,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
           addressLine,
           kltChi,
           klvChi,
+          kldChi,
           laborFeeDong,
           priceDong,
           stockSize,
@@ -417,6 +418,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
           addressLine,
           kltChi,
           klvChi,
+          kldChi,
           laborFeeDong,
           priceDong,
         });
@@ -451,6 +453,9 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
     setAddressLine(row.addressLine || DEFAULT_ADDRESS_LINE);
     setLaborFeeDong(row.laborFeeDong);
     setPriceDong(row.priceDong);
+    setKltChi(row.kltChi);
+    setKlvChi(row.klvChi);
+    setKldChi(row.kldChi ?? 0);
     setMessage(`Đã nạp MSP ${row.msp} để in lại. Layout phôi 90×14 mm.`);
   }
 
@@ -526,7 +531,24 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                 Sản phẩm (SKU)
                 <select
                   value={skuId}
-                  onChange={(e) => setSkuId(e.target.value)}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setSkuId(nextId);
+                    const sku = skus.find((s) => s.skuId === nextId);
+                    if (!sku) {
+                      setLaborFeeDong(0);
+                      setPriceDong(0);
+                      setKltChi(0);
+                      setKlvChi(0);
+                      setKldChi(0);
+                      return;
+                    }
+                    setLaborFeeDong(sku.laborFeeDong);
+                    setPriceDong(sku.unitPriceDong ?? 0);
+                    setKltChi(sku.weightChi);
+                    setKlvChi(sku.weightChi);
+                    setKldChi(0);
+                  }}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)]"
                 >
                   <option value="">Chọn sản phẩm...</option>
@@ -607,19 +629,39 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
               </label>
 
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                KLT (Khối lượng tổng)
+                KLT (Khối lượng tổng) — chỉ
                 <input
-                  value={selectedSku ? `${formatChi(kltChi)} chỉ` : ""}
-                  disabled
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] text-[var(--tlkv-text)]"
+                  type="number"
+                  min={0}
+                  step={0.0001}
+                  value={selectedSku ? kltChi : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setKltChi(Math.max(0, Number(e.target.value) || 0))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                KLV (Khối lượng vàng)
+                KLV (Khối lượng vàng) — chỉ
                 <input
-                  value={selectedSku ? `${formatChi(klvChi)} chỉ` : ""}
-                  disabled
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] text-[var(--tlkv-text)]"
+                  type="number"
+                  min={0}
+                  step={0.0001}
+                  value={selectedSku ? klvChi : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setKlvChi(Math.max(0, Number(e.target.value) || 0))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
+                KL Đá — chỉ (để trống / 0 nếu không có)
+                <input
+                  type="number"
+                  min={0}
+                  step={0.0001}
+                  value={selectedSku ? kldChi : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setKldChi(Math.max(0, Number(e.target.value) || 0))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
 
@@ -1099,6 +1141,7 @@ function HistoryPanel({
               <th className="px-2 py-2 font-medium">Thương hiệu</th>
               <th className="px-2 py-2 text-right font-medium">KLT</th>
               <th className="px-2 py-2 text-right font-medium">KLV</th>
+              <th className="px-2 py-2 text-right font-medium">KLĐ</th>
               <th className="px-2 py-2 text-right font-medium">C</th>
               <th className="px-2 py-2 text-right font-medium">G</th>
               <th className="px-2 py-2 text-right font-medium">SL in</th>
@@ -1111,7 +1154,7 @@ function HistoryPanel({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={15} className="px-2 py-10 text-center text-[var(--tlkv-muted)]">
+                <td colSpan={16} className="px-2 py-10 text-center text-[var(--tlkv-muted)]">
                   {pending ? "Đang tải lịch sử in tem…" : "Chưa có lịch sử in tem phù hợp bộ lọc."}
                 </td>
               </tr>
@@ -1128,6 +1171,9 @@ function HistoryPanel({
                   <td className="px-2 py-2 whitespace-nowrap">{row.brandName}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{formatChi(row.kltChi)}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{formatChi(row.klvChi)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">
+                    {row.kldChi > 0 ? formatChi(row.kldChi) : "—"}
+                  </td>
                   <td className="px-2 py-2 text-right tabular-nums">{formatDong(row.laborFeeDong)}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{formatDong(row.priceDong)}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{row.printQty}</td>

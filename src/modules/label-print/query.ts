@@ -27,6 +27,7 @@ function mapPrintLogRow(row: {
   brand_name: string | null;
   klt_chi: number;
   klv_chi: number;
+  kld_chi?: number | null;
   labor_fee_dong: number;
   price_dong: number;
   print_qty: number;
@@ -48,6 +49,7 @@ function mapPrintLogRow(row: {
     brandName: row.brand_name || "—",
     kltChi: Number(row.klt_chi),
     klvChi: Number(row.klv_chi),
+    kldChi: Number(row.kld_chi ?? 0),
     laborFeeDong: Number(row.labor_fee_dong),
     priceDong: Number(row.price_dong),
     printQty: Number(row.print_qty),
@@ -154,7 +156,7 @@ export async function listPrintHistoryPage(
   let builder = supabase
     .from("pos_label_print_log")
     .select(
-      "id, printed_at, msp, barcode, product_name, product_type, brand_name, klt_chi, klv_chi, labor_fee_dong, price_dong, print_qty, stock_size, actor_email, action_type, piece_id, sku_id, company_name, address_line",
+      "id, printed_at, msp, barcode, product_name, product_type, brand_name, klt_chi, klv_chi, kld_chi, labor_fee_dong, price_dong, print_qty, stock_size, actor_email, action_type, piece_id, sku_id, company_name, address_line",
       { count: "exact" },
     )
     .order("printed_at", { ascending: false })

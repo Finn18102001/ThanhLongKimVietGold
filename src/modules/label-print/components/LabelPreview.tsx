@@ -178,7 +178,7 @@ export function LabelTag({
       data-page-h-mm={geo.pageH}
       aria-label={`Tem ${payload.msp}`}
     >
-      {/* Mặt 2 — trái: KLT / KLV / C / G */}
+      {/* Mặt 2 — trái: KLT / KLV / (KLĐ nếu có) / C / G */}
       <FacePanel
         left={u(face2LeftMm, unit, scale)}
         top={u(0 + appliedOffsets.face2.y, unit, scale)}
@@ -188,9 +188,17 @@ export function LabelTag({
         padding={pad}
         label="Mặt 2"
       >
-        <div style={colStyleFace2}>
+        <div
+          style={{
+            ...colStyleFace2,
+            lineHeight: payload.kldChi > 0 ? 1.08 : colStyleFace2.lineHeight,
+          }}
+        >
           <SpecLine label="KLT" value={`${formatChi(payload.kltChi)} chỉ`} />
           <SpecLine label="KLV" value={`${formatChi(payload.klvChi)} chỉ`} />
+          {payload.kldChi > 0 ? (
+            <SpecLine label="KLĐ" value={`${formatChi(payload.kldChi)} chỉ`} />
+          ) : null}
           <SpecLine label="C" value={formatDong(payload.laborFeeDong)} />
           <SpecLine label="G" value={formatDong(payload.priceDong)} />
         </div>

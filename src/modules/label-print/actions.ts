@@ -142,6 +142,7 @@ export async function recordLabelPrint(input: {
   addressLine: string;
   kltChi: number;
   klvChi: number;
+  kldChi?: number;
   laborFeeDong: number;
   priceDong: number;
 }): Promise<{ logId: string; msp: string; barcode: string; actorEmail: string }> {
@@ -156,6 +157,7 @@ export async function recordLabelPrint(input: {
     p_address_line: input.addressLine,
     p_klt_chi: input.kltChi,
     p_klv_chi: input.klvChi,
+    p_kld_chi: input.kldChi ?? 0,
     p_labor_fee_dong: input.laborFeeDong,
     p_price_dong: input.priceDong,
   });

@@ -39,6 +39,8 @@ export type LabelPrintPayload = {
   addressLine: string;
   kltChi: number;
   klvChi: number;
+  /** Stone weight (chỉ). Printed only when > 0. */
+  kldChi: number;
   laborFeeDong: number;
   priceDong: number;
   stockSize: LabelStockSize;
@@ -56,6 +58,7 @@ export type LabelPrintLogRow = {
   brandName: string;
   kltChi: number;
   klvChi: number;
+  kldChi: number;
   laborFeeDong: number;
   priceDong: number;
   printQty: number;
