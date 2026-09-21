@@ -460,6 +460,19 @@ function asFulfillmentStatus(
   return transactionType === "PREORDER" || transactionType === "DEPOSIT" ? "UNFULFILLED" : "DELIVERED";
 }
 
+function goldReturnStatusLabel(
+  transactionType: "SALE" | "PREORDER" | "DEPOSIT",
+  fulfillmentStatus: string,
+): string {
+  if (transactionType === "PREORDER" || transactionType === "DEPOSIT") {
+    if (fulfillmentStatus === "FULFILLED") return "Đã trả vàng";
+    if (fulfillmentStatus === "CANCELLED") return "Đã hủy";
+    if (fulfillmentStatus === "READY") return "Sẵn sàng giao";
+    return "Chưa trả vàng";
+  }
+  return "Đã giao";
+}
+
 export async function listDocuments(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const supabase = await createServerSupabase();
   const limit = Math.min(Math.max(filter.limit ?? 5, 1), 50);
@@ -543,8 +556,7 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
     offset?: number;
     exportedDocuments?: number;
   } | null;
-  return {
-    items: (raw?.items ?? []).map((row) => {
+  const items = (raw?.items ?? []).map((row) => {
       const documentType = asDocumentType(String(row.documentType ?? "SALE_TO_CUSTOMER"));
       const totalDong = Number(row.totalDong ?? 0);
       const paidDong = Number(row.paidDong ?? 0);
@@ -591,6 +603,7 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         note: String(row.note ?? ""),
         pickupDueAt: row.pickupDueAt ? String(row.pickupDueAt) : null,
         goldDeliveredAt: row.goldDeliveredAt ? String(row.goldDeliveredAt) : null,
+        goldReturnStatus: "",
         firstPaidDong:
           row.firstPaidDong == null || row.firstPaidDong === ""
             ? null
@@ -599,6 +612,44 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
           row.secondPaidDong == null || row.secondPaidDong === ""
             ? null
             : Number(row.secondPaidDong),
+      };
+    });
+
+  const saleNos = [
+    ...new Set(
+      items
+        .filter((row) => row.documentType === "SALE_TO_CUSTOMER" && row.saleNo)
+        .map((row) => row.saleNo),
+    ),
+  ];
+  const goldBySale = new Map<string, { transactionType: string; fulfillmentStatus: string }>();
+  for (let i = 0; i < saleNos.length; i += 200) {
+    const chunk = saleNos.slice(i, i + 200);
+    const { data: sales, error: saleError } = await supabase
+      .from("pos_sales")
+      .select("sale_no, transaction_type, fulfillment_status")
+      .in("sale_no", chunk);
+    if (saleError) throw new Error(saleError.message);
+    for (const sale of sales ?? []) {
+      goldBySale.set(String(sale.sale_no), {
+        transactionType: String(sale.transaction_type ?? "SALE"),
+        fulfillmentStatus: String(sale.fulfillment_status ?? ""),
+      });
+    }
+  }
+
+  return {
+    items: items.map((row) => {
+      if (row.documentType !== "SALE_TO_CUSTOMER") return row;
+      const gold = goldBySale.get(row.saleNo);
+      if (!gold) return row;
+      const transactionType = asSaleTransactionType(gold.transactionType);
+      const fulfillmentStatus = asFulfillmentStatus(transactionType, gold.fulfillmentStatus);
+      return {
+        ...row,
+        transactionType,
+        fulfillmentStatus,
+        goldReturnStatus: goldReturnStatusLabel(transactionType, fulfillmentStatus),
       };
     }),
     total: Number(raw?.total ?? 0),

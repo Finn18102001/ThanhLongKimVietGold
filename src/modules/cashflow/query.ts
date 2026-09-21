@@ -7,6 +7,7 @@ import type {
   CashLedgerFilters,
   CashLedgerPage,
   CashLedgerRow,
+  CashObligationRow,
   CashTxnType,
 } from "./types";
 
@@ -114,4 +115,83 @@ export async function getCapitalSnapshot(): Promise<CapitalSnapshot> {
       sharePercent: Number(row.sharePercent ?? 0),
     })),
   };
+}
+
+/**
+ * Orders that generated a cash debt: sales still (or once) owed by the customer,
+ * and buys the shop still (or once) owed the customer. Reads the order headers
+ * directly, so it never posts anything into the cash ledger.
+ */
+export async function getCashObligations(): Promise<CashObligationRow[]> {
+  const supabase = await createServerSupabase();
+
+  const [salesRes, buysRes] = await Promise.all([
+    supabase
+      .from("pos_sales")
+      .select(
+        "id, sale_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, transaction_type, pos_customers(name), pos_invoices(invoice_no)",
+      )
+      .eq("status", "COMPLETED")
+      .or("remaining_dong.gt.0,payment_status.neq.PAID")
+      .order("completed_at", { ascending: false })
+      .limit(2000),
+    supabase
+      .from("pos_buys")
+      .select(
+        "id, buy_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, pos_customers(name)",
+      )
+      .eq("status", "COMPLETED")
+      .or("remaining_dong.gt.0,payment_status.neq.PAID")
+      .order("completed_at", { ascending: false })
+      .limit(2000),
+  ]);
+
+  if (salesRes.error) throw new Error(salesRes.error.message);
+  if (buysRes.error) throw new Error(buysRes.error.message);
+
+  const first = <T,>(value: T | T[] | null): T | null =>
+    Array.isArray(value) ? (value[0] ?? null) : value;
+
+  const sales: CashObligationRow[] = (salesRes.data ?? []).map((row) => {
+    const customer = first(row.pos_customers as { name: string } | { name: string }[] | null);
+    const invoice = first(
+      row.pos_invoices as { invoice_no: string } | { invoice_no: string }[] | null,
+    );
+    return {
+      id: `sale-${row.id}`,
+      side: "RECEIVABLE",
+      code: String(row.sale_no ?? ""),
+      invoiceNo: invoice?.invoice_no ? String(invoice.invoice_no) : null,
+      occurredAt: String(row.completed_at ?? ""),
+      partyName: customer?.name ? String(customer.name) : "Khách lẻ",
+      transactionType: String(row.transaction_type ?? "SALE"),
+      totalDong: Number(row.total_dong ?? 0),
+      settledDong: Number(row.paid_dong ?? 0),
+      remainingDong: Number(row.remaining_dong ?? 0),
+      paymentStatus: String(row.payment_status ?? ""),
+      actorEmail: String(row.actor_email ?? ""),
+      dueDate: row.due_date ? String(row.due_date) : null,
+    };
+  });
+
+  const buys: CashObligationRow[] = (buysRes.data ?? []).map((row) => {
+    const customer = first(row.pos_customers as { name: string } | { name: string }[] | null);
+    return {
+      id: `buy-${row.id}`,
+      side: "PAYABLE",
+      code: String(row.buy_no ?? ""),
+      invoiceNo: null,
+      occurredAt: String(row.completed_at ?? ""),
+      partyName: customer?.name ? String(customer.name) : "Khách lẻ",
+      transactionType: "BUY",
+      totalDong: Number(row.total_dong ?? 0),
+      settledDong: Number(row.paid_dong ?? 0),
+      remainingDong: Number(row.remaining_dong ?? 0),
+      paymentStatus: String(row.payment_status ?? ""),
+      actorEmail: String(row.actor_email ?? ""),
+      dueDate: row.due_date ? String(row.due_date) : null,
+    };
+  });
+
+  return [...sales, ...buys].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
 }

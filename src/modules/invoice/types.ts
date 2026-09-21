@@ -91,6 +91,8 @@ export type InvoiceExportRow = InvoiceListRow & {
   pickupDueAt: string | null;
   /** Ngày khách thực sự nhận vàng (stock out / fulfill). */
   goldDeliveredAt: string | null;
+  /** Trạng thái giao/trả vàng. Rỗng với phiếu mua và phiếu nhập. */
+  goldReturnStatus: string;
   /** Số tiền thu lần 1 (đặt cọc / thanh toán đầu). */
   firstPaidDong: number | null;
   /** Số tiền thu lần 2 trở đi (phần còn lại đã thu). */

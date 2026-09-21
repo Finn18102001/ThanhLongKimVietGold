@@ -82,6 +82,36 @@ export type CapitalSnapshot = {
   groups: CapitalGroupRow[];
 };
 
+/** One order that still carries, or once carried, a cash debt. */
+export type CashObligationSide = "RECEIVABLE" | "PAYABLE";
+
+export type CashObligationRow = {
+  id: string;
+  side: CashObligationSide;
+  /** Sale/buy voucher code. */
+  code: string;
+  /** Issued invoice number. Null for buy vouchers. */
+  invoiceNo: string | null;
+  occurredAt: string;
+  partyName: string;
+  transactionType: string;
+  totalDong: number;
+  settledDong: number;
+  remainingDong: number;
+  paymentStatus: string;
+  actorEmail: string;
+  /** Promised payment date, ISO date. Null when none was set. */
+  dueDate: string | null;
+};
+
+export type CashObligationFilters = {
+  side: "ALL" | CashObligationSide;
+  from: string;
+  to: string;
+  status: string;
+  q: string;
+};
+
 export const TXN_TYPE_LABEL: Record<CashTxnType, string> = {
   SALE_PAYMENT: "Thu bán hàng",
   PURCHASE_PAYMENT: "Chi mua hàng",

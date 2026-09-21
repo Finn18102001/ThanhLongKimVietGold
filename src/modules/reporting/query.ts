@@ -151,6 +151,15 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
     unitPriceDong: Number(raw.unitPriceDong ?? 0),
     customerCccd: String(raw.customerCccd ?? ""),
     note: String(raw.note ?? ""),
+    goldReturnStatus: String(raw.goldReturnStatus ?? ""),
+    goldReturnDueAt:
+      raw.goldReturnDueAt == null || raw.goldReturnDueAt === ""
+        ? null
+        : String(raw.goldReturnDueAt),
+    goldReturnedAt:
+      raw.goldReturnedAt == null || raw.goldReturnedAt === ""
+        ? null
+        : String(raw.goldReturnedAt),
   };
 }
 

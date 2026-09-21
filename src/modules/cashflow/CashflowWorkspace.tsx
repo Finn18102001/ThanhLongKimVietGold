@@ -22,11 +22,13 @@ import {
   transferCash,
   withdrawCash,
 } from "./actions";
+import { CashObligationsTab } from "./CashObligationsTab";
 import type {
   CapitalSnapshot,
   CashAccountCard,
   CashflowOverview,
   CashLedgerPage,
+  CashObligationRow,
   CashTxnType,
 } from "./types";
 import { TXN_TYPE_LABEL } from "./types";
@@ -68,10 +70,13 @@ function txnTone(type: CashTxnType): string {
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
+type CashflowTab = "ledger" | "obligations";
+
 export function CashflowWorkspace({
   initialOverview,
   initialLedger,
   initialCapital,
+  initialObligations,
   initialFrom,
   initialTo,
   canMutate = true,
@@ -79,6 +84,7 @@ export function CashflowWorkspace({
   initialOverview: CashflowOverview;
   initialLedger: CashLedgerPage;
   initialCapital: CapitalSnapshot;
+  initialObligations: CashObligationRow[];
   initialFrom: string;
   initialTo: string;
   canMutate?: boolean;
@@ -97,6 +103,7 @@ export function CashflowWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [modal, setModal] = useState<ModalKind>(null);
+  const [tab, setTab] = useState<CashflowTab>("ledger");
 
   const accounts = useMemo(
     () => [overview.cash, overview.bank].filter(Boolean) as CashAccountCard[],
@@ -250,6 +257,32 @@ export function CashflowWorkspace({
 
       {error ? <p className="text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
 
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            { id: "ledger", label: "Sổ quỹ" },
+            { id: "obligations", label: "Đơn cần thu / chi" },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={`h-9 rounded-full px-4 text-[13px] font-medium active:scale-[0.98] ${
+              tab === item.id
+                ? "bg-[var(--tlkv-red)] text-white"
+                : "bg-white shadow-[var(--tlkv-shadow)] hover:bg-[var(--tlkv-red-soft)]"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "obligations" ? <CashObligationsTab rows={initialObligations} /> : null}
+
+      {tab === "ledger" ? (
+      <>
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {overview.cash ? <AccountCard account={overview.cash} icon="cash" /> : null}
         {overview.bank ? <AccountCard account={overview.bank} icon="bank" /> : null}
@@ -495,6 +528,8 @@ export function CashflowWorkspace({
           )}
         </div>
       </section>
+      </>
+      ) : null}
 
       {modal ? (
         <CashActionModal

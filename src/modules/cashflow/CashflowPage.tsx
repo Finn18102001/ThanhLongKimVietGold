@@ -3,9 +3,15 @@ import {
   getCapitalSnapshot,
   getCashflowOverview,
   getCashLedger,
+  getCashObligations,
 } from "./query";
 import { CashflowWorkspace } from "./CashflowWorkspace";
-import type { CapitalSnapshot, CashflowOverview, CashLedgerPage } from "./types";
+import type {
+  CapitalSnapshot,
+  CashflowOverview,
+  CashLedgerPage,
+  CashObligationRow,
+} from "./types";
 import { getPosSession } from "@/shared/auth/session";
 import { canAdminRead, canMutateAdminData, roleHomePath } from "@/shared/auth/permissions";
 import { redirect } from "next/navigation";
@@ -40,6 +46,7 @@ export async function CashflowPage() {
   let overview = emptyOverview;
   let ledger = emptyLedger;
   let capital = emptyCapital;
+  let obligations: CashObligationRow[] = [];
   let from = defaultCashflowRange().from;
   let to = defaultCashflowRange().to;
 
@@ -64,11 +71,18 @@ export async function CashflowPage() {
     // Vốn hàng hóa chưa sẵn sàng
   }
 
+  try {
+    obligations = await getCashObligations();
+  } catch {
+    // Công nợ chưa sẵn sàng
+  }
+
   return (
     <CashflowWorkspace
       initialOverview={overview}
       initialLedger={ledger}
       initialCapital={capital}
+      initialObligations={obligations}
       initialFrom={from}
       initialTo={to}
       canMutate={canMutateAdminData(session.role)}

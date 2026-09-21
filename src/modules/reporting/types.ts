@@ -54,6 +54,12 @@ export type TransactionExportRow = {
   customerCccd: string;
   /** Note of the sale/buy voucher mapped to this row. Empty if none. */
   note: string;
+  /** Gold handover state of the order. Empty for buy rows. */
+  goldReturnStatus: string;
+  /** Promised gold handover date (ISO). Null when none was set. */
+  goldReturnDueAt: string | null;
+  /** Actual gold handover timestamp. Null until the gold is handed over. */
+  goldReturnedAt: string | null;
 };
 
 export type PurchaseReportFilters = {

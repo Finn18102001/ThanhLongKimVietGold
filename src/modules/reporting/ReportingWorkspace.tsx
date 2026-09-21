@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
-import { formatViDateTime } from "@/shared/lib/datetime";
+import { formatViDate, formatViDateTime, formatVnIsoDate } from "@/shared/lib/datetime";
+import { PAYMENT_LABEL, PAYMENT_STATUS_LABEL, type PaymentStatus } from "@/modules/invoice/types";
 import { withExportTime } from "@/shared/lib/csv";
 import {
   fetchPurchaseReport,
@@ -33,6 +34,7 @@ export function ReportingWorkspace({
   const [purchaseSkuId, setPurchaseSkuId] = useState("");
   const [purchaseActor, setPurchaseActor] = useState("");
   const [staffRows, setStaffRows] = useState<StaffSalesRow[]>([]);
+  const [transactions, setTransactions] = useState<TransactionExportRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [exporting, setExporting] = useState(false);
@@ -46,7 +48,7 @@ export function ReportingWorkspace({
   function refresh(nextFrom = from, nextTo = to) {
     startTransition(async () => {
       try {
-        const [nextSnapshot, nextStaff, nextPurchase] = await Promise.all([
+        const [nextSnapshot, nextStaff, nextPurchase, nextTransactions] = await Promise.all([
           fetchReportingSnapshot(nextFrom, nextTo),
           fetchStaffSalesReport(nextFrom, nextTo),
           fetchPurchaseReport({
@@ -56,10 +58,12 @@ export function ReportingWorkspace({
             skuId: purchaseSkuId || null,
             actorEmail: purchaseActor || null,
           }),
+          fetchTransactionExport(nextFrom, nextTo),
         ]);
         setSnapshot(nextSnapshot);
         setStaffRows(nextStaff);
         setPurchase(nextPurchase);
+        setTransactions(nextTransactions);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải báo cáo");
@@ -95,9 +99,13 @@ export function ReportingWorkspace({
     let cancelled = false;
     startTransition(async () => {
       try {
-        const rows = await fetchStaffSalesReport(initial.from, initial.to);
+        const [rows, exported] = await Promise.all([
+          fetchStaffSalesReport(initial.from, initial.to),
+          fetchTransactionExport(initial.from, initial.to),
+        ]);
         if (!cancelled) {
           setStaffRows(rows);
+          setTransactions(exported);
           setError(null);
         }
       } catch (err) {
@@ -292,6 +300,8 @@ export function ReportingWorkspace({
           </tbody>
         </table>
       </section>
+
+      <TransactionTable rows={transactions} pending={pending} />
 
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
         <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
@@ -509,6 +519,72 @@ export function ReportingWorkspace({
   );
 }
 
+function TransactionTable({
+  rows,
+  pending,
+}: {
+  rows: TransactionExportRow[];
+  pending: boolean;
+}) {
+  const shown = rows.slice(0, 100);
+  return (
+    <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
+      <h2 className="text-[15px] font-semibold">Giao dịch trong khoảng lọc</h2>
+      <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
+        {rows.length} dòng sản phẩm. File Excel xuất toàn bộ, đúng khoảng ngày đang lọc.
+      </p>
+      <div className={`mt-3 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
+        <table className="w-full min-w-[980px] text-left text-[13px]">
+          <thead className="text-[12px] text-[var(--tlkv-muted)]">
+            <tr className="border-b border-[var(--tlkv-line)]">
+              <th className="py-2 pr-3 font-medium">Mã phiếu</th>
+              <th className="py-2 pr-3 font-medium">Khách hàng</th>
+              <th className="py-2 pr-3 font-medium">Sản phẩm</th>
+              <th className="py-2 pr-3 text-right font-medium">Tổng tiền</th>
+              <th className="py-2 pr-3 font-medium">Trạng thái thanh toán</th>
+              <th className="py-2 pr-3 font-medium">Hình thức thanh toán</th>
+              <th className="py-2 font-medium">Trạng thái trả vàng</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-6 text-[var(--tlkv-muted)]">
+                  Chưa có giao dịch trong khoảng này.
+                </td>
+              </tr>
+            ) : (
+              shown.map((row, index) => (
+                <tr key={`${row.code}-${row.sku}-${index}`} className="border-b border-[var(--tlkv-line)]">
+                  <td className="py-2.5 pr-3 whitespace-nowrap">
+                    <p className="font-medium">{row.code}</p>
+                    <p className="text-[11px] text-[var(--tlkv-muted)]">{TYPE_LABEL[row.type]}</p>
+                  </td>
+                  <td className="py-2.5 pr-3 max-w-[160px] truncate">{row.customerName}</td>
+                  <td className="py-2.5 pr-3 max-w-[200px] truncate">{row.productName}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.totalDong)}</td>
+                  <td className="py-2.5 pr-3 whitespace-nowrap">
+                    {PAYMENT_STATUS_LABEL[row.paymentStatus as PaymentStatus] ?? row.paymentStatus}
+                  </td>
+                  <td className="py-2.5 pr-3 whitespace-nowrap">
+                    {row.paymentMethod ? (PAYMENT_LABEL[row.paymentMethod] ?? row.paymentMethod) : "-"}
+                  </td>
+                  <td className="py-2.5 whitespace-nowrap">{row.goldReturnStatus || "-"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > shown.length ? (
+        <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
+          Đang hiện {shown.length} dòng đầu. Xuất Excel để lấy đủ {rows.length} dòng.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg bg-[var(--tlkv-bg)] px-4 py-3">
@@ -541,12 +617,16 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Tổng tiền",
     "Đã thanh toán",
     "Còn lại",
-    "Trạng thái TT",
-    "Hình thức TT",
+    "Trạng thái thanh toán",
+    "Hình thức thanh toán",
     "Hạn thanh toán",
     "Nhân viên",
     "Hoàn tất lúc",
     "Ghi chú",
+    "Trạng thái trả vàng",
+    "Ngày hẹn trả vàng",
+    "Thời gian trả vàng",
+    "Ngày trả vàng",
   ];
   const lines = rows.map((row) =>
     [
@@ -565,12 +645,16 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.totalDong,
       row.paidDong,
       row.remainingDong,
-      row.paymentStatus,
-      row.paymentMethod ?? "",
+      PAYMENT_STATUS_LABEL[row.paymentStatus as PaymentStatus] ?? row.paymentStatus,
+      row.paymentMethod ? (PAYMENT_LABEL[row.paymentMethod] ?? row.paymentMethod) : "",
       row.dueDate ?? "",
       row.actorEmail,
       formatViDateTime(row.completedAt),
       row.note,
+      row.goldReturnStatus,
+      row.goldReturnDueAt ? formatViDate(formatVnIsoDate(row.goldReturnDueAt)) : "",
+      row.goldReturnedAt ? formatViDateTime(row.goldReturnedAt) : "",
+      row.goldReturnedAt ? formatViDate(formatVnIsoDate(row.goldReturnedAt)) : "",
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
       .join(","),

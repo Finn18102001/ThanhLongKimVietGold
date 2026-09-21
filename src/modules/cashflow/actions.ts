@@ -9,6 +9,7 @@ import {
   getCapitalSnapshot,
   getCashflowOverview,
   getCashLedger,
+  getCashObligations,
 } from "./query";
 import type { CashLedgerFilters } from "./types";
 
@@ -33,6 +34,11 @@ export async function fetchCashLedger(filters: CashLedgerFilters) {
 export async function fetchCapitalSnapshot() {
   await assertCashflowRead();
   return getCapitalSnapshot();
+}
+
+export async function fetchCashObligations() {
+  await assertCashflowRead();
+  return getCashObligations();
 }
 
 export async function exportCashLedger(filters: Omit<CashLedgerFilters, "limit" | "offset">) {
