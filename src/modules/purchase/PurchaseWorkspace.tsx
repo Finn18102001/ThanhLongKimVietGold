@@ -49,7 +49,6 @@ import {
 } from "./labels";
 import {
   PRICE_OUT_OF_RANGE_CONFIRM,
-  clampBuyUnitPriceDong,
   lineHasPriceException,
   lineTotalDong,
   toBuyItemPayload,
@@ -189,18 +188,16 @@ export function PurchaseWorkspace({
 
   /** Click catalog → add/bump line on cart (POS-like; edit qty/price on invoice). */
   function addCatalogItem(item: PurchaseCatalogItem) {
-    const reference = item.referenceSellDongPerChi;
-    if (reference <= 0) {
+    const buyPrice = item.suggestedBuyDongPerChi;
+    if (buyPrice <= 0) {
       setAlert({
         tone: "error",
-        title: "Chưa có giá",
-        reason: "Sản phẩm chưa có giá niêm yết / chỉ.",
+        title: "Chưa có giá mua",
+        reason: "Sản phẩm chưa có giá mua vào / chỉ trên bảng giá.",
       });
       return;
     }
-    const suggested =
-      item.suggestedBuyDongPerChi > 0 ? item.suggestedBuyDongPerChi : reference;
-    const unit = clampBuyUnitPriceDong(suggested, reference, false);
+    const unit = buyPrice;
     const weight = item.weightChi > 0 ? item.weightChi : 1;
 
     setLines((prev) => {
@@ -227,7 +224,7 @@ export function PurchaseWorkspace({
         quantity: 1,
         weightChi: weight,
         unitPriceDong: unit,
-        referencePriceDongPerChi: reference,
+        referencePriceDongPerChi: buyPrice,
         priceRowId: item.priceRowId,
         imageUrl: item.imageUrl,
         allowDirectBuy: Boolean(item.allowDirectBuy),

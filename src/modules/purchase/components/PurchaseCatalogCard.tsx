@@ -33,7 +33,8 @@ export function PurchaseCatalogCard({
   item: PurchaseCatalogItem;
   onPick: (item: PurchaseCatalogItem) => void;
 }) {
-  const disabled = item.referenceSellDongPerChi <= 0 && item.suggestedBuyDongPerChi <= 0;
+  const buyPrice = item.suggestedBuyDongPerChi;
+  const disabled = buyPrice <= 0;
   const weightLabel =
     item.weightChi > 0
       ? `${item.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`
@@ -54,18 +55,8 @@ export function PurchaseCatalogCard({
         {item.brandName || "Không thương hiệu"}
       </p>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">KL: {weightLabel}</p>
-      <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-        Niêm yết:{" "}
-        <span className="font-semibold text-[var(--tlkv-text)]">
-          {item.referenceSellDongPerChi > 0
-            ? `${formatDong(item.referenceSellDongPerChi)}/chỉ`
-            : "Chưa có"}
-        </span>
-      </p>
-      <p className="mt-1 text-[14px] font-bold text-[var(--tlkv-red)]">
-        {item.suggestedBuyDongPerChi > 0
-          ? `Mua gợi ý ${formatDong(item.suggestedBuyDongPerChi)}/chỉ`
-          : "Chưa có giá mua"}
+      <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">
+        {buyPrice > 0 ? `${formatDong(buyPrice)}/chỉ` : "Chưa có giá mua"}
       </p>
     </button>
   );

@@ -52,11 +52,14 @@ export async function receivePurchase(formData: FormData) {
         throw new Error("Số lượng mỗi dòng phải là số nguyên > 0.");
       }
       const item: Record<string, unknown> = {
-        sku_id: String(r.sku_id ?? ""),
+        sku_id: r.sku_id ? String(r.sku_id) : null,
         expected_qty: Number(r.expected_qty ?? receivedQty),
         received_qty: receivedQty,
         cost_price_dong: costPriceDong,
       };
+      if (r.order_product != null && typeof r.order_product === "object") {
+        item.order_product = r.order_product;
+      }
       const weightChi = Number(r.weight_chi);
       if (r.weight_chi != null && r.weight_chi !== "" && Number.isFinite(weightChi)) {
         item.weight_chi = weightChi;
@@ -113,7 +116,12 @@ export async function receivePurchase(formData: FormData) {
     paidDong = 0;
   }
 
-  const { data, error } = await supabase.rpc("pos_receive_purchase", {
+  const hasOrderProduct = items.some(
+    (item) => item.order_product != null && typeof item.order_product === "object",
+  );
+  const { data, error } = await supabase.rpc(
+    hasOrderProduct ? "pos_receive_order_purchase" : "pos_receive_purchase",
+    {
     p_idempotency_key: String(formData.get("idempotency_key") || crypto.randomUUID()),
     p_supplier_name: String(formData.get("supplier_name") ?? "").trim(),
     p_reason: String(formData.get("reason") ?? "").trim(),
@@ -138,6 +146,7 @@ export async function receivePurchase(formData: FormData) {
     paymentStatus?: string;
     goodsStatus?: string;
     documentStatus?: string;
+    orderSkus?: string[];
   };
 }
 

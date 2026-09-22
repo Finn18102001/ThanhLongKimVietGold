@@ -465,19 +465,28 @@ export async function voidBuy(input: {
   buyId: string;
   reason: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_void_buy", {
-    p_buy_id: input.buyId,
-    p_reason: input.reason,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  revalidatePath("/inventory");
-  revalidatePath("/customers");
-  revalidatePath("/invoices");
-  return getBuy(input.buyId);
+}): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_void_buy", {
+      p_buy_id: input.buyId,
+      p_reason: input.reason,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    revalidatePath("/purchase");
+    revalidatePath("/inventory");
+    revalidatePath("/customers");
+    revalidatePath("/invoices");
+    return { ok: true, buy: await getBuy(input.buyId) };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Không hủy được phiếu mua",
+    };
+  }
 }
 
 export async function collectBuyPayment(input: {

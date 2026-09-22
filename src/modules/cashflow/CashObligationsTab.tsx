@@ -27,6 +27,7 @@ const TXN_LABEL: Record<string, string> = {
   PREORDER: "Đặt hàng",
   DEPOSIT: "Đặt cọc",
   BUY: "Mua từ khách",
+  STOCK_RECEIPT: "Nhập hàng",
 };
 
 function statusLabel(status: string): string {

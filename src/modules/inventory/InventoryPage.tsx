@@ -10,7 +10,10 @@ function formatChiTotal(weight: number): string {
 }
 
 export async function InventoryPage() {
-  const [rows, ledger] = await Promise.all([listStock(), listLedger()]);
+  const [rows, ledger] = await Promise.all([
+    listStock({ includeMarketGold: true }),
+    listLedger(),
+  ]);
   const skuCount = rows.length;
   const totalQty = rows.reduce((sum, row) => sum + row.quantity, 0);
   const totalWeightChi = rows.reduce((sum, row) => sum + row.quantity * row.weightChi, 0);

@@ -64,9 +64,9 @@ export type PurchaseCatalogItem = {
   category: string;
   brandName: string | null;
   weightChi: number;
-  /** Giá niêm yết website / chỉ (gold_price_rows.sell). */
+  /** Giá bán ra website / chỉ (gold_price_rows.sell). Mốc ±300k, không phải giá mua. */
   referenceSellDongPerChi: number;
-  /** Giá mua gợi ý / chỉ (buy > 0 ? buy : sell). */
+  /** Giá mua vào website / chỉ (gold_price_rows.buy). 0 nếu dòng giá không có cột mua. */
   suggestedBuyDongPerChi: number;
   priceRowId: string | null;
   goldTypeHint: string | null;
@@ -85,7 +85,7 @@ type BuyLineBase = {
   weightChi: number;
   /** Giá giao dịch / chỉ (integer VND). */
   unitPriceDong: number;
-  /** Giá tham chiếu / chỉ. Catalog: sell board. Market: 0. */
+  /** Giá tham chiếu / chỉ. Catalog: cột Mua vào. Market: 0. */
   referencePriceDongPerChi: number;
   priceRowId: string | null;
   imageUrl?: string | null;
@@ -303,7 +303,7 @@ export function toBuyItemPayload(line: BuyLine): BuyItemPayload {
     quantity: line.quantity,
     weight_chi: line.weightChi,
     unit_price_dong: line.unitPriceDong,
-    // Market: 0 so BE can skip ±300k; catalog: sell board / chỉ
+    // Market: 0 so BE can skip ±300k; catalog: buy board / chỉ
     reference_price_dong_per_chi: line.isMarketGold ? 0 : line.referencePriceDongPerChi,
     price_row_id: line.priceRowId,
   };

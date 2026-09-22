@@ -27,11 +27,7 @@ export function CatalogBuyModal({
   onAdd: (line: CatalogBuyLine) => void;
 }) {
   const [unitPrice, setUnitPrice] = useState(
-    item.suggestedBuyDongPerChi > 0
-      ? String(item.suggestedBuyDongPerChi)
-      : item.referenceSellDongPerChi > 0
-        ? String(item.referenceSellDongPerChi)
-        : "",
+    item.suggestedBuyDongPerChi > 0 ? String(item.suggestedBuyDongPerChi) : "",
   );
   const [weightChi, setWeightChi] = useState(
     item.weightChi > 0 ? String(item.weightChi) : "1",
@@ -41,7 +37,7 @@ export function CatalogBuyModal({
   const [goldAge, setGoldAge] = useState(item.goldAgeHint || "");
   const [error, setError] = useState<string | null>(null);
 
-  const reference = item.referenceSellDongPerChi;
+  const reference = item.suggestedBuyDongPerChi;
   const bounds = buyUnitPriceBounds(reference);
   const unit = parseDongInput(unitPrice);
   const outOfRange = unitPrice !== "" && isPriceException(unit, reference, false);
@@ -56,8 +52,12 @@ export function CatalogBuyModal({
   function submit() {
     const w = parseWeightInput(weightChi);
     const qty = Math.floor(parseDongInput(quantity)) || 0;
+    if (item.suggestedBuyDongPerChi <= 0) {
+      setError("Sản phẩm chưa có giá mua vào / chỉ trên bảng giá.");
+      return;
+    }
     if (reference <= 0) {
-      setError("Sản phẩm chưa có giá niêm yết / chỉ.");
+      setError("Sản phẩm chưa có giá tham chiếu / chỉ.");
       return;
     }
     if (w <= 0) {

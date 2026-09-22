@@ -79,8 +79,8 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
     const boardUnitChi = Number(row.board_unit_chi);
     const perChiDivisor = boardUnitChi > 0 ? boardUnitChi : 1;
     const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
-    const suggestedBuyDongPerChi =
-      buy > 0 ? Math.round(buy / perChiDivisor) : referenceSellDongPerChi;
+    // Purchase catalog price. Never fall back to the sell column.
+    const suggestedBuyDongPerChi = buy > 0 ? Math.round(buy / perChiDivisor) : 0;
     const unitPriceDong =
       sell && sell > 0
         ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) +

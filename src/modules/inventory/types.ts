@@ -33,6 +33,18 @@ export type LedgerRow = {
   customerCitizenId: string | null;
 };
 
+export type CategoryOption = {
+  id: string;
+  name: string;
+};
+
+export type PriceRowOption = {
+  id: string;
+  product: string;
+  brand: string;
+  purity: string;
+};
+
 export type BrandOption = {
   id: string;
   name: string;

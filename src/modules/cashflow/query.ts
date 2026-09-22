@@ -125,7 +125,7 @@ export async function getCapitalSnapshot(): Promise<CapitalSnapshot> {
 export async function getCashObligations(): Promise<CashObligationRow[]> {
   const supabase = await createServerSupabase();
 
-  const [salesRes, buysRes] = await Promise.all([
+  const [salesRes, buysRes, receiptsRes] = await Promise.all([
     supabase
       .from("pos_sales")
       .select(
@@ -138,16 +138,27 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
     supabase
       .from("pos_buys")
       .select(
-        "id, buy_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, pos_customers(name)",
+        "id, buy_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, pos_customers(name), pos_payables(total_dong, paid_dong, remaining_dong, status)",
       )
       .eq("status", "COMPLETED")
       .or("remaining_dong.gt.0,payment_status.neq.PAID")
       .order("completed_at", { ascending: false })
       .limit(2000),
+    supabase
+      .from("pos_purchase_receipts")
+      .select(
+        "id, receipt_no, created_at, total_dong, paid_dong, remaining_dong, payment_status, actor_email, supplier_name, goods_status, voided_at",
+      )
+      .is("voided_at", null)
+      .in("goods_status", ["RECEIVED", "SOLD", "RETURNED"])
+      .gt("remaining_dong", 0)
+      .order("created_at", { ascending: false })
+      .limit(2000),
   ]);
 
   if (salesRes.error) throw new Error(salesRes.error.message);
   if (buysRes.error) throw new Error(buysRes.error.message);
+  if (receiptsRes.error) throw new Error(receiptsRes.error.message);
 
   const first = <T,>(value: T | T[] | null): T | null =>
     Array.isArray(value) ? (value[0] ?? null) : value;
@@ -176,6 +187,13 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
 
   const buys: CashObligationRow[] = (buysRes.data ?? []).map((row) => {
     const customer = first(row.pos_customers as { name: string } | { name: string }[] | null);
+    const payable = first(
+      row.pos_payables as
+        | { total_dong: number; paid_dong: number; remaining_dong: number; status: string }
+        | { total_dong: number; paid_dong: number; remaining_dong: number; status: string }[]
+        | null,
+    );
+    const payableOpen = payable != null && payable.status !== "CLOSED";
     return {
       id: `buy-${row.id}`,
       side: "PAYABLE",
@@ -184,14 +202,30 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
       occurredAt: String(row.completed_at ?? ""),
       partyName: customer?.name ? String(customer.name) : "Khách lẻ",
       transactionType: "BUY",
-      totalDong: Number(row.total_dong ?? 0),
-      settledDong: Number(row.paid_dong ?? 0),
-      remainingDong: Number(row.remaining_dong ?? 0),
+      totalDong: Number(payableOpen ? payable.total_dong : (row.total_dong ?? 0)),
+      settledDong: Number(payableOpen ? payable.paid_dong : (row.paid_dong ?? 0)),
+      remainingDong: Number(payableOpen ? payable.remaining_dong : (row.remaining_dong ?? 0)),
       paymentStatus: String(row.payment_status ?? ""),
       actorEmail: String(row.actor_email ?? ""),
       dueDate: row.due_date ? String(row.due_date) : null,
     };
   });
 
-  return [...sales, ...buys].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  const receipts: CashObligationRow[] = (receiptsRes.data ?? []).map((row) => ({
+    id: `receipt-${row.id}`,
+    side: "PAYABLE",
+    code: String(row.receipt_no ?? ""),
+    invoiceNo: null,
+    occurredAt: String(row.created_at ?? ""),
+    partyName: row.supplier_name ? String(row.supplier_name) : "Nhà cung cấp",
+    transactionType: "STOCK_RECEIPT",
+    totalDong: Number(row.total_dong ?? 0),
+    settledDong: Number(row.paid_dong ?? 0),
+    remainingDong: Number(row.remaining_dong ?? 0),
+    paymentStatus: String(row.payment_status ?? ""),
+    actorEmail: String(row.actor_email ?? ""),
+    dueDate: null,
+  }));
+
+  return [...sales, ...buys, ...receipts].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
 }

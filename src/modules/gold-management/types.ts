@@ -27,6 +27,12 @@ export type GoldObligationRow = {
   totalChiRemaining: number;
   actorEmail: string;
   status: ObligationStatus;
+  /** Customer phone. Empty for supplier rows. */
+  partyPhone: string;
+  /** Customer citizen id. Empty for supplier rows. */
+  partyCitizenId: string;
+  /** Payment lines of the source document, for Excel only. */
+  paymentHistory: string;
 };
 
 export type GoldObligationSummary = {

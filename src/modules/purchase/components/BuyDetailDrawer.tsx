@@ -132,7 +132,12 @@ export function BuyDetailDrawer({
     setPending(true);
     setVoidError(null);
     try {
-      const next = await voidBuy({ buyId: buy.id, reason });
+      const result = await voidBuy({ buyId: buy.id, reason });
+      if (!result.ok) {
+        setVoidError(result.message);
+        return;
+      }
+      const next = result.buy;
       setBuy({ ...next, attachments: next.attachments ?? [] });
       onUpdated?.(next);
       setVoidOpen(false);
@@ -140,7 +145,8 @@ export function BuyDetailDrawer({
       setAlert({
         tone: "success",
         title: "Đã hủy phiếu mua",
-        reason: "Hoàn tiền vào quỹ + trừ vàng khỏi kho (bút toán bù, không xóa lịch sử).",
+        reason:
+          "Phiếu chuyển sang Đã hủy. Công nợ được đóng. Kho được hoàn nếu hàng mua vẫn còn tồn. Tiền đã chi được hoàn vào quỹ nếu có thanh toán.",
       });
     } catch (err) {
       setVoidError(err instanceof Error ? err.message : "Hủy phiếu thất bại.");

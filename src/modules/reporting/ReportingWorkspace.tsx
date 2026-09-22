@@ -620,7 +620,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Trạng thái thanh toán",
     "Hình thức thanh toán",
     "Hạn thanh toán",
-    "Nhân viên",
+    "Người bán",
     "Hoàn tất lúc",
     "Ghi chú",
     "Trạng thái trả vàng",

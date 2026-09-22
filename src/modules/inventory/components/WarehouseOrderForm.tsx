@@ -201,7 +201,9 @@ export function WarehouseOrderForm({
           goodsStatus === "RECEIVED"
             ? "Kho đã tăng theo số nhận. Tiền/công nợ ghi theo số thực trả."
             : "Chưa tăng tồn kho. Tiền chỉ giảm nếu đã thanh toán; phần còn lại theo dõi công nợ/tạm ứng.",
-        detail: `Phiếu ${result.receipt_no} · ${computedLines.length} sản phẩm. TT: ${result.paymentStatus ?? "-"}. Hàng: ${result.goodsStatus ?? goodsStatus}.`,
+        detail: `Phiếu ${result.receipt_no} · ${computedLines.length} sản phẩm. TT: ${
+          result.paymentStatus ?? "-"
+        }. Hàng: ${result.goodsStatus ?? goodsStatus}.`,
       });
     } catch (error) {
       setAlert({
@@ -221,7 +223,8 @@ export function WarehouseOrderForm({
         <h1 className="text-[15px] font-semibold">Đặt hàng cho kho</h1>
         <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
           Một phiếu có thể gồm nhiều sản phẩm. Tồn kho chỉ tăng khi trạng thái nhận hàng là Đã nhận.
-          Thanh toán và công nợ nguồn hàng độc lập với trạng thái hàng.
+          Thanh toán và công nợ nguồn hàng độc lập với trạng thái hàng. Tạo sản phẩm Order mới nằm ở
+          Nhập hàng.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -254,7 +257,7 @@ export function WarehouseOrderForm({
             <button
               type="button"
               onClick={addLine}
-              className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-semibold"
+              className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px] font-semibold active:scale-[0.98]"
             >
               + Thêm sản phẩm
             </button>

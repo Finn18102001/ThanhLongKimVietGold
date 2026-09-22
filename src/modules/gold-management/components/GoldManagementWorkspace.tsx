@@ -142,6 +142,9 @@ export function GoldManagementWorkspace({
         "Tổng số chỉ",
         "Nhân viên thực hiện",
         "Trạng thái",
+        "Số điện thoại",
+        "CCCD",
+        "Lịch sử thanh toán",
       ],
       filtered.map((row, index) => [
         index + 1,
@@ -157,6 +160,9 @@ export function GoldManagementWorkspace({
         row.totalChiRemaining,
         row.actorEmail,
         statusLabel(row.kind, row.status),
+        row.partyPhone,
+        row.partyCitizenId,
+        row.paymentHistory,
       ]),
     );
   }

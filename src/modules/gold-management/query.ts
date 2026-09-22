@@ -12,6 +12,34 @@ function clampNonNeg(n: number): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function formatPaymentAmount(amount: number): string {
+  return `${new Intl.NumberFormat("vi-VN").format(Math.round(amount))}đ`;
+}
+
+/** One line per real payment, then the unpaid balance when any remains. */
+function formatPaymentHistory(amounts: number[], remainingDong: number): string {
+  const paid = amounts.filter((amount) => amount > 0);
+  if (paid.length === 0) return "Chưa thanh toán";
+  const lines = paid.map(
+    (amount, index) => `Lần ${index + 1}: ${formatPaymentAmount(amount)}`,
+  );
+  if (remainingDong > 0) lines.push(`Còn lại: ${formatPaymentAmount(remainingDong)}`);
+  return lines.join("\n");
+}
+
+function paymentAmounts(
+  value:
+    | { amount_dong: number | string | null; paid_at?: string | null }[]
+    | { amount_dong: number | string | null; paid_at?: string | null }
+    | null
+    | undefined,
+): number[] {
+  const rows = Array.isArray(value) ? value : value ? [value] : [];
+  return [...rows]
+    .sort((a, b) => String(a.paid_at ?? "").localeCompare(String(b.paid_at ?? "")))
+    .map((row) => Number(row.amount_dong ?? 0));
+}
+
 /**
  * Warehouse order (goods NOT_RECEIVED): stock not applied yet → settled = 0.
  * After receive / partial receive: settled = received_qty, remaining = expected - received.
@@ -34,6 +62,8 @@ export async function listGoldObligations(): Promise<{
       .from("pos_purchase_receipts")
       .select(
         `id, receipt_no, goods_status, supplier_name, actor_email, created_at, voided_at,
+         remaining_dong,
+         pos_purchase_payments(amount_dong, paid_at),
          pos_purchase_items(
            id, expected_qty, received_qty, weight_chi,
            pos_skus(sku, name, weight_chi, brands(name))
@@ -47,7 +77,9 @@ export async function listGoldObligations(): Promise<{
       .from("pos_sales")
       .select(
         `id, sale_no, transaction_type, fulfillment_status, actor_email, created_at, voided_at,
-         pos_customers(name),
+         remaining_dong,
+         pos_customers(name, phone, citizen_id),
+         pos_sale_payments(amount_dong, paid_at),
          pos_sale_items(
            id, quantity, qty_delivered, weight_chi, product_name_snapshot, sku_snapshot, sku_id,
            pos_skus(sku, name, brands(name))
@@ -104,6 +136,11 @@ export async function listGoldObligations(): Promise<{
           : sku?.weight_chi != null
             ? Number(sku.weight_chi)
             : 0;
+      const receiptPayments = paymentAmounts(
+        receipt.pos_purchase_payments as
+          | { amount_dong: number | string | null; paid_at?: string | null }[]
+          | null,
+      );
 
       rows.push({
         id: `recv:${item.id}`,
@@ -124,6 +161,12 @@ export async function listGoldObligations(): Promise<{
         totalChiRemaining: Number((remaining * weight).toFixed(4)),
         actorEmail: receipt.actor_email || "—",
         status: receivableStatus(expected, settled),
+        partyPhone: "",
+        partyCitizenId: "",
+        paymentHistory: formatPaymentHistory(
+          receiptPayments,
+          Number(receipt.remaining_dong ?? 0),
+        ),
       });
     }
   }
@@ -135,7 +178,19 @@ export async function listGoldObligations(): Promise<{
         ? [sale.pos_sale_items]
         : [];
     const customer = firstEmbed(
-      sale.pos_customers as { name: string } | { name: string }[] | null,
+      sale.pos_customers as
+        | { name: string; phone: string | null; citizen_id: string | null }
+        | { name: string; phone: string | null; citizen_id: string | null }[]
+        | null,
+    );
+    const salePayments = paymentAmounts(
+      sale.pos_sale_payments as
+        | { amount_dong: number | string | null; paid_at?: string | null }[]
+        | null,
+    );
+    const paymentHistory = formatPaymentHistory(
+      salePayments,
+      Number(sale.remaining_dong ?? 0),
     );
 
     for (const item of items) {
@@ -171,6 +226,9 @@ export async function listGoldObligations(): Promise<{
         totalChiRemaining: Number((remaining * weight).toFixed(4)),
         actorEmail: sale.actor_email || "—",
         status: payableStatus(ordered, settled),
+        partyPhone: customer?.phone?.trim() || "",
+        partyCitizenId: customer?.citizen_id?.trim() || "",
+        paymentHistory,
       });
     }
   }
