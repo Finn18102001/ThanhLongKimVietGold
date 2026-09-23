@@ -1,8 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  actionFail,
+  actionFailFromSupabase,
+  actionOk,
+  formatActionError,
+  runAction,
+  type ActionResult,
+} from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
-import { getInvoiceByNo, listDocuments, listInvoices, listSalePayments, exportDocuments, assertCanMutateInvoice, assertCanMutateSale } from "./query";
+import {
+  assertCanMutateInvoice,
+  assertCanMutateSale,
+  exportDocuments,
+  getInvoiceByNo,
+  listDocuments,
+  listInvoices,
+  listSalePayments,
+} from "./query";
 import type {
   InvoiceDetail,
   InvoiceExportPage,
@@ -67,13 +83,17 @@ function mapStockReceipt(raw: Record<string, unknown>): StockReceiptDetail {
   };
 }
 
-export async function fetchStockReceiptDetail(receiptId: string): Promise<StockReceiptDetail> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_get_purchase_receipt", {
-    p_receipt_id: receiptId,
-  });
-  if (error) throw new Error(error.message);
-  return mapStockReceipt((data ?? {}) as Record<string, unknown>);
+export async function fetchStockReceiptDetail(
+  receiptId: string,
+): Promise<ActionResult<StockReceiptDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_get_purchase_receipt", {
+      p_receipt_id: receiptId,
+    });
+    if (error) throw new Error(error.message);
+    return mapStockReceipt((data ?? {}) as Record<string, unknown>);
+  }, "Không tải được phiếu nhập.");
 }
 
 export async function collectStockReceiptPayment(input: {
@@ -82,88 +102,95 @@ export async function collectStockReceiptPayment(input: {
   paymentMethod: "CASH" | "TRANSFER" | "CARD";
   note?: string;
   idempotencyKey?: string;
-}): Promise<{ paidDong: number; remainingDong: number; paymentStatus: string }> {
+}): Promise<ActionResult<{ paidDong: number; remainingDong: number; paymentStatus: string }>> {
   if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
-    throw new Error("Số tiền phải là số nguyên VND > 0");
+    return actionFail("Số tiền phải là số nguyên VND > 0");
   }
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_collect_purchase_payment", {
-    p_receipt_id: input.receiptId,
-    p_amount_dong: input.amountDong,
-    p_payment_method: input.paymentMethod,
-    p_note: input.note || null,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/cashflow");
-  revalidatePath("/suppliers");
-  const payload = data as Record<string, unknown>;
-  return {
-    paidDong: asNumber(payload.paidDong),
-    remainingDong: asNumber(payload.remainingDong),
-    paymentStatus: String(payload.paymentStatus ?? ""),
-  };
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_collect_purchase_payment", {
+      p_receipt_id: input.receiptId,
+      p_amount_dong: input.amountDong,
+      p_payment_method: input.paymentMethod,
+      p_note: input.note || null,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/cashflow");
+    revalidatePath("/suppliers");
+    const payload = data as Record<string, unknown>;
+    return {
+      paidDong: asNumber(payload.paidDong),
+      remainingDong: asNumber(payload.remainingDong),
+      paymentStatus: String(payload.paymentStatus ?? ""),
+    };
+  }, "Thu tiền phiếu nhập thất bại.");
 }
 
 export async function receiveOrderedStockReceipt(input: {
   receiptId: string;
   idempotencyKey?: string;
-}): Promise<{ goodsStatus: string }> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_receive_ordered_purchase", {
-    p_receipt_id: input.receiptId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/pos");
-  const payload = data as Record<string, unknown>;
-  return { goodsStatus: String(payload.goodsStatus ?? "RECEIVED") };
+}): Promise<ActionResult<{ goodsStatus: string }>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_receive_ordered_purchase", {
+      p_receipt_id: input.receiptId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/pos");
+    const payload = data as Record<string, unknown>;
+    return { goodsStatus: String(payload.goodsStatus ?? "RECEIVED") };
+  }, "Nhận hàng phiếu nhập thất bại.");
 }
 
 export async function reverseStockReceipt(input: {
   receiptId: string;
   reason: string;
   idempotencyKey?: string;
-}): Promise<{
-  ok: boolean;
-  receiptNo: string;
-  documentStatus: string;
-  goodsStatus: string;
-}> {
+}): Promise<
+  ActionResult<{
+    ok: boolean;
+    receiptNo: string;
+    documentStatus: string;
+    goodsStatus: string;
+  }>
+> {
   const reason = input.reason.trim();
   if (reason.length < 3) {
-    throw new Error("Phải nhập lý do đảo phiếu nhập (tối thiểu 3 ký tự).");
+    return actionFail("Phải nhập lý do đảo phiếu nhập (tối thiểu 3 ký tự).");
   }
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_void_purchase_receipt", {
-    p_receipt_id: input.receiptId,
-    p_reason: reason,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/cashflow");
-  revalidatePath("/suppliers");
-  revalidatePath("/pos");
-  const payload = data as Record<string, unknown>;
-  return {
-    ok: Boolean(payload.ok),
-    receiptNo: String(payload.receiptNo ?? ""),
-    documentStatus: String(payload.documentStatus ?? "CANCELLED"),
-    goodsStatus: String(payload.goodsStatus ?? "CANCELLED"),
-  };
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_void_purchase_receipt", {
+      p_receipt_id: input.receiptId,
+      p_reason: reason,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/cashflow");
+    revalidatePath("/suppliers");
+    revalidatePath("/pos");
+    const payload = data as Record<string, unknown>;
+    return {
+      ok: Boolean(payload.ok),
+      receiptNo: String(payload.receiptNo ?? ""),
+      documentStatus: String(payload.documentStatus ?? "CANCELLED"),
+      goodsStatus: String(payload.goodsStatus ?? "CANCELLED"),
+    };
+  }, "Đảo phiếu nhập thất bại.");
 }
 
 export async function searchInvoices(filter: InvoiceListFilter): Promise<InvoiceListPage> {
   if (filter.transactionType || filter.fulfillment || filter.goldDelivery) {
     return listInvoices({
       ...filter,
-      // Gold-delivery filter is sale-order only.
       documentType: filter.goldDelivery ? "SALE_TO_CUSTOMER" : filter.documentType,
     });
   }
@@ -174,17 +201,24 @@ export async function exportInvoiceCsv(filter: InvoiceListFilter): Promise<Invoi
   return exportDocuments(filter);
 }
 
-export async function fetchInvoiceDetail(invoiceNo: string): Promise<InvoiceDetail> {
-  const invoice = await getInvoiceByNo(invoiceNo);
-  if (!invoice) {
-    throw new Error(`Không tìm thấy hóa đơn ${invoiceNo}.`);
-  }
-  return invoice;
+export async function fetchInvoiceDetail(invoiceNo: string): Promise<ActionResult<InvoiceDetail>> {
+  return runAction(async () => {
+    const invoice = await getInvoiceByNo(invoiceNo);
+    if (!invoice) throw new Error(`Không tìm thấy hóa đơn ${invoiceNo}.`);
+    return invoice;
+  }, `Không tải được hóa đơn ${invoiceNo}.`);
 }
 
 export async function fetchSalePayments(saleId: string): Promise<SalePaymentRecord[]> {
   return listSalePayments(saleId);
 }
+
+export type CollectSalePaymentData = {
+  paidDong: number;
+  remainingDong: number;
+  paymentStatus: string;
+  dueDate: string | null;
+};
 
 export async function collectSalePayment(input: {
   saleId: string;
@@ -194,124 +228,134 @@ export async function collectSalePayment(input: {
   dueDate?: string | null;
   idempotencyKey?: string;
   receivedByStaffId?: string | null;
-}): Promise<{
-  paidDong: number;
+}): Promise<ActionResult<CollectSalePaymentData>> {
+  if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
+    return actionFail("Số tiền thu phải là số nguyên VND > 0");
+  }
+  return runAction(async () => {
+    await assertCanMutateSale(input.saleId);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_collect_sale_payment", {
+      p_sale_id: input.saleId,
+      p_amount_dong: input.amountDong,
+      p_payment_method: input.paymentMethod,
+      p_note: input.note || null,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      p_due_date: input.dueDate || null,
+      p_operator_staff_id: input.receivedByStaffId || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/customers");
+    revalidatePath("/pos");
+    const payload = data as {
+      paid_dong: number;
+      remaining_dong: number;
+      payment_status: string;
+      due_date: string | null;
+    };
+    return {
+      paidDong: Number(payload.paid_dong),
+      remainingDong: Number(payload.remaining_dong),
+      paymentStatus: payload.payment_status,
+      dueDate: payload.due_date,
+    };
+  }, "Thu tiền hóa đơn thất bại.");
+}
+
+export type FulfillPreorderResult = ActionResult<{
+  fulfillmentStatus: string;
   remainingDong: number;
   paymentStatus: string;
-  dueDate: string | null;
-}> {
-  if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
-    throw new Error("Số tiền thu phải là số nguyên VND > 0");
-  }
-  await assertCanMutateSale(input.saleId);
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_collect_sale_payment", {
-    p_sale_id: input.saleId,
-    p_amount_dong: input.amountDong,
-    p_payment_method: input.paymentMethod,
-    p_note: input.note || null,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    p_due_date: input.dueDate || null,
-    p_operator_staff_id: input.receivedByStaffId || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/customers");
-  revalidatePath("/pos");
-  const payload = data as {
-    paid_dong: number;
-    remaining_dong: number;
-    payment_status: string;
-    due_date: string | null;
-  };
-  return {
-    paidDong: Number(payload.paid_dong),
-    remainingDong: Number(payload.remaining_dong),
-    paymentStatus: payload.payment_status,
-    dueDate: payload.due_date,
-  };
-}
+}>;
+
+export type CancelPreorderResult = ActionResult<{ fulfillmentStatus: string }>;
 
 export async function fulfillInvoicePreorder(input: {
   saleId: string;
   operatorStaffId?: string | null;
-}): Promise<{ fulfillmentStatus: string; remainingDong: number; paymentStatus: string }> {
-  await assertCanMutateSale(input.saleId);
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
-    p_sale_id: input.saleId,
-    p_idempotency_key: crypto.randomUUID(),
-    p_operator_staff_id: input.operatorStaffId || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/gold-management");
-  revalidatePath("/pos");
-  const payload = data as {
-    fulfillment_status: string;
-    remaining_dong: number;
-    payment_status: string;
-  };
-  return {
-    fulfillmentStatus: payload.fulfillment_status,
-    remainingDong: Number(payload.remaining_dong ?? 0),
-    paymentStatus: payload.payment_status,
-  };
+}): Promise<FulfillPreorderResult> {
+  return runAction(async () => {
+    await assertCanMutateSale(input.saleId);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
+      p_sale_id: input.saleId,
+      p_idempotency_key: crypto.randomUUID(),
+      p_operator_staff_id: input.operatorStaffId || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/gold-management");
+    revalidatePath("/pos");
+    const payload = data as {
+      fulfillment_status: string;
+      remaining_dong: number;
+      payment_status: string;
+    };
+    return {
+      fulfillmentStatus: payload.fulfillment_status,
+      remainingDong: Number(payload.remaining_dong ?? 0),
+      paymentStatus: payload.payment_status,
+    };
+  }, "Giao hàng thất bại.");
 }
 
 export async function cancelInvoicePreorder(input: {
   saleId: string;
   reason?: string;
-}): Promise<{ fulfillmentStatus: string }> {
-  await assertCanMutateSale(input.saleId);
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_cancel_preorder", {
-    p_sale_id: input.saleId,
-    p_idempotency_key: crypto.randomUUID(),
-    p_reason: input.reason || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/gold-management");
-  revalidatePath("/pos");
-  const payload = data as { fulfillment_status: string };
-  return { fulfillmentStatus: payload.fulfillment_status };
+}): Promise<CancelPreorderResult> {
+  return runAction(async () => {
+    await assertCanMutateSale(input.saleId);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_cancel_preorder", {
+      p_sale_id: input.saleId,
+      p_idempotency_key: crypto.randomUUID(),
+      p_reason: input.reason || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/gold-management");
+    revalidatePath("/pos");
+    const payload = data as { fulfillment_status: string };
+    return { fulfillmentStatus: payload.fulfillment_status };
+  }, "Hủy đặt hàng thất bại.");
 }
 
 export async function voidInvoice(input: {
   invoiceId: string;
   reason: string;
-}): Promise<{
-  ok: boolean;
-  invoiceNo: string;
-  status: string;
-}> {
+}): Promise<ActionResult<{ ok: boolean; invoiceNo: string; status: string }>> {
   const reason = input.reason.trim();
   if (reason.length < 3) {
-    throw new Error("Phải nhập lý do hủy hóa đơn (tối thiểu 3 ký tự).");
+    return actionFail("Phải nhập lý do hủy hóa đơn (tối thiểu 3 ký tự).");
   }
-  await assertCanMutateInvoice(input.invoiceId);
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_void_invoice", {
-    p_invoice_id: input.invoiceId,
-    p_reason: reason,
-    p_idempotency_key: crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/cashflow");
-  revalidatePath("/pos");
-  revalidatePath("/customers");
-  const payload = data as {
-    ok?: boolean;
-    invoice_no?: string;
-    status?: string;
-  };
-  return {
-    ok: Boolean(payload.ok),
-    invoiceNo: String(payload.invoice_no ?? ""),
-    status: String(payload.status ?? "VOIDED"),
-  };
+  return runAction(async () => {
+    await assertCanMutateInvoice(input.invoiceId);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_void_invoice", {
+      p_invoice_id: input.invoiceId,
+      p_reason: reason,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/cashflow");
+    revalidatePath("/pos");
+    revalidatePath("/customers");
+    const payload = data as {
+      ok?: boolean;
+      invoice_no?: string;
+      status?: string;
+    };
+    return {
+      ok: Boolean(payload.ok),
+      invoiceNo: String(payload.invoice_no ?? ""),
+      status: String(payload.status ?? "VOIDED"),
+    };
+  }, "Không hủy được hóa đơn.");
 }
+
+/** Re-export for invoice UI — prefer shared helper. */
+export { actionFail, actionFailFromSupabase, actionOk, formatActionError };

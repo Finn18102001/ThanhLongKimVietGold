@@ -1109,6 +1109,37 @@ Internal Error
 
 ---
 
+## 30.1. SERVER ACTION — KHÔNG THROW LỖI NGHIỆP VỤ (TRÁNH REACT #441)
+
+> **Bắt buộc** với flow POS **mua hàng / bán hàng / hóa đơn** (và mọi mutation `"use server"` gọi từ nút UI).
+
+Trong production, Next/React **ẩn** nội dung `throw` từ Server Action và client chỉ thấy:
+
+```text
+Minified React error #441
+An error occurred in the Server Components render...
+```
+
+→ Nhân viên **không thấy** nguyên nhân thật (thiếu tồn, validation, RPC Postgres…).
+
+### Quy tắc
+
+1. Mutation Server Action **không** `throw new Error(...)` cho lỗi nghiệp vụ / RPC / validation.
+2. Luôn trả `ActionResult<T>` từ `src/shared/lib/action-result.ts` (`actionOk` / `actionFail` / `runAction`).
+3. UI hiển thị `formatActionError(result.message)` — **không** hiện chuỗi Minified React #441.
+4. Message phải là nguyên nhân cụ thể từ backend/RPC khi có (ví dụ: `Không có sản phẩm nào đủ điều kiện để giao`).
+5. Cursor rule: `.cursor/rules/tlkv-server-action-errors.mdc`.
+
+```ts
+// ĐÚNG
+return actionFailFromSupabase(error, "Giao hàng thất bại.");
+
+// SAI — production → #441
+throw new Error(error.message);
+```
+
+---
+
 # 31. EXTERNAL INTEGRATION
 
 Các integration bên ngoài phải được cô lập.
@@ -1168,6 +1199,64 @@ Mọi thay đổi database phải:
 ```
 
 Không breaking change đột ngột.
+
+---
+
+## 32.1. SUPABASE DATA API — GRANT BẮT BUỘC (ĐỌC TRƯỚC MỌI CRUD BẢNG)
+
+> **BẮT BUỘC:** Trước khi `CREATE` / `ALTER` / drop-recreate bảng (hoặc view/sequence liên quan Data API) trên Supabase — qua migration, SQL Editor, MCP, CLI, `db reset`, preview branch — phải đọc và tuân thủ mục này.
+>
+> Changelog nền tảng: từ **30/10/2026**, project hiện tại không còn tự `GRANT` Data API cho bảng mới trong schema `public`. Bảng cũ giữ grant hiện có; **bảng mới / migration mới** thiếu grant → PostgREST/`supabase-js` lỗi `42501 permission denied` (thường kèm hint câu `GRANT`).
+
+### Ai bị ảnh hưởng
+
+- App gọi bảng qua Data API: `supabase-js`, PostgREST `/rest/v1/`, GraphQL, client library khác.
+- Không ảnh hưởng kết nối Postgres trực tiếp (psql / ORM connection string) — nhưng TLKV admin/POS dùng Data API → **luôn coi là bị ảnh hưởng**.
+
+### Quy tắc tuyệt đối
+
+1. **Bảng hiện có:** không cần re-grant chỉ vì email 30/10; giữ nguyên grant đang chạy.
+2. **Bảng / object mới trong `public`:** phải có `GRANT` tường minh trong **cùng migration** (hoặc cùng script tạo bảng). Không dựa vào default privilege tự động.
+3. **RLS ≠ GRANT.** RLS quyết định hàng nào; GRANT quyết định role có được gọi lệnh trên bảng hay không. Thiếu GRANT thì RLS/policy không kịp chạy.
+4. **`service_role` cũng cần GRANT tường minh** sau khi platform ngừng auto-expose — kể cả bảng chỉ dùng qua RPC/`SECURITY DEFINER`.
+5. **Cố ý không expose bảng** (chỉ RPC): vẫn ghi rõ trong migration (`REVOKE` / không grant `anon`/`authenticated`) và vẫn `GRANT` tối thiểu cho `service_role` nếu backend cần; ghi comment lý do.
+6. **Local / preview:** `supabase db reset`, branch preview, migration mới sau 30/10 — thiếu GRANT = bảng “biến mất” khỏi client dù schema đúng.
+7. Tham chiếu grant catalog / website: `supabase/data-api-grants.sql`. Mọi bảng POS/admin mới phải bổ sung grant trong migration tạo bảng (không chỉ chạy file này sau).
+
+### Bộ ba bắt buộc khi expose bảng qua Data API
+
+```sql
+-- 1) GRANT đúng role cần dùng
+grant select on public.your_table to anon; -- chỉ khi thật sự cần public đọc
+grant select, insert, update, delete on public.your_table to authenticated;
+grant select, insert, update, delete on public.your_table to service_role;
+
+-- 2) Bật RLS
+alter table public.your_table enable row level security;
+
+-- 3) Policy theo nghiệp vụ
+-- create policy ...
+```
+
+Chỉ grant privilege thật sự cần (`SELECT` vs ghi). Không grant `anon` cho bảng POS/nội bộ.
+
+### Checklist trước khi merge migration tạo/sửa bảng
+
+- [ ] Đã đọc mục **32.1** này.
+- [ ] Migration có `GRANT` (hoặc `REVOKE` có chủ đích + comment) cho bảng mới.
+- [ ] RLS bật; policy khớp quyền nghiệp vụ.
+- [ ] Đã nghĩ tới `db reset` / preview branch sau 30/10.
+- [ ] Nếu chỉ RPC: đã grant `EXECUTE` function + quyết định rõ table grant / revoke.
+- [ ] Không giả định “tạo bảng là tự có trên supabase-js”.
+
+### Khi gặp lỗi
+
+```text
+42501 permission denied for table ...
+hint: GRANT ... TO anon|authenticated|service_role
+```
+
+→ Thêm `GRANT` vào migration (hoặc chạy grant tương đương), không “sửa RLS” thay cho thiếu privilege.
 
 ---
 
@@ -1495,6 +1584,7 @@ Test result?
 - [ ] Xác định dependency.
 - [ ] Xác định API contract.
 - [ ] Xác định database impact.
+- [ ] Nếu tạo/đổi bảng Supabase: đã đọc **§32.1 Data API GRANT**.
 - [ ] Xác định permission.
 - [ ] Xác định audit requirement.
 - [ ] Xác định transaction boundary.
@@ -1518,6 +1608,7 @@ Test result?
 - [ ] Có audit cho thao tác quan trọng.
 - [ ] Có validation.
 - [ ] Có authorization.
+- [ ] Migration bảng mới có `GRANT` Data API (hoặc revoke có chủ đích) theo **§32.1**.
 - [ ] Có error handling.
 - [ ] Có concurrency check.
 - [ ] Có transaction integrity.
@@ -1658,6 +1749,14 @@ Feature hoàn thành
 ## Rule 12
 
 > **Mọi thay đổi phải có khả năng truy xuất nguồn gốc khi liên quan đến giao dịch, tồn kho và tiền.**
+
+## Rule 13
+
+> **Mọi CREATE/ALTER bảng trên Supabase phải đọc và tuân thủ §32.1: GRANT Data API tường minh trong cùng migration; không dựa vào auto-grant sau 30/10/2026.**
+
+## Rule 14
+
+> **Server Action mua/bán/hóa đơn không throw lỗi nghiệp vụ — trả ActionResult và hiển thị nguyên nhân cụ thể (tránh React #441). Xem §30.1.**
 
 ---
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { formatActionError } from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { getDepositSaleBundle } from "./query";
 import type { DepositActionResult, DepositDocPayload, DepositSaleBundle } from "./types";
@@ -14,7 +15,7 @@ function revalidateDeposit() {
 }
 
 function fail(message: string): DepositActionResult {
-  return { ok: false, message };
+  return { ok: false, message: formatActionError(message, "Không thực hiện được thao tác đặt cọc.") };
 }
 
 function ok(bundle: DepositSaleBundle): DepositActionResult {

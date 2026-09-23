@@ -9,7 +9,7 @@ Full contract: `docs/SYSTEM_DEVELOPMENT_RULES.md`. If a request conflicts with t
 
 STRICT MODE is ON: module isolation, business rules, data integrity, audit, API contract, DB integrity, security, transaction, concurrency, idempotency.
 
-## 12 rules that must not be broken
+## 14 rules that must not be broken
 
 1. Do not edit unrelated modules.
 2. New module/feature gets its own boundary and its own router.
@@ -23,9 +23,14 @@ STRICT MODE is ON: module isolation, business rules, data integrity, audit, API 
 10. Do not refactor outside the current task scope.
 11. No breaking API/DB contracts without migration and impact review.
 12. Money, stock, and sales must be traceable end-to-end.
+13. Before any Supabase table CREATE/ALTER: read `docs/SYSTEM_DEVELOPMENT_RULES.md` §32.1 and follow explicit Data API `GRANT` in the same migration (platform stops auto-grants on 2026-10-30).
+14. Server Actions for mua/bán/hóa đơn must return `ActionResult` (`src/shared/lib/action-result.ts`) — never throw business errors (avoids React #441; show real RPC cause in UI). See §30.1.
 
 ## Before writing code
 
 Answer: module, router, business rule, allowed files, forbidden files, dependency, API contract, DB impact, permission, transaction boundary, audit, concurrency, idempotency.
+
+If the task touches Supabase tables/migrations: also confirm §32.1 Data API GRANT checklist.
+If the task is a Server Action mutation (mua/bán/hóa đơn): return ActionResult, never throw for business/RPC failures.
 
 UI running is not Definition of Done.

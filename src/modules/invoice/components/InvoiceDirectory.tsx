@@ -15,6 +15,7 @@ import {
   fetchStockReceiptDetail,
   searchInvoices,
 } from "../actions";
+import { formatActionError } from "@/shared/lib/action-result";
 import {
   documentTypeLabel,
   effectivePaymentStatus,
@@ -173,23 +174,25 @@ export function InvoiceDirectory({
   }, [searchParams]);
 
   async function openDetail(invoiceNo: string) {
-    try {
-      setReceiptDetail(null);
-      setDetail(await fetchInvoiceDetail(invoiceNo));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không tải được chi tiết hóa đơn.");
+    setReceiptDetail(null);
+    const result = await fetchInvoiceDetail(invoiceNo);
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Không tải được chi tiết hóa đơn."));
+      return;
     }
+    setDetail(result.data);
+    setError(null);
   }
 
   async function openReceiptDetail(receiptId: string) {
-    try {
-      setDetail(null);
-      setReceiptDetail(await fetchStockReceiptDetail(receiptId));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không tải được chi tiết phiếu nhập.");
+    setDetail(null);
+    const result = await fetchStockReceiptDetail(receiptId);
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Không tải được chi tiết phiếu nhập."));
+      return;
     }
+    setReceiptDetail(result.data);
+    setError(null);
   }
 
   async function openBuyDetail(buyId: string) {

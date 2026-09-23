@@ -1,6 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  actionFail,
+  formatActionError,
+  runAction,
+  type ActionResult,
+} from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type {
   BuyAttachment,
@@ -155,99 +161,107 @@ export async function completeBuy(input: {
   bankAccount?: string | null;
   bankAccountHolder?: string | null;
   idempotencyKey?: string;
-}): Promise<CompleteBuyResult> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_create_buy_intake", {
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    p_customer_id: input.customerId,
-    p_payment_method: input.paymentMethod,
-    p_items: input.items,
-    p_note: input.note || null,
-    p_paid_dong: input.paidDong ?? null,
-    p_due_date: input.dueDate || null,
-    p_approve_price_exception: input.approvePriceException ?? false,
-    p_price_exception_reason: input.priceExceptionReason || null,
-    p_bank_account: input.bankAccount?.trim() || null,
-    p_bank_account_holder: input.bankAccountHolder?.trim() || null,
-  });
-  if (error) {
-    throw new Error(error.message);
-  }
+}): Promise<ActionResult<CompleteBuyResult>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_create_buy_intake", {
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      p_customer_id: input.customerId,
+      p_payment_method: input.paymentMethod,
+      p_items: input.items,
+      p_note: input.note || null,
+      p_paid_dong: input.paidDong ?? null,
+      p_due_date: input.dueDate || null,
+      p_approve_price_exception: input.approvePriceException ?? false,
+      p_price_exception_reason: input.priceExceptionReason || null,
+      p_bank_account: input.bankAccount?.trim() || null,
+      p_bank_account_holder: input.bankAccountHolder?.trim() || null,
+    });
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/purchase");
-  revalidatePath("/inventory");
-  revalidatePath("/customers");
+    revalidatePath("/purchase");
+    revalidatePath("/inventory");
+    revalidatePath("/customers");
 
-  const raw = data as Record<string, unknown>;
-  return {
-    buyId: String(raw.buyId ?? raw.buy_id ?? ""),
-    buyNo: String(raw.buyNo ?? raw.buy_no ?? ""),
-    totalDong: asNumber(raw.totalDong ?? raw.total_dong),
-    paidDong: asNumber(raw.paidDong ?? raw.paid_dong),
-    remainingDong: asNumber(raw.remainingDong ?? raw.remaining_dong),
-    paymentStatus: String(raw.paymentStatus ?? raw.payment_status ?? "UNPAID"),
-    dueDate: (raw.dueDate as string | null) ?? (raw.due_date as string | null) ?? null,
-    customerId: String(raw.customerId ?? raw.customer_id ?? input.customerId),
-  };
+    const raw = data as Record<string, unknown>;
+    return {
+      buyId: String(raw.buyId ?? raw.buy_id ?? ""),
+      buyNo: String(raw.buyNo ?? raw.buy_no ?? ""),
+      totalDong: asNumber(raw.totalDong ?? raw.total_dong),
+      paidDong: asNumber(raw.paidDong ?? raw.paid_dong),
+      remainingDong: asNumber(raw.remainingDong ?? raw.remaining_dong),
+      paymentStatus: String(raw.paymentStatus ?? raw.payment_status ?? "UNPAID"),
+      dueDate: (raw.dueDate as string | null) ?? (raw.due_date as string | null) ?? null,
+      customerId: String(raw.customerId ?? raw.customer_id ?? input.customerId),
+    };
+  }, "Không tạo được giao dịch mua.");
 }
 
 export async function issueMeltCommitment(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_issue_melt_commitment", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_issue_melt_commitment", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    return getBuy(input.buyId);
+  }, "Không lập được cam kết nấu.");
 }
 
 /** Skip melt/purity and jump to AWAITING_CONFIRM (SKU allow_direct_buy only). */
 export async function skipBuyMelt(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_buy_skip_melt", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_buy_skip_melt", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    return getBuy(input.buyId);
+  }, "Không bỏ qua bước nấu được.");
 }
 
 export async function startBuyMelting(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_start_buy_melting", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_start_buy_melting", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    return getBuy(input.buyId);
+  }, "Không bắt đầu nấu được.");
 }
 
 export async function setBuyMeltWeights(input: {
   buyId: string;
   items: MeltWeightItemPayload[];
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_set_buy_melt_weights", {
-    p_buy_id: input.buyId,
-    p_items: input.items,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_set_buy_melt_weights", {
+      p_buy_id: input.buyId,
+      p_items: input.items,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    return getBuy(input.buyId);
+  }, "Không lưu được khối lượng sau nấu.");
 }
 
 /**
@@ -261,57 +275,61 @@ export async function confirmBuyMelt(input: {
   paymentMethod?: PaymentMethod | null;
   paidDong?: number | null;
   dueDate?: string | null;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const payload: Record<string, unknown> = {
-    p_buy_id: input.buyId,
-    p_agree: input.agree,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  };
-  if (input.paymentMethod != null) payload.p_payment_method = input.paymentMethod;
-  // Only forward paid when explicitly set; never send 0 from PROCESSING rows
-  // (BE coalesce would treat 0 as intentional unpaid).
-  if (input.paidDong != null && input.paidDong > 0) payload.p_paid_dong = input.paidDong;
-  if (input.dueDate != null) payload.p_due_date = input.dueDate;
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const payload: Record<string, unknown> = {
+      p_buy_id: input.buyId,
+      p_agree: input.agree,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    };
+    if (input.paymentMethod != null) payload.p_payment_method = input.paymentMethod;
+    if (input.paidDong != null && input.paidDong > 0) payload.p_paid_dong = input.paidDong;
+    if (input.dueDate != null) payload.p_due_date = input.dueDate;
 
-  const { error } = await supabase.rpc("pos_confirm_buy_melt", payload);
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  revalidatePath("/invoices");
-  return getBuy(input.buyId);
+    const { error } = await supabase.rpc("pos_confirm_buy_melt", payload);
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    revalidatePath("/invoices");
+    return getBuy(input.buyId);
+  }, "Không xác nhận nấu được.");
 }
 
 /** After invoice step: confirm → FORM02_READY (+ form02_no). Print not required. */
 export async function confirmBuyInvoice(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_confirm_buy_invoice", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/purchase");
-  revalidatePath("/invoices");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_confirm_buy_invoice", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    revalidatePath("/invoices");
+    return getBuy(input.buyId);
+  }, "Không xác nhận hóa đơn mua được.");
 }
 
 /** Form 02 done → COMPLETED + stock + cash + payable. */
 export async function completeBuyMelt(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const supabase = await createServerSupabase();
-  const { error } = await supabase.rpc("pos_complete_buy_melt", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/inventory");
-  revalidatePath("/customers");
-  revalidatePath("/invoices");
-  return getBuy(input.buyId);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_complete_buy_melt", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/inventory");
+    revalidatePath("/customers");
+    revalidatePath("/invoices");
+    return getBuy(input.buyId);
+  }, "Không hoàn tất phiếu mua được.");
 }
 
 /**
@@ -322,30 +340,31 @@ export async function completeBuyMelt(input: {
 export async function confirmBuyInvoiceAndComplete(input: {
   buyId: string;
   idempotencyKey?: string;
-}): Promise<BuyDetail> {
-  const base = input.idempotencyKey || crypto.randomUUID();
-  const supabase = await createServerSupabase();
-  const { error: confirmError } = await supabase.rpc("pos_confirm_buy_invoice", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: `${base}:form02`,
-  });
-  if (confirmError) throw new Error(confirmError.message);
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const base = input.idempotencyKey || crypto.randomUUID();
+    const supabase = await createServerSupabase();
+    const { error: confirmError } = await supabase.rpc("pos_confirm_buy_invoice", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: `${base}:form02`,
+    });
+    if (confirmError) throw new Error(confirmError.message);
 
-  const { error: completeError } = await supabase.rpc("pos_complete_buy_melt", {
-    p_buy_id: input.buyId,
-    p_idempotency_key: `${base}:complete`,
-  });
-  if (completeError) {
-    // The first idempotent step may have succeeded; expose its state on reload/retry.
-    revalidatePath("/purchase");
+    const { error: completeError } = await supabase.rpc("pos_complete_buy_melt", {
+      p_buy_id: input.buyId,
+      p_idempotency_key: `${base}:complete`,
+    });
+    if (completeError) {
+      revalidatePath("/purchase");
+      revalidatePath("/invoices");
+      throw new Error(completeError.message);
+    }
+
+    revalidatePath("/inventory");
+    revalidatePath("/customers");
     revalidatePath("/invoices");
-    throw new Error(completeError.message);
-  }
-
-  revalidatePath("/inventory");
-  revalidatePath("/customers");
-  revalidatePath("/invoices");
-  return getBuy(input.buyId);
+    return getBuy(input.buyId);
+  }, "Không xác nhận hóa đơn / hoàn tất phiếu mua được.");
 }
 
 const BUY_PDF_BUCKET = "buy-attachments";
@@ -366,24 +385,24 @@ const ALLOWED_UPLOAD_MIME = new Set([
  */
 export async function uploadBuyFile(
   formData: FormData,
-): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
+): Promise<ActionResult<BuyDetail>> {
   try {
     const buyId = String(formData.get("buyId") || "").trim();
     const docKindRaw = String(formData.get("docKind") || "RELATED").trim().toUpperCase();
     const docKind = docKindRaw as BuyAttachmentDocKind;
     const rawFile = formData.get("file");
-    if (!buyId) return { ok: false, message: "Thiếu mã phiếu mua" };
+    if (!buyId) return actionFail("Thiếu mã phiếu mua");
     if (!["PURITY_TEST", "RELATED", "SIGNED_PDF"].includes(docKind)) {
-      return { ok: false, message: "Loại tài liệu không hợp lệ" };
+      return actionFail("Loại tài liệu không hợp lệ");
     }
     if (!rawFile || typeof rawFile === "string") {
-      return { ok: false, message: "Không có file" };
+      return actionFail("Không có file");
     }
     const file = rawFile as File;
     const fileSize = typeof file.size === "number" ? file.size : 0;
-    if (fileSize <= 0) return { ok: false, message: "File trống" };
+    if (fileSize <= 0) return actionFail("File trống");
     if (fileSize > 10 * 1024 * 1024) {
-      return { ok: false, message: "File tối đa 10MB" };
+      return actionFail("File tối đa 10MB");
     }
 
     let mime = String(file.type || "").toLowerCase();
@@ -396,10 +415,10 @@ export async function uploadBuyFile(
       else if (ext === "jpg" || ext === "jpeg") mime = "image/jpeg";
     }
     if (!ALLOWED_UPLOAD_MIME.has(mime)) {
-      return { ok: false, message: "Chỉ chấp nhận PDF hoặc ảnh (JPEG/PNG/WebP)" };
+      return actionFail("Chỉ chấp nhận PDF hoặc ảnh (JPEG/PNG/WebP)");
     }
     if (mime === "application/pdf" && ext !== "pdf") {
-      return { ok: false, message: "Tên file PDF phải kết thúc bằng .pdf" };
+      return actionFail("Tên file PDF phải kết thúc bằng .pdf");
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -413,7 +432,7 @@ export async function uploadBuyFile(
         contentType: mime === "application/octet-stream" ? "application/pdf" : mime,
         upsert: false,
       });
-    if (uploadError) return { ok: false, message: uploadError.message };
+    if (uploadError) return actionFail(uploadError.message, "Không tải được file");
 
     const { error } = await supabase.rpc("pos_attach_buy_file", {
       p_buy_id: buyId,
@@ -425,25 +444,21 @@ export async function uploadBuyFile(
       p_idempotency_key: crypto.randomUUID(),
     });
     if (error) {
-      // Leave orphaned storage object rather than deleting other attachments.
-      return { ok: false, message: error.message };
+      return actionFail(error.message, "Không đính kèm được file");
     }
 
     revalidatePath("/purchase");
     revalidatePath("/invoices");
-    return { ok: true, buy: await getBuy(buyId) };
+    return { ok: true, data: await getBuy(buyId) };
   } catch (err) {
-    return {
-      ok: false,
-      message: err instanceof Error ? err.message : "Không tải được file",
-    };
+    return actionFail(formatActionError(err, "Không tải được file"));
   }
 }
 
 /** @deprecated Prefer uploadBuyFile with docKind=SIGNED_PDF */
 export async function uploadBuyPdf(
   formData: FormData,
-): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
+): Promise<ActionResult<BuyDetail>> {
   if (!formData.get("docKind")) formData.set("docKind", "SIGNED_PDF");
   return uploadBuyFile(formData);
 }
@@ -465,28 +480,21 @@ export async function voidBuy(input: {
   buyId: string;
   reason: string;
   idempotencyKey?: string;
-}): Promise<{ ok: true; buy: BuyDetail } | { ok: false; message: string }> {
-  try {
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
     const supabase = await createServerSupabase();
     const { error } = await supabase.rpc("pos_void_buy", {
       p_buy_id: input.buyId,
       p_reason: input.reason,
       p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
     });
-    if (error) {
-      return { ok: false, message: error.message };
-    }
+    if (error) throw new Error(error.message);
     revalidatePath("/purchase");
     revalidatePath("/inventory");
     revalidatePath("/customers");
     revalidatePath("/invoices");
-    return { ok: true, buy: await getBuy(input.buyId) };
-  } catch (err) {
-    return {
-      ok: false,
-      message: err instanceof Error ? err.message : "Không hủy được phiếu mua",
-    };
-  }
+    return getBuy(input.buyId);
+  }, "Không hủy được phiếu mua");
 }
 
 export async function collectBuyPayment(input: {
@@ -496,32 +504,35 @@ export async function collectBuyPayment(input: {
   note?: string | null;
   idempotencyKey?: string | null;
   dueDate?: string | null;
-}): Promise<CollectBuyPaymentResult> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_collect_buy_payment", {
-    p_buy_id: input.buyId,
-    p_amount_dong: input.amountDong,
-    p_payment_method: input.paymentMethod,
-    p_note: input.note || null,
-    p_idempotency_key: input.idempotencyKey || null,
-    p_due_date: input.dueDate || null,
-  });
-  if (error) {
-    throw new Error(error.message);
+}): Promise<ActionResult<CollectBuyPaymentResult>> {
+  if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
+    return actionFail("Số tiền phải là số nguyên VND > 0");
   }
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_collect_buy_payment", {
+      p_buy_id: input.buyId,
+      p_amount_dong: input.amountDong,
+      p_payment_method: input.paymentMethod,
+      p_note: input.note || null,
+      p_idempotency_key: input.idempotencyKey || null,
+      p_due_date: input.dueDate || null,
+    });
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/purchase");
-  revalidatePath("/customers");
+    revalidatePath("/purchase");
+    revalidatePath("/customers");
 
-  const raw = data as Record<string, unknown>;
-  return {
-    buyId: String(raw.buyId ?? input.buyId),
-    buyNo: String(raw.buyNo ?? ""),
-    paidDong: asNumber(raw.paidDong),
-    remainingDong: asNumber(raw.remainingDong),
-    paymentStatus: String(raw.paymentStatus ?? ""),
-    dueDate: (raw.dueDate as string | null) ?? null,
-  };
+    const raw = data as Record<string, unknown>;
+    return {
+      buyId: String(raw.buyId ?? input.buyId),
+      buyNo: String(raw.buyNo ?? ""),
+      paidDong: asNumber(raw.paidDong),
+      remainingDong: asNumber(raw.remainingDong),
+      paymentStatus: String(raw.paymentStatus ?? ""),
+      dueDate: (raw.dueDate as string | null) ?? null,
+    };
+  }, "Thu tiền phiếu mua thất bại.");
 }
 
 export async function listMarketGoldRefs(): Promise<MarketGoldRef[]> {

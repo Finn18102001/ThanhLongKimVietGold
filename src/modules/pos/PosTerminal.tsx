@@ -11,6 +11,7 @@ import {
   prioritizeGoldFirst,
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
+import { formatActionError } from "@/shared/lib/action-result";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { Modal } from "@/shared/ui/Modal";
@@ -216,8 +217,20 @@ export function PosTerminal({
       lastRefreshAt = now;
       setStockRefreshing(true);
       try {
-        const map = await refreshPosStock();
+        const stockResult = await refreshPosStock();
         if (cancelled) return;
+        if (!stockResult.ok) {
+          setAlert({
+            tone: "error",
+            title: "Không làm mới được tồn kho",
+            reason: formatActionError(
+              stockResult.message,
+              "Không tải được số lượng tồn hiện tại.",
+            ),
+          });
+          return;
+        }
+        const map = stockResult.data;
         setCatalog((current) =>
           current.map((item) => ({
             ...item,
@@ -229,7 +242,7 @@ export function PosTerminal({
         setAlert({
           tone: "error",
           title: "Không làm mới được tồn kho",
-          reason: err instanceof Error ? err.message : "Không tải được số lượng tồn hiện tại.",
+          reason: formatActionError(err, "Không tải được số lượng tồn hiện tại."),
         });
       } finally {
         refreshInFlight = false;
@@ -465,9 +478,17 @@ export function PosTerminal({
     setHeldLoading(true);
     try {
       const result = await fetchHeldOrders();
-      setHeldList(result.items);
-      setHeldVisibleToAll(result.visibleToAll);
-      setHeldSeesAll(result.seesAll);
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không tải được đơn lưu",
+          reason: formatActionError(result.message, "Không tải được danh sách đơn lưu."),
+        });
+        return;
+      }
+      setHeldList(result.data.items);
+      setHeldVisibleToAll(result.data.visibleToAll);
+      setHeldSeesAll(result.data.seesAll);
     } finally {
       setHeldLoading(false);
     }
@@ -510,18 +531,26 @@ export function PosTerminal({
         heldOrderId: activeHeldOrderId,
         items,
       });
+      if (!saved.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không lưu được đơn",
+          reason: formatActionError(saved.message, "Lưu đơn thất bại. Giỏ hàng vẫn giữ nguyên."),
+        });
+        return;
+      }
       resetDraft();
       await reloadHeldList();
       setAlert({
         tone: "success",
         title: "Đã lưu đơn",
-        reason: `${saved.holdNo} chưa thanh toán. Kho chưa trừ. Quầy trống để nhận khách tiếp.`,
+        reason: `${saved.data.holdNo} chưa thanh toán. Kho chưa trừ. Quầy trống để nhận khách tiếp.`,
       });
     } catch (err) {
       setAlert({
         tone: "error",
         title: "Không lưu được đơn",
-        reason: err instanceof Error ? err.message : "Lưu đơn thất bại. Giỏ hàng vẫn giữ nguyên.",
+        reason: formatActionError(err, "Lưu đơn thất bại. Giỏ hàng vẫn giữ nguyên."),
       });
     } finally {
       setSavingHold(false);
@@ -542,7 +571,16 @@ export function PosTerminal({
     setHeldBusyId(id);
     setReplaceHoldId(null);
     try {
-      const detail = await getHeldOrder(id);
+      const loaded = await getHeldOrder(id);
+      if (!loaded.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không mở được đơn đã lưu",
+          reason: formatActionError(loaded.message, "Không tải được chi tiết đơn lưu."),
+        });
+        return;
+      }
+      const detail = loaded.data;
       const nextCart: CartQtyMap = {};
       const missing: string[] = [];
       const overStock: string[] = [];
@@ -596,7 +634,7 @@ export function PosTerminal({
       setAlert({
         tone: "error",
         title: "Không mở được đơn đã lưu",
-        reason: err instanceof Error ? err.message : "Không tải được chi tiết đơn lưu.",
+        reason: formatActionError(err, "Không tải được chi tiết đơn lưu."),
       });
     } finally {
       setHeldBusyId(null);
@@ -608,6 +646,14 @@ export function PosTerminal({
     setCancelHoldId(null);
     try {
       const result = await cancelHeldOrder(id);
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không hủy được đơn lưu",
+          reason: formatActionError(result.message, "Hủy đơn lưu thất bại."),
+        });
+        return;
+      }
       if (activeHeldOrderId === id) {
         resetDraft();
       }
@@ -615,13 +661,13 @@ export function PosTerminal({
       setAlert({
         tone: "success",
         title: "Đã hủy đơn lưu",
-        reason: `${result.holdNo} đã đóng. Kho không đổi.`,
+        reason: `${result.data.holdNo} đã đóng. Kho không đổi.`,
       });
     } catch (err) {
       setAlert({
         tone: "error",
         title: "Không hủy được đơn lưu",
-        reason: err instanceof Error ? err.message : "Hủy đơn lưu thất bại.",
+        reason: formatActionError(err, "Hủy đơn lưu thất bại."),
       });
     } finally {
       setHeldBusyId(null);
@@ -849,15 +895,13 @@ export function PosTerminal({
         ? await completeHeldSale({ ...payload, heldOrderId: activeHeldOrderId })
         : await completeSale(payload);
       if (!actionResult.ok) {
-        const reason = /Minified React error #441|Server Components render|digest/i.test(
-          actionResult.message,
-        )
-          ? "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại."
-          : actionResult.message;
         setAlert({
           tone: "error",
           title: "Không hoàn tất được giao dịch",
-          reason,
+          reason: formatActionError(
+            actionResult.message,
+            "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại.",
+          ),
           detail:
             "Đơn chưa hoàn tất. Hóa đơn chưa phát hành. Kho chưa trừ. Bạn có thể thử lại với cùng đơn này.",
         });
@@ -889,7 +933,9 @@ export function PosTerminal({
         });
       }
       idempotencyKey.current = null;
-      void refreshPosStock(changedSkuIds).then((map) => {
+      void refreshPosStock(changedSkuIds).then((stockResult) => {
+        if (!stockResult.ok) return;
+        const map = stockResult.data;
         setCatalog((current) =>
           current.map((item) => ({
             ...item,
@@ -898,13 +944,13 @@ export function PosTerminal({
         );
       });
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.";
       setAlert({
         tone: "error",
         title: "Không hoàn tất được giao dịch",
-        reason: /Minified React error #441|Server Components render|digest/i.test(raw)
-          ? "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại."
-          : raw,
+        reason: formatActionError(
+          err,
+          "Máy chủ từ chối hoàn tất giao dịch. Kiểm tra tồn kho, khách hàng và số tiền rồi thử lại.",
+        ),
         detail:
           "Đơn chưa hoàn tất. Hóa đơn chưa phát hành. Kho chưa trừ. Bạn có thể thử lại với cùng đơn này.",
       });
@@ -916,7 +962,19 @@ export function PosTerminal({
   async function onManualStockRefresh() {
     setStockRefreshing(true);
     try {
-      const map = await refreshPosStock();
+      const stockResult = await refreshPosStock();
+      if (!stockResult.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không làm mới được tồn kho",
+          reason: formatActionError(
+            stockResult.message,
+            "Không tải được số lượng tồn hiện tại.",
+          ),
+        });
+        return;
+      }
+      const map = stockResult.data;
       setCatalog((current) =>
         current.map((item) => ({
           ...item,
@@ -927,7 +985,7 @@ export function PosTerminal({
       setAlert({
         tone: "error",
         title: "Không làm mới được tồn kho",
-        reason: err instanceof Error ? err.message : "Không tải được số lượng tồn hiện tại.",
+        reason: formatActionError(err, "Không tải được số lượng tồn hiện tại."),
       });
     } finally {
       setStockRefreshing(false);

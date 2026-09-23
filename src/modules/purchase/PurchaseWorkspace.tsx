@@ -9,6 +9,7 @@ import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
+import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
 import { ROUTES } from "@/shared/navigation/routes";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
@@ -319,7 +320,7 @@ export function PurchaseWorkspace({
     }
     setPending(true);
     try {
-      const result = await completeBuy({
+      const created = await completeBuy({
         customerId: customer.id,
         paymentMethod,
         items: lines.map(toBuyItemPayload),
@@ -332,10 +333,33 @@ export function PurchaseWorkspace({
         bankAccountHolder: bankAccountHolder.trim() || null,
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
+      if (!created.ok) {
+        setReviewing(false);
+        setMeltChoiceOpen(false);
+        setAlert({
+          tone: "error",
+          title: "Không tạo được giao dịch",
+          reason: formatActionError(created.message, "Lỗi không xác định."),
+        });
+        idempotencyKey.current = crypto.randomUUID();
+        return;
+      }
+      const result = created.data;
       let workflowStatus: string = "INTAKE";
       if (skipMelt) {
         const skipped = await skipBuyMelt({ buyId: result.buyId });
-        workflowStatus = String(skipped.workflowStatus || "AWAITING_CONFIRM");
+        if (!skipped.ok) {
+          setReviewing(false);
+          setMeltChoiceOpen(false);
+          setAlert({
+            tone: "error",
+            title: "Đã tạo phiếu nhưng không bỏ qua nấu được",
+            reason: formatActionError(skipped.message),
+          });
+          void openDetail(result.buyId);
+          return;
+        }
+        workflowStatus = String(skipped.data.workflowStatus || "AWAITING_CONFIRM");
       }
       setSuccess({
         buyId: result.buyId,
@@ -391,7 +415,7 @@ export function PurchaseWorkspace({
       setAlert({
         tone: "error",
         title: "Không tạo được giao dịch",
-        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+        reason: formatActionError(err, "Lỗi không xác định."),
       });
       idempotencyKey.current = crypto.randomUUID();
     } finally {
@@ -438,7 +462,7 @@ export function PurchaseWorkspace({
       setAlert({
         tone: "error",
         title: "Không tải phiếu mua",
-        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+        reason: formatActionError(err, "Lỗi không xác định."),
       });
     } finally {
       setDetailLoading(false);
@@ -472,14 +496,24 @@ export function PurchaseWorkspace({
   }
 
   async function runWorkflow(
-    action: () => Promise<BuyDetail>,
+    action: () => Promise<ActionResult<BuyDetail>>,
     opts?: { print?: PrintDocKind; successTitle?: string },
   ) {
     if (workflowPending) return;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
     setWorkflowPending(true);
     try {
-      const buy = await action();
+      const result = await action();
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không cập nhật được quy trình",
+          reason: formatActionError(result.message, "Lỗi không xác định."),
+        });
+        workflowKey.current = crypto.randomUUID();
+        return;
+      }
+      const buy = result.data;
       setDetail(buy);
       syncRecentFromDetail(buy);
       workflowKey.current = null;
@@ -493,7 +527,7 @@ export function PurchaseWorkspace({
       setAlert({
         tone: "error",
         title: "Không cập nhật được quy trình",
-        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+        reason: formatActionError(err, "Lỗi không xác định."),
       });
       workflowKey.current = crypto.randomUUID();
     } finally {
@@ -511,15 +545,19 @@ export function PurchaseWorkspace({
       fd.set("file", file);
       const result = await uploadBuyFile(fd);
       if (!result.ok) {
-        setAlert({ tone: "error", title: "Không tải được file", reason: result.message });
+        setAlert({
+          tone: "error",
+          title: "Không tải được file",
+          reason: formatActionError(result.message),
+        });
         return;
       }
-      setDetail(result.buy);
-      syncRecentFromDetail(result.buy);
+      setDetail(result.data);
+      syncRecentFromDetail(result.data);
       setAlert({
         tone: "success",
         title: docKind === "PURITY_TEST" ? "Đã upload phiếu kiểm tra HL" : "Đã đính kèm tài liệu",
-        reason: result.buy.buyNo,
+        reason: result.data.buyNo,
       });
     } finally {
       setUploadPending(false);
@@ -554,13 +592,23 @@ export function PurchaseWorkspace({
     setCollectPending(true);
     try {
       const nextRemaining = Math.max(0, detail.remainingDong - collectAmount);
-      const result = await collectBuyPayment({
+      const collected = await collectBuyPayment({
         buyId: detail.id,
         amountDong: collectAmount,
         paymentMethod: collectMethod,
         idempotencyKey: collectKey.current,
         dueDate: nextRemaining > 0 ? collectDue : null,
       });
+      if (!collected.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không thu/trả được",
+          reason: formatActionError(collected.message, "Lỗi không xác định."),
+        });
+        collectKey.current = crypto.randomUUID();
+        return;
+      }
+      const result = collected.data;
       const refreshed = await getBuy(detail.id);
       setDetail(refreshed);
       setRecentBuys((prev) =>
@@ -594,7 +642,7 @@ export function PurchaseWorkspace({
       setAlert({
         tone: "error",
         title: "Không thu/trả được",
-        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+        reason: formatActionError(err, "Lỗi không xác định."),
       });
       collectKey.current = crypto.randomUUID();
     } finally {

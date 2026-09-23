@@ -1,0 +1,42 @@
+---
+description: Server Actions must return ActionResult — never throw business errors (avoids React #441).
+globs: src/modules/{pos,invoice,purchase,sale-deposit}/**/{actions.ts,*.tsx}
+alwaysApply: false
+---
+
+# TLKV — Server Action errors (no React #441)
+
+Full contract: `docs/SYSTEM_DEVELOPMENT_RULES.md` §30.1. Shared helpers: `src/shared/lib/action-result.ts`.
+
+## Hard rule
+
+In `"use server"` mutations for POS **mua / bán / hóa đơn**:
+
+1. **Do not** `throw new Error(...)` for RPC, validation, or business failures.
+2. **Do** return `ActionResult<T>` via `actionOk` / `actionFail` / `runAction`.
+3. UI shows `formatActionError(result.message)` — never the Minified React #441 URL text.
+
+```ts
+import { actionFail, actionFailFromSupabase, actionOk, runAction } from "@/shared/lib/action-result";
+
+export async function mutatesSomething(...): Promise<ActionResult<Payload>> {
+  return runAction(async () => {
+    const { data, error } = await supabase.rpc(...);
+    if (error) throw new Error(error.message); // caught by runAction → { ok:false, message }
+    return map(data);
+  }, "Không thực hiện được thao tác.");
+}
+```
+
+Client:
+
+```ts
+const result = await mutatesSomething(...);
+if (!result.ok) {
+  setError(formatActionError(result.message));
+  return;
+}
+use(result.data);
+```
+
+Read-only queries may still throw only when the page Server Component should 404/500; client-called fetches used after a button click should still return ActionResult.

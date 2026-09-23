@@ -1,4 +1,5 @@
 import type { DepositSaleBundle, DepositWorkflowStatus } from "./types";
+import { formatActionError } from "@/shared/lib/action-result";
 
 export const DEPOSIT_POS_STEPS = [
   { id: "confirm", label: "Xác nhận HĐ" },
@@ -63,11 +64,10 @@ export function itemStatusLabel(status: string): string {
 
 /** Production digests hide Server Action throw messages as React #441 — prefer Result returns. */
 export function formatDepositActionError(message: string | null | undefined): string {
-  const text = String(message || "").trim();
-  if (/Minified React error #441|Server Components render|digest/i.test(text)) {
-    return "Máy chủ từ chối thao tác đặt cọc. Thử lại hoặc kiểm tra trạng thái đơn trên Hóa đơn.";
-  }
-  return text || "Không thực hiện được thao tác đặt cọc.";
+  return formatActionError(
+    message,
+    "Máy chủ từ chối thao tác đặt cọc. Thử lại hoặc kiểm tra trạng thái đơn trên Hóa đơn.",
+  );
 }
 
 /** Word Số: ……/TTĐC/2026 from stored TTĐC/2026-0001 or already-formatted. */

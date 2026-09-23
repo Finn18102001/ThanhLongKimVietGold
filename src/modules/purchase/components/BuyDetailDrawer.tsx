@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
@@ -65,14 +66,24 @@ export function BuyDetailDrawer({
   const canShowVoid = canVoidBuy && buy.status === "COMPLETED";
 
   async function runWorkflow(
-    action: () => Promise<BuyDetail>,
+    action: () => Promise<ActionResult<BuyDetail>>,
     opts?: { print?: PrintDocKind; successTitle?: string },
   ) {
     if (pending) return;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
     setPending(true);
     try {
-      const next = await action();
+      const result = await action();
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không cập nhật được quy trình",
+          reason: formatActionError(result.message, "Lỗi không xác định."),
+        });
+        workflowKey.current = crypto.randomUUID();
+        return;
+      }
+      const next = result.data;
       setBuy({ ...next, attachments: next.attachments ?? [] });
       onUpdated?.(next);
       workflowKey.current = null;
@@ -84,7 +95,7 @@ export function BuyDetailDrawer({
       setAlert({
         tone: "error",
         title: "Không cập nhật được quy trình",
-        reason: err instanceof Error ? err.message : "Lỗi không xác định.",
+        reason: formatActionError(err, "Lỗi không xác định."),
       });
       workflowKey.current = crypto.randomUUID();
     } finally {
@@ -107,15 +118,19 @@ export function BuyDetailDrawer({
       fd.set("file", file);
       const result = await uploadBuyFile(fd);
       if (!result.ok) {
-        setAlert({ tone: "error", title: "Không tải được file", reason: result.message });
+        setAlert({
+          tone: "error",
+          title: "Không tải được file",
+          reason: formatActionError(result.message),
+        });
         return;
       }
-      setBuy({ ...result.buy, attachments: result.buy.attachments ?? [] });
-      onUpdated?.(result.buy);
+      setBuy({ ...result.data, attachments: result.data.attachments ?? [] });
+      onUpdated?.(result.data);
       setAlert({
         tone: "success",
         title: docKind === "PURITY_TEST" ? "Đã upload phiếu kiểm tra HL" : "Đã đính kèm tài liệu",
-        reason: result.buy.buyNo,
+        reason: result.data.buyNo,
       });
     } finally {
       setUploadPending(false);
@@ -134,10 +149,10 @@ export function BuyDetailDrawer({
     try {
       const result = await voidBuy({ buyId: buy.id, reason });
       if (!result.ok) {
-        setVoidError(result.message);
+        setVoidError(formatActionError(result.message, "Không hủy được phiếu mua"));
         return;
       }
-      const next = result.buy;
+      const next = result.data;
       setBuy({ ...next, attachments: next.attachments ?? [] });
       onUpdated?.(next);
       setVoidOpen(false);
@@ -149,7 +164,7 @@ export function BuyDetailDrawer({
           "Phiếu chuyển sang Đã hủy. Công nợ được đóng. Kho được hoàn nếu hàng mua vẫn còn tồn. Tiền đã chi được hoàn vào quỹ nếu có thanh toán.",
       });
     } catch (err) {
-      setVoidError(err instanceof Error ? err.message : "Hủy phiếu thất bại.");
+      setVoidError(formatActionError(err, "Hủy phiếu thất bại."));
     } finally {
       setPending(false);
     }

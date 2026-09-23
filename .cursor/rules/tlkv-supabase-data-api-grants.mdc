@@ -1,0 +1,34 @@
+---
+description: Mandatory before any Supabase CREATE/ALTER table, migration, Data API grant, or db reset. Read docs §32.1.
+globs: supabase/**/*
+alwaysApply: true
+---
+
+# TLKV — Supabase Data API GRANT (mandatory)
+
+Full rule: `docs/SYSTEM_DEVELOPMENT_RULES.md` §32.1. Catalog helper: `supabase/data-api-grants.sql`.
+
+**Before any table CRUD on Supabase** (migration, SQL Editor, MCP `execute_sql` / `apply_migration`, CLI, preview branch, `db reset`): **read §32.1 completely**. Do not invent grants; do not skip this.
+
+## Platform fact (from 2026-10-30 on existing projects)
+
+New tables in `public` are **not** auto-exposed to the Data API. Missing grant → PostgREST/`supabase-js` `42501`. Existing tables keep current grants.
+
+## Hard requirements
+
+1. Same migration that `CREATE TABLE` must include explicit `GRANT` (or intentional `REVOKE` + comment).
+2. RLS ≠ GRANT. Enable RLS **and** grant the roles that should reach the table via Data API.
+3. Grant only needed privileges. Do **not** grant `anon` on POS/internal tables.
+4. `service_role` needs an explicit grant after auto-expose ends — even for RPC-only tables if the API role must touch them.
+5. Never assume “create table ⇒ visible in supabase-js”.
+
+## Minimal expose pattern
+
+```sql
+grant select, insert, update, delete on public.your_table to authenticated;
+grant select, insert, update, delete on public.your_table to service_role;
+alter table public.your_table enable row level security;
+-- then policies
+```
+
+If the task conflicts with §32.1, STOP and confirm before coding.

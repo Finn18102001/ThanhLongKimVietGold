@@ -11,6 +11,7 @@ import {
   receiveOrderedStockReceipt,
   reverseStockReceipt,
 } from "../actions";
+import { formatActionError } from "@/shared/lib/action-result";
 import {
   effectivePaymentStatus,
   paymentBadgeClass,
@@ -88,64 +89,65 @@ export function StockReceiptDrawer({
     }
     setPending(true);
     setError(null);
-    try {
-      const result = await collectStockReceiptPayment({
-        receiptId: receipt.id,
-        amountDong: amount,
-        paymentMethod: method,
-        note: note || undefined,
-      });
-      onUpdated?.({
-        ...receipt,
-        paidDong: result.paidDong,
-        remainingDong: result.remainingDong,
-        paymentStatus: result.paymentStatus as PaymentStatus,
-        payments: [
-          ...receipt.payments,
-          {
-            id: crypto.randomUUID(),
-            amountDong: amount,
-            paymentMethod: method,
-            paidAt: new Date().toISOString(),
-            actorEmail: receipt.actorEmail,
-            note: note || null,
-          },
-        ],
-      });
-      setAmountText(result.remainingDong > 0 ? String(result.remainingDong) : "");
-      setNote("");
-      setAlert({
-        tone: "success",
-        title: "Đã thanh toán nguồn hàng",
-        reason: "Tiền giảm, công nợ nguồn hàng giảm. Kho không đổi.",
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Thanh toán thất bại.");
-    } finally {
+    const result = await collectStockReceiptPayment({
+      receiptId: receipt.id,
+      amountDong: amount,
+      paymentMethod: method,
+      note: note || undefined,
+    });
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Thanh toán thất bại."));
       setPending(false);
+      return;
     }
+    const data = result.data;
+    onUpdated?.({
+      ...receipt,
+      paidDong: data.paidDong,
+      remainingDong: data.remainingDong,
+      paymentStatus: data.paymentStatus as PaymentStatus,
+      payments: [
+        ...receipt.payments,
+        {
+          id: crypto.randomUUID(),
+          amountDong: amount,
+          paymentMethod: method,
+          paidAt: new Date().toISOString(),
+          actorEmail: receipt.actorEmail,
+          note: note || null,
+        },
+      ],
+    });
+    setAmountText(data.remainingDong > 0 ? String(data.remainingDong) : "");
+    setNote("");
+    setAlert({
+      tone: "success",
+      title: "Đã thanh toán nguồn hàng",
+      reason: "Tiền giảm, công nợ nguồn hàng giảm. Kho không đổi.",
+    });
+    setPending(false);
   }
 
   function onReceiveGoods() {
     startReceive(async () => {
       setError(null);
-      try {
-        await receiveOrderedStockReceipt({ receiptId: receipt.id });
-        onUpdated?.({
-          ...receipt,
-          goodsStatus: "RECEIVED",
-          status: "RECEIVED",
-          receivedAt: new Date().toISOString(),
-          stockAppliedAt: new Date().toISOString(),
-        });
-        setAlert({
-          tone: "success",
-          title: "Đã nhận hàng vào kho",
-          reason: "Tồn kho đã tăng. Công nợ nguồn hàng cập nhật theo giá trị phiếu. Tiền không đổi.",
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Nhận hàng thất bại.");
+      const result = await receiveOrderedStockReceipt({ receiptId: receipt.id });
+      if (!result.ok) {
+        setError(formatActionError(result.message, "Nhận hàng thất bại."));
+        return;
       }
+      onUpdated?.({
+        ...receipt,
+        goodsStatus: "RECEIVED",
+        status: "RECEIVED",
+        receivedAt: new Date().toISOString(),
+        stockAppliedAt: new Date().toISOString(),
+      });
+      setAlert({
+        tone: "success",
+        title: "Đã nhận hàng vào kho",
+        reason: "Tồn kho đã tăng. Công nợ nguồn hàng cập nhật theo giá trị phiếu. Tiền không đổi.",
+      });
     });
   }
 
@@ -157,28 +159,28 @@ export function StockReceiptDrawer({
     }
     setVoidPending(true);
     setError(null);
-    try {
-      await reverseStockReceipt({ receiptId: receipt.id, reason });
-      onUpdated?.({
-        ...receipt,
-        documentStatus: "CANCELLED",
-        goodsStatus: "CANCELLED",
-        status: "CANCELLED",
-        remainingDong: 0,
-      });
-      setVoidOpen(false);
-      setVoidReason("");
-      setAlert({
-        tone: "success",
-        title: "Đã đảo phiếu nhập",
-        reason:
-          "Bút toán bù: hoàn kho (nếu đã nhận), hoàn tiền đã trả vào quỹ, chỉnh công nợ nguồn. Không xóa lịch sử.",
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Đảo phiếu thất bại.");
-    } finally {
+    const result = await reverseStockReceipt({ receiptId: receipt.id, reason });
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Đảo phiếu thất bại."));
       setVoidPending(false);
+      return;
     }
+    onUpdated?.({
+      ...receipt,
+      documentStatus: "CANCELLED",
+      goodsStatus: "CANCELLED",
+      status: "CANCELLED",
+      remainingDong: 0,
+    });
+    setVoidOpen(false);
+    setVoidReason("");
+    setAlert({
+      tone: "success",
+      title: "Đã đảo phiếu nhập",
+      reason:
+        "Bút toán bù: hoàn kho (nếu đã nhận), hoàn tiền đã trả vào quỹ, chỉnh công nợ nguồn. Không xóa lịch sử.",
+    });
+    setVoidPending(false);
   }
 
   return (

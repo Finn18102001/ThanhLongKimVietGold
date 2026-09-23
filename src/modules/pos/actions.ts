@@ -1,6 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  actionFail,
+  formatActionError,
+  runAction,
+  type ActionResult,
+} from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { mapHeldOrderDetail, mapHeldOrderList } from "./heldOrderMap";
 import type { HeldOrderDetail, HeldOrderListResult } from "./types";
@@ -67,9 +73,12 @@ export async function completeSale(input: CompleteSaleInput): Promise<CompleteSa
       p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
       ...rpcSalePayload(input),
     });
-    if (error) return { ok: false, message: error.message };
-    // POS updates its current stock locally from the affected SKU ids.
-    // Only invalidate other route snapshots changed by this transaction.
+    if (error) {
+      return {
+        ok: false,
+        message: formatActionError(error.message, "Thanh toán hoặc phát hành hóa đơn thất bại."),
+      };
+    }
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");
@@ -77,7 +86,7 @@ export async function completeSale(input: CompleteSaleInput): Promise<CompleteSa
   } catch (err) {
     return {
       ok: false,
-      message: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
+      message: formatActionError(err, "Thanh toán hoặc phát hành hóa đơn thất bại."),
     };
   }
 }
@@ -88,41 +97,51 @@ export async function saveHeldOrder(input: {
   note?: string;
   heldOrderId?: string | null;
   items: Array<{ sku_id: string; quantity: number; price_adjustment_per_chi?: number }>;
-}): Promise<HeldOrderDetail> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_save_held_order", {
-    p_items: input.items,
-    p_customer_id: input.customerId,
-    p_payment_method: input.paymentMethod,
-    p_note: input.note || null,
-    p_held_order_id: input.heldOrderId || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/pos");
-  return mapHeldOrderDetail(data);
+}): Promise<ActionResult<HeldOrderDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_save_held_order", {
+      p_items: input.items,
+      p_customer_id: input.customerId,
+      p_payment_method: input.paymentMethod,
+      p_note: input.note || null,
+      p_held_order_id: input.heldOrderId || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/pos");
+    return mapHeldOrderDetail(data);
+  }, "Lưu đơn thất bại. Giỏ hàng vẫn giữ nguyên.");
 }
 
-export async function fetchHeldOrders(): Promise<HeldOrderListResult> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_list_held_orders");
-  if (error) throw new Error(error.message);
-  return mapHeldOrderList(data);
+export async function fetchHeldOrders(): Promise<ActionResult<HeldOrderListResult>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_list_held_orders");
+    if (error) throw new Error(error.message);
+    return mapHeldOrderList(data);
+  }, "Không tải được danh sách đơn lưu.");
 }
 
-export async function getHeldOrder(id: string): Promise<HeldOrderDetail> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_get_held_order", { p_id: id });
-  if (error) throw new Error(error.message);
-  return mapHeldOrderDetail(data);
+export async function getHeldOrder(id: string): Promise<ActionResult<HeldOrderDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_get_held_order", { p_id: id });
+    if (error) throw new Error(error.message);
+    return mapHeldOrderDetail(data);
+  }, "Không tải được chi tiết đơn lưu.");
 }
 
-export async function cancelHeldOrder(id: string): Promise<{ ok: boolean; holdNo: string }> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_cancel_held_order", { p_id: id });
-  if (error) throw new Error(error.message);
-  revalidatePath("/pos");
-  const payload = data as { ok?: boolean; hold_no?: string };
-  return { ok: payload.ok !== false, holdNo: payload.hold_no ?? "" };
+export async function cancelHeldOrder(
+  id: string,
+): Promise<ActionResult<{ ok: boolean; holdNo: string }>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_cancel_held_order", { p_id: id });
+    if (error) throw new Error(error.message);
+    revalidatePath("/pos");
+    const payload = data as { ok?: boolean; hold_no?: string };
+    return { ok: payload.ok !== false, holdNo: payload.hold_no ?? "" };
+  }, "Hủy đơn lưu thất bại.");
 }
 
 export async function completeHeldSale(
@@ -135,8 +154,12 @@ export async function completeHeldSale(
       p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
       ...rpcSalePayload(input),
     });
-    if (error) return { ok: false, message: error.message };
-    // POS updates its current stock and held-order list locally.
+    if (error) {
+      return {
+        ok: false,
+        message: formatActionError(error.message, "Thanh toán hoặc phát hành hóa đơn thất bại."),
+      };
+    }
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");
@@ -144,71 +167,83 @@ export async function completeHeldSale(
   } catch (err) {
     return {
       ok: false,
-      message: err instanceof Error ? err.message : "Thanh toán hoặc phát hành hóa đơn thất bại.",
+      message: formatActionError(err, "Thanh toán hoặc phát hành hóa đơn thất bại."),
     };
   }
 }
 
 /** Fresh stock only — never cache. Call on POS tab focus / enter. */
-export async function refreshPosStock(skuIds?: string[]): Promise<Record<string, number>> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_list_sku_stock", {
-    p_sku_ids: skuIds?.length ? skuIds : null,
-  });
-  if (error) throw new Error(error.message);
-  const items = (
-    data as { items?: Array<{ sku_id: string; quantity: number | string }> } | null
-  )?.items;
-  const map: Record<string, number> = {};
-  for (const row of items ?? []) {
-    map[row.sku_id] = Number(row.quantity ?? 0);
-  }
-  return map;
+export async function refreshPosStock(
+  skuIds?: string[],
+): Promise<ActionResult<Record<string, number>>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_list_sku_stock", {
+      p_sku_ids: skuIds?.length ? skuIds : null,
+    });
+    if (error) throw new Error(error.message);
+    const items = (
+      data as { items?: Array<{ sku_id: string; quantity: number | string }> } | null
+    )?.items;
+    const map: Record<string, number> = {};
+    for (const row of items ?? []) {
+      map[row.sku_id] = Number(row.quantity ?? 0);
+    }
+    return map;
+  }, "Không tải được số lượng tồn hiện tại.");
 }
 
 export async function fulfillPreorder(input: {
   saleId: string;
   operatorStaffId?: string | null;
   idempotencyKey?: string;
-}): Promise<{ fulfillmentStatus: string; remainingDong: number; paymentStatus: string }> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
-    p_sale_id: input.saleId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    p_operator_staff_id: input.operatorStaffId || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/inventory");
-  revalidatePath("/gold-management");
-  revalidatePath("/pos");
-  const payload = data as {
-    fulfillment_status: string;
-    remaining_dong: number;
-    payment_status: string;
-  };
-  return {
-    fulfillmentStatus: payload.fulfillment_status,
-    remainingDong: Number(payload.remaining_dong ?? 0),
-    paymentStatus: payload.payment_status,
-  };
+}): Promise<
+  ActionResult<{ fulfillmentStatus: string; remainingDong: number; paymentStatus: string }>
+> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_fulfill_preorder", {
+      p_sale_id: input.saleId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      p_operator_staff_id: input.operatorStaffId || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/inventory");
+    revalidatePath("/gold-management");
+    revalidatePath("/pos");
+    const payload = data as {
+      fulfillment_status: string;
+      remaining_dong: number;
+      payment_status: string;
+    };
+    return {
+      fulfillmentStatus: payload.fulfillment_status,
+      remainingDong: Number(payload.remaining_dong ?? 0),
+      paymentStatus: payload.payment_status,
+    };
+  }, "Giao hàng thất bại.");
 }
 
 export async function cancelPreorder(input: {
   saleId: string;
   reason?: string;
   idempotencyKey?: string;
-}): Promise<{ fulfillmentStatus: string }> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_cancel_preorder", {
-    p_sale_id: input.saleId,
-    p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
-    p_reason: input.reason || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/invoices");
-  revalidatePath("/gold-management");
-  revalidatePath("/pos");
-  const payload = data as { fulfillment_status: string };
-  return { fulfillmentStatus: payload.fulfillment_status };
+}): Promise<ActionResult<{ fulfillmentStatus: string }>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_cancel_preorder", {
+      p_sale_id: input.saleId,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+      p_reason: input.reason || null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/invoices");
+    revalidatePath("/gold-management");
+    revalidatePath("/pos");
+    const payload = data as { fulfillment_status: string };
+    return { fulfillmentStatus: payload.fulfillment_status };
+  }, "Hủy đặt hàng thất bại.");
 }
+
+export { actionFail, formatActionError };

@@ -22,6 +22,9 @@ export type InvoiceLine = {
   sku: string;
   name: string;
   quantity: number;
+  qtyDelivered: number;
+  itemStatus: string | null;
+  stockQty: number;
   unitPriceDong: number;
   totalPriceDong: number;
   weightChi: number;

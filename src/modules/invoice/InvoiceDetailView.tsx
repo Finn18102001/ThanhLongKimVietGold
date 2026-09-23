@@ -17,6 +17,7 @@ import {
   type PrinterProfile,
 } from "./print-template";
 import { voidInvoice } from "./actions";
+import { formatActionError } from "@/shared/lib/action-result";
 import { printSalesInvoiceDocument } from "./print";
 import {
   effectivePaymentStatus,
@@ -109,32 +110,32 @@ export function InvoiceDetailView({
       return;
     }
     startVoid(async () => {
-      try {
-        await voidInvoice({ invoiceId: invoice.id, reason });
-        setVoidOpen(false);
-        setVoidReason("");
-        setInvoice({
-          ...invoice,
-          status: "VOIDED",
-          saleStatus: "VOIDED",
-          remainingDong: 0,
-          voidedAt: new Date().toISOString(),
-          voidedBy: invoice.voidedBy ?? "—",
-          voidReason: reason,
-        });
-        setAlert({
-          tone: "success",
-          title: "Đã hủy hóa đơn",
-          reason: `Hóa đơn ${invoice.invoiceNo} đã hủy. Kho đã hoàn (nếu đã xuất) và dòng tiền đã ghi hoàn tiền kèm lý do.`,
-        });
-        router.refresh();
-      } catch (err) {
+      const result = await voidInvoice({ invoiceId: invoice.id, reason });
+      if (!result.ok) {
         setAlert({
           tone: "error",
           title: "Không hủy được hóa đơn",
-          reason: err instanceof Error ? err.message : "Lỗi không xác định",
+          reason: formatActionError(result.message),
         });
+        return;
       }
+      setVoidOpen(false);
+      setVoidReason("");
+      setInvoice({
+        ...invoice,
+        status: "VOIDED",
+        saleStatus: "VOIDED",
+        remainingDong: 0,
+        voidedAt: new Date().toISOString(),
+        voidedBy: invoice.voidedBy ?? "—",
+        voidReason: reason,
+      });
+      setAlert({
+        tone: "success",
+        title: "Đã hủy hóa đơn",
+        reason: `Hóa đơn ${invoice.invoiceNo} đã hủy. Kho đã hoàn (nếu đã xuất) và dòng tiền đã ghi hoàn tiền kèm lý do.`,
+      });
+      router.refresh();
     });
   }
 

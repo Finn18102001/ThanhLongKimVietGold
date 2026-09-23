@@ -14,6 +14,7 @@ import {
   fetchInvoiceDetail,
   voidInvoice,
 } from "../actions";
+import { formatActionError } from "@/shared/lib/action-result";
 import {
   effectivePaymentStatus,
   formatChi,
@@ -68,6 +69,19 @@ export function InvoiceDrawer({
     fulfillmentStatus: invoice.fulfillmentStatus,
   });
   const isVoided = invoice.status === "VOIDED" || invoice.saleStatus === "VOIDED";
+  const pendingDeliverQty = invoice.lines.reduce(
+    (sum, line) => sum + Math.max(0, line.quantity - (line.qtyDelivered ?? 0)),
+    0,
+  );
+  const deliverableQty = invoice.lines.reduce((sum, line) => {
+    const remain = Math.max(0, line.quantity - (line.qtyDelivered ?? 0));
+    return sum + Math.min(remain, Math.max(0, line.stockQty ?? 0));
+  }, 0);
+  const canFulfillPreorder = deliverableQty > 0;
+  const shortStockLines = invoice.lines.filter((line) => {
+    const remain = Math.max(0, line.quantity - (line.qtyDelivered ?? 0));
+    return remain > 0 && (line.stockQty ?? 0) < remain;
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
@@ -93,28 +107,28 @@ export function InvoiceDrawer({
       return;
     }
     startVoid(async () => {
-      try {
-        await voidInvoice({ invoiceId: invoice.id, reason });
-        setVoidOpen(false);
-        setVoidReason("");
-        const next: InvoiceDetail = {
-          ...invoice,
-          status: "VOIDED",
-          saleStatus: "VOIDED",
-          remainingDong: 0,
-          voidedAt: new Date().toISOString(),
-          voidedBy: invoice.voidedBy ?? "—",
-          voidReason: reason,
-        };
-        onUpdated?.(next);
-        setAlert({
-          tone: "success",
-          title: "Đã hủy hóa đơn",
-          reason: `Hóa đơn ${invoice.invoiceNo} đã hủy. Kho đã hoàn (nếu đã xuất) và dòng tiền đã ghi hoàn tiền kèm lý do.`,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Không hủy được hóa đơn.");
+      const result = await voidInvoice({ invoiceId: invoice.id, reason });
+      if (!result.ok) {
+        setError(formatActionError(result.message, "Không hủy được hóa đơn."));
+        return;
       }
+      setVoidOpen(false);
+      setVoidReason("");
+      const next: InvoiceDetail = {
+        ...invoice,
+        status: "VOIDED",
+        saleStatus: "VOIDED",
+        remainingDong: 0,
+        voidedAt: new Date().toISOString(),
+        voidedBy: invoice.voidedBy ?? "—",
+        voidReason: reason,
+      };
+      onUpdated?.(next);
+      setAlert({
+        tone: "success",
+        title: "Đã hủy hóa đơn",
+        reason: `Hóa đơn ${invoice.invoiceNo} đã hủy. Kho đã hoàn (nếu đã xuất) và dòng tiền đã ghi hoàn tiền kèm lý do.`,
+      });
     });
   }
 
@@ -130,75 +144,76 @@ export function InvoiceDrawer({
     }
     setPending(true);
     setError(null);
-    try {
-      const result = await collectSalePayment({
-        saleId: invoice.saleId,
-        amountDong: amount,
-        paymentMethod: method,
-        note: note || undefined,
-        dueDate: invoice.dueDate,
-      });
-      onUpdated?.({
-        ...invoice,
-        paidDong: result.paidDong,
-        remainingDong: result.remainingDong,
-        paymentStatus: result.paymentStatus as PaymentStatus,
-        dueDate: result.dueDate,
-        payments: [
-          ...invoice.payments,
-          {
-            id: crypto.randomUUID(),
-            saleId: invoice.saleId,
-            amountDong: amount,
-            paymentMethod: method,
-            paidAt: new Date().toISOString(),
-            actorEmail: invoice.actorEmail,
-            note: note || null,
-            receivedByName: null,
-          },
-        ],
-      });
-      setAmountText(result.remainingDong > 0 ? String(result.remainingDong) : "");
-      setNote("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Thu tiền thất bại.");
-    } finally {
+    const result = await collectSalePayment({
+      saleId: invoice.saleId,
+      amountDong: amount,
+      paymentMethod: method,
+      note: note || undefined,
+      dueDate: invoice.dueDate,
+    });
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Thu tiền thất bại."));
       setPending(false);
+      return;
     }
+    const data = result.data;
+    onUpdated?.({
+      ...invoice,
+      paidDong: data.paidDong,
+      remainingDong: data.remainingDong,
+      paymentStatus: data.paymentStatus as PaymentStatus,
+      dueDate: data.dueDate,
+      payments: [
+        ...invoice.payments,
+        {
+          id: crypto.randomUUID(),
+          saleId: invoice.saleId,
+          amountDong: amount,
+          paymentMethod: method,
+          paidAt: new Date().toISOString(),
+          actorEmail: invoice.actorEmail,
+          note: note || null,
+          receivedByName: null,
+        },
+      ],
+    });
+    setAmountText(data.remainingDong > 0 ? String(data.remainingDong) : "");
+    setNote("");
+    setPending(false);
   }
 
   async function onFulfill() {
     setPending(true);
     setError(null);
-    try {
-      const result = await fulfillInvoicePreorder({ saleId: invoice.saleId });
-      onUpdated?.({
-        ...invoice,
-        fulfillmentStatus: result.fulfillmentStatus,
-        remainingDong: result.remainingDong,
-        paymentStatus: result.paymentStatus as PaymentStatus,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Giao hàng thất bại.");
-    } finally {
+    const result = await fulfillInvoicePreorder({ saleId: invoice.saleId });
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Giao hàng thất bại."));
       setPending(false);
+      return;
     }
+    onUpdated?.({
+      ...invoice,
+      fulfillmentStatus: result.data.fulfillmentStatus,
+      remainingDong: result.data.remainingDong,
+      paymentStatus: result.data.paymentStatus as PaymentStatus,
+    });
+    setPending(false);
   }
 
   async function onCancelOrder() {
     setPending(true);
     setError(null);
-    try {
-      const result = await cancelInvoicePreorder({ saleId: invoice.saleId });
-      onUpdated?.({
-        ...invoice,
-        fulfillmentStatus: result.fulfillmentStatus,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Hủy đặt hàng thất bại.");
-    } finally {
+    const result = await cancelInvoicePreorder({ saleId: invoice.saleId });
+    if (!result.ok) {
+      setError(formatActionError(result.message, "Hủy đặt hàng thất bại."));
       setPending(false);
+      return;
     }
+    onUpdated?.({
+      ...invoice,
+      fulfillmentStatus: result.data.fulfillmentStatus,
+    });
+    setPending(false);
   }
 
   return (
@@ -334,7 +349,9 @@ export function InvoiceDrawer({
               saleId={invoice.saleId}
               remainingDong={invoice.remainingDong}
               onReloadInvoice={() => {
-                void fetchInvoiceDetail(invoice.invoiceNo).then((next) => onUpdated?.(next));
+                void fetchInvoiceDetail(invoice.invoiceNo).then((next) => {
+                  if (next.ok) onUpdated?.(next.data);
+                });
               }}
             />
           ) : null}
@@ -349,7 +366,27 @@ export function InvoiceDrawer({
               <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
                 Kho chưa trừ. Giao hàng sẽ trừ tồn một lần. Hủy đặt không hoàn tiền tự động.
               </p>
-              {error && invoice.remainingDong <= 0 ? (
+              {shortStockLines.length > 0 ? (
+                <div className="mt-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-2.5 py-2 text-[12px] text-[var(--tlkv-amber)]">
+                  <p className="font-semibold">
+                    {canFulfillPreorder
+                      ? `Chỉ giao được ${deliverableQty}/${pendingDeliverQty} món (thiếu tồn).`
+                      : "Chưa đủ tồn để giao — nhập hàng trước."}
+                  </p>
+                  <ul className="mt-1 space-y-0.5">
+                    {shortStockLines.map((line) => {
+                      const remain = Math.max(0, line.quantity - (line.qtyDelivered ?? 0));
+                      return (
+                        <li key={`${line.skuId}-${line.name}`}>
+                          {line.name}: còn giao {remain}, tồn {line.stockQty ?? 0}
+                          {line.itemStatus === "BACKORDER" ? " · đặt hàng" : ""}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+              {error ? (
                 <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{error}</p>
               ) : null}
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -363,11 +400,11 @@ export function InvoiceDrawer({
                 </button>
                 <button
                   type="button"
-                  disabled={pending}
+                  disabled={pending || !canFulfillPreorder}
                   onClick={() => void onFulfill()}
                   className="h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white disabled:opacity-40"
                 >
-                  Giao hàng
+                  {pending ? "Đang giao..." : "Giao hàng"}
                 </button>
               </div>
             </section>

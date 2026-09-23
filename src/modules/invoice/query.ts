@@ -291,7 +291,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     supabase
       .from("pos_sale_items")
       .select(
-        "sku_id, quantity, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity))",
+        "sku_id, quantity, qty_delivered, item_status, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity), pos_inventory_stock(quantity))",
       )
       .eq("sale_id", invoice.sale_id),
     supabase
@@ -318,6 +318,14 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
         ? (sku.gold_price_rows as { purity: string | null } | { purity: string | null }[] | null)
         : null,
     );
+    const stock = firstEmbed(
+      sku && "pos_inventory_stock" in sku
+        ? (sku.pos_inventory_stock as
+            | { quantity: number | null }
+            | { quantity: number | null }[]
+            | null)
+        : null,
+    );
     return {
       skuId: item.sku_id,
       sku:
@@ -327,6 +335,9 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
         (item as { product_name_snapshot?: string }).product_name_snapshot ||
         (sku && "name" in sku ? String(sku.name) : ""),
       quantity: Number(item.quantity),
+      qtyDelivered: Number((item as { qty_delivered?: number | null }).qty_delivered ?? 0),
+      itemStatus: (item as { item_status?: string | null }).item_status ?? null,
+      stockQty: Number(stock?.quantity ?? 0),
       unitPriceDong: Number(item.unit_price_dong),
       totalPriceDong: Number(item.total_price_dong),
       weightChi: Number(item.weight_chi),

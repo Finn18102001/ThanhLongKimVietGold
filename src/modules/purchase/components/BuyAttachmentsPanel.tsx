@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { DownloadSimple, UploadSimple } from "@phosphor-icons/react";
 import { IMAGE_PRESET_PRODUCT, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { formatActionError } from "@/shared/lib/action-result";
 import { getBuyPdfSignedUrl, uploadBuyFile } from "../actions";
 import type { BuyAttachmentDocKind, BuyDetail } from "../types";
 import { buyAttachmentKindLabel } from "../workflowLabels";
@@ -68,12 +69,12 @@ export function BuyAttachmentsPanel({
       fd.set("file", next);
       const result = await uploadBuyFile(fd);
       if (!result.ok) {
-        setError(result.message);
+        setError(formatActionError(result.message));
         return;
       }
-      onUpdated?.(result.buy);
+      onUpdated?.(result.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload thất bại");
+      setError(formatActionError(err, "Upload thất bại"));
     } finally {
       setPending(false);
       if (fileRef.current) fileRef.current.value = "";

@@ -17,3 +17,5 @@ Development contract (mandatory): `docs/SYSTEM_DEVELOPMENT_RULES.md`
 - Backend decides stock, price, status, revenue. Frontend only sends commands.
 - Money is integer VND. Business time is server time.
 - UI: match the provided admin mock. Taste-skill lives in `.cursor/skills/` and `.agents/skills/`.
+- Supabase table CRUD: read **§32.1 Data API GRANT** in `docs/SYSTEM_DEVELOPMENT_RULES.md` before any `CREATE`/`ALTER` table (migrations, MCP, SQL Editor, `db reset`). Explicit `GRANT` in the same migration; see `.cursor/rules/tlkv-supabase-data-api-grants.mdc`.
+- Server Actions (mua/bán/hóa đơn): never throw business errors — return `ActionResult` from `src/shared/lib/action-result.ts` so UI shows the real cause instead of React #441 (§30.1).
