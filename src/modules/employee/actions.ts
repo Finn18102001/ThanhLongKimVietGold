@@ -41,7 +41,11 @@ async function callStaffAdmin(body: Record<string, unknown>) {
     ok?: boolean;
   };
   if (!res.ok) {
-    throw new Error(payload.error ?? "Thao tác nhân viên thất bại");
+    const raw = (payload.error ?? "").trim();
+    if (res.status === 403 || /^forbidden$/i.test(raw)) {
+      throw new Error("Không đủ quyền thực hiện.");
+    }
+    throw new Error(raw || "Thao tác nhân viên thất bại");
   }
   return payload;
 }
@@ -61,7 +65,13 @@ export async function searchStaff(input: {
     p_limit: input.limit ?? 50,
     p_offset: input.offset ?? 0,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const msg = error.message || "";
+    if (/^forbidden$/i.test(msg)) {
+      throw new Error("Không đủ quyền thực hiện.");
+    }
+    throw new Error(msg);
+  }
   return mapStaffList(
     data as {
       items: Parameters<typeof mapStaffList>[0]["items"];
@@ -109,7 +119,13 @@ export async function updateStaff(id: string, input: StaffInput): Promise<StaffR
     p_note: input.note ?? null,
     p_is_active: input.isActive ?? null,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const msg = error.message || "";
+    if (/^forbidden$/i.test(msg)) {
+      throw new Error("Không đủ quyền thực hiện.");
+    }
+    throw new Error(msg);
+  }
   if (input.isShared !== undefined) {
     const shared = await supabase.rpc("pos_set_staff_shared", {
       p_id: id,

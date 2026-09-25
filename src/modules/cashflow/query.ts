@@ -118,9 +118,11 @@ export async function getCapitalSnapshot(): Promise<CapitalSnapshot> {
 }
 
 /**
- * Orders that generated a cash debt: sales still (or once) owed by the customer,
- * and buys the shop still (or once) owed the customer. Reads the order headers
- * directly, so it never posts anything into the cash ledger.
+ * Orders that generated a cash debt:
+ * - RECEIVABLE: customer order invoices (PREORDER/DEPOSIT) still owed by the customer
+ * - PAYABLE: buys the shop owes the customer + stock receipts (Nhập hàng) still owed to supplier
+ *   including NOT_RECEIVED slips that already took partial payment.
+ * Reads order headers only — never posts into the cash ledger.
  */
 export async function getCashObligations(): Promise<CashObligationRow[]> {
   const supabase = await createServerSupabase();
@@ -129,10 +131,14 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
     supabase
       .from("pos_sales")
       .select(
-        "id, sale_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, transaction_type, pos_customers(name), pos_invoices(invoice_no)",
+        "id, sale_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, transaction_type, fulfillment_status, pos_customers(name), pos_invoices(invoice_no)",
       )
       .eq("status", "COMPLETED")
-      .or("remaining_dong.gt.0,payment_status.neq.PAID")
+      .is("voided_at", null)
+      .in("transaction_type", ["PREORDER", "DEPOSIT"])
+      .gt("remaining_dong", 0)
+      // Match RPC: fulfillment_status is distinct from 'CANCELLED' (NULL kept).
+      .or("fulfillment_status.is.null,fulfillment_status.neq.CANCELLED")
       .order("completed_at", { ascending: false })
       .limit(2000),
     supabase
@@ -141,7 +147,7 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
         "id, buy_no, completed_at, total_dong, paid_dong, remaining_dong, payment_status, due_date, actor_email, pos_customers(name), pos_payables(total_dong, paid_dong, remaining_dong, status)",
       )
       .eq("status", "COMPLETED")
-      .or("remaining_dong.gt.0,payment_status.neq.PAID")
+      .gt("remaining_dong", 0)
       .order("completed_at", { ascending: false })
       .limit(2000),
     supabase
@@ -150,8 +156,9 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
         "id, receipt_no, created_at, total_dong, paid_dong, remaining_dong, payment_status, actor_email, supplier_name, goods_status, voided_at",
       )
       .is("voided_at", null)
-      .in("goods_status", ["RECEIVED", "SOLD", "RETURNED"])
       .gt("remaining_dong", 0)
+      // Match RPC: include NOT_RECEIVED / NULL; exclude CANCELLED only.
+      .or("goods_status.is.null,goods_status.neq.CANCELLED")
       .order("created_at", { ascending: false })
       .limit(2000),
   ]);
@@ -193,7 +200,7 @@ export async function getCashObligations(): Promise<CashObligationRow[]> {
         | { total_dong: number; paid_dong: number; remaining_dong: number; status: string }[]
         | null,
     );
-    const payableOpen = payable != null && payable.status !== "CLOSED";
+    const payableOpen = payable != null && payable.status !== "CLOSED" && Number(payable.remaining_dong) > 0;
     return {
       id: `buy-${row.id}`,
       side: "PAYABLE",

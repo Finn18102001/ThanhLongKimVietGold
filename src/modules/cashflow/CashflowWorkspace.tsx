@@ -309,7 +309,7 @@ export function CashflowWorkspace({
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--tlkv-line)] pt-3 text-[12px]">
             <Stat label="Phải thu" value={formatDong(overview.receivableDong)} />
-            <Stat label="Phải trả" value={formatDong(overview.payableDong)} />
+            <Stat label="Phải chi" value={formatDong(overview.payableDong)} />
           </div>
         </article>
       </section>
@@ -401,18 +401,20 @@ export function CashflowWorkspace({
         </div>
 
         <div className={`mt-4 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
-          <table className="w-full min-w-[960px] text-left text-[13px]">
+          <table className="w-full min-w-[1180px] text-left text-[13px]">
             <thead className="text-[12px] text-[var(--tlkv-muted)]">
               <tr className="border-b border-[var(--tlkv-line)]">
-                <th className="py-2 font-medium">Thời gian</th>
-                <th className="py-2 font-medium">Loại giao dịch</th>
-                <th className="py-2 font-medium">Nội dung</th>
-                <th className="py-2 font-medium">Tài khoản</th>
-                <th className="py-2 text-right font-medium">Thu</th>
-                <th className="py-2 text-right font-medium">Chi</th>
-                <th className="py-2 text-right font-medium">Số dư sau</th>
-                <th className="py-2 font-medium">Tham chiếu</th>
-                <th className="py-2 font-medium">Nhân viên</th>
+                <th className="py-2 pr-4 font-medium whitespace-nowrap">Thời gian</th>
+                <th className="py-2 pr-4 font-medium whitespace-nowrap">Loại giao dịch</th>
+                <th className="py-2 pr-4 font-medium">Nội dung</th>
+                <th className="py-2 pr-4 font-medium whitespace-nowrap">Tài khoản</th>
+                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap">Thu</th>
+                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap">Chi</th>
+                <th className="min-w-[132px] py-2 pr-5 text-right font-medium whitespace-nowrap">
+                  Số dư sau
+                </th>
+                <th className="min-w-[112px] py-2 pr-5 font-medium whitespace-nowrap">Tham chiếu</th>
+                <th className="min-w-[140px] py-2 font-medium whitespace-nowrap">Nhân viên</th>
               </tr>
             </thead>
             <tbody>
@@ -425,33 +427,37 @@ export function CashflowWorkspace({
               ) : (
                 ledger.items.map((row) => (
                   <tr key={row.id} className="border-b border-[var(--tlkv-line)]">
-                    <td className="py-2.5 whitespace-nowrap tabular-nums">
+                    <td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
                       {formatDateTime(row.occurredAt)}
                     </td>
-                    <td className="py-2.5">
+                    <td className="py-2.5 pr-4 whitespace-nowrap">
                       <span
                         className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${txnTone(row.txnType)}`}
                       >
                         {TXN_TYPE_LABEL[row.txnType] ?? row.txnType}
                       </span>
                     </td>
-                    <td className="py-2.5 max-w-[240px]">{row.content}</td>
-                    <td className="py-2.5">{row.accountName}</td>
-                    <td className="py-2.5 text-right tabular-nums text-[var(--tlkv-green)]">
+                    <td className="max-w-[240px] py-2.5 pr-4">{row.content}</td>
+                    <td className="py-2.5 pr-4 whitespace-nowrap">{row.accountName}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums whitespace-nowrap text-[var(--tlkv-green)]">
                       {row.direction === "IN" && row.txnType !== "TRANSFER"
                         ? `+${formatDong(row.amountDong)}`
                         : row.direction === "IN"
                           ? formatDong(row.amountDong)
                           : ""}
                     </td>
-                    <td className="py-2.5 text-right tabular-nums text-[var(--tlkv-red)]">
+                    <td className="py-2.5 pr-4 text-right tabular-nums whitespace-nowrap text-[var(--tlkv-red)]">
                       {row.direction === "OUT" ? `-${formatDong(row.amountDong)}` : ""}
                     </td>
-                    <td className="py-2.5 text-right tabular-nums font-medium">
+                    <td className="min-w-[132px] py-2.5 pr-5 text-right tabular-nums font-medium whitespace-nowrap">
                       {formatDong(row.balanceAfterDong)}
                     </td>
-                    <td className="py-2.5 font-mono text-[12px]">{row.referenceCode ?? "-"}</td>
-                    <td className="py-2.5">{row.actorEmail.split("@")[0] ?? row.actorEmail}</td>
+                    <td className="min-w-[112px] py-2.5 pr-5 font-mono text-[12px] whitespace-nowrap">
+                      {row.referenceCode ?? "-"}
+                    </td>
+                    <td className="min-w-[140px] py-2.5 whitespace-nowrap">
+                      {row.actorEmail.split("@")[0] ?? row.actorEmail}
+                    </td>
                   </tr>
                 ))
               )}

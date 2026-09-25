@@ -60,15 +60,22 @@ export function CatalogCard({
         <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
           {item.sku}
         </p>
-        {outOfStock ? (
-          <span className="shrink-0 rounded-md bg-[var(--tlkv-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
-            Hết hàng
-          </span>
-        ) : null}
+        <span className="flex shrink-0 flex-wrap justify-end gap-1">
+          {item.isMarketGold ? (
+            <span className="rounded-md bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
+              Thị trường
+            </span>
+          ) : null}
+          {outOfStock ? (
+            <span className="rounded-md bg-[var(--tlkv-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
+              Hết hàng
+            </span>
+          ) : null}
+        </span>
       </div>
       <p className="mt-1.5 line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">{item.name}</p>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-        {item.brandName || "Không thương hiệu"}
+        {item.brandName || (item.isMarketGold ? "Vàng thị trường" : "Không thương hiệu")}
       </p>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">KL: {weightLabel}</p>
       <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">

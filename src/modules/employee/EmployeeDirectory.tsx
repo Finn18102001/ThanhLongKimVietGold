@@ -95,8 +95,9 @@ export function EmployeeDirectory({
           <div>
             <h1 className="text-[18px] font-semibold">Nhân viên</h1>
             <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-              Tạo tài khoản, gán vai trò Quản trị / Quản trị chỉ xem / Nhân viên, bật tắt và đổi mật
-              khẩu. Chỉ quản trị đầy đủ mới được chỉnh sửa.
+              Tạo / sửa / xóa / bật tắt / đổi mật khẩu: chỉ Quản trị (ADMIN). Quản trị chỉ xem được
+              xem danh sách. Không xóa được nhân viên đã gắn hóa đơn hoặc giao dịch — hãy tắt tài
+              khoản; lịch sử nghiệp vụ không bị xóa.
             </p>
           </div>
           {canMutate ? (

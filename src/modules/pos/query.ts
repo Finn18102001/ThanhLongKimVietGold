@@ -45,20 +45,26 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
  * Initial stock comes from the same authoritative table in this query.
  * Client refreshes only stock through the scoped RPC after mount.
  *
- * Active non-market SKUs only. Market gold/silver stays on the buy slip
- * (is_market_gold) and must not appear as POS/purchase product cards.
+ * Default: active non-market SKUs (purchase catalog cards).
+ * POS passes includeMarketGold to also list vàng/bạc thị trường
+ * (soft-inactive by design; priced from last_cost when no board row).
  * Website `products.is_active` still does not gate store selling.
  */
-async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
+async function fetchPosCatalogMeta(options?: {
+  includeMarketGold?: boolean;
+}): Promise<CatalogMeta[]> {
+  const includeMarketGold = options?.includeMarketGold === true;
   const supabase = await createServerSupabase();
-  const { data, error } = await supabase
+  let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
-    .eq("is_active", true)
-    .eq("is_market_gold", false)
     .order("name");
+  request = includeMarketGold
+    ? request.or("is_active.eq.true,is_market_gold.eq.true")
+    : request.eq("is_active", true).eq("is_market_gold", false);
+  const { data, error } = await request;
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => {
@@ -66,27 +72,38 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
     const product = firstEmbed(row.products as ProductEmbed);
     const stock = firstEmbed(
       row.pos_inventory_stock as
-        | { quantity: number | string | null }
-        | { quantity: number | string | null }[]
+        | { quantity: number | string | null; last_cost_dong?: number | string | null }
+        | { quantity: number | string | null; last_cost_dong?: number | string | null }[]
         | null,
     );
     const brand = firstEmbed(
       (row as { brands?: { id: string; name: string } | { id: string; name: string }[] | null })
         .brands,
     );
+    const isMarketGold = Boolean(row.is_market_gold);
     const sell = price?.sell == null ? 0 : Number(price.sell);
     const buy = price?.buy == null ? 0 : Number(price.buy);
     const boardUnitChi = Number(row.board_unit_chi);
     const perChiDivisor = boardUnitChi > 0 ? boardUnitChi : 1;
+    const lastCost =
+      stock?.last_cost_dong != null && stock.last_cost_dong !== ""
+        ? Number(stock.last_cost_dong)
+        : null;
     const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
     // Purchase catalog price. Never fall back to the sell column.
     const suggestedBuyDongPerChi = buy > 0 ? Math.round(buy / perChiDivisor) : 0;
-    const unitPriceDong =
+    const boardUnitPrice =
       sell && sell > 0
         ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) +
           Number(row.labor_fee_dong)
         : null;
-    const category = product?.category ?? "Khác";
+    // Market SKUs usually have no price_row — use last inbound cost as POS reference.
+    const unitPriceDong =
+      boardUnitPrice ??
+      (isMarketGold && lastCost != null && lastCost > 0 ? Math.round(lastCost) : null);
+    const category = isMarketGold
+      ? product?.category ?? "Vàng thị trường"
+      : product?.category ?? "Khác";
     return {
       skuId: row.id,
       sku: row.sku,
@@ -95,12 +112,20 @@ async function fetchPosCatalogMeta(): Promise<CatalogMeta[]> {
       unitPriceDong,
       imageUrl: product?.image || null,
       category,
-      browseGroup: browseGroupFromProduct(row.name, category),
+      browseGroup: isMarketGold
+        ? "Vàng thị trường"
+        : browseGroupFromProduct(row.name, category),
       brandId: brand?.id ?? row.brand_id ?? null,
       brandName: brand?.name ?? price?.brand ?? null,
       quantity: Number(stock?.quantity ?? 0),
+      isMarketGold,
       priceRowId: row.price_row_id != null ? String(row.price_row_id) : null,
-      referenceSellDongPerChi,
+      referenceSellDongPerChi:
+        referenceSellDongPerChi > 0
+          ? referenceSellDongPerChi
+          : unitPriceDong != null && Number(row.weight_chi) > 0
+            ? Math.round(unitPriceDong / Number(row.weight_chi))
+            : 0,
       suggestedBuyDongPerChi,
       goldTypeHint: price?.product ? String(price.product) : null,
       goldAgeHint: price?.purity != null ? String(price.purity) : null,
@@ -146,7 +171,7 @@ async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, numbe
 }
 
 export async function listPosCatalog(): Promise<PosCatalogItem[]> {
-  const meta = await fetchPosCatalogMeta();
+  const meta = await fetchPosCatalogMeta({ includeMarketGold: true });
   return meta.map((item) => ({
     skuId: item.skuId,
     sku: item.sku,
@@ -159,12 +184,16 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
     brandId: item.brandId,
     brandName: item.brandName,
     quantity: item.quantity,
+    isMarketGold: item.isMarketGold,
   }));
 }
 
-/** Published catalog contract for consumers that also need board buy/sell metadata. */
+/**
+ * Published catalog contract for consumers that also need board buy/sell metadata.
+ * Purchase cards stay non-market (market gold uses the dedicated buy slip).
+ */
 export async function listPosCatalogWithPricing(): Promise<PosCatalogPricingItem[]> {
-  return fetchPosCatalogMeta();
+  return fetchPosCatalogMeta({ includeMarketGold: false });
 }
 
 export async function listPosStockOnly(skuIds?: string[]): Promise<Record<string, number>> {

@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     const { data: isAdmin, error: adminError } = await userClient.rpc("tlkv_is_admin");
     if (adminError || !isAdmin) {
-      return json({ error: "Forbidden" }, 403);
+      return json({ error: "Không đủ quyền thực hiện." }, 403);
     }
 
     const admin = createClient(supabaseUrl, serviceKey);

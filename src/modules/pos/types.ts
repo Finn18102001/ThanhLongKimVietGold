@@ -10,6 +10,8 @@ export type PosCatalogItem = {
   browseGroup: string;
   brandId: string | null;
   brandName: string | null;
+  /** Vàng/bạc thị trường — sold from stock; soft-inactive by design. */
+  isMarketGold?: boolean;
 };
 
 export type PosBrandOption = {
