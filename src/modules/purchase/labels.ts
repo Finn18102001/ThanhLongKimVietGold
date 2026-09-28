@@ -41,3 +41,13 @@ export function paymentStatusBadgeClass(status: string): string {
 export function formatChi(weightChi: number): string {
   return `${weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`;
 }
+
+/**
+ * Trọng lượng in trên phiếu mua và mẫu 02.
+ * weightChi lưu số chỉ của một sản phẩm; tổng chỉ = số lượng × số chỉ/sản phẩm.
+ */
+export function purchaseLineWeightChi(quantity: number, weightPerUnitChi: number): number {
+  const qty = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+  const perUnit = Number.isFinite(weightPerUnitChi) ? weightPerUnitChi : 0;
+  return Number((qty * perUnit).toFixed(4));
+}

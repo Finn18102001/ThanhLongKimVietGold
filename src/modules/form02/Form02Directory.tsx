@@ -7,14 +7,15 @@ import { formatViDateTime } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
 import { exportForm02Rows, searchForm02 } from "./actions";
 import { Form02DetailDrawer } from "./components/Form02DetailDrawer";
+import { purchaseLineWeightChi } from "@/modules/purchase/labels";
 import type { Form02Line, Form02ListPage } from "./types";
 
 const PAGE_SIZES = [25, 50, 100] as const;
 const SEARCH_DEBOUNCE_MS = 350;
 
 function formatWeightQty(line: Form02Line): string {
-  const weight = Number(line.weightChi);
-  if (!Number.isFinite(weight)) return "—";
+  const weight = purchaseLineWeightChi(Number(line.quantity), Number(line.weightChi));
+  if (!Number.isFinite(weight) || weight <= 0) return "—";
   return `${weight.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`;
 }
 

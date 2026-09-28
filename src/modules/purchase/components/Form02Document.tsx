@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDong, formatDongCompact, formatDongInWords } from "@/shared/lib/money";
-import { formatChi } from "../labels";
+import { formatChi, purchaseLineWeightChi } from "../labels";
 import type { BuyDetail } from "../types";
 import { printBuyIssuedAt, viDateLongLine, viDateParts } from "./printDate";
 
@@ -160,7 +160,7 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
               </td>
               <td className="border border-black px-0.5 py-1.5">{item.productName}</td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
-                {formatChi(item.weightChi)}
+                {formatChi(purchaseLineWeightChi(item.quantity, item.weightChi))}
               </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
                 {formatDongCompact(item.unitPriceDong)}

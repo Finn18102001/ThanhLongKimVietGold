@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { PrintBrandIdentityHeader } from "@/shared/brand/PrintBrandIdentityHeader";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
-import { formatChi } from "../labels";
+import { formatChi, purchaseLineWeightChi } from "../labels";
 import type { BuyDetail } from "../types";
 import { printBuyIssuedAt, viDateLongLine } from "./printDate";
 
@@ -108,7 +108,7 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
                 chỉ
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
-                {formatChi(item.weightChi)}
+                {formatChi(purchaseLineWeightChi(item.quantity, item.weightChi))}
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatDongCompact(item.unitPriceDong)}

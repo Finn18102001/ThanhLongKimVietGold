@@ -5,6 +5,7 @@ import { Printer, X } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { Form02Document } from "@/modules/purchase/components/Form02Document";
+import { purchaseLineWeightChi } from "@/modules/purchase/labels";
 import { printPurchaseDocument } from "@/modules/purchase/print";
 import type { BuyDetail } from "@/modules/purchase/types";
 import { getForm02Detail } from "../actions";
@@ -144,7 +145,7 @@ export function Form02DetailDrawer({
                           <td className="px-3 py-2 tabular-nums">{index + 1}</td>
                           <td className="px-3 py-2">{item.productName}</td>
                           <td className="px-3 py-2 text-right tabular-nums">
-                            {Number(item.weightChi).toLocaleString("vi-VN", {
+                            {purchaseLineWeightChi(item.quantity, item.weightChi).toLocaleString("vi-VN", {
                               maximumFractionDigits: 4,
                             })}
                           </td>
