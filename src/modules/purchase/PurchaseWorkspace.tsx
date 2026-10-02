@@ -496,7 +496,6 @@ export function PurchaseWorkspace({
         return;
       }
       setDetail(result.data);
-      syncRecentFromDetail(result.data);
       setAlert({
         tone: "success",
         title: docKind === "PURITY_TEST" ? "Đã upload phiếu kiểm tra HL" : "Đã đính kèm tài liệu",
