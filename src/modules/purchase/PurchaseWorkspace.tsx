@@ -34,6 +34,7 @@ import { MarketGoldModal } from "./components/MarketGoldModal";
 import { MeltCommitmentDocument } from "./components/MeltCommitmentDocument";
 import { PurchaseCartPanel } from "./components/PurchaseCartPanel";
 import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
+import { RecentBuysModal } from "./components/RecentBuysModal";
 import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
 import { printPurchaseDocument } from "./print";
 import {
@@ -56,7 +57,6 @@ import {
   type BuyAttachmentDocKind,
   type BuyDetail,
   type BuyLine,
-  type BuyListRow,
   type BuyPayMode,
   type CatalogBuyLine,
   type DebtSummary,
@@ -73,16 +73,13 @@ type PrintDocKind = "commitment" | "form02" | "invoice";
 export function PurchaseWorkspace({
   catalog,
   marketRefs,
-  recentBuys: initialBuys,
 }: {
   catalog: PurchaseCatalogItem[];
   marketRefs: MarketGoldRef[];
-  recentBuys: BuyListRow[];
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
 
-  const [recentBuys, setRecentBuys] = useState(initialBuys);
   const [lines, setLines] = useState<BuyLine[]>([]);
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [debt, setDebt] = useState<DebtSummary | null>(null);
@@ -345,7 +342,6 @@ export function PurchaseWorkspace({
         return;
       }
       const result = created.data;
-      let workflowStatus: string = "INTAKE";
       if (skipMelt) {
         const skipped = await skipBuyMelt({ buyId: result.buyId });
         if (!skipped.ok) {
@@ -359,7 +355,6 @@ export function PurchaseWorkspace({
           void openDetail(result.buyId);
           return;
         }
-        workflowStatus = String(skipped.data.workflowStatus || "AWAITING_CONFIRM");
       }
       setSuccess({
         buyId: result.buyId,
@@ -369,31 +364,6 @@ export function PurchaseWorkspace({
         remainingDong: result.remainingDong,
         skipMelt,
       });
-      setRecentBuys((prev) => [
-        {
-          id: result.buyId,
-          buyNo: result.buyNo,
-          customerId: result.customerId,
-          customerName: customer.name,
-          customerPhone: customer.phone,
-          totalDong: result.totalDong,
-          paidDong: result.paidDong,
-          remainingDong: result.remainingDong,
-          paymentStatus: result.paymentStatus,
-          paymentMethod,
-          dueDate: result.dueDate,
-          actorEmail: "",
-          completedAt: null,
-          note: note.trim() || null,
-          status: "PROCESSING",
-          workflowStatus,
-          meltCommitmentNo: null,
-          form02No: null,
-          meltingStartedAt: null,
-          attachmentPdfPath: null,
-        },
-        ...prev,
-      ]);
       setReviewing(false);
       setMeltChoiceOpen(false);
       setLines([]);
@@ -469,32 +439,6 @@ export function PurchaseWorkspace({
     }
   }
 
-  function syncRecentFromDetail(buy: BuyDetail) {
-    setRecentBuys((prev) =>
-      prev.map((row) =>
-        row.id === buy.id
-          ? {
-              ...row,
-              buyNo: buy.buyNo,
-              totalDong: buy.totalDong,
-              paidDong: buy.paidDong,
-              remainingDong: buy.remainingDong,
-              paymentStatus: buy.paymentStatus,
-              paymentMethod: buy.paymentMethod,
-              dueDate: buy.dueDate,
-              completedAt: buy.completedAt,
-              status: buy.status,
-              workflowStatus: buy.workflowStatus,
-              meltCommitmentNo: buy.meltCommitmentNo,
-              form02No: buy.form02No,
-              meltingStartedAt: buy.meltingStartedAt,
-              attachmentPdfPath: buy.attachmentPdfPath,
-            }
-          : row,
-      ),
-    );
-  }
-
   async function runWorkflow(
     action: () => Promise<ActionResult<BuyDetail>>,
     opts?: { print?: PrintDocKind; successTitle?: string },
@@ -515,7 +459,6 @@ export function PurchaseWorkspace({
       }
       const buy = result.data;
       setDetail(buy);
-      syncRecentFromDetail(buy);
       workflowKey.current = null;
       if (opts?.print) {
         setPrintDoc(opts.print);
@@ -611,19 +554,6 @@ export function PurchaseWorkspace({
       const result = collected.data;
       const refreshed = await getBuy(detail.id);
       setDetail(refreshed);
-      setRecentBuys((prev) =>
-        prev.map((row) =>
-          row.id === result.buyId
-            ? {
-                ...row,
-                paidDong: result.paidDong,
-                remainingDong: result.remainingDong,
-                paymentStatus: result.paymentStatus,
-                dueDate: result.dueDate,
-              }
-            : row,
-        ),
-      );
       setCollectAmount(result.remainingDong > 0 ? result.remainingDong : 0);
       collectKey.current = null;
       if (customer) {
@@ -766,73 +696,13 @@ export function PurchaseWorkspace({
       ) : null}
 
       {showRecent ? (
-        <Modal
-          title="Phiếu mua gần đây"
-          wide
+        <RecentBuysModal
           onClose={() => setShowRecent(false)}
-          footer={
-            <button
-              type="button"
-              onClick={() => setShowRecent(false)}
-              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium"
-            >
-              Đóng
-            </button>
-          }
-        >
-          {recentBuys.length === 0 ? (
-            <p className="text-[13px] text-[var(--tlkv-muted)]">Chưa có phiếu mua.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12px]">
-                <thead className="text-[11px] text-[var(--tlkv-muted)]">
-                  <tr className="border-b border-[var(--tlkv-line)]">
-                    <th className="py-2 font-medium">Mã</th>
-                    <th className="py-2 font-medium">Khách</th>
-                    <th className="py-2 font-medium">Tổng</th>
-                    <th className="py-2 font-medium">Còn trả</th>
-                    <th className="py-2 font-medium">TT</th>
-                    <th className="py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentBuys.map((row) => (
-                    <tr key={row.id} className="border-b border-[var(--tlkv-line)]">
-                      <td className="py-2.5 font-semibold">{row.buyNo}</td>
-                      <td className="py-2.5">
-                        <span className="block font-medium">{row.customerName}</span>
-                        <span className="text-[11px] text-[var(--tlkv-muted)]">
-                          {formatPhoneDisplay(row.customerPhone)}
-                        </span>
-                      </td>
-                      <td className="py-2.5">{formatDong(row.totalDong)}</td>
-                      <td className="py-2.5 font-medium">{formatDong(row.remainingDong)}</td>
-                      <td className="py-2.5">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${paymentStatusBadgeClass(row.paymentStatus)}`}
-                        >
-                          {paymentStatusLabel(row.paymentStatus)}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowRecent(false);
-                            void openDetail(row.id);
-                          }}
-                          className="text-[12px] font-semibold text-[var(--tlkv-red)]"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Modal>
+          onOpen={(buyId) => {
+            setShowRecent(false);
+            void openDetail(buyId);
+          }}
+        />
       ) : null}
 
       {reviewing && customer ? (
@@ -1083,7 +953,6 @@ export function PurchaseWorkspace({
                     buy={detail}
                     onUpdated={(next) => {
                       setDetail(next);
-                      syncRecentFromDetail(next);
                     }}
                   />
                 ) : (

@@ -14,6 +14,7 @@ import type {
   BuyDetail,
   BuyDetailItem,
   BuyItemPayload,
+  BuyListPage,
   BuyListRow,
   BuyPaymentRow,
   BuyStatus,
@@ -557,19 +558,27 @@ export async function listBuys(input?: {
   offset?: number;
   paymentStatus?: string | null;
   q?: string | null;
-}): Promise<BuyListRow[]> {
+}): Promise<BuyListPage> {
+  const limit = Math.min(Math.max(input?.limit ?? 10, 1), 50);
+  const offset = Math.max(input?.offset ?? 0, 0);
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_list_buys", {
-    p_limit: input?.limit ?? 50,
-    p_offset: input?.offset ?? 0,
-    p_payment_status: input?.paymentStatus ?? null,
-    p_q: input?.q ?? null,
+    p_limit: limit,
+    p_offset: offset,
+    p_payment_status: input?.paymentStatus || null,
+    p_q: input?.q?.trim() || null,
   });
   if (error) {
     throw new Error(error.message);
   }
-  const rows = (data as Record<string, unknown>[] | null) ?? [];
-  return rows.map(mapBuyListRow);
+  const rows = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+  const items = rows.map(mapBuyListRow);
+  const totalRaw = rows[0]?.totalCount ?? rows[0]?.total_count;
+  const total =
+    totalRaw != null && Number.isFinite(Number(totalRaw))
+      ? Number(totalRaw)
+      : offset + items.length;
+  return { items, total, limit, offset };
 }
 
 export async function getBuy(buyId: string): Promise<BuyDetail> {

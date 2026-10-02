@@ -1,13 +1,8 @@
 "use server";
 
 import { listPosCatalogWithPricing } from "@/modules/pos/query";
-import { listBuys as listBuysAction, listMarketGoldRefs as listMarketGoldRefsAction } from "./actions";
-import type { BuyListRow, MarketGoldRef, PurchaseCatalogItem } from "./types";
-
-/** RSC initial load: recent buys. */
-export async function listBuys(limit = 30): Promise<BuyListRow[]> {
-  return listBuysAction({ limit, offset: 0 });
-}
+import { listMarketGoldRefs as listMarketGoldRefsAction } from "./actions";
+import type { MarketGoldRef, PurchaseCatalogItem } from "./types";
 
 /** RSC initial load: market gold reference prices (optional hints only). */
 export async function listMarketGoldRefs(): Promise<MarketGoldRef[]> {

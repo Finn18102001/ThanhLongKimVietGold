@@ -146,6 +146,13 @@ export type BuyListRow = {
   attachmentPdfPath: string | null;
 };
 
+export type BuyListPage = {
+  items: BuyListRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type BuyDetailItem = {
   id: string;
   skuId: string | null;
