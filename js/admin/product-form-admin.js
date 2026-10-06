@@ -154,6 +154,65 @@
     return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
   }
 
+  /**
+   * Giá SP khi đã chọn dòng bảng giá = giá niêm yết × (số chỉ SP / mệnh giá dòng).
+   * Mọi mã giá. Trùng số chỉ với dòng (vd cùng 0.1 chỉ) → giá bằng giá dòng.
+   * Ô định lượng trống → giữ nguyên giá niêm yết trên dòng.
+   */
+  function linkedProductPriceText(row) {
+    if (!row) return "";
+    var engine = global.TLKVProductPriceEngine;
+    var weight = parseWeightInput($("pf-weight") && $("pf-weight").value);
+    if (
+      engine &&
+      typeof engine.deriveProductPrice === "function" &&
+      typeof engine.buildGoldPriceIndex === "function"
+    ) {
+      var derived = engine.deriveProductPrice(
+        {
+          priceRowId: row.id,
+          priceSourceProduct: row.product,
+          priceSource: "LINKED_PRICE",
+          weight: weight,
+        },
+        engine.buildGoldPriceIndex([row])
+      );
+      if (
+        derived &&
+        derived.showPrice &&
+        derived.amountVnd != null &&
+        Number.isFinite(Number(derived.amountVnd))
+      ) {
+        if (typeof engine.formatVndInteger === "function") {
+          var formatted = engine.formatVndInteger(derived.amountVnd);
+          return formatted ? formatted + "đ" : "";
+        }
+        if (derived.priceText) return String(derived.priceText).replace(/đ\s*$/, "") + "đ";
+      }
+    }
+    if (weight == null) return formatGoldSell(row);
+    var sell = row.sellNum != null ? Number(row.sellNum) : null;
+    if (sell == null || !Number.isFinite(sell) || sell <= 0) return formatGoldSell(row);
+    var ref =
+      engine && typeof engine.resolveReferenceWeightForGoldRow === "function"
+        ? engine.resolveReferenceWeightForGoldRow(row.product)
+        : 1;
+    var amount = null;
+    if (engine && typeof engine.multiplyVndByReferenceWeight === "function") {
+      amount = engine.multiplyVndByReferenceWeight(sell, weight, ref);
+    } else {
+      var weightTenths = Math.round(weight * 10);
+      var refTenths = Math.round(Number(ref) * 10);
+      if (weightTenths > 0 && refTenths > 0) amount = Math.round((sell * weightTenths) / refTenths);
+    }
+    if (amount == null) return formatGoldSell(row);
+    if (engine && typeof engine.formatVndInteger === "function") {
+      var text = engine.formatVndInteger(amount);
+      return text ? text + "đ" : "";
+    }
+    return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+  }
+
   function rowsForSelectedBrand() {
     var brand = brandKey(selectedBrandName());
     if (!brand) return [];
@@ -286,7 +345,7 @@
     if (row) {
       box.hidden = false;
       labelEl.innerHTML = "Nguồn giá: <strong>Bảng giá liên kết</strong>";
-      var current = formatGoldSell(row);
+      var current = linkedProductPriceText(row);
       if (currentEl) {
         currentEl.hidden = !current;
         currentEl.textContent = current ? "Giá hiện tại: " + current : "";
@@ -520,6 +579,7 @@
     $("pf-brand-id")?.addEventListener("change", onBrandChangedByUser);
     $("pf-price-row-id")?.addEventListener("change", updatePriceSourceStatus);
     $("pf-priceText")?.addEventListener("input", updatePriceSourceStatus);
+    $("pf-weight")?.addEventListener("input", updatePriceSourceStatus);
 
     window.addEventListener("tlkv:gold-table-changed", function () {
       formState.goldRowsLoaded = false;

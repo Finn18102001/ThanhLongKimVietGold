@@ -216,24 +216,26 @@
   }
 
   /**
-   * Lượng vàng mà giá trên bảng đang áp dụng (mặc định 1 chỉ = giá/chỉ).
-   * Chỉ dùng mệnh giá cố định (< 1 chỉ) cho dòng SP đơn lẻ (Bông Lúa 0.1 chỉ).
-   * Dòng Vàng Rồng "0.5, 1, 2, 3 chỉ" / "5, 10 chỉ" vẫn là giá/chỉ — không parse số cuối tên.
+   * Lượng vàng mà giá niêm yết của dòng đang áp dụng.
+   * Mọi mã giá (không chỉ TLKV / BTMC / BTMH):
+   * - Tên dòng có đúng một mức chỉ → giá đó là giá của mức chỉ ấy.
+   *   SP cùng số chỉ thì giá bằng giá dòng (vd Bông Lúa 0.1 chỉ 1.343.000
+   *   link sang đồng xu 0.1 chỉ = 1.343.000).
+   * - Không ghi chỉ, hoặc liệt kê nhiều mức (0.5, 1, 2, 3 chỉ) → giá/chỉ.
+   * Giá SP = giá dòng × (số chỉ SP / mệnh giá dòng).
    */
   function resolveReferenceWeightForGoldRow(sourceKey) {
     var key = normalizeProductKey(sourceKey);
     if (!key) return 1;
-    if (key === BONG_LUA_VANG_GOLD_ROW_KEY || key === HAT_GAO_VANG_GOLD_ROW_KEY) {
-      return 0.1;
-    }
-    if (isVangRongThangLongFamilyLabel(key)) return 1;
     if (/,/.test(key)) return 1;
-    var match = key.match(/(\d+(?:[.,]\d+)?)\s*ch[ỉi]\s*$/i);
-    if (match) {
-      var parsed = parseFloat(String(match[1]).replace(",", "."));
-      if (Number.isFinite(parsed) && parsed > 0 && parsed < 1) return parsed;
-    }
-    return 1;
+    var re = /(\d+(?:[.,]\d+)?)\s*ch[ỉi]/gi;
+    var found = [];
+    var match;
+    while ((match = re.exec(key))) found.push(match[1]);
+    if (found.length !== 1) return 1;
+    var parsed = parseFloat(String(found[0]).replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+    return parsed;
   }
 
   function resolveBasePricePerChi(entry, side) {
@@ -308,8 +310,8 @@
   }
 
   /**
-   * Integer-safe: basePrice (cho referenceWeight) × (productWeight / referenceWeight).
-   * referenceWeight=1 → giá/chỉ × weight; referenceWeight=0.1 → giá món 0.1 chỉ × (weight/0.1).
+   * Integer-safe: giá dòng × (số chỉ SP / mệnh giá dòng).
+   * Mệnh giá 1 → giá/chỉ × số chỉ. Cùng mệnh giá (vd cùng 0.1 chỉ) → giá bằng giá dòng.
    */
   function multiplyVndByReferenceWeight(basePriceVnd, productWeight, referenceWeight) {
     if (basePriceVnd == null || !Number.isFinite(basePriceVnd) || basePriceVnd < 0) return null;
