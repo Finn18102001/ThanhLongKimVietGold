@@ -441,9 +441,9 @@
             : (item.thumbnailUrl || "");
         var thumb = el("img", {
           class: "news-admin-table__thumb",
-          src: thumbUrl || "/assets/favicon-48.png",
+          src: thumbUrl || "/assets/favicon-48.png?v=20261008a",
           alt: item.title,
-          onerror: function () { this.onerror = null; this.src = "/assets/favicon-48.png"; },
+          onerror: function () { this.onerror = null; this.src = "/assets/favicon-48.png?v=20261008a"; },
         });
         var titleCell = el("td", null, [
           el("div", { style: "display:flex;gap:12px;align-items:center" }, [

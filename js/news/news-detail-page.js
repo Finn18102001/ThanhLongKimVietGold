@@ -75,7 +75,7 @@
       (window.TLKVNewsAPI && typeof window.TLKVNewsAPI.resolveThumbnailUrl === "function"
         ? window.TLKVNewsAPI.resolveThumbnailUrl(article).src
         : String(article.thumbnailUrl || "").trim()) ||
-      (siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b");
+      (siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20261008a");
 
     document.title = title;
     document.querySelector("[data-tlkv-news-title]") &&
@@ -108,7 +108,7 @@
         "name": siteName,
         "logo": {
           "@type": "ImageObject",
-          "url": siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20260727b",
+          "url": siteOrigin + "/assets/og-logo-tlkv-red-v2.png?v=20261008a",
           "width": 512,
           "height": 512
         }

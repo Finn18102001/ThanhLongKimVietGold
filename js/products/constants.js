@@ -4,7 +4,7 @@
   global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
   /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
-  global.TLKV_LOGO_ASSET_VERSION = "20260727b";
+  global.TLKV_LOGO_ASSET_VERSION = "20261008a";
   var logoV = "?v=" + global.TLKV_LOGO_ASSET_VERSION;
 
   global.TLKV_SITE_LOGO_MARK_URL = "/assets/tlkv-logo-mark.png" + logoV;
@@ -15,8 +15,8 @@
 
   global.TLKV_BRAND_LOGO_FALLBACKS = {
     "thang-long-kim-viet": "/assets/tlkv-logo-mark.png" + logoV,
-    "bao-tin-manh-hai": "/assets/brands/bao-tin-manh-hai.png" + logoV,
-    "bao-tin-minh-chau": "/assets/brands/bao-tin-minh-chau.png" + logoV,
+    "bao-tin-manh-hai": "/assets/brands/bao-tin-manh-hai.png?v=20260727b",
+    "bao-tin-minh-chau": "/assets/brands/bao-tin-minh-chau.png?v=20260727b",
   };
 
   global.TLKV_BRAND_LOGO_PLATE_SLUG = "thang-long-kim-viet";

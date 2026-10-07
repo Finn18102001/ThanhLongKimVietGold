@@ -1,6 +1,5 @@
 const express = require("express");
 const path = require("path");
-const { IMMUTABLE_CACHE_CONTROL } = require("../lib/immutable-cache");
 
 /**
  * Public HTML routes (clean paths). Static js/data/assets are served after this router in server.js.
@@ -9,15 +8,15 @@ module.exports = function webRouter(ROOT) {
   const router = express.Router();
   const send = (rel) => (req, res) => res.sendFile(path.join(ROOT, rel));
 
-  /** Google / trình duyệt thường gọi /favicon.ico — trỏ PNG 48px (logo gốc ~12k px không dùng làm favicon). */
+  /** Google / trình duyệt thường gọi /favicon.ico — PNG 48px. Không immutable: URL không có ?v=. */
   router.get("/favicon.ico", function (req, res) {
     res.type("image/png");
-    res.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
+    res.setHeader("Cache-Control", "public, max-age=86400");
     res.sendFile(path.join(ROOT, "assets", "favicon-48.png"));
   });
 
   /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
-  var LOGO_V = "20260727b";
+  var LOGO_V = "20261008a";
   var LEGACY_LOGO_REDIRECTS = [
     ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
