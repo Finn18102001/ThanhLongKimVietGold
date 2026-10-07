@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { INVOICE_CERTIFICATE_BG } from "@/shared/brand/assets";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
 import { formatViDate } from "@/shared/lib/datetime";
 import { formatChi, invoiceIssuedParts } from "./labels";
@@ -131,7 +132,7 @@ export function InvoiceDocument({
       {showTemplateBackground ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src="/invoice/gold-certificate.png"
+          src={INVOICE_CERTIFICATE_BG}
           alt=""
           className="invoice-template-background pointer-events-none absolute inset-0 h-full w-full select-none"
         />
