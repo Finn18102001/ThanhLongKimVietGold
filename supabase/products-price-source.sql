@@ -14,6 +14,9 @@ create index if not exists idx_products_price_source_product
   on public.products (price_source_product)
   where price_source_product is not null and trim(price_source_product) <> '';
 
-create unique index if not exists idx_products_price_source_weight_unique
+-- Nhiều sản phẩm (mẫu khác nhau) được dùng chung một dòng bảng giá và cùng khối lượng.
+drop index if exists public.idx_products_price_source_weight_unique;
+
+create index if not exists idx_products_price_source_weight
   on public.products (price_source_product, weight)
   where price_source_product is not null and weight is not null;

@@ -16,17 +16,21 @@ function showToast(message, type = 'success') {
   toast.className = 'admin-toast';
   toast.textContent = message;
 
-  if (type === 'error') toast.style.background = '#dc2626';
-  else if (type === 'success') toast.style.background = '#16a34a';
+  if (type === 'error') {
+    toast.style.background = '#dc2626';
+    toast.style.whiteSpace = 'pre-line';
+    toast.style.maxWidth = 'min(440px, calc(100vw - 48px))';
+  } else if (type === 'success') toast.style.background = '#16a34a';
   else if (type === 'info') toast.style.background = '#3b82f6';
 
   host.appendChild(toast);
 
+  var stayMs = type === 'error' ? 12000 : 3400;
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.28s ease';
     setTimeout(() => toast.remove(), 300);
-  }, 3400);
+  }, stayMs);
 }
 (function () {
   /** @type {import("@supabase/supabase-js").SupabaseClient | null} */

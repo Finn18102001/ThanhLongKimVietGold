@@ -365,13 +365,15 @@
       .eq("product_id", productId)
       .eq("role", "thumbnail")
       .maybeSingle();
-    if (eSel) throw eSel;
+    if (eSel) {
+      throwProductCrudError(eSel, productCrudContext("sync_image", null, { id: productId }));
+    }
     if (existing && existing.id) {
       const { error: eUp } = await sb
         .from("product_images")
         .update({ public_url: publicUrl, storage_path: path || null })
         .eq("id", existing.id);
-      if (eUp) throw eUp;
+      if (eUp) throwProductCrudError(eUp, productCrudContext("sync_image", null, { id: productId }));
       return;
     }
     const { error: eIns } = await sb.from("product_images").insert({
@@ -381,7 +383,7 @@
       storage_path: path || null,
       sort_order: 0,
     });
-    if (eIns) throw eIns;
+    if (eIns) throwProductCrudError(eIns, productCrudContext("sync_image", null, { id: productId }));
   }
 
   function sortProductRowsClient(rows) {
@@ -409,7 +411,7 @@
       res = await sb.from("products").select("*");
     }
     const { data: rows, error } = res;
-    if (error) throw error;
+    if (error) throwProductCrudError(error, productCrudContext("list"));
     const list = rows || [];
     if (list.length === 0) {
       console.warn(
@@ -427,9 +429,11 @@
   async function persistProductsToSupabase(sb, payload) {
     const fixed = normalizePayload(payload);
     if (!fixed) return;
-    const adminUser = await assertSupabaseAdminSession(sb);
+    const adminUser = await assertSupabaseAdminSession(sb, productCrudContext("bulk_save"));
     const { data: existing, error: eEx } = await sb.from("products").select("id");
-    throwIfSupabaseWriteError(eEx, adminUser);
+    if (eEx) {
+      throwProductCrudError(eEx, productCrudContext("bulk_save", null, { email: adminUser && adminUser.email }));
+    }
     const keep = new Set(
       fixed.items.map(function (p) {
         return p.id;
@@ -439,7 +443,12 @@
       const ex = existing[i];
       if (!keep.has(ex.id)) {
         const { error: eDel } = await sb.from("products").delete().eq("id", ex.id);
-        throwIfSupabaseWriteError(eDel, adminUser);
+        if (eDel) {
+          throwProductCrudError(
+            eDel,
+            productCrudContext("delete", null, { id: ex.id, email: adminUser && adminUser.email })
+          );
+        }
       }
     }
     const upsertsWithOrder = fixed.items.map(function (p, idx) {
@@ -447,7 +456,9 @@
       return productAppToDb(p, so != null ? so : idx + 1);
     });
     const { error: eUp } = await sb.from("products").upsert(upsertsWithOrder, { onConflict: "id" });
-    throwIfSupabaseWriteError(eUp, adminUser);
+    if (eUp) {
+      throwProductCrudError(eUp, productCrudContext("bulk_save", null, { email: adminUser && adminUser.email }));
+    }
   }
 
   function basePath() {
@@ -578,7 +589,12 @@
     let candidate = base;
     for (let n = 0; n < 30; n++) {
       const res = await sb.from("products").select("id").eq("slug", candidate).maybeSingle();
-      if (res.error) return base;
+      if (res.error) {
+        throwProductCrudError(
+          res.error,
+          productCrudContext(mode === "edit" ? "update" : "create", item, { slug: candidate })
+        );
+      }
       if (!res.data || res.data.id === item.id) return candidate;
       candidate = base + "-" + (n + 2);
     }
@@ -587,13 +603,13 @@
 
   async function getProductById(id) {
     const sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
+    if (!sb) throwProductCrudError(new Error("Supabase chưa cấu hình."), productCrudContext("read", null, { id: id }));
     const res = await sb
       .from("products")
       .select("*, brands(id, name, slug), categories(id, name, slug)")
       .eq("id", id)
       .maybeSingle();
-    if (res.error) throw res.error;
+    if (res.error) throwProductCrudError(res.error, productCrudContext("read", null, { id: id }));
     if (!res.data) return null;
     return productDbToApp(res.data);
   }
@@ -612,60 +628,90 @@
       .filter(Boolean);
   }
 
-  function explainSupabaseRlsError(err, userEmail) {
-    var msg = String((err && err.message) || err || "");
-    if (!/row-level security|rls/i.test(msg)) return msg;
-    var who = userEmail ? "Email đăng nhập: " + userEmail + ". " : "";
-    var hint =
-      "Supabase từ chối ghi (RLS): chỉ email admin trong SQL mới được INSERT/UPDATE. " +
-      "Mở Supabase → SQL Editor → chạy file supabase/tlkv-admin-rls.sql và thêm email của bạn vào hàm tlkv_admin_emails().";
-    var configured = getConfiguredAdminEmails();
-    if (configured.length) {
-      hint += " (Gợi ý client: " + configured.join(", ") + ")";
-    }
-    return who + hint;
+  function productCrudContext(operation, item, extra) {
+    item = item || {};
+    extra = extra || {};
+    return {
+      operation: operation,
+      id: extra.id || item.id || "",
+      name: extra.name || item.name || "",
+      slug: extra.slug || item.slug || "",
+      weight: extra.weight != null ? extra.weight : item.weight,
+      priceSourceProduct: extra.priceSourceProduct || item.priceSourceProduct || item.price_source_product || "",
+      priceRowId: extra.priceRowId || item.priceRowId || item.price_row_id || "",
+      brandId: extra.brandId || item.brandId || item.brand_id || "",
+      categoryId: extra.categoryId || item.categoryId || item.category_id || "",
+      email: extra.email || "",
+    };
   }
 
-  async function assertSupabaseAdminSession(sb) {
+  function throwProductCrudError(err, context) {
+    if (global.TLKVProductCrud && typeof global.TLKVProductCrud.throwProductCrudError === "function") {
+      global.TLKVProductCrud.throwProductCrudError(err, context);
+      return;
+    }
+    var raw = err && err.message ? err.message : String(err || "Lỗi sản phẩm");
+    console.error("[TLKVProducts] " + ((context && context.operation) || "crud") + " thất bại", {
+      context: context || {},
+      rawMessage: raw,
+      code: err && err.code,
+      details: err && err.details,
+      hint: err && err.hint,
+    });
+    var wrapped = new Error(raw);
+    wrapped.cause = err instanceof Error ? err : undefined;
+    throw wrapped;
+  }
+
+  function rejectProductCrudError(err, context) {
+    try {
+      throwProductCrudError(err, context);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
+  async function assertSupabaseAdminSession(sb, context) {
+    context = context || { operation: "update" };
     if (!sb || !sb.auth || typeof sb.auth.getUser !== "function") {
-      throw new Error("Supabase chưa cấu hình.");
+      throwProductCrudError(new Error("Supabase chưa cấu hình."), context);
     }
     const { data, error } = await sb.auth.getUser();
-    if (error) throw error;
+    if (error) throwProductCrudError(error, context);
     if (!data || !data.user) {
-      throw new Error(
-        "Chưa đăng nhập admin hoặc phiên đã hết hạn. Vào /admin, đăng nhập lại rồi thử lưu sản phẩm."
+      throwProductCrudError(
+        new Error("Chưa đăng nhập admin hoặc phiên đã hết hạn. Vào /admin, đăng nhập lại rồi thử lại."),
+        context
       );
     }
     var email = String(data.user.email || "").trim().toLowerCase();
+    context.email = data.user.email || "";
     var allowed = getConfiguredAdminEmails();
     if (allowed.length && email && allowed.indexOf(email) < 0) {
-      throw new Error(
-        "Email đăng nhập (" +
-          data.user.email +
-          ") chưa nằm trong TLKV_ADMIN_EMAILS. Cập nhật boot-supabase-env.js và policy SQL (tlkv_admin_emails)."
+      throwProductCrudError(
+        new Error(
+          "Email đăng nhập (" +
+            data.user.email +
+            ") chưa nằm trong TLKV_ADMIN_EMAILS. Cập nhật boot-supabase-env.js và thêm email vào tlkv_admin_emails()."
+        ),
+        context
       );
     }
     return data.user;
   }
 
-  function throwIfSupabaseWriteError(err, user) {
-    if (!err) return;
-    var email = user && user.email ? user.email : "";
-    var wrapped = new Error(explainSupabaseRlsError(err, email));
-    wrapped.cause = err;
-    throw wrapped;
-  }
-
   async function saveProduct(item, opts) {
     assertProductsAdminWrite();
     opts = opts || {};
+    const mode = opts.mode === "edit" ? "edit" : "create";
+    const operation = mode === "edit" ? "update" : "create";
     const validation = validateProductForSave(item);
     if (!validation.ok) {
-      throw new Error(validation.errors.join(" "));
+      var invalid = new Error(validation.errors.join(" "));
+      invalid.code = "VALIDATION";
+      throwProductCrudError(invalid, productCrudContext(operation, item));
     }
     const normalized = normalizeItem(item);
-    const mode = opts.mode === "edit" ? "edit" : "create";
     if (mode === "create" && !String(normalized.id || "").trim()) {
       normalized.id =
         global.TLKVProductCrud && global.TLKVProductCrud.resolveProductId
@@ -674,22 +720,38 @@
     }
     normalized.slug = await resolveSlugForSave(normalized, mode, opts.existingSlug || normalized.slug);
     const sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    const adminUser = await assertSupabaseAdminSession(sb);
+    if (!sb) {
+      throwProductCrudError(new Error("Supabase chưa cấu hình."), productCrudContext(operation, normalized));
+    }
+    const adminUser = await assertSupabaseAdminSession(sb, productCrudContext(operation, normalized));
     const sortOrder = await resolveSortOrderForSave(sb, normalized);
     normalized.sortOrder = sortOrder;
     const row = productAppToDb(normalized, sortOrder);
+    const saveContext = productCrudContext(operation, normalized, {
+      email: adminUser && adminUser.email,
+      slug: row.slug,
+      weight: row.weight,
+      priceSourceProduct: row.price_source_product,
+      priceRowId: row.price_row_id,
+      brandId: row.brand_id,
+      categoryId: row.category_id,
+    });
     const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
-    throwIfSupabaseWriteError(error, adminUser);
+    if (error) throwProductCrudError(error, saveContext);
     normalized.priceSource = resolveOfficialPriceSourceForSave(normalized);
     normalized.priceSourceProduct = row.price_source_product;
     if (normalized.image) {
-      await syncProductThumbnailRecord(
-        sb,
-        normalized.id,
-        normalized.image,
-        normalized.imageStoragePath || pathFromProductPublicUrl(normalized.image)
-      );
+      try {
+        await syncProductThumbnailRecord(
+          sb,
+          normalized.id,
+          normalized.image,
+          normalized.imageStoragePath || pathFromProductPublicUrl(normalized.image)
+        );
+      } catch (imageErr) {
+        if (imageErr && imageErr.name === "ProductCrudError") throw imageErr;
+        throwProductCrudError(imageErr, productCrudContext("sync_image", normalized, saveContext));
+      }
     }
     // Clear before notify so any refresh listener cannot read a stale session cache.
     clearProductsSessionCache();
@@ -701,10 +763,12 @@
   async function deactivateProductById(id) {
     assertProductsAdminWrite();
     const sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    const adminUser = await assertSupabaseAdminSession(sb);
+    if (!sb) throwProductCrudError(new Error("Supabase chưa cấu hình."), productCrudContext("deactivate", null, { id: id }));
+    const adminUser = await assertSupabaseAdminSession(sb, productCrudContext("deactivate", null, { id: id }));
     const { error } = await sb.from("products").update({ is_active: false, is_featured: false }).eq("id", id);
-    throwIfSupabaseWriteError(error, adminUser);
+    if (error) {
+      throwProductCrudError(error, productCrudContext("deactivate", null, { id: id, email: adminUser && adminUser.email }));
+    }
     clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
@@ -713,10 +777,12 @@
   async function deleteProductById(id) {
     assertProductsAdminWrite();
     const sb = await getSupabaseClient();
-    if (!sb) throw new Error("Supabase chưa cấu hình.");
-    const adminUser = await assertSupabaseAdminSession(sb);
+    if (!sb) throwProductCrudError(new Error("Supabase chưa cấu hình."), productCrudContext("delete", null, { id: id }));
+    const adminUser = await assertSupabaseAdminSession(sb, productCrudContext("delete", null, { id: id }));
     const { error } = await sb.from("products").delete().eq("id", id);
-    throwIfSupabaseWriteError(error, adminUser);
+    if (error) {
+      throwProductCrudError(error, productCrudContext("delete", null, { id: id, email: adminUser && adminUser.email }));
+    }
     clearProductsSessionCache();
     global.dispatchEvent(new CustomEvent("tlkv:products-changed"));
   }
@@ -784,7 +850,10 @@
       p = global.location && global.location.pathname ? String(global.location.pathname) : "";
     } catch (_) {}
     if (!/\/admin(\/|$)/.test(p)) {
-      throw new Error("Chỉ trang /admin mới được lưu hoặc xóa sản phẩm trên Supabase.");
+      throwProductCrudError(
+        new Error("Chỉ trang /admin mới được lưu hoặc xóa sản phẩm trên Supabase."),
+        { operation: "update" }
+      );
     }
   }
 
@@ -792,10 +861,11 @@
     assertProductsAdminWrite();
     return getSupabaseClient().then(function (sb) {
       if (!sb) {
-        return Promise.reject(
+        return rejectProductCrudError(
           new Error(
             "Supabase chưa cấu hình: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
-          )
+          ),
+          { operation: "bulk_save" }
         );
       }
       return persistProductsToSupabase(sb, payload).then(function () {
@@ -827,8 +897,11 @@
 
     const sb = await getSupabaseClient();
     if (!sb) {
-      throw new Error(
-        "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
+      throwProductCrudError(
+        new Error(
+          "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
+        ),
+        { operation: "list" }
       );
     }
     try { await sb.auth.getUser(); } catch (_) { }
