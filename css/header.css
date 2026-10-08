@@ -231,6 +231,15 @@
   paint-order: stroke fill;
 }
 
+.header-brand__wordmark {
+  display: block;
+  height: var(--tlkv-brand-wordmark-h);
+  width: auto;
+  max-width: min(15.5rem, 36vw);
+  object-fit: contain;
+  object-position: center;
+}
+
 /* Desktop — logo = wordmark height */
 .header-pc .header--inner {
   align-items: stretch;
@@ -548,7 +557,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  min-height: 58px;
+  min-height: 64px;
 }
 
 .header-brand--mb {
@@ -561,7 +570,7 @@
 }
 
 .header-brand--mb .header-brand__link {
-  gap: 0;
+  gap: 10px;
   justify-content: flex-start;
   align-items: center;
   width: auto;
@@ -569,9 +578,10 @@
   min-width: 0;
 }
 
+/* Same lockup frame as the mobile footer brand row */
 .header-brand--mb .header-brand__mark {
-  --tlkv-header-mark-h: clamp(46px, 12vw, 56px);
-  --tlkv-header-mark-w: clamp(52px, 13.5vw, 64px);
+  --tlkv-header-mark-h: 52px;
+  --tlkv-header-mark-w: calc(52px * 1.35);
   flex: 0 0 var(--tlkv-header-mark-w);
   width: var(--tlkv-header-mark-w);
   height: var(--tlkv-header-mark-h);
@@ -579,22 +589,27 @@
 }
 
 .header-brand--mb .header-brand__mark .site-logo-img {
-  transform: scale(1.12);
+  transform: scale(1.14);
 }
 
-/* Mobile: một dòng — THĂNG LONG KIM VIỆT, sát logo + padding trái */
 .header-brand--mb .header-brand__text {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.14em;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
   flex: 0 1 auto;
   min-width: 0;
   padding-top: 0;
-  padding-left: 6px;
+  padding-left: 0;
   text-align: left;
+}
+
+.header-brand--mb .header-brand__wordmark {
+  height: 40px;
+  width: auto;
+  max-width: none;
 }
 
 .header-brand--mb .header-brand__line,

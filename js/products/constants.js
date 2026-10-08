@@ -4,7 +4,7 @@
   global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
   /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
-  global.TLKV_LOGO_ASSET_VERSION = "20261008a";
+  global.TLKV_LOGO_ASSET_VERSION = "20261008b";
   var logoV = "?v=" + global.TLKV_LOGO_ASSET_VERSION;
 
   global.TLKV_SITE_LOGO_MARK_URL = "/assets/tlkv-logo-mark.png" + logoV;

@@ -1,5 +1,5 @@
 /**
- * Favicon / apple-touch: gold mark on brand red plate (#8c0003), matching featured TLKV brand cards.
+ * Favicon / apple-touch: gold mark on the official PDF burgundy plate.
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,7 @@ import sharp from "sharp";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const MARK = path.join(ROOT, "assets/tlkv-logo-mark.png");
-const PLATE = { r: 140, g: 0, b: 3, alpha: 1 };
+const PLATE = { r: 105, g: 31, b: 33, alpha: 1 };
 /** ~4px padding on 65px mobile plate */
 const PADDING_RATIO = 4 / 65;
 
