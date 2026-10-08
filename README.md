@@ -4,6 +4,19 @@
 > [`ENGINEERING-PLAYBOOK.md`](./ENGINEERING-PLAYBOOK.md) — quy trình chuẩn, naming convention,
 > rule cache/RLS nghiêm ngặt và Definition of Done. Đọc trước khi code.
 
+### Khóa kích thước logo và chữ thương hiệu
+
+Khi đổi logo hoặc màu nhận diện, **chỉ được đổi file logo và mã màu**. Giữ nguyên kích thước logo, cỡ chữ, font, khoảng cách và layout hiện tại ở mọi breakpoint (mobile, laptop nhỏ, desktop).
+
+| Vị trí | Logo | Chữ |
+|---|---|---|
+| Navbar desktop (≥1200px) | mark cao `wordmark × 1.22`, rộng `wordmark × 1.42` | dòng 1 **28px**, dòng 2 **40px** |
+| Navbar laptop nhỏ (≤1199.98px) | cùng công thức mark desktop | dòng 1 **25px**, dòng 2 **36px** |
+| Navbar mobile (≤768px) | cao `clamp(46px, 12vw, 56px)`, rộng `clamp(52px, 13.5vw, 64px)` | `clamp(1.1625rem, 2.4vw + 0.81rem, 1.475rem)` |
+| Footer | khung lockup, ảnh `scale(1.18)` | dòng 1 **25px**, dòng 2 **38px** |
+
+Màu chữ logo hiện tại: `#FDE48D` / `rgb(253, 228, 141)`. Lần sau chỉ thay mã này hoặc file ảnh logo, không đổi các size ở bảng trên.
+
 ### Chạy local (khuyến nghị)
 
 Cài dependency và bật Express (router gọn: public / admin / api):

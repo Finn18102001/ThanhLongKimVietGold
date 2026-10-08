@@ -185,6 +185,7 @@ Không tick đủ = chưa xong. Checklist này là filter cuối, giống Pre-Fl
 - [ ] Không đổi slug, nav label, form field name khi chưa duyệt
 - [ ] Contrast WCAG AA; ảnh lazy; không layout shift do thiếu reserve space
 - [ ] Task landing/redesign: đã chạy Pre-Flight Check của `design-taste-frontend`
+- [ ] Đổi logo/màu nhận diện website: chỉ đổi file logo và mã màu — không đổi size logo hay cỡ chữ (khóa trong `README.md`)
 
 ### Nếu là bug fix
 

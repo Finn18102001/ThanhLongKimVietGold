@@ -33,7 +33,7 @@
   --tlkv-header-inner-min-h: 108px;
   --tlkv-header-nav-gap: 4px;
   --tlkv-header-nav-offset: 10%;
-  --tlkv-brand-name-color: rgb(240, 229, 87);
+  --tlkv-brand-name-color: rgb(253, 228, 141);
   --tlkv-brand-name-stroke: 1px #9b0102;
   --tlkv-header-brand-red: #9b0102;
   --tlkv-header-divider-inset: 42px;
@@ -536,7 +536,7 @@
   display: none;
   position: relative;
   background: var(--tlkv-header-brand-red);
-  border-bottom: 1px solid rgba(240, 229, 87, 0.18);
+  border-bottom: 1px solid rgba(253, 228, 141, 0.18);
 }
 
 .header-mb > .container {
