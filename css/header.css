@@ -231,6 +231,15 @@
   paint-order: stroke fill;
 }
 
+.header-brand__wordmark {
+  display: block;
+  height: var(--tlkv-brand-wordmark-h);
+  width: auto;
+  max-width: min(15.5rem, 36vw);
+  object-fit: contain;
+  object-position: center;
+}
+
 /* Desktop — logo = wordmark height */
 .header-pc .header--inner {
   align-items: stretch;
@@ -582,19 +591,24 @@
   transform: scale(1.12);
 }
 
-/* Mobile: một dòng — THĂNG LONG KIM VIỆT, sát logo + padding trái */
+/* Mobile: wordmark chính thức (hai dòng) sát logo */
 .header-brand--mb .header-brand__text {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.14em;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
   flex: 0 1 auto;
   min-width: 0;
   padding-top: 0;
-  padding-left: 6px;
+  padding-left: 8px;
   text-align: left;
+}
+
+.header-brand--mb .header-brand__wordmark {
+  height: clamp(30px, 8vw, 38px);
+  max-width: min(9.5rem, 42vw);
 }
 
 .header-brand--mb .header-brand__line,

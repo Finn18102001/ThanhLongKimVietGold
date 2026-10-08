@@ -441,9 +441,9 @@
             : (item.thumbnailUrl || "");
         var thumb = el("img", {
           class: "news-admin-table__thumb",
-          src: thumbUrl || "/assets/favicon-48.png?v=20261008a",
+          src: thumbUrl || "/assets/favicon-48.png?v=20261008b",
           alt: item.title,
-          onerror: function () { this.onerror = null; this.src = "/assets/favicon-48.png?v=20261008a"; },
+          onerror: function () { this.onerror = null; this.src = "/assets/favicon-48.png?v=20261008b"; },
         });
         var titleCell = el("td", null, [
           el("div", { style: "display:flex;gap:12px;align-items:center" }, [

@@ -180,6 +180,14 @@ body.tlkv-tv-model-page .tv-inline-company-name h4 {
   text-overflow: ellipsis;
 }
 
+body.tlkv-tv-model-page .tv-inline-brand .tv-inline-company-wordmark {
+  width: auto;
+  height: clamp(36px, 5.2vh, 56px);
+  max-width: min(280px, 28vw);
+  max-height: none;
+  object-fit: contain;
+}
+
 /* B. Title — centered in its own grid column; never absolute (local.css default overlaps brand) */
 body.tlkv-tv-model-page .tv-inline-heading-block {
   min-width: 0;

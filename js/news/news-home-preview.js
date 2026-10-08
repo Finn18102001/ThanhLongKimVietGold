@@ -37,7 +37,7 @@
     }
     var fallback =
       (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-      "/assets/tlkv-logo-mark.png?v=20261008a";
+      "/assets/tlkv-logo-mark.png?v=20261008b";
     return { src: fallback, isFallback: true };
   }
 
@@ -55,7 +55,7 @@
         : thumb.isFallback
           ? thumb.src
           : ((typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-            "/assets/tlkv-logo-mark.png?v=20261008a");
+            "/assets/tlkv-logo-mark.png?v=20261008b");
 
     if (thumb.isFallback) {
       media.classList.add("tlkv-home-editorial-card__media--fallback");

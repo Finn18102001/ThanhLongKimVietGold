@@ -278,6 +278,15 @@ ul { list-style: none; }
   min-width: 0;
 }
 
+.tlkv-global-footer__wordmark {
+  display: block;
+  height: 58px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
 .tlkv-global-footer__brand-name-line {
   display: block;
   font-family: inherit;
@@ -497,6 +506,10 @@ ul { list-style: none; }
 
   .tlkv-global-footer__brand-name-line--accent {
     font-size: var(--tlkv-footer-mb-line-2);
+  }
+
+  .tlkv-global-footer__wordmark {
+    height: 40px;
   }
 
   .tlkv-global-footer__logo {
