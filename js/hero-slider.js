@@ -21,6 +21,7 @@
     var thumbs = thumbsHost ? Array.prototype.slice.call(thumbsHost.querySelectorAll("[data-tlkv-hero-thumb]")) : [];
 
     if (!slides.length) return;
+    if (slides.length < 2 && stage) stage.setAttribute("data-drag-disabled", "");
 
     function bindHeroMedia(slide) {
       var img = slide.querySelector(".tlkv-hero__slide-img");
@@ -129,7 +130,7 @@
 
     function start() {
       stop();
-      if (reduceMotion) return;
+      if (reduceMotion || slides.length < 2) return;
       timer = setInterval(function () {
         if (!hovering) nextSlide();
       }, delayMs);

@@ -6,7 +6,7 @@
 .tlkv-hero {
   --tlkv-hero-gold: var(--tlkv-gold, #c9a14a);
   --tlkv-hero-border: #ebe6dc;
-  --tlkv-hero-native-w: 2048px;
+  --tlkv-hero-native-w: 3840px;
 
   position: relative;
   width: 100vw;
