@@ -626,6 +626,17 @@
   line-height: 1;
   letter-spacing: 0.015em;
   color: var(--tlkv-brand-name-color);
+  /*
+    Samsung Internet / Chrome on Galaxy paints -webkit-text-stroke on top of
+    the fill and ignores paint-order. The shared stroke is 1px #9b0102, the
+    same red as .header-mb, so "Thăng Long Kim Việt" disappears. iOS and
+    other Android browsers keep the gold fill, so the name still shows.
+    The red stroke is invisible on this red bar anyway — drop it and pin
+    the fill so Samsung dark mode cannot clear the glyphs.
+  */
+  -webkit-text-stroke: 0;
+  -webkit-text-fill-color: var(--tlkv-brand-name-color);
+  paint-order: normal;
 }
 
 .header-brand--mb .header-brand__line--inline {

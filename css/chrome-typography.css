@@ -69,14 +69,39 @@
   }
 }
 
-/* Mobile brand lockup — size/color only */
+/* Mobile brand lockup — size/color only.
+   Fill + stroke are pinned here (this file loads last) so Samsung's
+   forced-dark pass cannot turn the company name transparent. */
 @media (max-width: 768px) {
   .header-brand--mb .header-brand__line,
   .header-brand--mb .header-brand__line:first-child,
-  .header-brand--mb .header-brand__line--accent {
+  .header-brand--mb .header-brand__line--accent,
+  .header-brand--mb .header-brand__line--inline {
     font-size: var(--tlkv-mb-brand-size, clamp(1.1625rem, 2.4vw + 0.81rem, 1.475rem)) !important;
     font-weight: 700 !important;
     color: rgb(253, 228, 141) !important;
+    -webkit-text-fill-color: rgb(253, 228, 141) !important;
+    -webkit-text-stroke: 0 !important;
+    paint-order: normal;
+    background: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+}
+
+/* Samsung "Prefer media query over force dark" — same gold the price title uses. */
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .header-mb {
+    background-color: #9b0102 !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .header-brand--mb .header-brand__line,
+  .header-brand--mb .header-brand__line--inline {
+    color: rgb(253, 228, 141) !important;
+    -webkit-text-fill-color: rgb(253, 228, 141) !important;
+    -webkit-text-stroke: 0 !important;
   }
 }
 
