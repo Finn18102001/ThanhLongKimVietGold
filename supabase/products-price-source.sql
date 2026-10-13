@@ -1,11 +1,11 @@
 -- products: weight + price_source_product (derived pricing map)
 -- Run after products-catalog-schema.sql and products-catalog-step8-12.sql
 
-alter table public.products add column if not exists weight numeric(5, 1);
+alter table public.products add column if not exists weight numeric(9, 5);
 alter table public.products add column if not exists price_source_product text;
 
 comment on column public.products.weight is
-  'Khối lượng vàng (chỉ) của từng sản phẩm. Giá hiển thị = gold_price_rows.sell/buy × weight (tính trên client).';
+  'Khối lượng vàng (chỉ), tối đa 5 chữ số thập phân. Giá hiển thị = giá dòng × (weight / mệnh giá dòng), tính trên client.';
 
 comment on column public.products.price_source_product is
   'Khớp nguyên văn gold_price_rows.product — dòng giá nguồn. Không lưu giá tính toán vào DB.';

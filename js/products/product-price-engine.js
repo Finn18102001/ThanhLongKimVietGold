@@ -3,7 +3,7 @@
  *
  * - No DB writes, no duplicated price storage on products.
  * - O(1) lookup via Map keyed by gold row `product` (= products.price_source_product).
- * - Integer VND math (weight scaled to tenths) to avoid float drift.
+ * - Integer VND math (weight scaled to 1/100000 chỉ, 5 decimal places) to avoid float drift.
  */
 (function (global) {
   "use strict";
@@ -309,25 +309,31 @@
     return index.get(source) || null;
   }
 
-  /**
-   * Integer-safe: giá dòng × (số chỉ SP / mệnh giá dòng).
-   * Mệnh giá 1 → giá/chỉ × số chỉ. Cùng mệnh giá (vd cùng 0.1 chỉ) → giá bằng giá dòng.
-   */
-  function multiplyVndByReferenceWeight(basePriceVnd, productWeight, referenceWeight) {
-    if (basePriceVnd == null || !Number.isFinite(basePriceVnd) || basePriceVnd < 0) return null;
-    var w = Number(productWeight);
-    var ref = Number(referenceWeight);
-    if (!Number.isFinite(w) || w <= 0) return null;
-    if (!Number.isFinite(ref) || ref <= 0) return null;
-    var weightTenths = Math.round(w * 10);
-    var refTenths = Math.round(ref * 10);
-    if (weightTenths <= 0 || refTenths <= 0) return null;
-    return Math.round((basePriceVnd * weightTenths) / refTenths);
+  /** 5 chữ số sau dấu phẩy: 0.54321 chỉ = 54321 đơn vị. */
+  var WEIGHT_UNIT_SCALE = 100000;
+
+  function weightToUnits(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return Math.round(n * WEIGHT_UNIT_SCALE);
   }
 
   /**
-   * Integer-safe: pricePerChi (VND integer) × weight numeric(5,1).
-   * weight 0.5 → tenths=5 → (price * 5) / 10
+   * Integer-safe: giá dòng × (số chỉ SP / mệnh giá dòng).
+   * Mệnh giá 1 → giá/chỉ × số chỉ. Cùng mệnh giá (vd cùng 0.1 chỉ) → giá bằng giá dòng.
+   * 0.234 chỉ / mệnh giá 0.1 chỉ → (giá × 23400) / 10000.
+   */
+  function multiplyVndByReferenceWeight(basePriceVnd, productWeight, referenceWeight) {
+    if (basePriceVnd == null || !Number.isFinite(basePriceVnd) || basePriceVnd < 0) return null;
+    var weightUnits = weightToUnits(productWeight);
+    var refUnits = weightToUnits(referenceWeight);
+    if (weightUnits <= 0 || refUnits <= 0) return null;
+    return Math.round((basePriceVnd * weightUnits) / refUnits);
+  }
+
+  /**
+   * Integer-safe: pricePerChi (VND integer) × weight, tối đa 5 chữ số thập phân.
+   * weight 0.54321 → units=54321 → (price * 54321) / 100000
    */
   function multiplyVndByWeight(pricePerChiVnd, weight) {
     return multiplyVndByReferenceWeight(pricePerChiVnd, weight, 1);

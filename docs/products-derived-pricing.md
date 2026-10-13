@@ -48,7 +48,7 @@ Target: **O(1)** per product; rebuild index **O(n)** on gold rows update (n ≈ 
 ## Money
 
 - DB prices: integer VND per chỉ.
-- Weight: `numeric(5,1)` → scaled to tenths: `(pricePerChi * round(weight*10)) / 10`.
+- Weight: `numeric(9,5)` → scaled to 1/100000 chỉ: `(pricePerChi * round(weight*100000)) / round(referenceWeight*100000)`.
 - No float accumulation on totals.
 
 ## Debounce

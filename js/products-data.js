@@ -199,12 +199,16 @@
       .replace(/^-+|-+$/g, "");
   }
 
-  /** Khối lượng vàng (chỉ) — numeric(5,1); null nếu trống hoặc không hợp lệ. */
+  /** Khối lượng vàng (chỉ) — numeric(9,5); null nếu trống hoặc không hợp lệ. */
+  var PRODUCT_WEIGHT_SCALE = 100000;
+  var PRODUCT_WEIGHT_MAX = 9999.99999;
+
   function parseProductWeight(value) {
     if (value == null || value === "") return null;
-    const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return Math.round(n * 10) / 10;
+    const n = Number(String(value).trim().replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0 || n > PRODUCT_WEIGHT_MAX) return null;
+    const rounded = Math.round(n * PRODUCT_WEIGHT_SCALE) / PRODUCT_WEIGHT_SCALE;
+    return rounded > 0 ? rounded : null;
   }
 
   function formatProductWeightDisplay(value) {

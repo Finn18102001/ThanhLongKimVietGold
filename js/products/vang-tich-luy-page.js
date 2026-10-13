@@ -60,8 +60,9 @@
   function formatWeightLabel(weight) {
     var w = Number(weight);
     if (!Number.isFinite(w) || w <= 0) return "";
+    w = Math.round(w * 100000) / 100000;
     var grams = w * CHI_TO_GRAM;
-    var gramsText = Number.isInteger(grams) ? String(grams) : grams.toFixed(3).replace(/\.?0+$/, "");
+    var gramsText = Number.isInteger(grams) ? String(grams) : grams.toFixed(5).replace(/\.?0+$/, "");
     return w + " chỉ (" + gramsText + "g)";
   }
 

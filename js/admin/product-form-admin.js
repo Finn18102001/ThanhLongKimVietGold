@@ -109,12 +109,34 @@
     }
   }
 
+  var WEIGHT_UNIT_SCALE = 100000;
+  var WEIGHT_MAX = 9999.99999;
+
+  function weightFractionDigits(raw) {
+    var s = String(raw != null ? raw : "").trim().replace(",", ".");
+    var frac = (s.split(".")[1] || "").replace(/0+$/, "");
+    return frac.length;
+  }
+
+  function weightInputError(raw) {
+    var s = String(raw != null ? raw : "").trim().replace(",", ".");
+    if (!s) return "";
+    if (!/^\d+(\.\d+)?$/.test(s)) return "Định lượng phải là số chỉ lớn hơn 0.";
+    if (weightFractionDigits(s) > 5) return "Định lượng tối đa 5 chữ số sau dấu phẩy.";
+    var n = Number(s);
+    if (!Number.isFinite(n) || n <= 0) return "Định lượng phải là số chỉ lớn hơn 0.";
+    if (n > WEIGHT_MAX) return "Định lượng tối đa 9999.99999 chỉ.";
+    return "";
+  }
+
   function parseWeightInput(raw) {
-    var s = String(raw != null ? raw : "").trim();
+    if (weightInputError(raw)) return null;
+    var s = String(raw != null ? raw : "").trim().replace(",", ".");
     if (!s) return null;
     var n = Number(s);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return Math.round(n * 10) / 10;
+    if (!Number.isFinite(n) || n <= 0 || n > WEIGHT_MAX) return null;
+    var rounded = Math.round(n * WEIGHT_UNIT_SCALE) / WEIGHT_UNIT_SCALE;
+    return rounded > 0 ? rounded : null;
   }
 
   function formatWeightInputValue(w) {
@@ -201,9 +223,9 @@
     if (engine && typeof engine.multiplyVndByReferenceWeight === "function") {
       amount = engine.multiplyVndByReferenceWeight(sell, weight, ref);
     } else {
-      var weightTenths = Math.round(weight * 10);
-      var refTenths = Math.round(Number(ref) * 10);
-      if (weightTenths > 0 && refTenths > 0) amount = Math.round((sell * weightTenths) / refTenths);
+      var weightUnits = Math.round(weight * WEIGHT_UNIT_SCALE);
+      var refUnits = Math.round(Number(ref) * WEIGHT_UNIT_SCALE);
+      if (weightUnits > 0 && refUnits > 0) amount = Math.round((sell * weightUnits) / refUnits);
     }
     if (amount == null) return formatGoldSell(row);
     if (engine && typeof engine.formatVndInteger === "function") {
@@ -345,6 +367,18 @@
     if (row) {
       box.hidden = false;
       labelEl.innerHTML = "Nguồn giá: <strong>Bảng giá liên kết</strong>";
+      var weightError = weightInputError($("pf-weight") && $("pf-weight").value);
+      if (weightError) {
+        if (currentEl) {
+          currentEl.hidden = false;
+          currentEl.textContent = weightError;
+        }
+        if (noteEl) {
+          noteEl.hidden = true;
+          noteEl.textContent = "";
+        }
+        return;
+      }
       var current = linkedProductPriceText(row);
       if (currentEl) {
         currentEl.hidden = !current;
@@ -541,6 +575,8 @@
   }
 
   function validateForm(categoriesCache) {
+    var weightError = weightInputError($("pf-weight") && $("pf-weight").value);
+    if (weightError) return { ok: false, errors: [weightError] };
     var payload = readFromDom(categoriesCache);
     if (global.TLKVProductCrud && global.TLKVProductCrud.validateForSave) {
       return global.TLKVProductCrud.validateForSave(payload);

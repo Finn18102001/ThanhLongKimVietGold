@@ -151,8 +151,8 @@
       reason = "Giá trị không đúng quy tắc của bảng sản phẩm" + (constraint ? " (" + constraint + ")" : "") + ".";
       action = "Kiểm tra định lượng (số chỉ > 0) và dòng bảng giá rồi lưu lại.";
     } else if (code === "22003") {
-      reason = "Định lượng hoặc giá vượt quá giới hạn lưu được (tối đa 9999.9 chỉ).";
-      action = "Nhập lại số chỉ nhỏ hơn, ví dụ 0.1, 1 hoặc 10.";
+      reason = "Định lượng hoặc giá vượt quá giới hạn lưu được (tối đa 9999.99999 chỉ).";
+      action = "Nhập lại số chỉ nhỏ hơn, ví dụ 0.234, 1 hoặc 10.";
     } else if (code === "22P02") {
       reason = "Thương hiệu, danh mục hoặc dòng bảng giá không đúng định dạng.";
       action = "Chọn lại từ danh sách thả xuống, không dán mã tay.";
