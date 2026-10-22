@@ -385,15 +385,23 @@
 
   /** Không dùng .order(sort_order) trên query — tránh lỗi cột/không index; sắp xếp sau khi nhận dữ liệu. */
   const PRODUCT_ADMIN_SELECT =
-    "*, brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)";
+    "id, name, slug, category, price_text, price_numeric, image, sort_order, weight, price_source_product, " +
+    "is_featured, is_best_seller, is_hot, is_active, brand_id, category_id, updated_at, " +
+    "brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)";
+
+  const PRODUCT_ROW_SELECT =
+    "id, name, slug, category, price_text, price_numeric, image, sort_order, weight, price_source_product, " +
+    "is_featured, is_best_seller, is_hot, is_active, brand_id, category_id, updated_at";
 
   async function fetchProductsFromSupabase(sb) {
     let res = await sb.from("products").select(PRODUCT_ADMIN_SELECT);
     if (res.error && String(res.error.message || "").toLowerCase().includes("product_images")) {
-      res = await sb.from("products").select("*, brands(id, name, slug), categories(id, name, slug)");
+      res = await sb
+        .from("products")
+        .select(PRODUCT_ROW_SELECT + ", brands(id, name, slug), categories(id, name, slug)");
     }
     if (res.error && String(res.error.message || "").toLowerCase().includes("brands")) {
-      res = await sb.from("products").select("*");
+      res = await sb.from("products").select(PRODUCT_ROW_SELECT);
     }
     const { data: rows, error } = res;
     if (error) throw error;
@@ -568,7 +576,7 @@
     if (!sb) throw new Error("Supabase chưa cấu hình.");
     const res = await sb
       .from("products")
-      .select("*, brands(id, name, slug), categories(id, name, slug)")
+      .select(PRODUCT_ADMIN_SELECT)
       .eq("id", id)
       .maybeSingle();
     if (res.error) throw res.error;
@@ -803,10 +811,17 @@
         "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
       );
     }
-    try { await sb.auth.getUser(); } catch (_) { }
+    var hasSession = false;
+    try {
+      var sessionRes = await sb.auth.getSession();
+      hasSession = !!(sessionRes && sessionRes.data && sessionRes.data.session);
+    } catch (_) {}
+    if (hasSession) {
+      try { await sb.auth.getUser(); } catch (_) { }
+    }
 
     var result = await fetchProductsFromSupabase(sb);
-    if (result && result.items && result.items.length === 0) {
+    if (hasSession && result && result.items && result.items.length === 0) {
       await new Promise(function (r) { setTimeout(r, 600); });
       try { await sb.auth.getUser(); } catch (_) { }
       result = await fetchProductsFromSupabase(sb);

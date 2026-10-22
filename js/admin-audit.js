@@ -98,7 +98,12 @@
   function fetchGoldLog(sb, opts) {
     if (!sb) return Promise.reject(new Error("Thiếu Supabase client."));
     var cap = opts && opts.limit > 0 ? Math.min(opts.limit, 50000) : 2000;
-    var q = sb.from(GOLD_LOG).select("*").order("created_at", { ascending: false }).limit(cap);
+    // List UI only needs these columns — omit payload (can be large JSON snapshots).
+    var q = sb
+      .from(GOLD_LOG)
+      .select("id, created_at, action, entity_name, entity_id, summary")
+      .order("created_at", { ascending: false })
+      .limit(cap);
     var frag = safeIlikeFragment(opts && opts.searchName);
     if (frag) q = q.ilike("entity_name", "%" + frag + "%");
     q = applyCreatedAtRange(q, opts || {});
@@ -115,7 +120,12 @@
   function fetchProductLog(sb, opts) {
     if (!sb) return Promise.reject(new Error("Thiếu Supabase client."));
     var cap = opts && opts.limit > 0 ? Math.min(opts.limit, 50000) : 2000;
-    var q = sb.from(PRODUCT_LOG).select("*").order("created_at", { ascending: false }).limit(cap);
+    // List UI only needs these columns — omit payload (can be large JSON snapshots).
+    var q = sb
+      .from(PRODUCT_LOG)
+      .select("id, created_at, action, entity_name, entity_id, summary")
+      .order("created_at", { ascending: false })
+      .limit(cap);
     var frag = safeIlikeFragment(opts && opts.searchName);
     if (frag) q = q.ilike("entity_name", "%" + frag + "%");
     q = applyCreatedAtRange(q, opts || {});

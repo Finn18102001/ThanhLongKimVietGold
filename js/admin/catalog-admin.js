@@ -284,7 +284,11 @@
     if (!tb) return;
     var sb = await getSb();
     if (!sb) return;
-    var res = await sb.from("brands").select("*").order("sort_order").order("name");
+    var res = await sb
+      .from("brands")
+      .select("id, name, slug, description, logo_url, is_active, sort_order")
+      .order("sort_order")
+      .order("name");
     if (res.error) return;
     tb.innerHTML = "";
     if (!(res.data || []).length) {
@@ -353,7 +357,11 @@
     if (!tb) return;
     var sb = await getSb();
     if (!sb) return;
-    var res = await sb.from("categories").select("*").order("sort_order").order("name");
+    var res = await sb
+      .from("categories")
+      .select("id, name, slug, is_active, sort_order")
+      .order("sort_order")
+      .order("name");
     if (res.error) return;
     tb.innerHTML = "";
     if (!(res.data || []).length) {
