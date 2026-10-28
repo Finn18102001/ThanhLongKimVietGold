@@ -122,6 +122,7 @@ function showToast(message, type = 'success') {
       sell: String(r.sell || ""),
       metal: r.metal === "silver" ? "silver" : "gold",
       highlight: r.highlight === true,
+      isVisibleOnWebsite: r.isVisibleOnWebsite !== false,
     };
   }
 
@@ -159,6 +160,13 @@ function showToast(message, type = 'success') {
     if (oh !== nh) {
       parts.push("Nền xanh: " + (oh ? "bật" : "tắt") + " → " + (nh ? "bật" : "tắt"));
     }
+    var ov = oldR.isVisibleOnWebsite !== false;
+    var nv = newR.isVisibleOnWebsite !== false;
+    if (ov !== nv) {
+      parts.push(
+        "Bảng giá website: " + (ov ? "hiển thị" : "ẩn") + " → " + (nv ? "hiển thị" : "ẩn")
+      );
+    }
     if (!parts.length) return "Không đổi giá trị.";
     return parts.join("\n");
   }
@@ -172,6 +180,11 @@ function showToast(message, type = 'success') {
     if (normGoldCell(s.buy)) lines.push("Giá mua: " + dispGoldCell(s.buy));
     if (normGoldCell(s.sell)) lines.push("Giá bán: " + dispGoldCell(s.sell));
     lines.push("Loại: " + (s.metal === "silver" ? "bạc" : "vàng"));
+    lines.push(
+      s.isVisibleOnWebsite === false
+        ? "Không hiển thị trên bảng giá website"
+        : "Hiển thị trên bảng giá website"
+    );
     return lines.join("\n");
   }
 
@@ -981,6 +994,12 @@ function showToast(message, type = 'success') {
         tdProd.appendChild(inProd);
       } else {
         tdProd.textContent = productShown;
+        if (r.isVisibleOnWebsite === false) {
+          var hiddenBadge = document.createElement("span");
+          hiddenBadge.className = "admin-gold-website-hidden";
+          hiddenBadge.textContent = "Ẩn website";
+          tdProd.appendChild(hiddenBadge);
+        }
       }
       tdProd.className = "admin-gold-product-cell";
       tr.appendChild(tdProd);
@@ -1036,6 +1055,15 @@ function showToast(message, type = 'success') {
       var tdAct = document.createElement("td");
       tdAct.className = "admin-cell-actions";
       if (isEditing) {
+        var hideLabel = document.createElement("label");
+        hideLabel.className = "admin-gold-hide-website";
+        var hideInput = document.createElement("input");
+        hideInput.type = "checkbox";
+        hideInput.setAttribute("data-inline-field", "hide-website");
+        hideInput.checked = r.isVisibleOnWebsite === false;
+        hideLabel.appendChild(hideInput);
+        hideLabel.appendChild(document.createTextNode(" Không hiển thị trên bảng giá website"));
+        tdAct.appendChild(hideLabel);
         var bCancel = document.createElement("button");
         bCancel.type = "button";
         bCancel.className = "admin-btn-inline-secondary btn-gold-inline-cancel";
@@ -1124,6 +1152,10 @@ function showToast(message, type = 'success') {
         purityVal: readInline("purity"),
         buyVal: readInline("buy"),
         sellVal: readInline("sell"),
+        hideWebsite: (function () {
+          var el = tr.querySelector('[data-inline-field="hide-website"]');
+          return !!(el && el.checked);
+        })(),
       };
     };
 
@@ -1179,6 +1211,7 @@ function showToast(message, type = 'success') {
             sell: v.sellVal,
             metal: base.metal,
             highlight: base.highlight === true,
+            isVisibleOnWebsite: v.hideWebsite ? false : true,
           };
           d.rows[idx] = row;
         }
@@ -1205,7 +1238,8 @@ function showToast(message, type = 'success') {
             goldCellEq(beforeSnap, afterSnap, "product") &&
             goldCellEq(beforeSnap, afterSnap, "purity") &&
             goldCellEq(beforeSnap, afterSnap, "brand") &&
-            !!beforeSnap.highlight === !!afterSnap.highlight
+            !!beforeSnap.highlight === !!afterSnap.highlight &&
+            (beforeSnap.isVisibleOnWebsite !== false) === (afterSnap.isVisibleOnWebsite !== false)
           ) {
             continue;
           }
@@ -1741,6 +1775,7 @@ function showToast(message, type = 'success') {
       $("f-sell").value = "";
       $("f-metal").value = "gold";
       if ($("f-highlight")) $("f-highlight").checked = false;
+      if ($("f-hide-on-website")) $("f-hide-on-website").checked = false;
       $("form-title").textContent = "Thêm dòng";
     }
 
@@ -1801,6 +1836,7 @@ function showToast(message, type = 'success') {
             sell: $("f-sell").value.trim(),
             metal: metal,
             highlight: $("f-highlight") ? $("f-highlight").checked : false,
+            isVisibleOnWebsite: !($("f-hide-on-website") && $("f-hide-on-website").checked),
           };
           savedRow = row;
           if (idx >= 0) {
@@ -1863,7 +1899,8 @@ function showToast(message, type = 'success') {
               !sellChanged &&
               goldCellEq(before, after, "product") &&
               goldCellEq(before, after, "purity") &&
-              goldCellEq(before, after, "brand")
+              goldCellEq(before, after, "brand") &&
+              (before.isVisibleOnWebsite !== false) === (after.isVisibleOnWebsite !== false)
             ) {
               return;
             }

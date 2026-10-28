@@ -773,10 +773,10 @@
     __goldLayoutMediaListenerBound = true;
     const mq = global.matchMedia("(max-width: 639px)");
     const handler = function () {
-      const rows = global.__TLKV_LAST_GOLD_ROWS;
+      const rows = global.__TLKV_WEBSITE_BOARD_ROWS || global.__TLKV_LAST_GOLD_ROWS;
       if (!rows || !Array.isArray(rows)) return;
       document.querySelectorAll("#gold-table-body, #tv-table-body").forEach(function (el) {
-        renderRowsIntoTbody(el, rows);
+        renderRowsIntoTbody(el, rows, { trackPricingRows: false });
       });
     };
     if (mq.addEventListener) mq.addEventListener("change", handler);
@@ -803,6 +803,7 @@
       sell: formatPriceDisplay(r.sell, r.metal, "sell"),
       metal: r.metal,
       highlight: r.highlight === true,
+      is_visible_on_website: r.is_visible_on_website,
     });
     row.buyNum = parseGoldMoneyToInt(r.buy);
     row.sellNum = parseGoldMoneyToInt(r.sell);
@@ -814,7 +815,7 @@
   const GOLD_META_SELECT = "id, header_time, footer_note, unit_line, brand_italic, price_version";
   const GOLD_META_VERSION_SELECT = "id, price_version";
   const GOLD_ROWS_SELECT =
-    "id, brand, product, purity, buy, sell, metal, highlight, previous_buy, previous_sell, sort_order";
+    "id, brand, product, purity, buy, sell, metal, highlight, previous_buy, previous_sell, sort_order, is_visible_on_website";
 
   async function fetchGoldPriceVersion(sb) {
     const { data, error } = await sb
@@ -826,22 +827,51 @@
     return parsePriceVersion(data && data.price_version);
   }
 
-  async function fetchGoldFromSupabase(sb) {
+  /**
+   * NULL và thiếu cờ = hiện. Chỉ `false` mới ẩn khỏi bảng giá website.
+   * Không dùng cờ này để loại dòng khỏi POS hay khỏi nguồn tính giá sản phẩm.
+   */
+  function isGoldRowVisibleOnWebsite(row) {
+    if (!row || typeof row !== "object") return true;
+    if (row.isVisibleOnWebsite === false || row.is_visible_on_website === false) return false;
+    return true;
+  }
+
+  function filterWebsiteBoardRows(rows) {
+    return (rows || []).filter(isGoldRowVisibleOnWebsite);
+  }
+
+  async function fetchGoldFromSupabase(sb, options) {
+    const publicBoard = !!(options && options.publicBoard === true);
     const { data: metaRow, error: e1 } = await sb
       .from("gold_meta")
       .select(GOLD_META_SELECT)
       .eq("id", 1)
       .maybeSingle();
     if (e1) throw e1;
-    const { data: rowList, error: e2 } = await sb
-      .from("gold_price_rows")
-      .select(GOLD_ROWS_SELECT)
-      .order("sort_order", { ascending: true });
+    let rowsQuery = sb.from("gold_price_rows").select(GOLD_ROWS_SELECT).order("sort_order", { ascending: true });
+    if (publicBoard) {
+      rowsQuery = rowsQuery.or("is_visible_on_website.is.null,is_visible_on_website.eq.true");
+    }
+    const { data: rowList, error: e2 } = await rowsQuery;
     if (e2) throw e2;
-    rememberGoldPriceVersion(metaRow && metaRow.price_version, true);
+    if (!publicBoard) {
+      rememberGoldPriceVersion(metaRow && metaRow.price_version, true);
+    }
     const meta = normalizeMeta(metaRowToApp(metaRow));
     const rows = (rowList || []).map(priceRowDbToApp);
     return normalizePayload({ meta: meta, rows: rows });
+  }
+
+  /** Bảng giá công khai: query đã lọc. Không ghi cache dùng chung với admin / giá sản phẩm. */
+  async function fetchWebsiteGoldBoard() {
+    const sb = await getSupabaseClient();
+    if (!sb) {
+      throw new Error(
+        "Thiếu cấu hình Supabase: đặt NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (hoặc SUPABASE_URL + SUPABASE_ANON_KEY) trong .env / .env.local, rồi chạy npm start."
+      );
+    }
+    return fetchGoldFromSupabase(sb, { publicBoard: true });
   }
 
   /** Chỉ cập nhật gold_meta (một request) — dùng khi admin bấm "Lưu meta". */
@@ -1052,6 +1082,7 @@
         sell: newSell,
         metal: r.metal,
         highlight: r.highlight === true,
+        is_visible_on_website: r.isVisibleOnWebsite !== false,
         previous_buy: previous_buy,
         previous_sell: previous_sell,
         previous_updated_at: previous_updated_at,
@@ -1412,6 +1443,7 @@
       sell: String(r.sell ?? "").trim(),
       metal: metal,
       highlight: r.highlight === true,
+      isVisibleOnWebsite: isGoldRowVisibleOnWebsite(r),
     };
     const bn = Number(r.buyNum);
     if (Number.isFinite(bn)) out.buyNum = Math.round(bn);
@@ -1744,7 +1776,8 @@ function applyMetaToDom(meta) {
   function tryPatchGoldTbodyPricesOnly(tbody, rows) {
     if (!tbody || !rows || !Array.isArray(rows) || rows.length === 0) return false;
     if (isGoldTableStackedLayout()) return false;
-    const ordered = orderRowsForTable(rows.slice());
+    const ordered = orderRowsForTable(filterWebsiteBoardRows(rows));
+    if (!ordered.length) return false;
     const expectedIds = [];
     walkMergedGoldRows(ordered, function (ctx) {
       expectedIds.push(String(ctx.row.id));
@@ -1764,23 +1797,27 @@ function applyMetaToDom(meta) {
       appendPriceCellContent(prices[0], rt.buy, "buy", rt, patchTable);
       appendPriceCellContent(prices[1], rt.sell, "sell", rt, patchTable);
     });
-    global.__TLKV_LAST_GOLD_ROWS = ordered;
+    global.__TLKV_WEBSITE_BOARD_ROWS = ordered;
     markGoldTableBottomCorners(tbody);
-    dispatchGoldRowsUpdated(ordered);
     return true;
   }
 
-  function renderRowsIntoTbody(tbody, rows) {
+  function renderRowsIntoTbody(tbody, rows, options) {
     if (!tbody || !rows) return;
-    global.__TLKV_LAST_GOLD_ROWS = rows;
+    const opts = options && typeof options === "object" ? options : {};
+    const displayRows = filterWebsiteBoardRows(rows);
+    if (opts.trackPricingRows !== false) {
+      global.__TLKV_LAST_GOLD_ROWS = rows;
+    }
+    global.__TLKV_WEBSITE_BOARD_ROWS = displayRows;
     const table = tbody.closest("table");
     const stacked = isGoldTableStackedLayout();
     syncGoldTableThead(table, stacked);
     tbody.innerHTML = "";
     if (stacked) {
-      renderRowsStackedMobile(tbody, rows);
+      renderRowsStackedMobile(tbody, displayRows);
     } else {
-      walkMergedGoldRows(rows, function (ctx) {
+      walkMergedGoldRows(displayRows, function (ctx) {
         const rt = ctx.row;
         const tr = document.createElement("tr");
         tr.setAttribute("data-tlkv-gold-row-id", String(rt.id));
@@ -1847,12 +1884,11 @@ function applyMetaToDom(meta) {
     }
     __goldMountInFlight = (async function () {
       try {
-      const data = await getGoldTable();
+      const data = await fetchWebsiteGoldBoard();
       const rows = (data && data.rows) || [];
       applyMetaToDom(data && data.meta);
-      renderRowsIntoTbody(tbody, rows);
+      renderRowsIntoTbody(tbody, rows, { trackPricingRows: false });
       tbody.removeAttribute("aria-busy");
-      dispatchGoldRowsUpdated(rows);
       if (global.TLKVGoldTableScroll && typeof global.TLKVGoldTableScroll.refresh === "function") {
         global.TLKVGoldTableScroll.refresh();
       }
@@ -1964,6 +2000,9 @@ function applyMetaToDom(meta) {
     SESSION_CACHE_SOFT_MS,
     isLeanGoldPushClient,
     getGoldTable,
+    getWebsiteGoldBoard: fetchWebsiteGoldBoard,
+    filterWebsiteBoardRows,
+    isGoldRowVisibleOnWebsite,
     invalidateGoldTableCache,
     refreshGoldTableAfterChange,
     scheduleRefreshGoldTableAfterChange,

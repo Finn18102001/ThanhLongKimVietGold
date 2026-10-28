@@ -474,7 +474,7 @@
 
       if (!data) {
         try {
-          data = await global.TLKVGold.getGoldTable();
+          data = await global.TLKVGold.getWebsiteGoldBoard();
         } catch (err) {
           if (gen !== __tvGoldRenderGen) return;
           if (tbody.querySelector("tr[data-tlkv-gold-row-id]")) {
@@ -501,6 +501,12 @@
         return;
       }
 
+      if (global.TLKVGold.filterWebsiteBoardRows) {
+        data = {
+          meta: data.meta,
+          rows: global.TLKVGold.filterWebsiteBoardRows(data.rows),
+        };
+      }
       data = applyTvModelRowCap(data);
       var patched = false;
       if (typeof global.TLKVGold.tryPatchGoldTbodyPricesOnly === "function") {

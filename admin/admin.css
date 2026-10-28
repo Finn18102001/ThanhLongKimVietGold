@@ -585,6 +585,31 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   width: auto;
   margin: 0;
 }
+.admin-gold-website-hidden {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+}
+.admin-gold-hide-website {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #3f3f46;
+  text-align: left;
+}
+.admin-gold-hide-website input {
+  margin-top: 2px;
+}
 .admin-label-full {
   grid-column: 1 / -1;
 }
