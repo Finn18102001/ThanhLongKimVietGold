@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { FileXls, MagnifyingGlass } from "@phosphor-icons/react";
-import { downloadCsv } from "@/shared/lib/csv";
+import { downloadCsv, EXPORT_LIMIT_OPTIONS, limitExportRows } from "@/shared/lib/csv";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
 import { exportForm02Rows, searchForm02 } from "./actions";
@@ -32,6 +32,7 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
   const [seller, setSeller] = useState("");
   const [actor, setActor] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [exportLimit, setExportLimit] = useState<number>(200);
   const [detailBuyId, setDetailBuyId] = useState<string | null>(null);
   const [detailForm02No, setDetailForm02No] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -127,6 +128,7 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
             "Số căn cước",
             "Số điện thoại",
             "Tên hàng hóa/dịch vụ",
+            "Hàm lượng",
             "Số lượng/Trọng lượng",
             "Đơn giá",
             "Tổng giá thanh toán",
@@ -134,7 +136,7 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
             "Mã giao dịch",
             "Nhân viên mua",
           ],
-          result.items.map((line, index) => [
+          limitExportRows(result.items, exportLimit).map((line, index) => [
             index + 1,
             formatViDateTime(line.purchasedAt),
             line.sellerName ?? "",
@@ -142,6 +144,7 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
             line.sellerCitizenId ?? "",
             line.sellerPhone ?? "",
             line.productName,
+            line.purity ?? "",
             formatWeightQty(line),
             line.unitPriceDong,
             line.lineTotalDong,
@@ -167,15 +170,29 @@ export function Form02Directory({ initial }: { initial: Form02ListPage }) {
             xuất Excel theo bộ lọc hiện tại.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void onExport()}
-          disabled={pending}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
-        >
-          <FileXls size={16} weight="bold" />
-          Xuất Excel
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={exportLimit}
+            onChange={(event) => setExportLimit(Number(event.target.value))}
+            aria-label="Số dòng xuất Excel"
+            className="h-10 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {EXPORT_LIMIT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                Xuất {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => void onExport()}
+            disabled={pending}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
+          >
+            <FileXls size={16} weight="bold" />
+            Xuất Excel
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-3 xl:grid-cols-5">

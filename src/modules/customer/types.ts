@@ -81,6 +81,8 @@ export type CustomerHistoryItem = {
   productName?: string;
   brandName?: string;
   unitPriceDong?: number | null;
+  /** Hàm lượng as recorded (Excel only). */
+  purity?: string;
 };
 
 export type CustomerListPage = {

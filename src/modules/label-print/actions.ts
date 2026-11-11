@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertStaffMutate } from "@/shared/auth/assert";
+import { runAction, type ActionResult } from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { listPrintHistoryPage, pieceHasLabelPrint } from "./query";
 import type {
@@ -175,4 +176,27 @@ export async function recordLabelPrint(input: {
     barcode: payload.barcode,
     actorEmail: payload.actor_email ?? "",
   };
+}
+
+/** Saves tag labor / stone as the SKU defaults used by POS (no stock change). */
+export async function saveLabelSkuComponents(input: {
+  skuId: string;
+  laborFeeDong: number;
+  stoneWeightChi: number;
+  stonePriceDong: number;
+}): Promise<ActionResult<{ changed: boolean }>> {
+  return runAction(async () => {
+    await assertStaffMutate();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_set_sku_sale_components", {
+      p_sku_id: input.skuId,
+      p_labor_fee_dong: Math.max(0, Math.round(input.laborFeeDong)),
+      p_stone_weight_chi: Math.max(0, input.stoneWeightChi),
+      p_stone_price_dong: Math.max(0, Math.round(input.stonePriceDong)),
+    });
+    if (error) throw new Error(error.message);
+    const changed = Boolean((data as { changed?: boolean } | null)?.changed);
+    if (changed) revalidateLabelPrint();
+    return { changed };
+  }, "Không lưu được tiền công / đá vào SKU.");
 }

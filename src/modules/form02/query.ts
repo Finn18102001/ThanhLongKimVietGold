@@ -22,6 +22,7 @@ function mapLine(row: Record<string, unknown>): Form02Line {
     lineTotalDong: Number(row.lineTotalDong ?? 0),
     buyTotalDong: Number(row.buyTotalDong ?? 0),
     actorEmail: row.actorEmail == null ? null : String(row.actorEmail),
+    purity: row.purity == null || row.purity === "" ? null : String(row.purity),
   };
 }
 

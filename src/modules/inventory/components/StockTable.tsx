@@ -10,6 +10,11 @@ import { stockStatus, type StockFilter, type StockRow } from "../types";
 
 const PAGE_SIZE = 8;
 
+/** Text columns wrap (full text); numbers / badges stay on one line, right-aligned. */
+const TH = "px-2 py-2.5 align-bottom font-medium leading-snug";
+const TD = "px-2 py-3 align-middle";
+const NUM = "text-right tabular-nums whitespace-nowrap";
+
 const TABS: { id: StockFilter; label: string }[] = [
   { id: "ALL", label: "Tất cả" },
   { id: "IN_STOCK", label: "Còn hàng" },
@@ -30,9 +35,18 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
   );
 
   const brands = useMemo(
-    () => Array.from(new Set(rows.map((row) => row.brandName).filter(Boolean))) as string[],
+    () =>
+      (Array.from(new Set(rows.map((row) => row.brandName).filter(Boolean))) as string[]).sort(
+        (a, b) => a.localeCompare(b, "vi"),
+      ),
     [rows],
   );
+  const hasNoBrand = useMemo(() => rows.some((row) => !row.brandName), [rows]);
+  const brandChips = [
+    { id: "", label: "Tất cả" },
+    ...brands.map((name) => ({ id: name, label: name })),
+    ...(hasNoBrand ? [{ id: "__none__", label: "Không brand" }] : []),
+  ];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -65,6 +79,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
         "Sản phẩm",
         "Thương hiệu",
         "Danh mục",
+        "Hàm lượng",
         "SL tồn",
         "TL / chiếc (chỉ)",
         "Tổng TL (chỉ)",
@@ -81,6 +96,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           row.name,
           row.brandName || "Không brand",
           row.category,
+          row.purity ?? "",
           row.quantity,
           row.weightChi,
           Number((row.quantity * row.weightChi).toFixed(4)),
@@ -106,17 +122,17 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           Xuất Excel
         </button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {TABS.map((item) => (
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        {brandChips.map((item) => (
           <button
-            key={item.id}
+            key={item.id || "all"}
             type="button"
             onClick={() => {
-              setTab(item.id);
+              setBrand(item.id);
               setPage(0);
             }}
-            className={`h-9 rounded-full px-3 text-[13px] font-medium ${
-              tab === item.id
+            className={`h-9 shrink-0 rounded-full px-3 text-[13px] font-medium whitespace-nowrap ${
+              brand === item.id
                 ? "bg-[var(--tlkv-red)] text-white"
                 : "bg-[var(--tlkv-bg)] hover:bg-[var(--tlkv-red-soft)]"
             }`}
@@ -157,37 +173,49 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
           ))}
         </select>
         <select
-          value={brand}
+          value={tab}
           onChange={(event) => {
-            setBrand(event.target.value);
+            setTab(event.target.value as StockFilter);
             setPage(0);
           }}
+          aria-label="Trạng thái tồn kho"
           className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
         >
-          <option value="">Tất cả thương hiệu</option>
-          <option value="__none__">Không brand</option>
-          {brands.map((item) => (
-            <option key={item} value={item}>
-              {item}
+          {TABS.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.id === "ALL" ? "Tất cả trạng thái" : item.label}
             </option>
           ))}
         </select>
       </div>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[1020px] text-left text-[13px]">
+        <table className="w-full min-w-[1224px] table-fixed border-collapse text-left text-[13px]">
+          <colgroup>
+            <col />
+            <col className="w-[118px]" />
+            <col className="w-[100px]" />
+            <col className="w-[100px]" />
+            <col className="w-[58px]" />
+            <col className="w-[86px]" />
+            <col className="w-[80px]" />
+            <col className="w-[132px]" />
+            <col className="w-[132px]" />
+            <col className="w-[132px]" />
+            <col className="w-[110px]" />
+          </colgroup>
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
-              <th className="py-2 pr-3 font-medium">Sản phẩm</th>
-              <th className="py-2 pr-3 font-medium">Mã hàng</th>
-              <th className="py-2 pr-3 font-medium">Thương hiệu</th>
-              <th className="py-2 pr-3 font-medium">Danh mục</th>
-              <th className="py-2 pr-3 font-medium">SL tồn</th>
-              <th className="py-2 pr-3 font-medium">TL / chiếc</th>
-              <th className="py-2 pr-3 font-medium">Tổng TL</th>
-              <th className="py-2 pr-3 font-medium">Giá hiện tại</th>
-              <th className="py-2 pr-3 font-medium">Giá vốn gần nhất</th>
-              <th className="py-2 pr-3 font-medium">Giá trị tồn</th>
-              <th className="py-2 font-medium">Trạng thái</th>
+              <th className={`${TH} sticky left-0 z-[1] bg-white pl-0`}>Sản phẩm</th>
+              <th className={TH}>Mã hàng</th>
+              <th className={TH}>Thương hiệu</th>
+              <th className={TH}>Danh mục</th>
+              <th className={`${TH} text-right`}>SL tồn</th>
+              <th className={`${TH} text-right`}>TL / chiếc</th>
+              <th className={`${TH} text-right`}>Tổng TL</th>
+              <th className={`${TH} text-right`}>Giá hiện tại</th>
+              <th className={`${TH} text-right`}>Giá vốn gần nhất</th>
+              <th className={`${TH} text-right`}>Giá trị tồn</th>
+              <th className={`${TH} pr-0 text-center`}>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
@@ -204,9 +232,9 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                   row.unitPriceDong === null ? null : row.unitPriceDong * row.quantity;
                 return (
                   <tr key={row.skuId} className="border-b border-[var(--tlkv-line)] last:border-b-0">
-                    <td className="py-3 pr-3">
+                    <td className={`${TD} sticky left-0 z-[1] bg-white pl-0`}>
                       <div className="flex items-center gap-3">
-                        <span className="relative h-11 w-11 overflow-hidden rounded-lg bg-[var(--tlkv-bg)]">
+                        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-[var(--tlkv-bg)]">
                           {row.imageUrl ? (
                             <Image
                               src={row.imageUrl}
@@ -222,32 +250,50 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                             </span>
                           )}
                         </span>
-                        <span className="block font-medium">{row.name}</span>
+                        <span className="min-w-0 font-medium leading-snug [overflow-wrap:anywhere]">
+                          {row.name}
+                        </span>
                       </div>
                     </td>
-                    <td className="py-3 pr-3 font-semibold text-[var(--tlkv-red)]">{row.sku}</td>
-                    <td className="py-3 pr-3">{row.brandName || "Không brand"}</td>
-                    <td className="py-3 pr-3">{row.category}</td>
-                    <td className="py-3 pr-3 font-medium tabular-nums">{row.quantity}</td>
-                    <td className="py-3 pr-3 tabular-nums text-[var(--tlkv-muted)]">
+                    <td className={`${TD} font-semibold leading-snug text-[var(--tlkv-red)] [overflow-wrap:anywhere]`}>
+                      {row.sku}
+                    </td>
+                    <td className={`${TD} leading-snug [overflow-wrap:anywhere]`}>
+                      {row.brandName || "Không brand"}
+                    </td>
+                    <td className={`${TD} leading-snug [overflow-wrap:anywhere]`}>{row.category}</td>
+                    <td className={`${TD} ${NUM} font-medium`}>{row.quantity}</td>
+                    <td className={`${TD} ${NUM} text-[var(--tlkv-muted)]`}>
                       {row.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ
                     </td>
-                    <td className="py-3 pr-3 font-semibold tabular-nums">
+                    <td className={`${TD} ${NUM} font-semibold`}>
                       {(row.quantity * row.weightChi).toLocaleString("vi-VN", {
                         maximumFractionDigits: 2,
                       })}{" "}
                       chỉ
                     </td>
-                    <td className="py-3 pr-3">
-                      {row.unitPriceDong === null ? "Chưa gắn bảng giá" : formatDong(row.unitPriceDong)}
+                    <td className={`${TD} text-right`}>
+                      {row.unitPriceDong === null ? (
+                        <span className="text-[12px] leading-snug text-[var(--tlkv-muted)]">
+                          Chưa gắn bảng giá
+                        </span>
+                      ) : (
+                        <span className="tabular-nums whitespace-nowrap">
+                          {formatDong(row.unitPriceDong)}
+                        </span>
+                      )}
                     </td>
-                    <td className="py-3 pr-3">
-                      {row.lastCostDong == null ? "—" : formatDong(row.lastCostDong)}
+                    <td className={`${TD} ${NUM}`}>
+                      {row.lastCostDong == null ? (
+                        <span className="text-[var(--tlkv-muted)]">-</span>
+                      ) : (
+                        formatDong(row.lastCostDong)
+                      )}
                     </td>
-                    <td className="py-3 pr-3 font-medium">
-                      {value === null ? "-" : formatDong(value)}
+                    <td className={`${TD} ${NUM} font-medium`}>
+                      {value === null ? <span className="text-[var(--tlkv-muted)]">-</span> : formatDong(value)}
                     </td>
-                    <td className="py-3">
+                    <td className={`${TD} pr-0 text-center`}>
                       <StatusBadge status={status} />
                     </td>
                   </tr>
@@ -293,7 +339,9 @@ function StatusBadge({ status }: { status: ReturnType<typeof stockStatus> }) {
         ? "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]"
         : "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]";
   return (
-    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ${className}`}
+    >
       {STOCK_STATUS_LABEL[status]}
     </span>
   );

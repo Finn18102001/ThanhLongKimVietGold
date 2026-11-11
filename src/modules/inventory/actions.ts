@@ -228,6 +228,7 @@ function mapLedgerRpcRow(row: Record<string, unknown>): import("./types").Ledger
     customerName: (row.customerName as string | null) ?? null,
     customerPhone: (row.customerPhone as string | null) ?? null,
     customerCitizenId: (row.customerCitizenId as string | null) ?? null,
+    purity: row.purity == null || row.purity === "" ? null : String(row.purity),
   };
 }
 

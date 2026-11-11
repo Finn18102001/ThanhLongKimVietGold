@@ -48,6 +48,8 @@ export type TransactionExportRow = {
   brandName: string;
   /** Product name from the transaction line snapshot. */
   productName: string;
+  /** Hàm lượng: sale = price row saved at sale; buy = gold age typed at buy (RPC `purity`). */
+  purity: string;
   /** Unit price snapshot at transaction time, quy đổi / 1 chỉ (đồng). */
   unitPriceDong: number;
   /** CCCD khách hàng gắn giao dịch; rỗng nếu chưa có. */

@@ -22,7 +22,19 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
  * not-yet-active Order jewelry stay off receive / adjust / order pickers
  * and off Mua/Bán product cards.
  */
-export async function listStock(options?: { includeMarketGold?: boolean }): Promise<StockRow[]> {
+/** `{ skuId: hàm lượng }` from RPC `pos_list_sku_purity`; empty map on failure (export column stays blank). */
+export async function fetchSkuPurityMap(skuIds: string[]): Promise<Record<string, string>> {
+  if (skuIds.length === 0) return {};
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_sku_purity", { p_sku_ids: skuIds });
+  if (error || !data || typeof data !== "object") return {};
+  return data as Record<string, string>;
+}
+
+export async function listStock(options?: {
+  includeMarketGold?: boolean;
+  withPurity?: boolean;
+}): Promise<StockRow[]> {
   const supabase = await createServerSupabase();
   let request = supabase
     .from("pos_skus")
@@ -35,6 +47,9 @@ export async function listStock(options?: { includeMarketGold?: boolean }): Prom
     : request.eq("is_active", true);
   const { data, error } = await request;
   if (error) throw new Error(error.message);
+  const purityBySku = options?.withPurity
+    ? await fetchSkuPurityMap((data ?? []).map((row) => row.id))
+    : null;
 
   return (data ?? []).map((row) => {
     const price = firstEmbed(row.gold_price_rows);
@@ -66,6 +81,7 @@ export async function listStock(options?: { includeMarketGold?: boolean }): Prom
       category: product?.category ?? "Khác",
       brandId: (row as { brand_id?: string | null }).brand_id ?? null,
       brandName: brand?.name ?? null,
+      ...(purityBySku ? { purity: purityBySku[row.id] ?? null } : {}),
     };
   });
 }

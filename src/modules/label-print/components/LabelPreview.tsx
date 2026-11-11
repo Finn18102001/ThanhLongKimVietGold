@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import JsBarcode from "jsbarcode";
 import {
   PREVIEW_MM_TO_PX,
@@ -44,6 +44,28 @@ export function LabelPreview({
   offsets?: LabelPrintOffsets;
   fonts?: LabelPrintFonts;
 }) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [clipped, setClipped] = useState<string[]>([]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const tag = stageRef.current?.querySelector(".label-print-tag");
+      const next: string[] = [];
+      if (tag) {
+        tag.querySelectorAll<HTMLElement>("[data-fit]").forEach((el) => {
+          if (el.scrollWidth > el.clientWidth + 1) next.push(el.dataset.fit ?? "");
+        });
+        tag.querySelectorAll<HTMLElement>("[data-face] > div").forEach((el) => {
+          if (el.scrollHeight > el.clientHeight + 1) {
+            next.push(`${el.parentElement?.dataset.face ?? "Mặt"} thiếu chiều cao`);
+          }
+        });
+      }
+      setClipped((prev) => (prev.join("|") === next.join("|") ? prev : next));
+    });
+    return () => cancelAnimationFrame(frame);
+  });
+
   if (!payload) {
     return (
       <div className="flex min-h-[220px] items-center justify-center rounded-[12px] border border-dashed border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] text-[13px] text-[var(--tlkv-muted)]">
@@ -63,7 +85,7 @@ export function LabelPreview({
       </p>
 
       <div className="overflow-x-auto rounded-[12px] border border-[var(--tlkv-line)] bg-[#eceff3] p-6">
-        <div className="flex flex-wrap items-start gap-8">
+        <div ref={stageRef} className="flex flex-wrap items-start gap-8">
           {Array.from({ length: count }).map((_, i) => (
             <LabelTag
               key={`${payload.msp}-${i}`}
@@ -74,6 +96,15 @@ export function LabelPreview({
           ))}
         </div>
       </div>
+      {clipped.length > 0 ? (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800"
+        >
+          Dòng đang bị cắt (…): {clipped.join(", ")}. Giảm cỡ chữ mặt tương ứng hoặc rút gọn nội
+          dung trước khi in.
+        </p>
+      ) : null}
       {copies > 3 ? (
         <p className="text-[11px] text-[var(--tlkv-muted)]">
           Đang xem 3/{copies} tem; khi in sẽ xuất đủ số lượng đã chọn.
@@ -125,7 +156,27 @@ export function LabelTag({
       ? shortenCompany(payload.companyName)
       : payload.companyName;
 
-  const barcodeHMm = 5.2;
+  const tagName = payload.tagName.trim();
+  const goldAge = payload.goldAgeText.trim();
+  const origin = payload.originText.trim();
+
+  const leftSpecs: SpecLineProps[] = [
+    { label: "KLT", value: `${formatChi(payload.kltChi)} chỉ` },
+    { label: "KLV", value: `${formatChi(payload.klvChi)} chỉ` },
+    ...(payload.kldChi > 0 ? [{ label: "KLĐ", value: `${formatChi(payload.kldChi)} chỉ` }] : []),
+  ];
+  const rightSpecs: SpecLineProps[] = [
+    ...(goldAge ? [{ label: "HL", value: goldAge }] : []),
+    { label: "C", value: formatDong(payload.laborFeeDong) },
+    { label: "G", value: formatDong(payload.priceDong) },
+  ];
+  const specRows = Array.from(
+    { length: Math.max(leftSpecs.length, rightSpecs.length) },
+    (_, i) => [leftSpecs[i], rightSpecs[i]] as const,
+  );
+
+  /** With the origin line, a shorter fixed barcode keeps 4 rows evenly spaced. */
+  const barcodeHMm = origin ? 4.4 : 5.2;
   const barcodeH = forPrint ? mmToPrinterPx(barcodeHMm) : barcodeHMm * scale;
   const barcodeWidthMm = geo.faceW - geo.safePad * 2;
 
@@ -135,6 +186,8 @@ export function LabelTag({
   /** Trái = Mặt 2 (specs), giữa = Mặt 1 (nhận diện) — đúng thứ tự gập/phôi. */
   const face2LeftMm = 0 + appliedOffsets.face2.x;
   const face1LeftMm = geo.faceW + appliedOffsets.face1.x;
+  /** Mặt 1 is painted on top; stop Mặt 2 at its left edge so no Mặt 2 text sits underneath. */
+  const face2WidthMm = Math.max(10, Math.min(geo.faceW, face1LeftMm - face2LeftMm));
 
   const colStyleFace1: CSSProperties = {
     display: "flex",
@@ -178,11 +231,11 @@ export function LabelTag({
       data-page-h-mm={geo.pageH}
       aria-label={`Tem ${payload.msp}`}
     >
-      {/* Mặt 2 — trái: KLT / KLV / (KLĐ nếu có) / C / G */}
+      {/* Mặt 2 — trái: tên SP, rồi 2 cột (trọng lượng | HL / C / G) */}
       <FacePanel
         left={u(face2LeftMm, unit, scale)}
         top={u(0 + appliedOffsets.face2.y, unit, scale)}
-        width={faceW}
+        width={u(face2WidthMm, unit, scale)}
         height={faceH}
         radius={radius}
         padding={pad}
@@ -191,20 +244,34 @@ export function LabelTag({
         <div
           style={{
             ...colStyleFace2,
-            lineHeight: payload.kldChi > 0 ? 1.08 : colStyleFace2.lineHeight,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, max-content) minmax(0, max-content)",
+            justifyContent: "start",
+            alignContent: "space-between",
+            columnGap: u(1, unit, scale),
           }}
         >
-          <SpecLine label="KLT" value={`${formatChi(payload.kltChi)} chỉ`} />
-          <SpecLine label="KLV" value={`${formatChi(payload.klvChi)} chỉ`} />
-          {payload.kldChi > 0 ? (
-            <SpecLine label="KLĐ" value={`${formatChi(payload.kldChi)} chỉ`} />
+          {tagName ? (
+            <p
+              data-fit="Tên sản phẩm"
+              style={{ ...lineStyle, gridColumn: "1 / -1", contain: "inline-size" }}
+              title={tagName}
+            >
+              {tagName}
+            </p>
           ) : null}
-          <SpecLine label="C" value={formatDong(payload.laborFeeDong)} />
-          <SpecLine label="G" value={formatDong(payload.priceDong)} />
+          {specRows.flatMap(([leftSpec, rightSpec], index) => [
+            leftSpec ? <SpecLine key={leftSpec.label} {...leftSpec} /> : <span key={`l${index}`} />,
+            rightSpec ? (
+              <SpecLine key={rightSpec.label} {...rightSpec} />
+            ) : (
+              <span key={`r${index}`} />
+            ),
+          ])}
         </div>
       </FacePanel>
 
-      {/* Mặt 1 — giữa (sát đuôi): công ty / barcode / MSP */}
+      {/* Mặt 1 — giữa (sát đuôi): công ty / barcode / MSP / xuất xứ */}
       <FacePanel
         left={u(face1LeftMm, unit, scale)}
         top={u(0 + appliedOffsets.face1.y, unit, scale)}
@@ -215,19 +282,33 @@ export function LabelTag({
         label="Mặt 1"
       >
         <div style={colStyleFace1}>
-          <p style={{ ...lineStyle, letterSpacing: "-0.01em" }} title={payload.companyName}>
+          <p
+            data-fit="Tên công ty"
+            style={{ ...lineStyle, letterSpacing: "-0.01em" }}
+            title={payload.companyName}
+          >
             {company}
           </p>
           <div
-            style={{
-              display: "flex",
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 0,
-              marginTop: u(0.2, unit, scale),
-              marginBottom: u(0.2, unit, scale),
-            }}
+            style={
+              origin
+                ? {
+                    display: "flex",
+                    flex: "0 0 auto",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: u(barcodeHMm, unit, scale),
+                  }
+                : {
+                    display: "flex",
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 0,
+                    marginTop: u(0.2, unit, scale),
+                    marginBottom: u(0.2, unit, scale),
+                  }
+            }
           >
             <BarcodeSvg
               value={payload.barcode}
@@ -237,9 +318,14 @@ export function LabelTag({
               scalePxPerMm={scale}
             />
           </div>
-          <p style={{ ...lineStyle, fontVariantNumeric: "tabular-nums" }}>
+          <p data-fit="MSP" style={{ ...lineStyle, fontVariantNumeric: "tabular-nums" }}>
             MSP: {payload.msp}
           </p>
+          {origin ? (
+            <p data-fit="Xuất xứ" style={lineStyle} title={`Xuất xứ: ${origin}`}>
+              Xuất xứ: {origin}
+            </p>
+          ) : null}
         </div>
       </FacePanel>
 
@@ -346,9 +432,13 @@ function FacePanel({
   );
 }
 
-function SpecLine({ label, value }: { label: string; value: string }) {
+type SpecLineProps = { label: string; value: string };
+
+function SpecLine({ label, value }: SpecLineProps) {
   return (
     <p
+      data-fit={label}
+      title={`${label}: ${value}`}
       style={{
         margin: 0,
         overflow: "hidden",

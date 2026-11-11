@@ -42,10 +42,12 @@ export function CatalogCard({
   item: PosCatalogItem;
   onAdd: (item: PosCatalogItem) => void;
 }) {
-  const disabled = item.unitPriceDong === null;
+  const isGroup = Boolean(item.marketGroupClass);
+  const disabled = !isGroup && item.unitPriceDong === null;
   const outOfStock = item.quantity <= 0;
-  const weightLabel =
-    item.weightChi > 0
+  const weightLabel = isGroup
+    ? "theo từng món"
+    : item.weightChi > 0
       ? `${item.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`
       : "—";
 
@@ -91,7 +93,7 @@ export function CatalogCard({
         }`}
       >
         SL tồn: {item.quantity}
-        {outOfStock ? " · Đặt hàng" : ""}
+        {isGroup ? " · Bấm để chọn món" : outOfStock ? " · Đặt hàng" : ""}
       </p>
     </button>
   );

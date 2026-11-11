@@ -15,6 +15,11 @@ export function formatChi(value: number): string {
   return value.toLocaleString("vi-VN", { maximumFractionDigits: 4 });
 }
 
+export function formatGoldAge(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "";
+  return value.toLocaleString("vi-VN", { maximumFractionDigits: 3 });
+}
+
 export function formatDong(value: number): string {
   return `${value.toLocaleString("vi-VN")} đ`;
 }

@@ -1,0 +1,15 @@
+---
+description: POS big update (Giai đoạn 1–7) — đọc sổ yêu cầu theo giai đoạn trước khi sửa module POS/catalog/giá/kho.
+alwaysApply: true
+---
+
+# TLKV — POS big update
+
+Sổ yêu cầu: `docs/pos-big-update/README.md` (bảng giai đoạn → module).
+
+Trước khi sửa `pos`, `purchase`, `inventory`, `label-print`, `product`, `category`, `pricing`, `reporting`, `dashboard`, `gold-management`, `invoice`, `sale-deposit`, `form02`, hoặc bảng `products` / `categories` / `brands` / `gold_price_rows` / `pos_skus` / `pos_inventory_*` / `pos_buy*` / `pos_sale*`:
+
+1. Đọc file giai đoạn liên quan (mục "Logic cũ phải giữ nguyên").
+2. Yêu cầu mới mâu thuẫn rule đã chốt → dừng, hỏi, cập nhật file giai đoạn trước khi code.
+3. Migration: snapshot bảng/function sẽ chạm vào `tlkv_backup_20261110` theo `docs/pos-big-update/00-BACKUP-ROLLBACK.md` §3.
+4. Local dev dùng chung DB production — hard-test tạo giao dịch thật; ghi rõ mã chứng từ test để void.

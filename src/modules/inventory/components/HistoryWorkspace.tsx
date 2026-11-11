@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { DownloadSimple } from "@phosphor-icons/react";
 import { formatDongCompact } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
-import { downloadCsv } from "@/shared/lib/csv";
+import { downloadCsv, EXPORT_LIMIT_OPTIONS, limitExportRows } from "@/shared/lib/csv";
 import { exportLedger, listBrands, searchLedger } from "../actions";
 import { LEDGER_TYPE_OPTIONS, ledgerTypeLabel } from "../labels";
 import { NO_BRAND_ID, type BrandOption, type LedgerListPage } from "../types";
@@ -18,6 +18,7 @@ export function HistoryWorkspace({ initial }: { initial: LedgerListPage }) {
   const [type, setType] = useState("");
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [exportLimit, setExportLimit] = useState<number>(200);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export function HistoryWorkspace({ initial }: { initial: LedgerListPage }) {
           "Mã hàng",
           "Sản phẩm",
           "Thương hiệu",
+          "Hàm lượng",
           "SL",
           "Trước",
           "Sau",
@@ -75,13 +77,14 @@ export function HistoryWorkspace({ initial }: { initial: LedgerListPage }) {
           "Người làm",
           "Ghi chú",
         ],
-        result.items.map((row) => [
+        limitExportRows(result.items, exportLimit).map((row) => [
           row.id,
           formatViDateTime(row.createdAt),
           ledgerTypeLabel(row.type),
           row.sku,
           row.name,
           row.brandName || "Không brand",
+          row.purity ?? "",
           row.quantity,
           row.beforeQuantity,
           row.afterQuantity,
@@ -109,14 +112,28 @@ export function HistoryWorkspace({ initial }: { initial: LedgerListPage }) {
           <h1 className="text-[18px] font-semibold">Kho hàng</h1>
           <p className="text-[12px] text-[var(--tlkv-muted)]">Kho hàng › Lịch sử biến động</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void onExport()}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
-        >
-          <DownloadSimple size={16} />
-          Xuất CSV (đúng bộ lọc)
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={exportLimit}
+            onChange={(event) => setExportLimit(Number(event.target.value))}
+            aria-label="Số biến động xuất CSV"
+            className="h-10 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {EXPORT_LIMIT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                Xuất {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => void onExport()}
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+          >
+            <DownloadSimple size={16} />
+            Xuất CSV (đúng bộ lọc)
+          </button>
+        </div>
       </div>
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
         <h2 className="text-[15px] font-semibold">Sổ biến động kho</h2>

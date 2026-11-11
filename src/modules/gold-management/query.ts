@@ -50,6 +50,35 @@ function purchaseSettledQty(goodsStatus: string, expectedQty: number, receivedQt
   return Math.min(clampNonNeg(receivedQty), clampNonNeg(expectedQty));
 }
 
+async function fillPurity(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  sources: Array<{ row: GoldObligationRow; skuId: string; priceRowId: string }>,
+): Promise<void> {
+  if (sources.length === 0) return;
+  const skuIds = Array.from(new Set(sources.map((s) => s.skuId).filter(Boolean)));
+  const priceRowIds = Array.from(new Set(sources.map((s) => s.priceRowId).filter(Boolean)));
+  const [skuRes, priceRes] = await Promise.all([
+    skuIds.length > 0
+      ? supabase.rpc("pos_list_sku_purity", { p_sku_ids: skuIds })
+      : Promise.resolve({ data: {}, error: null }),
+    priceRowIds.length > 0
+      ? supabase.from("gold_price_rows").select("id, purity").in("id", priceRowIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const bySku = (skuRes.error ? {} : (skuRes.data ?? {})) as Record<string, string>;
+  const byPriceRow = new Map<string, string>();
+  for (const row of (priceRes.error ? [] : (priceRes.data ?? [])) as Array<{
+    id: string;
+    purity: string | null;
+  }>) {
+    const purity = String(row.purity ?? "").trim();
+    if (purity) byPriceRow.set(String(row.id), purity);
+  }
+  for (const source of sources) {
+    source.row.purity = byPriceRow.get(source.priceRowId) ?? bySku[source.skuId] ?? "";
+  }
+}
+
 export async function listGoldObligations(): Promise<{
   rows: GoldObligationRow[];
   summary: GoldObligationSummary;
@@ -65,7 +94,7 @@ export async function listGoldObligations(): Promise<{
          remaining_dong,
          pos_purchase_payments(amount_dong, paid_at),
          pos_purchase_items(
-           id, expected_qty, received_qty, weight_chi,
+           id, sku_id, expected_qty, received_qty, weight_chi,
            pos_skus(sku, name, weight_chi, brands(name))
          )`,
       )
@@ -82,6 +111,7 @@ export async function listGoldObligations(): Promise<{
          pos_sale_payments(amount_dong, paid_at),
          pos_sale_items(
            id, quantity, qty_delivered, weight_chi, product_name_snapshot, sku_snapshot, sku_id,
+           price_row_id,
            pos_skus(sku, name, brands(name))
          )`,
       )
@@ -96,6 +126,8 @@ export async function listGoldObligations(): Promise<{
   if (saleRes.error) throw new Error(saleRes.error.message);
 
   const rows: GoldObligationRow[] = [];
+  /** Sale lines keep the price row saved at sale time; purchase lines use the SKU's current purity. */
+  const puritySources: Array<{ row: GoldObligationRow; skuId: string; priceRowId: string }> = [];
 
   for (const receipt of purchaseRes.data ?? []) {
     const items = Array.isArray(receipt.pos_purchase_items)
@@ -142,7 +174,7 @@ export async function listGoldObligations(): Promise<{
           | null,
       );
 
-      rows.push({
+      const receivableRow: GoldObligationRow = {
         id: `recv:${item.id}`,
         kind: "RECEIVABLE",
         occurredAt: receipt.created_at,
@@ -167,6 +199,13 @@ export async function listGoldObligations(): Promise<{
           receiptPayments,
           Number(receipt.remaining_dong ?? 0),
         ),
+        purity: "",
+      };
+      rows.push(receivableRow);
+      puritySources.push({
+        row: receivableRow,
+        skuId: String((item as { sku_id?: string | null }).sku_id ?? ""),
+        priceRowId: "",
       });
     }
   }
@@ -207,7 +246,7 @@ export async function listGoldObligations(): Promise<{
       const brand = firstEmbed(sku?.brands ?? null);
       const weight = Number(item.weight_chi ?? 0);
 
-      rows.push({
+      const payableRow: GoldObligationRow = {
         id: `pay:${item.id}`,
         kind: "PAYABLE",
         occurredAt: sale.created_at,
@@ -229,9 +268,18 @@ export async function listGoldObligations(): Promise<{
         partyPhone: customer?.phone?.trim() || "",
         partyCitizenId: customer?.citizen_id?.trim() || "",
         paymentHistory,
+        purity: "",
+      };
+      rows.push(payableRow);
+      puritySources.push({
+        row: payableRow,
+        skuId: String(item.sku_id ?? ""),
+        priceRowId: String((item as { price_row_id?: string | null }).price_row_id ?? ""),
       });
     }
   }
+
+  await fillPurity(supabase, puritySources);
 
   rows.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));
 

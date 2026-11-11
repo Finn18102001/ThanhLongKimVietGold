@@ -30,6 +30,11 @@ export type InvoiceLine = {
   weightChi: number;
   purity: string | null;
   imageUrl: string | null;
+  /** Per piece snapshot (P4). Null on lines sold before the gold / stone / labor split. */
+  goldAmountDong: number | null;
+  stoneWeightChi: number;
+  stonePriceDong: number;
+  laborFinalDong: number | null;
 };
 
 export type InvoiceListRow = {
@@ -86,6 +91,8 @@ export type InvoiceExportRow = InvoiceListRow & {
   weightChi: number | null;
   /** Brand of the product line — SKU brand / buy-line brand. Empty if none. */
   brandName: string;
+  /** Hàm lượng (RPC `purity`): sale = price row saved at sale, buy = gold age typed, receipt = SKU. */
+  purity: string;
   /** Snapshot unit price at transaction time (đồng / SP). */
   unitPriceDong: number | null;
   /** Order/invoice note (not product note). Empty if staff left it blank. */

@@ -12,8 +12,65 @@ import type { InvoiceCharge, InvoiceDetail } from "./types";
 
 const T = GOLD_CERTIFICATE;
 
+/** Rows squeezed into the 4 printed lines of the phôi; beyond this the text gets unreadable. */
+const MAX_FITTED_ROWS = 8;
+
+type PrintItem = InvoicePrintPayload["items"][number];
+
+function weightWithQty(weightChi: number, quantity: number): string {
+  if (weightChi > 0) return quantity > 1 ? `${formatChi(weightChi)} × ${quantity}` : formatChi(weightChi);
+  return quantity > 1 ? `× ${quantity}` : "";
+}
+
+/**
+ * P4 C9: each product prints up to 3 rows: vàng, đá (when the piece has stone), tiền công (only when ≠ 0).
+ * Lines sold before the split (goldAmountDong null) keep the single legacy row.
+ */
+function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
+  const rows: Omit<PrintItem, "stt">[] = [];
+  for (const line of invoice.lines) {
+    if (line.goldAmountDong == null) {
+      rows.push({
+        productName: line.name,
+        purity: line.purity || "",
+        weightLabel: weightWithQty(line.weightChi, line.quantity),
+        unitPriceDong: line.weightChi > 0 ? Math.round(line.unitPriceDong / line.weightChi) : line.unitPriceDong,
+        amountDong: line.totalPriceDong,
+      });
+      continue;
+    }
+    rows.push({
+      productName: line.name,
+      purity: line.purity || "",
+      weightLabel: weightWithQty(line.weightChi, line.quantity),
+      unitPriceDong: line.weightChi > 0 ? Math.round(line.goldAmountDong / line.weightChi) : line.goldAmountDong,
+      amountDong: line.goldAmountDong * line.quantity,
+    });
+    if (line.stoneWeightChi > 0 || line.stonePriceDong > 0) {
+      rows.push({
+        productName: "Đá",
+        purity: "",
+        weightLabel: weightWithQty(line.stoneWeightChi, line.quantity),
+        unitPriceDong: line.stonePriceDong,
+        amountDong: line.stonePriceDong * line.quantity,
+      });
+    }
+    const labor = line.laborFinalDong ?? 0;
+    if (labor !== 0) {
+      rows.push({
+        productName: "Tiền công",
+        purity: "",
+        weightLabel: line.quantity > 1 ? `× ${line.quantity}` : "",
+        unitPriceDong: labor,
+        amountDong: labor * line.quantity,
+      });
+    }
+  }
+  return rows;
+}
+
 export function invoiceCertificateRowCount(invoice: InvoiceDetail): number {
-  return invoice.lines.length + (invoice.charges?.length ?? 0);
+  return invoiceProductRows(invoice).length + (invoice.charges?.length ?? 0);
 }
 
 export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPayload {
@@ -26,28 +83,8 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
     : "";
   const paidDong = Math.max(0, invoice.paidDong);
 
-  // Keep product name short so table cells stay single-line on phôi (qty goes into weight).
-  // Đơn giá on phôi = giá / 1 chỉ. unit_price_dong on sale lines is piece price.
-  const productItems = invoice.lines.map((line, index) => {
-    const pieceDong = line.unitPriceDong;
-    const perChiDong =
-      line.weightChi > 0 ? Math.round(pieceDong / line.weightChi) : pieceDong;
-    return {
-      stt: index + 1,
-      productName: line.name,
-      purity: line.purity || "",
-      weightLabel:
-        line.weightChi > 0
-          ? line.quantity > 1
-            ? `${formatChi(line.weightChi)} × ${line.quantity}`
-            : formatChi(line.weightChi)
-          : line.quantity > 1
-            ? `× ${line.quantity}`
-            : "",
-      unitPriceDong: perChiDong,
-      amountDong: line.totalPriceDong,
-    };
-  });
+  // Đơn giá on phôi: vàng = giá / 1 chỉ; đá, công = giá / 1 chiếc. Qty goes into the weight cell.
+  const productItems = invoiceProductRows(invoice).map((row, index) => ({ stt: index + 1, ...row }));
   const chargeItems = (invoice.charges ?? []).map((charge: InvoiceCharge, index) => ({
     stt: productItems.length + index + 1,
     productName: charge.name,
@@ -73,7 +110,7 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
     controllerName: "",
     totalAmountDong: paidDong,
     amountInWords: formatDongInWords(paidDong),
-    items: [...productItems, ...chargeItems].slice(0, T.table.maxRows),
+    items: [...productItems, ...chargeItems].slice(0, MAX_FITTED_ROWS),
   };
 }
 
@@ -167,8 +204,11 @@ export function InvoiceDocument({
       </PrintField>
 
       {payload.items.map((item, index) => {
-        const y = T.table.startY + index * T.table.rowHeight;
-        const h = T.table.rowHeight;
+        // More rows than printed lines: shrink rows evenly inside the same 4-line band.
+        const fit = Math.min(1, T.table.maxRows / Math.max(payload.items.length, 1));
+        const h = T.table.rowHeight * fit;
+        const y = T.table.startY + index * h;
+        const fs = (pt: number) => Math.max(5.5, pt * Math.max(fit, 0.75));
         return (
           <div key={`item-${index}-${item.productName}`}>
             <PrintBox
@@ -179,14 +219,14 @@ export function InvoiceDocument({
               ox={ox}
               oy={oy}
               align="center"
-              size={7.5}
+              size={fs(7.5)}
             >
               {item.productName}
             </PrintBox>
-            <PrintBox x={T.columns.purity.x} y={y} w={T.columns.purity.w} h={h} ox={ox} oy={oy} align="center" size={8}>
+            <PrintBox x={T.columns.purity.x} y={y} w={T.columns.purity.w} h={h} ox={ox} oy={oy} align="center" size={fs(8)}>
               {item.purity}
             </PrintBox>
-            <PrintBox x={T.columns.weight.x} y={y} w={T.columns.weight.w} h={h} ox={ox} oy={oy} align="center" size={7.5}>
+            <PrintBox x={T.columns.weight.x} y={y} w={T.columns.weight.w} h={h} ox={ox} oy={oy} align="center" size={fs(7.5)}>
               {item.weightLabel}
             </PrintBox>
             <PrintBox
@@ -197,7 +237,7 @@ export function InvoiceDocument({
               ox={ox}
               oy={oy}
               align="center"
-              size={8}
+              size={fs(8)}
             >
               {formatDongCompact(item.unitPriceDong)}
             </PrintBox>
@@ -209,7 +249,7 @@ export function InvoiceDocument({
               ox={ox}
               oy={oy}
               align="center"
-              size={8}
+              size={fs(8)}
               className="font-medium"
             >
               {formatDongCompact(item.amountDong)}

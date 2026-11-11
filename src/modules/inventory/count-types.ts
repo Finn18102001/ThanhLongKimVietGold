@@ -16,6 +16,8 @@ export type StockCountLine = {
   brandName: string | null;
   /** Định lượng vàng (chỉ) của SKU — nguồn pos_skus.weight_chi. */
   weightChi: number;
+  /** Hàm lượng hiện tại của SKU (RPC pos_list_sku_purity). */
+  purity?: string | null;
   /** Tồn cuối ngày liền trước (lịch sử ledger, không đổi tồn hiện tại). */
   openingQty: number;
   /** Tổng số lượng nhập kho trong ngày kiểm kê (delta dương trên ledger). */

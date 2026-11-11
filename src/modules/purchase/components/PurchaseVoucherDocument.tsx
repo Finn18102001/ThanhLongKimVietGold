@@ -3,8 +3,9 @@
 import type { CSSProperties } from "react";
 import { PrintBrandIdentityHeader } from "@/shared/brand/PrintBrandIdentityHeader";
 import { formatDongCompact, formatDongInWords } from "@/shared/lib/money";
-import { formatChi, purchaseLineWeightChi } from "../labels";
+import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
+import { buyPrintRows } from "./buyPrintRows";
 import { printBuyIssuedAt, viDateLongLine } from "./printDate";
 
 /**
@@ -15,7 +16,8 @@ import { printBuyIssuedAt, viDateLongLine } from "./printDate";
 export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
   const issuedAt = printBuyIssuedAt(buy);
   const totalWords = formatDongInWords(buy.totalDong);
-  const emptyRows = Math.max(0, 1 - buy.items.length);
+  const rows = buyPrintRows(buy.items);
+  const emptyRows = Math.max(0, 1 - rows.length);
   const dateLine = viDateLongLine(issuedAt);
   const customerName = buy.customerName?.trim() || "";
 
@@ -93,28 +95,29 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
           </tr>
         </thead>
         <tbody>
-          {buy.items.map((item, index) => (
-            <tr key={item.id}>
+          {rows.map((row) => (
+            <tr key={row.key}>
               <td className="border border-black text-center" style={tdStyle}>
-                {index + 1}
+                {row.stt}
               </td>
               <td className="border border-black" style={{ ...tdStyle, wordBreak: "break-word" }}>
-                {item.productName}
+                {row.name}
               </td>
               <td className="border border-black text-center" style={tdStyle}>
-                {item.goldAge || item.goldType || ""}
+                {row.purity}
               </td>
               <td className="border border-black text-center" style={tdStyle}>
                 chỉ
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
-                {formatChi(purchaseLineWeightChi(item.quantity, item.weightChi))}
+                {formatChi(row.weightChi)}
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
-                {formatDongCompact(item.unitPriceDong)}
+                {formatDongCompact(row.unitPriceDong)}
+                {row.isStone ? <span style={{ fontSize: "10pt" }}>/chiếc</span> : null}
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
-                {formatDongCompact(item.totalPriceDong)}
+                {formatDongCompact(row.amountDong)}
               </td>
             </tr>
           ))}

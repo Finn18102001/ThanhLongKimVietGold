@@ -27,28 +27,41 @@ import {
 import {
   PRICE_OUT_OF_RANGE_CONFIRM,
   chargesTotalDong,
+  cartLineTotalDong,
+  cartLineUnitDong,
   isPricePerChiOutOfAllowedRange,
-  lineActualUnitDong,
-  lineTotalDong,
   transactionPricePerChiDong,
   type PosChargeDraft,
 } from "./money";
-import type {
-  CartLine,
-  HeldOrderDetail,
-  HeldOrderListResult,
-  PosBrandOption,
-  PosCatalogItem,
-  PosSaleContext,
+import {
+  MARKET_GOLD_CLASSES,
+  MARKET_GOLD_CLASS_LABEL,
+  MARKET_GOLD_GROUP,
+  type CartLine,
+  type HeldOrderDetail,
+  type HeldOrderListResult,
+  type MarketGoldClass,
+  type MarketGoldClassPrices,
+  type PosBrandOption,
+  type PosCatalogItem,
+  type PosSaleContext,
 } from "./types";
 import { CatalogCard, ProductThumb } from "./components/CatalogCard";
+import { MarketGoldPickerModal } from "./components/MarketGoldPickerModal";
 import { PosCartPanel, type PosPayMode } from "./components/PosCartPanel";
 import { PosCheckoutDialog } from "./components/PosCheckoutDialog";
 import { PosHeldOrdersTable } from "./components/PosHeldOrdersTable";
 import { PosPaymentSuccess } from "./components/PosPaymentSuccess";
 import { DepositPosPanel } from "@/modules/sale-deposit/components/DepositPosPanel";
 
-type CartQtyMap = Record<string, { quantity: number; adj: number }>;
+type CartEntry = {
+  quantity: number;
+  adj: number;
+  /** Giá đá / chiếc khi bán; undefined = mặc định SKU. */
+  stone?: number;
+  laborAdj?: number;
+};
+type CartQtyMap = Record<string, CartEntry>;
 
 const PAGE_SIZE = 8;
 
@@ -74,21 +87,31 @@ function defaultPickupDueAt(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function toCartLine(item: PosCatalogItem, quantity: number, adj: number): CartLine | null {
-  if (item.unitPriceDong === null || quantity <= 0) return null;
-  const adjustment = Number.isFinite(adj) ? Math.trunc(adj) : 0;
-  return {
+function toCartLine(item: PosCatalogItem, entry: CartEntry): CartLine | null {
+  if (item.unitPriceDong === null || entry.quantity <= 0) return null;
+  const adjustment = Number.isFinite(entry.adj) ? Math.trunc(entry.adj) : 0;
+  const laborFeeDong = item.laborFeeDong ?? 0;
+  const stonePriceDefaultDong = item.stonePriceDong ?? 0;
+  const goldUnitDong = item.goldUnitDong ?? item.unitPriceDong - laborFeeDong - stonePriceDefaultDong;
+  const line: CartLine = {
     skuId: item.skuId,
     sku: item.sku,
     name: item.name,
-    quantity,
+    quantity: entry.quantity,
     weightChi: item.weightChi,
     stock: item.quantity,
-    referenceUnitPriceDong: item.unitPriceDong,
+    referenceUnitPriceDong: goldUnitDong,
     priceAdjustmentPerChi: adjustment,
-    unitPriceDong: lineActualUnitDong(item.unitPriceDong, adjustment, item.weightChi),
+    unitPriceDong: 0,
     imageUrl: item.imageUrl,
+    stoneWeightChi: item.stoneWeightChi ?? 0,
+    stonePriceDefaultDong,
+    stonePriceDong: Math.max(0, Math.trunc(entry.stone ?? stonePriceDefaultDong)),
+    laborFeeDong,
+    laborAdjustDong: Math.max(-laborFeeDong, Math.trunc(entry.laborAdj ?? 0)),
   };
+  line.unitPriceDong = cartLineUnitDong(line);
+  return line;
 }
 
 function customerFromHold(detail: HeldOrderDetail): CustomerRecord | null {
@@ -128,11 +151,13 @@ function customerFromHold(detail: HeldOrderDetail): CustomerRecord | null {
 
 export function PosTerminal({
   catalog: initialCatalog,
+  marketPrices = {},
   brands,
   initialHeldOrders,
   saleContext,
 }: {
   catalog: PosCatalogItem[];
+  marketPrices?: MarketGoldClassPrices;
   brands: PosBrandOption[];
   initialHeldOrders: HeldOrderListResult;
   saleContext: PosSaleContext;
@@ -152,6 +177,7 @@ export function PosTerminal({
   const [operatorStaffId, setOperatorStaffId] = useState("");
   const [pickupDueAt, setPickupDueAt] = useState(defaultPickupDueAt);
   const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [pickerClass, setPickerClass] = useState<MarketGoldClass | null>(null);
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -266,14 +292,58 @@ export function PosTerminal({
     };
   }, []);
 
+  /** Grid hides every MG SKU behind 4 group cards; `catalog` (cart, stock, pricing) keeps them. */
+  const gridCatalog = useMemo<PosCatalogItem[]>(() => {
+    const groupCards = MARKET_GOLD_CLASSES.map((cls): PosCatalogItem => {
+      const members = catalog.filter(
+        (item) => item.isMarketGold && item.marketClass === cls && item.quantity > 0,
+      );
+      const sell = marketPrices[cls]?.sellDong ?? 0;
+      return {
+        skuId: `market-group:${cls}`,
+        sku: MARKET_GOLD_GROUP,
+        name: MARKET_GOLD_CLASS_LABEL[cls],
+        quantity: members.reduce((sum, item) => sum + item.quantity, 0),
+        weightChi: 1,
+        unitPriceDong: sell > 0 ? sell : null,
+        imageUrl: null,
+        category: MARKET_GOLD_GROUP,
+        browseGroup: MARKET_GOLD_GROUP,
+        brandId: members[0]?.brandId ?? null,
+        brandName: members[0]?.brandName ?? MARKET_GOLD_GROUP,
+        isMarketGold: true,
+        marketGroupClass: cls,
+      };
+    });
+    return [...groupCards, ...catalog.filter((item) => !item.isMarketGold)];
+  }, [catalog, marketPrices]);
+
+  const pickerItems = useMemo(
+    () =>
+      pickerClass
+        ? catalog.filter(
+            (item) => item.isMarketGold && item.marketClass === pickerClass && item.quantity > 0,
+          )
+        : [],
+    [catalog, pickerClass],
+  );
+
+  function onGridAdd(item: PosCatalogItem) {
+    if (item.marketGroupClass) {
+      setPickerClass(item.marketGroupClass);
+      return;
+    }
+    addItem(item);
+  }
+
   const groups = useMemo(() => {
-    const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
+    const unique = Array.from(new Set(gridCatalog.map((item) => item.browseGroup)));
     return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
-  }, [catalog]);
+  }, [gridCatalog]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = catalog.filter((item) => {
+    const rows = gridCatalog.filter((item) => {
       const matchesBrand =
         brandId === "all" ||
         (brandId === "none" ? !item.brandId : item.brandId === brandId);
@@ -287,7 +357,7 @@ export function PosTerminal({
       return matchesBrand && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandId, catalog, group, query]);
+  }, [brandId, gridCatalog, group, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -296,21 +366,11 @@ export function PosTerminal({
     .map(([skuId, entry]) => {
       const item = catalog.find((row) => row.skuId === skuId);
       if (!item) return null;
-      return toCartLine(item, entry.quantity, entry.adj);
+      return toCartLine(item, entry);
     })
     .filter((line): line is CartLine => line !== null);
 
-  const merchandiseTotal = lines.reduce(
-    (sum, line) =>
-      sum +
-      lineTotalDong(
-        line.referenceUnitPriceDong,
-        line.priceAdjustmentPerChi,
-        line.weightChi,
-        line.quantity,
-      ),
-    0,
-  );
+  const merchandiseTotal = lines.reduce((sum, line) => sum + cartLineTotalDong(line), 0);
   const extraDong = chargesTotalDong(charges);
   const displayTotal = merchandiseTotal + extraDong;
   const isPreorder = lines.some((line) => line.stock <= 0);
@@ -384,6 +444,7 @@ export function PosTerminal({
     setCart((current) => ({
       ...current,
       [item.skuId]: {
+        ...current[item.skuId],
         quantity: inCart + 1,
         adj: current[item.skuId]?.adj ?? 0,
       },
@@ -410,6 +471,7 @@ export function PosTerminal({
     setCart((current) => ({
       ...current,
       [skuId]: {
+        ...current[skuId],
         quantity,
         adj: current[skuId]?.adj ?? 0,
       },
@@ -425,6 +487,26 @@ export function PosTerminal({
         ...current,
         [skuId]: { ...entry, adj: nextAdj },
       };
+    });
+  }
+
+  function setStonePrice(skuId: string, stoneDong: number) {
+    setCart((current) => {
+      const entry = current[skuId];
+      if (!entry) return current;
+      const next = Number.isFinite(stoneDong) ? Math.max(0, Math.trunc(stoneDong)) : 0;
+      return { ...current, [skuId]: { ...entry, stone: next } };
+    });
+  }
+
+  /** Tiền công cuối >= 0: không giảm quá tiền công gốc. */
+  function setLaborAdj(skuId: string, laborAdjDong: number) {
+    const base = catalog.find((row) => row.skuId === skuId)?.laborFeeDong ?? 0;
+    setCart((current) => {
+      const entry = current[skuId];
+      if (!entry) return current;
+      const raw = Number.isFinite(laborAdjDong) ? Math.trunc(laborAdjDong) : 0;
+      return { ...current, [skuId]: { ...entry, laborAdj: Math.max(-base, raw) } };
     });
   }
 
@@ -888,6 +970,8 @@ export function PosTerminal({
         sku_id: line.skuId,
         quantity: line.quantity,
         price_adjustment_per_chi: line.priceAdjustmentPerChi,
+        stone_price_dong: line.stonePriceDong,
+        labor_adjust_dong: line.laborAdjustDong,
       })),
     };
     try {
@@ -1094,7 +1178,7 @@ export function PosTerminal({
                 </p>
               ) : (
                 pageItems.map((item) => (
-                  <CatalogCard key={item.skuId} item={item} onAdd={addItem} />
+                  <CatalogCard key={item.skuId} item={item} onAdd={onGridAdd} />
                 ))
               )}
             </div>
@@ -1202,6 +1286,8 @@ export function PosTerminal({
             onDueDateChange={setDueDate}
             onQty={setQty}
             onAdj={setAdj}
+            onStonePrice={setStonePrice}
+            onLaborAdj={setLaborAdj}
             onRemove={removeLine}
             onChargesChange={setCharges}
             onOperatorChange={setOperatorStaffId}
@@ -1234,6 +1320,19 @@ export function PosTerminal({
         <Shortcut keys="F8" label="Hủy đơn" />
         <Shortcut keys="F9" label="Thanh toán" />
       </div>
+
+      {pickerClass ? (
+        <MarketGoldPickerModal
+          marketClass={pickerClass}
+          items={pickerItems}
+          inCartQty={(skuId) => cart[skuId]?.quantity ?? 0}
+          onPick={(item) => {
+            addItem(item);
+            setPickerClass(null);
+          }}
+          onClose={() => setPickerClass(null)}
+        />
+      ) : null}
 
       {pickingCustomer ? (
         <CustomerSelectModal

@@ -1,8 +1,9 @@
 "use client";
 
 import { formatDong, formatDongCompact, formatDongInWords } from "@/shared/lib/money";
-import { formatChi, purchaseLineWeightChi } from "../labels";
+import { formatChi } from "../labels";
 import type { BuyDetail } from "../types";
+import { buyPrintRows } from "./buyPrintRows";
 import { printBuyIssuedAt, viDateLongLine, viDateParts } from "./printDate";
 
 /**
@@ -16,6 +17,7 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
   const purchaseDate = viDateParts(issuedAt).slash;
   const docNo = buy.form02No || buy.buyNo;
   const totalWords = formatDongInWords(buy.totalDong);
+  const rows = buyPrintRows(buy.items);
 
   return (
     <article
@@ -140,9 +142,9 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
           </tr>
         </thead>
         <tbody>
-          {buy.items.map((item, index) => (
-            <tr key={item.id}>
-              <td className="border border-black px-0.5 py-1.5 text-center">{index + 1}</td>
+          {rows.map((row, index) => (
+            <tr key={row.key}>
+              <td className="border border-black px-0.5 py-1.5 text-center">{row.stt}</td>
               <td className="border border-black px-0.5 py-1.5 text-center tabular-nums">
                 {purchaseDate}
               </td>
@@ -158,19 +160,20 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
               <td className="border border-black px-0.5 py-1.5 text-center">
                 {index === 0 ? buy.customerPhone || "" : ""}
               </td>
-              <td className="border border-black px-0.5 py-1.5">{item.productName}</td>
+              <td className="border border-black px-0.5 py-1.5">{row.name}</td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
-                {formatChi(purchaseLineWeightChi(item.quantity, item.weightChi))}
+                {formatChi(row.weightChi)}
               </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
-                {formatDongCompact(item.unitPriceDong)}
+                {formatDongCompact(row.unitPriceDong)}
+                {row.isStone ? "/chiếc" : ""}
               </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
-                {formatDongCompact(item.totalPriceDong)}
+                {formatDongCompact(row.amountDong)}
               </td>
             </tr>
           ))}
-          {Array.from({ length: Math.max(0, 2 - buy.items.length) }).map((_, i) => (
+          {Array.from({ length: Math.max(0, 2 - rows.length) }).map((_, i) => (
             <tr key={`pad-${i}`}>
               {Array.from({ length: 10 }).map((__, j) => (
                 <td key={j} className="border border-black px-0.5 py-2">

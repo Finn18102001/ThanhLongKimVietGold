@@ -12,7 +12,36 @@ export type PosCatalogItem = {
   brandName: string | null;
   /** Vàng/bạc thị trường — sold from stock; soft-inactive by design. */
   isMarketGold?: boolean;
+  /** Real MG SKU only: group from RPC `pos_list_market_gold_stock`. */
+  marketClass?: MarketGoldClass;
+  goldType?: string | null;
+  goldAge?: string | null;
+  boughtAt?: string | null;
+  /** Virtual grid card that stands for every in-stock MG SKU of this group (never sent to the server). */
+  marketGroupClass?: MarketGoldClass;
+  /** Giá vàng / 1 chiếc theo bảng giá hiện tại. `unitPriceDong` = vàng + công + đá mặc định. */
+  goldUnitDong?: number | null;
+  laborFeeDong?: number;
+  stoneWeightChi?: number;
+  stonePriceDong?: number;
 };
+
+export type MarketGoldClass = "9999" | "999" | "9" | "SILVER";
+
+export const MARKET_GOLD_CLASSES: MarketGoldClass[] = ["9999", "999", "9", "SILVER"];
+
+export const MARKET_GOLD_CLASS_LABEL: Record<MarketGoldClass, string> = {
+  "9999": "Vàng thị trường 999.9",
+  "999": "Vàng thị trường 99.9",
+  "9": "Vàng thị trường 9 (vàng tây)",
+  SILVER: "Bạc thị trường",
+};
+
+export const MARKET_GOLD_GROUP = "Vàng thị trường";
+
+/** Display-only price per chỉ from the market price rows (`pos_market_gold_class_prices`). */
+export type MarketGoldClassPrice = { priceRowId: string; buyDong: number; sellDong: number };
+export type MarketGoldClassPrices = Partial<Record<MarketGoldClass, MarketGoldClassPrice>>;
 
 export type PosBrandOption = {
   id: string;
@@ -27,10 +56,20 @@ export type CartLine = {
   quantity: number;
   weightChi: number;
   stock: number;
+  /** Giá vàng / 1 chiếc theo bảng giá (base for the ±300k / chỉ adjustment). */
   referenceUnitPriceDong: number;
   priceAdjustmentPerChi: number;
+  /** Giá thực tế / 1 chiếc = vàng (+ điều chỉnh) + đá + công. */
   unitPriceDong: number;
   imageUrl: string | null;
+  stoneWeightChi: number;
+  stonePriceDefaultDong: number;
+  /** Giá đá / 1 chiếc khi bán (sửa được). */
+  stonePriceDong: number;
+  /** Tiền công gốc / 1 chiếc (SKU). */
+  laborFeeDong: number;
+  /** Điều chỉnh tiền công / 1 chiếc (+/-), công cuối >= 0. */
+  laborAdjustDong: number;
 };
 
 export type PosOperatorOption = {

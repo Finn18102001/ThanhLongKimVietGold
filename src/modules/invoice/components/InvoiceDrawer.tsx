@@ -507,11 +507,22 @@ export function InvoiceDrawer({
                   <td className="py-2 pr-2">
                     <p className="font-medium">{line.name}</p>
                     <p className="text-[11px] text-[var(--tlkv-muted)]">{line.sku}</p>
-                    <p className="text-[11px] text-[var(--tlkv-muted)]">
-                      {line.weightChi > 0
-                        ? `${formatDong(Math.round(line.unitPriceDong / line.weightChi))}/chỉ`
-                        : formatDong(line.unitPriceDong)}
-                    </p>
+                    {line.goldAmountDong == null ? (
+                      <p className="text-[11px] text-[var(--tlkv-muted)]">
+                        {line.weightChi > 0
+                          ? `${formatDong(Math.round(line.unitPriceDong / line.weightChi))}/chỉ`
+                          : formatDong(line.unitPriceDong)}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-[var(--tlkv-muted)]">
+                        Vàng {formatDong(line.goldAmountDong)}
+                        {line.stoneWeightChi > 0 || line.stonePriceDong > 0
+                          ? ` · Đá ${formatChi(line.stoneWeightChi)}, ${formatDong(line.stonePriceDong)}`
+                          : ""}
+                        {(line.laborFinalDong ?? 0) !== 0 ? ` · Công ${formatDong(line.laborFinalDong ?? 0)}` : ""}
+                        {" / chiếc"}
+                      </p>
+                    )}
                   </td>
                   <td className="py-2 text-right align-top">
                     <p>{line.quantity}</p>

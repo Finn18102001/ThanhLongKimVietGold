@@ -104,6 +104,10 @@ function mapBuyDetailItem(item: Record<string, unknown>): BuyDetailItem {
       ? asNumber(item.weightBeforeChi ?? item.weight_before_chi)
       : weightChi;
   const afterRaw = item.weightAfterChi ?? item.weight_after_chi;
+  const quantity = asNumber(item.quantity);
+  const totalPriceDong = asNumber(item.totalPriceDong ?? item.total_price_dong);
+  const stonePriceDong = asNumber(item.stonePriceDong ?? item.stone_price_dong ?? 0);
+  const goldRaw = item.goldAmountDong ?? item.gold_amount_dong;
   return {
     id: String(item.id),
     skuId: item.skuId != null ? String(item.skuId) : item.sku_id != null ? String(item.sku_id) : null,
@@ -117,14 +121,17 @@ function mapBuyDetailItem(item: Record<string, unknown>): BuyDetailItem {
           ? String(item.brand_id)
           : null,
     brandName: (item.brandName as string | null) ?? (item.brand_name as string | null) ?? null,
-    quantity: asNumber(item.quantity),
+    quantity,
     weightChi,
     weightBeforeChi: weightBefore,
     weightAfterChi: afterRaw == null || afterRaw === "" ? null : asNumber(afterRaw),
     unitPriceDong: asNumber(item.unitPriceDong ?? item.unit_price_dong),
-    totalPriceDong: asNumber(item.totalPriceDong ?? item.total_price_dong),
+    totalPriceDong,
     isMarketGold: Boolean(item.isMarketGold ?? item.is_market_gold),
     priceException: Boolean(item.priceException ?? item.price_exception),
+    stoneWeightChi: asNumber(item.stoneWeightChi ?? item.stone_weight_chi ?? 0),
+    stonePriceDong,
+    goldAmountDong: goldRaw == null ? totalPriceDong - stonePriceDong * quantity : asNumber(goldRaw),
   };
 }
 
@@ -180,13 +187,26 @@ export async function completeBuy(input: {
     });
     if (error) throw new Error(error.message);
 
+    const raw = data as Record<string, unknown>;
+    const buyId = String(raw.buyId ?? raw.buy_id ?? "");
+    const classedLines = input.items.filter((item) => item.is_market_gold && item.market_class);
+    if (buyId && classedLines.length > 0) {
+      // Display grouping only: on failure the sell grid derives the group from tuổi vàng,
+      // so a failure here must never turn the committed buy into an error.
+      try {
+        await supabase.rpc("pos_set_market_gold_class", { p_buy_id: buyId, p_lines: classedLines });
+      } catch {
+        // ignore
+      }
+    }
+
     revalidatePath("/purchase");
     revalidatePath("/inventory");
     revalidatePath("/customers");
+    revalidatePath("/pos");
 
-    const raw = data as Record<string, unknown>;
     return {
-      buyId: String(raw.buyId ?? raw.buy_id ?? ""),
+      buyId,
       buyNo: String(raw.buyNo ?? raw.buy_no ?? ""),
       totalDong: asNumber(raw.totalDong ?? raw.total_dong),
       paidDong: asNumber(raw.paidDong ?? raw.paid_dong),

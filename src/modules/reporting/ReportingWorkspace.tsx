@@ -5,7 +5,7 @@ import { Printer } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDate, formatViDateTime, formatVnIsoDate } from "@/shared/lib/datetime";
 import { PAYMENT_LABEL, PAYMENT_STATUS_LABEL, type PaymentStatus } from "@/modules/invoice/types";
-import { withExportTime } from "@/shared/lib/csv";
+import { EXPORT_LIMIT_OPTIONS, limitExportRows, withExportTime } from "@/shared/lib/csv";
 import {
   fetchPurchaseReport,
   fetchReportingSnapshot,
@@ -38,6 +38,7 @@ export function ReportingWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [exporting, setExporting] = useState(false);
+  const [exportLimit, setExportLimit] = useState<number>(0);
 
   const maxRevenue = Math.max(...snapshot.daily.map((row) => row.revenueDong), 1);
   const maxPurchaseDaily = Math.max(
@@ -123,7 +124,14 @@ export function ReportingWorkspace({
     setExporting(true);
     try {
       const rows = await fetchTransactionExport(from, to);
-      downloadTransactionsCsv(rows, from, to);
+      const selected =
+        exportLimit > 0
+          ? limitExportRows(
+              [...rows].sort((a, b) => b.completedAt.localeCompare(a.completedAt)),
+              exportLimit,
+            )
+          : rows;
+      downloadTransactionsCsv(selected, from, to);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không xuất được Excel giao dịch");
@@ -164,6 +172,18 @@ export function ReportingWorkspace({
             >
               Lọc
             </button>
+            <select
+              value={exportLimit}
+              onChange={(event) => setExportLimit(Number(event.target.value))}
+              aria-label="Số dòng giao dịch xuất Excel"
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            >
+              {EXPORT_LIMIT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  Xuất {opt.label}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               disabled={exporting || pending}
@@ -611,6 +631,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Mã hàng",
     "Thương hiệu",
     "Tên sản phẩm",
+    "Hàm lượng",
     "Đơn giá",
     "SL bán",
     "Số chỉ",
@@ -639,6 +660,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.sku,
       row.brandName,
       row.productName,
+      row.purity,
       row.unitPriceDong,
       row.quantitySold,
       Number(row.weightChiSold.toFixed(4)),

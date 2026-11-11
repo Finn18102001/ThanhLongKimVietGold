@@ -16,7 +16,8 @@ export const BASE_LABEL_OFFSETS: LabelPrintOffsets = {
 /** Cỡ chữ gốc (pt) — áp vào lúc vẽ. */
 export const BASE_LABEL_FONTS: LabelPrintFonts = {
   face1Pt: 6,
-  face2Pt: 7,
+  /** 2 cột + dòng tên SP: KLV 3 số lẻ + G 8 chữ số vừa 1 hàng ở 5.6 pt. */
+  face2Pt: 5.6,
   tailPt: 5.4,
 };
 

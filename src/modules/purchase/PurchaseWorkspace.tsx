@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ClockCounterClockwise, Printer, Warning } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
+import type { MarketGoldClass, MarketGoldClassPrices } from "@/modules/pos/types";
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
@@ -28,6 +29,7 @@ import {
   uploadBuyFile,
 } from "./actions";
 import { BuyAttachmentsPanel } from "./components/BuyAttachmentsPanel";
+import { BuyLabelPrintButton } from "./components/BuyLabelPrintButton";
 import { BuyWorkflowPanel } from "./components/BuyWorkflowPanel";
 import { Form02Document } from "./components/Form02Document";
 import { MarketGoldModal } from "./components/MarketGoldModal";
@@ -52,6 +54,7 @@ import {
 import {
   PRICE_OUT_OF_RANGE_CONFIRM,
   lineHasPriceException,
+  buyItemHasStone,
   lineTotalDong,
   toBuyItemPayload,
   type BuyAttachmentDocKind,
@@ -73,9 +76,11 @@ type PrintDocKind = "commitment" | "form02" | "invoice";
 export function PurchaseWorkspace({
   catalog,
   marketRefs,
+  marketPrices = {},
 }: {
   catalog: PurchaseCatalogItem[];
   marketRefs: MarketGoldRef[];
+  marketPrices?: MarketGoldClassPrices;
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
@@ -85,6 +90,7 @@ export function PurchaseWorkspace({
   const [debt, setDebt] = useState<DebtSummary | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
+  const [marketClass, setMarketClass] = useState<MarketGoldClass | null>(null);
   const [showRecent, setShowRecent] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [payMode, setPayMode] = useState<BuyPayMode>("FULL");
@@ -640,7 +646,11 @@ export function PurchaseWorkspace({
             <PurchaseCatalogPanel
               catalog={catalog}
               onPickCatalog={addCatalogItem}
-              onOpenMarket={() => setShowMarket(true)}
+              marketPrices={marketPrices}
+              onOpenMarket={(cls) => {
+                setMarketClass(cls);
+                setShowMarket(true);
+              }}
             />
           </div>
 
@@ -685,7 +695,10 @@ export function PurchaseWorkspace({
 
       {showMarket ? (
         <MarketGoldModal
+          key={marketClass ?? "none"}
           marketRefs={marketRefs}
+          marketClass={marketClass}
+          marketPrice={marketClass ? marketPrices[marketClass] : undefined}
           onClose={() => setShowMarket(false)}
           onAdd={(line) => {
             setLines((prev) => [...prev, line]);
@@ -758,6 +771,11 @@ export function PurchaseWorkspace({
                         {line.productName}
                         {line.isMarketGold ? (
                           <span className="ml-1 text-[10px] text-[var(--tlkv-muted)]">(TT)</span>
+                        ) : null}
+                        {(line.stoneWeightChi ?? 0) > 0 || (line.stonePriceDong ?? 0) > 0 ? (
+                          <span className="block text-[11px] text-[var(--tlkv-muted)]">
+                            Đá {formatChi(line.stoneWeightChi ?? 0)} · {formatDong(line.stonePriceDong ?? 0)} / chiếc
+                          </span>
                         ) : null}
                       </td>
                       <td className="py-2">
@@ -945,6 +963,7 @@ export function PurchaseWorkspace({
                   >
                     Tài liệu ({detail.attachments?.length ?? 0})
                   </button>
+                  <BuyLabelPrintButton buy={detail} />
                 </div>
 
                 {detailTab === "docs" ? (
@@ -1007,6 +1026,11 @@ export function PurchaseWorkspace({
                             {item.isMarketGold ? (
                               <span className="ml-1 text-[10px] text-[var(--tlkv-muted)]">
                                 (thị trường)
+                              </span>
+                            ) : null}
+                            {buyItemHasStone(item) ? (
+                              <span className="block text-[11px] text-[var(--tlkv-muted)]">
+                                Đá {formatChi(item.stoneWeightChi)} · {formatDong(item.stonePriceDong)} / chiếc
                               </span>
                             ) : null}
                           </td>

@@ -1,5 +1,7 @@
 /** Integer VND helpers for POS price adjustment and charges. Backend remains source of truth. */
 
+import type { CartLine } from "./types";
+
 export const PRICE_ADJ_LIMIT_PER_CHI = 300_000;
 /** Step for +/- on transaction price / 1 chỉ in cart. */
 export const PRICE_UNIT_STEP_DONG = 10_000;
@@ -144,6 +146,35 @@ export function isUnitPriceOutOfAllowedRange(
   const bounds = unitPriceBoundsDong(referenceUnitDong, weightChi);
   const unit = Math.trunc(unitPriceDong);
   return unit < bounds.min || unit > bounds.max;
+}
+
+type CartLinePricing = Pick<
+  CartLine,
+  | "referenceUnitPriceDong"
+  | "priceAdjustmentPerChi"
+  | "weightChi"
+  | "quantity"
+  | "stonePriceDong"
+  | "laborFeeDong"
+  | "laborAdjustDong"
+>;
+
+export function laborFinalDong(line: Pick<CartLine, "laborFeeDong" | "laborAdjustDong">): number {
+  return line.laborFeeDong + line.laborAdjustDong;
+}
+
+/** Gold piece price after the ±/chỉ adjustment (no stone, no labor). */
+export function cartLineGoldUnitDong(line: CartLinePricing): number {
+  return lineActualUnitDong(line.referenceUnitPriceDong, line.priceAdjustmentPerChi, line.weightChi);
+}
+
+/** Mirrors complete_sale: vàng (+ điều chỉnh/chỉ) + giá đá + công cuối, per piece. */
+export function cartLineUnitDong(line: CartLinePricing): number {
+  return cartLineGoldUnitDong(line) + line.stonePriceDong + laborFinalDong(line);
+}
+
+export function cartLineTotalDong(line: CartLinePricing): number {
+  return cartLineUnitDong(line) * line.quantity;
 }
 
 export function chargesTotalDong(charges: PosChargeDraft[]): number {

@@ -5,9 +5,11 @@ import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import {
+  cartLineGoldUnitDong,
+  cartLineTotalDong,
   chargesTotalDong,
   isPricePerChiOutOfAllowedRange,
-  lineTotalDong,
+  laborFinalDong,
   PRICE_ADJ_LIMIT_PER_CHI,
   PRICE_OUT_OF_RANGE_INLINE,
   PRICE_UNIT_STEP_DONG,
@@ -54,6 +56,8 @@ export function PosCartPanel({
   onDueDateChange,
   onQty,
   onAdj,
+  onStonePrice,
+  onLaborAdj,
   onRemove,
   onChargesChange,
   onOperatorChange,
@@ -98,6 +102,8 @@ export function PosCartPanel({
   onDueDateChange: (value: string) => void;
   onQty: (skuId: string, quantity: number) => void;
   onAdj: (skuId: string, adjustmentPerChi: number) => void;
+  onStonePrice: (skuId: string, stonePriceDong: number) => void;
+  onLaborAdj: (skuId: string, laborAdjustDong: number) => void;
   onRemove: (skuId: string) => void;
   onChargesChange: (charges: PosChargeDraft[]) => void;
   onOperatorChange: (staffId: string) => void;
@@ -190,12 +196,9 @@ export function PosCartPanel({
         ) : (
           <ul className="divide-y divide-[var(--tlkv-line)]">
             {lines.map((line) => {
-              const lineTotal = lineTotalDong(
-                line.referenceUnitPriceDong,
-                line.priceAdjustmentPerChi,
-                line.weightChi,
-                line.quantity,
-              );
+              const lineTotal = cartLineTotalDong(line);
+              const laborFinal = laborFinalDong(line);
+              const hasStone = line.stoneWeightChi > 0 || line.stonePriceDefaultDong > 0;
               const out = line.stock <= 0;
               const boardPerChi = referencePricePerChiDong(
                 line.referenceUnitPriceDong,
@@ -335,6 +338,50 @@ export function PosCartPanel({
                           <span>{PRICE_OUT_OF_RANGE_INLINE}</span>
                         </p>
                       ) : null}
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                        {hasStone ? (
+                          <label className="block text-[11px] text-[var(--tlkv-muted)]">
+                            Giá đá / chiếc
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              step={PRICE_UNIT_STEP_DONG}
+                              value={line.stonePriceDong}
+                              onChange={(event) => onStonePrice(line.skuId, Number(event.target.value) || 0)}
+                              className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                            />
+                          </label>
+                        ) : null}
+                        <label className="block text-[11px] text-[var(--tlkv-muted)]">
+                          Tiền công / chiếc
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            step={PRICE_UNIT_STEP_DONG}
+                            value={laborFinal}
+                            onChange={(event) =>
+                              onLaborAdj(line.skuId, (Number(event.target.value) || 0) - line.laborFeeDong)
+                            }
+                            className={`mt-0.5 h-7 w-full rounded-md border px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] ${
+                              line.laborAdjustDong !== 0
+                                ? "border-[var(--tlkv-amber)] text-[var(--tlkv-text)]"
+                                : "border-[var(--tlkv-line)] text-[var(--tlkv-text)]"
+                            }`}
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
+                        Vàng {formatDong(cartLineGoldUnitDong(line))}
+                        {hasStone
+                          ? ` · Đá ${line.stoneWeightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ, ${formatDong(line.stonePriceDong)}`
+                          : ""}
+                        {` · Công ${formatDong(laborFinal)}`}
+                        {line.laborAdjustDong !== 0
+                          ? ` (gốc ${formatDong(line.laborFeeDong)}, ${line.laborAdjustDong > 0 ? "+" : ""}${formatDong(line.laborAdjustDong)})`
+                          : ""}
+                      </p>
                     </div>
                   </div>
                 </li>

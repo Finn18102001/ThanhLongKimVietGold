@@ -1,5 +1,9 @@
 import { LabelPrintPage } from "@/modules/label-print/LabelPrintPage";
 
-export default function LabelPrintRoute() {
-  return <LabelPrintPage />;
+export default async function LabelPrintRoute({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return <LabelPrintPage searchParams={await searchParams} />;
 }

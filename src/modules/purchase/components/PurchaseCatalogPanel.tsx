@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import {
   isGoldCatalogItem,
   prioritizeGoldFirst,
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
+import { formatDong } from "@/shared/lib/money";
+import {
+  MARKET_GOLD_CLASSES,
+  MARKET_GOLD_CLASS_LABEL,
+  MARKET_GOLD_GROUP,
+  type MarketGoldClass,
+  type MarketGoldClassPrices,
+} from "@/modules/pos/types";
 import type { PurchaseCatalogItem } from "../types";
 import { PurchaseCatalogCard } from "./PurchaseCatalogCard";
 
@@ -14,12 +22,14 @@ const PAGE_SIZE = 12;
 
 export function PurchaseCatalogPanel({
   catalog,
+  marketPrices = {},
   onPickCatalog,
   onOpenMarket,
 }: {
   catalog: PurchaseCatalogItem[];
+  marketPrices?: MarketGoldClassPrices;
   onPickCatalog: (item: PurchaseCatalogItem) => void;
-  onOpenMarket: () => void;
+  onOpenMarket: (marketClass: MarketGoldClass) => void;
 }) {
   const [group, setGroup] = useState("Tất cả");
   const [brandName, setBrandName] = useState("all");
@@ -27,9 +37,14 @@ export function PurchaseCatalogPanel({
   const [pageIndex, setPageIndex] = useState(0);
 
   const groups = useMemo(() => {
-    const unique = Array.from(new Set(catalog.map((item) => item.browseGroup)));
+    const unique = Array.from(new Set([MARKET_GOLD_GROUP, ...catalog.map((item) => item.browseGroup)]));
     return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
   }, [catalog]);
+  const showMarketCards =
+    (group === "Tất cả" || group === MARKET_GOLD_GROUP) &&
+    (brandName === "all" || brandName === MARKET_GOLD_GROUP) &&
+    (!query.trim() || MARKET_GOLD_GROUP.toLowerCase().includes(query.trim().toLowerCase()) ||
+      "bạc thị trường".includes(query.trim().toLowerCase()));
 
   const brandOptions = useMemo(() => {
     const names = Array.from(
@@ -70,14 +85,6 @@ export function PurchaseCatalogPanel({
     <section className="flex min-h-0 flex-col rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold">Sản phẩm đang bán</h2>
-        <button
-          type="button"
-          onClick={onOpenMarket}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-white"
-        >
-          <Plus size={14} weight="bold" />
-          Vàng thị trường
-        </button>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -132,7 +139,36 @@ export function PurchaseCatalogPanel({
       </div>
 
       <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
-        {pageItems.length === 0 ? (
+        {showMarketCards && safePage === 0
+          ? MARKET_GOLD_CLASSES.map((cls) => {
+              const buy = marketPrices[cls]?.buyDong ?? 0;
+              return (
+                <button
+                  key={`market-${cls}`}
+                  type="button"
+                  onClick={() => onOpenMarket(cls)}
+                  className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3 text-left shadow-[var(--tlkv-shadow)] transition-transform hover:-translate-y-0.5 hover:border-[var(--tlkv-red)]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
+                      {MARKET_GOLD_GROUP}
+                    </p>
+                    <span className="rounded-md bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
+                      Thị trường
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">
+                    {MARKET_GOLD_CLASS_LABEL[cls]}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">Nhập tuổi vàng, KL thật</p>
+                  <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">
+                    {buy > 0 ? `${formatDong(buy)}/chỉ` : "Chưa có giá"}
+                  </p>
+                </button>
+              );
+            })
+          : null}
+        {pageItems.length === 0 && !showMarketCards ? (
           <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-muted)]">
             Không có sản phẩm phù hợp.
           </p>

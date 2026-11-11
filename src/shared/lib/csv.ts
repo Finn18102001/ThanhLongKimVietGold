@@ -31,6 +31,23 @@ export function withExportTime(filename: string, now = new Date()): string {
   return `${filename.slice(0, dot)}-${stamp}${filename.slice(dot)}`;
 }
 
+/** Max rows any export RPC returns. `0` in the picker means "all up to this cap". */
+export const EXPORT_MAX_ROWS = 5000;
+
+export const EXPORT_LIMIT_OPTIONS = [
+  { value: 20, label: "20 gần nhất" },
+  { value: 50, label: "50 gần nhất" },
+  { value: 100, label: "100 gần nhất" },
+  { value: 200, label: "200 gần nhất" },
+  { value: 500, label: "500 gần nhất" },
+  { value: 0, label: `Tất cả (tối đa ${EXPORT_MAX_ROWS})` },
+] as const;
+
+/** Rows must already be sorted newest first. */
+export function limitExportRows<T>(rows: T[], limit: number): T[] {
+  return rows.slice(0, limit > 0 ? limit : EXPORT_MAX_ROWS);
+}
+
 export function downloadCsv(
   filename: string,
   headers: string[],

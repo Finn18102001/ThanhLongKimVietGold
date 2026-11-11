@@ -18,6 +18,8 @@ export type Form02Line = {
   lineTotalDong: number;
   buyTotalDong: number;
   actorEmail: string | null;
+  /** Hàm lượng: tuổi vàng gõ lúc mua, rồi dòng giá của dòng mua (RPC `purity`). */
+  purity: string | null;
 };
 
 export type Form02ListPage = {

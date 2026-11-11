@@ -46,7 +46,14 @@ type CompleteSaleInput = {
   charges?: Array<{ name: string; amount_dong: number; reason?: string }>;
   operatorStaffId?: string | null;
   pickupDueAt?: string | null;
-  items: Array<{ sku_id: string; quantity: number; price_adjustment_per_chi?: number }>;
+  items: Array<{
+    sku_id: string;
+    quantity: number;
+    price_adjustment_per_chi?: number;
+    /** Giá đá / chiếc khi bán; omit = mặc định SKU. */
+    stone_price_dong?: number;
+    labor_adjust_dong?: number;
+  }>;
 };
 
 function rpcSalePayload(input: CompleteSaleInput) {

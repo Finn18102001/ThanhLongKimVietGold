@@ -10,15 +10,20 @@ import {
   setLabelPieceTypeCode,
   fetchPrintHistoryPage,
   pieceHasLabelPrintAction,
+  saveLabelSkuComponents,
 } from "../actions";
+import { prefillFormDefaults, skuFormDefaults } from "../prefill";
 import {
   ACTION_LABEL,
   STOCK_SIZE_LABEL,
   formatChi,
   formatDong,
+  formatGoldAge,
 } from "../labels";
 import { printLabelNodes } from "../print";
 import { LabelPreview, LabelTag } from "./LabelPreview";
+import { LabelReceiveSection } from "./LabelReceiveSection";
+import { BASE_LABEL_FONTS } from "../layoutDefaults";
 import {
   DEFAULT_LABEL_OFFSETS,
   OFFSET_RANGE,
@@ -45,6 +50,9 @@ import type {
   LabelPrintAction,
   LabelPrintLogRow,
   LabelPrintPayload,
+  LabelPrefill,
+  LabelReceiveOptions,
+  LabelReceiveResult,
   LabelSkuOption,
   LabelStockSize,
 } from "../types";
@@ -52,6 +60,7 @@ import {
   DEFAULT_ADDRESS_LINE,
   DEFAULT_COMPANY_SHORT,
   DEFAULT_LABEL_HISTORY_PAGE_SIZE,
+  DEFAULT_ORIGIN,
   LABEL_HISTORY_PAGE_SIZES,
 } from "../types";
 
@@ -82,13 +91,37 @@ function historyCacheKey(filter: LabelHistoryFilter, pageSize: number): string {
   ].join("|");
 }
 
-export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
+export function LabelPrintWorkspace({
+  skus: initialSkus,
+  receiveOptions = null,
+  prefill = null,
+}: {
+  skus: LabelSkuOption[];
+  /** Present only for ADMIN (admin write) — renders "Nhập hàng" above "Thông tin in". */
+  receiveOptions?: LabelReceiveOptions | null;
+  /** Opened from a buy invoice: preselect the SKU and fill purity / weights / stone. */
+  prefill?: LabelPrefill | null;
+}) {
+  const [initial] = useState(() => {
+    const sku = prefill ? initialSkus.find((s) => s.skuId === prefill.skuId) : undefined;
+    return prefill && sku ? { skuId: sku.skuId, ...prefillFormDefaults(sku, prefill) } : null;
+  });
+  /** SKUs received on this screen before the server list refreshes. */
+  const [receivedSkus, setReceivedSkus] = useState<LabelSkuOption[]>([]);
+  const skus = useMemo(() => {
+    const ids = new Set(initialSkus.map((s) => s.skuId));
+    return [...receivedSkus.filter((s) => !ids.has(s.skuId)), ...initialSkus];
+  }, [initialSkus, receivedSkus]);
   const [tab, setTab] = useState<Tab>("print");
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    prefill && !initial
+      ? `Không tìm thấy SKU của phiếu ${prefill.sourceNo ?? "mua"} trong danh sách in (SKU đã hết tồn hoặc ngừng).`
+      : null,
+  );
   const [message, setMessage] = useState<string | null>(null);
 
-  const [skuId, setSkuId] = useState("");
+  const [skuId, setSkuId] = useState(initial?.skuId ?? "");
   const [pieces, setPieces] = useState<LabelPiece[]>([]);
   const [pieceId, setPieceId] = useState("");
   /** Editable product-type prefix; composed MSP = typeCodeDraft + serialNo. */
@@ -97,11 +130,15 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
   const [printQty, setPrintQty] = useState(1);
   const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_SHORT);
   const [addressLine, setAddressLine] = useState(DEFAULT_ADDRESS_LINE);
-  const [laborFeeDong, setLaborFeeDong] = useState(0);
-  const [priceDong, setPriceDong] = useState(0);
-  const [kltChi, setKltChi] = useState(0);
-  const [klvChi, setKlvChi] = useState(0);
-  const [kldChi, setKldChi] = useState(0);
+  const [laborFeeDong, setLaborFeeDong] = useState(initial?.laborFeeDong ?? 0);
+  const [priceDong, setPriceDong] = useState(initial?.priceDong ?? 0);
+  const [kltChi, setKltChi] = useState(initial?.kltChi ?? 0);
+  const [klvChi, setKlvChi] = useState(initial?.klvChi ?? 0);
+  const [kldChi, setKldChi] = useState(initial?.kldChi ?? 0);
+  const [stonePriceDong, setStonePriceDong] = useState(initial?.stonePriceDong ?? 0);
+  const [tagName, setTagName] = useState(initial?.tagName ?? "");
+  const [goldAgeText, setGoldAgeText] = useState(initial?.goldAgeText ?? "");
+  const [originText, setOriginText] = useState(DEFAULT_ORIGIN);
   const [historyFilter, setHistoryFilter] = useState(EMPTY_HISTORY_FILTER);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_LABEL_HISTORY_PAGE_SIZE);
   const [historyPage, setHistoryPage] = useState(1);
@@ -299,6 +336,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
       setKltChi(0);
       setKlvChi(0);
       setKldChi(0);
+      setStonePriceDong(0);
     }
   }, [selectedSku]);
 
@@ -334,6 +372,9 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
           brandName: selectedSku.brandName ?? "",
           companyName,
           addressLine,
+          tagName,
+          goldAgeText,
+          originText,
           kltChi,
           klvChi,
           kldChi,
@@ -346,6 +387,47 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
       : null;
 
   const hasPrintedBefore = Boolean(selectedPiece && printedPieceIds.has(selectedPiece.id));
+
+  function selectSku(nextId: string, list: LabelSkuOption[] = skus) {
+    setSkuId(nextId);
+    const sku = list.find((s) => s.skuId === nextId);
+    if (!sku) {
+      setLaborFeeDong(0);
+      setPriceDong(0);
+      setKltChi(0);
+      setKlvChi(0);
+      setKldChi(0);
+      setStonePriceDong(0);
+      setTagName("");
+      setGoldAgeText("");
+      return;
+    }
+    const d = skuFormDefaults(sku);
+    setLaborFeeDong(d.laborFeeDong);
+    setPriceDong(d.priceDong);
+    setKltChi(d.kltChi);
+    setKlvChi(d.klvChi);
+    setKldChi(d.kldChi);
+    setStonePriceDong(d.stonePriceDong);
+    setTagName(d.tagName);
+    setGoldAgeText(d.goldAgeText);
+  }
+
+  function onReceived(result: LabelReceiveResult) {
+    setError(null);
+    const received = result.sku;
+    if (!received) {
+      setMessage(
+        `Đã nhập phiếu ${result.receiptNo} · mã ${result.skuCode}. Tải lại trang để chọn mã này ở Thông tin in.`,
+      );
+      return;
+    }
+    setReceivedSkus((prev) => [received, ...prev.filter((s) => s.skuId !== received.skuId)]);
+    selectSku(received.skuId, [received]);
+    setMessage(
+      `Đã chọn ${received.name} (${received.sku}) · tồn ${received.stockQty}. Bấm "Tạo MSP mới" nếu mã chưa có MSP.`,
+    );
+  }
 
   function onMint() {
     if (!skuId) return;
@@ -428,9 +510,17 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
           return next;
         });
         invalidateHistoryCache();
+        const saved = await saveLabelSkuComponents({
+          skuId: selectedSku.skuId,
+          laborFeeDong,
+          stoneWeightChi: kldChi,
+          stonePriceDong,
+        });
         setMessage(
-          `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${recorded.msp || piece.msp} (không đổi tồn kho).`,
+          `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${recorded.msp || piece.msp} (không đổi tồn kho).` +
+            (saved.ok && saved.data.changed ? " Đã lưu tiền công / đá vào SKU." : ""),
         );
+        if (!saved.ok) setError(`Đã in nhưng chưa lưu tiền công / đá vào SKU: ${saved.message}`);
         window.setTimeout(() => printLabelNodes(stockSize), 120);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không ghi lịch sử in");
@@ -456,6 +546,11 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
     setKltChi(row.kltChi);
     setKlvChi(row.klvChi);
     setKldChi(row.kldChi ?? 0);
+    const reprintSku = skus.find((s) => s.skuId === row.skuId);
+    setStonePriceDong(reprintSku?.stonePriceDong ?? 0);
+    setTagName(reprintSku?.name ?? row.productName);
+    setGoldAgeText(formatGoldAge(reprintSku?.goldAge ?? null));
+    setOriginText(DEFAULT_ORIGIN);
     setMessage(`Đã nạp MSP ${row.msp} để in lại. Layout phôi 90×14 mm.`);
   }
 
@@ -523,32 +618,28 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
 
       {tab === "print" ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          {receiveOptions ? (
+            <LabelReceiveSection options={receiveOptions} onReceived={onReceived} />
+          ) : null}
           <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
             <h2 className="text-[15px] font-semibold">Thông tin in</h2>
+            {initial && prefill ? (
+              <div className="mt-3 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
+                <p className="font-medium">
+                  Nạp từ phiếu mua {prefill.sourceNo ?? ""}. Chỉ in tem, không tạo phiếu mua / không cộng tồn.
+                </p>
+                {prefill.note ? (
+                  <p className="mt-0.5 text-[var(--tlkv-muted)]">Ghi chú: {prefill.note}</p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
                 Sản phẩm (SKU)
                 <select
                   value={skuId}
-                  onChange={(e) => {
-                    const nextId = e.target.value;
-                    setSkuId(nextId);
-                    const sku = skus.find((s) => s.skuId === nextId);
-                    if (!sku) {
-                      setLaborFeeDong(0);
-                      setPriceDong(0);
-                      setKltChi(0);
-                      setKlvChi(0);
-                      setKldChi(0);
-                      return;
-                    }
-                    setLaborFeeDong(sku.laborFeeDong);
-                    setPriceDong(sku.unitPriceDong ?? 0);
-                    setKltChi(sku.weightChi);
-                    setKlvChi(sku.weightChi);
-                    setKldChi(0);
-                  }}
+                  onChange={(e) => selectSku(e.target.value)}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)]"
                 >
                   <option value="">Chọn sản phẩm...</option>
@@ -628,6 +719,18 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                 />
               </label>
 
+              <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
+                Tên sản phẩm (dòng đầu Mặt 2)
+                <input
+                  value={selectedSku ? tagName : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setTagName(e.target.value)}
+                  placeholder="Tự điền theo SKU đã chọn"
+                  maxLength={120}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 KLT (Khối lượng tổng) — chỉ
                 <input
@@ -652,7 +755,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
-              <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
                 KL Đá — chỉ (để trống / 0 nếu không có)
                 <input
                   type="number"
@@ -661,6 +764,29 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                   value={selectedSku ? kldChi : ""}
                   disabled={!selectedSku}
                   onChange={(e) => setKldChi(Math.max(0, Number(e.target.value) || 0))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                Giá đá / chiếc (đ), lưu vào SKU, không in
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={selectedSku ? stonePriceDong : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setStonePriceDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                HL (Hàm lượng / tuổi vàng)
+                <input
+                  value={selectedSku ? goldAgeText : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setGoldAgeText(e.target.value)}
+                  placeholder="VD: 999,9 · để trống nếu không in"
+                  maxLength={16}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
@@ -687,7 +813,6 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
                 />
               </label>
-
               <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
                 Tên công ty (in trên tem)
                 <div className="mt-1 flex flex-wrap gap-2">
@@ -704,6 +829,16 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                     Dùng tên rút gọn
                   </button>
                 </div>
+              </label>
+
+              <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
+                Xuất xứ (dòng cuối Mặt 1, để trống nếu không in)
+                <input
+                  value={originText}
+                  onChange={(e) => setOriginText(e.target.value)}
+                  maxLength={40}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                />
               </label>
 
               <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
@@ -763,7 +898,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                     onChange={(axis, value) => patchZone("face1", axis, value)}
                   />
                   <OffsetZoneEditor
-                    title="Mặt 2 (KLT…)"
+                    title="Mặt 2 (tên SP, KLT…)"
                     zone={offsets.face2}
                     onChange={(axis, value) => patchZone("face2", axis, value)}
                   />
@@ -789,7 +924,8 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                   </button>
                 </div>
                 <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
-                  Layout chuẩn: Mặt1 6 pt · Mặt2 7 pt · Đuôi 5.4 pt. Ô trống = 0 (không đổi) ·
+                  Layout chuẩn: Mặt1 {BASE_LABEL_FONTS.face1Pt} pt · Mặt2 {BASE_LABEL_FONTS.face2Pt} pt ·
+                  Đuôi {BASE_LABEL_FONTS.tailPt} pt. Ô trống = 0 (không đổi) ·
                   ± chỉ khi cần chỉnh thêm.
                 </p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -803,7 +939,7 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
                     onNudge={(d) => nudgeFont("face1Pt", d)}
                   />
                   <FontSizeEditor
-                    title="Mặt 2 (KLT…)"
+                    title="Mặt 2 (tên SP, KLT…)"
                     value={fonts.face2Pt}
                     min={FONT_FACE_RANGE.min}
                     max={FONT_FACE_RANGE.max}
@@ -837,7 +973,13 @@ export function LabelPrintWorkspace({ skus }: { skus: LabelSkuOption[] }) {
             </div>
           </section>
 
-          <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
+          <section
+            className={`rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] ${
+              receiveOptions
+                ? "xl:sticky xl:top-4 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:self-start"
+                : ""
+            }`}
+          >
             <h2 className="text-[15px] font-semibold">Layout tem</h2>
             <div className="mt-4">
               <LabelPreview

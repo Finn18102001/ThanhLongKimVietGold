@@ -1,8 +1,14 @@
 "use server";
 
-import { listPosCatalogWithPricing } from "@/modules/pos/query";
+import { listMarketGoldClassPrices, listPosCatalogWithPricing } from "@/modules/pos/query";
+import type { MarketGoldClassPrices } from "@/modules/pos/types";
 import { listMarketGoldRefs as listMarketGoldRefsAction } from "./actions";
 import type { MarketGoldRef, PurchaseCatalogItem } from "./types";
+
+/** Cross-module: POS contract for the display price of the 4 market group cards. */
+export async function listPurchaseMarketPrices(): Promise<MarketGoldClassPrices> {
+  return listMarketGoldClassPrices();
+}
 
 /** RSC initial load: market gold reference prices (optional hints only). */
 export async function listMarketGoldRefs(): Promise<MarketGoldRef[]> {

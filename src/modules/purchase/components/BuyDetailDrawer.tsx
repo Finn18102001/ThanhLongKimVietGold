@@ -18,9 +18,16 @@ import {
   voidBuy,
 } from "../actions";
 import { formatChi, paymentMethodLabel, paymentStatusLabel } from "../labels";
-import type { BuyAttachmentDocKind, BuyDetail, MeltWeightItemPayload, PaymentMethod } from "../types";
+import {
+  buyItemHasStone,
+  type BuyAttachmentDocKind,
+  type BuyDetail,
+  type MeltWeightItemPayload,
+  type PaymentMethod,
+} from "../types";
 import { isBuyInMeltWorkflow } from "../workflowLabels";
 import { BuyAttachmentsPanel } from "./BuyAttachmentsPanel";
+import { BuyLabelPrintButton } from "./BuyLabelPrintButton";
 import { BuyWorkflowPanel } from "./BuyWorkflowPanel";
 import { Form02Document } from "./Form02Document";
 import { MeltCommitmentDocument } from "./MeltCommitmentDocument";
@@ -236,7 +243,14 @@ export function BuyDetailDrawer({
                     <tbody>
                       {buy.items.map((item) => (
                         <tr key={item.id} className="border-b border-[var(--tlkv-line)]">
-                          <td className="py-2">{item.productName}</td>
+                          <td className="py-2">
+                            {item.productName}
+                            {buyItemHasStone(item) ? (
+                              <span className="block text-[11px] text-[var(--tlkv-muted)]">
+                                Đá {formatChi(item.stoneWeightChi)} · {formatDong(item.stonePriceDong)} / chiếc
+                              </span>
+                            ) : null}
+                          </td>
                           <td className="py-2">
                             {formatChi(
                               item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi,
@@ -277,6 +291,7 @@ export function BuyDetailDrawer({
                     >
                       Tài liệu ({buy.attachments?.length ?? 0})
                     </button>
+                    <BuyLabelPrintButton buy={buy} />
                     {canShowVoid ? (
                       <button
                         type="button"

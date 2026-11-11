@@ -5,7 +5,7 @@ import { Printer, X } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { Form02Document } from "@/modules/purchase/components/Form02Document";
-import { purchaseLineWeightChi } from "@/modules/purchase/labels";
+import { buyPrintRows } from "@/modules/purchase/components/buyPrintRows";
 import { printPurchaseDocument } from "@/modules/purchase/print";
 import type { BuyDetail } from "@/modules/purchase/types";
 import { getForm02Detail } from "../actions";
@@ -140,20 +140,19 @@ export function Form02DetailDrawer({
                       </tr>
                     </thead>
                     <tbody>
-                      {buy.items.map((item, index) => (
-                        <tr key={item.id} className="border-t border-[var(--tlkv-line)]">
-                          <td className="px-3 py-2 tabular-nums">{index + 1}</td>
-                          <td className="px-3 py-2">{item.productName}</td>
+                      {buyPrintRows(buy.items).map((row) => (
+                        <tr key={row.key} className="border-t border-[var(--tlkv-line)]">
+                          <td className="px-3 py-2 tabular-nums">{row.stt}</td>
+                          <td className="px-3 py-2">{row.name}</td>
                           <td className="px-3 py-2 text-right tabular-nums">
-                            {purchaseLineWeightChi(item.quantity, item.weightChi).toLocaleString("vi-VN", {
-                              maximumFractionDigits: 4,
-                            })}
+                            {row.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })}
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">
-                            {formatDong(item.unitPriceDong)}
+                            {formatDong(row.unitPriceDong)}
+                            {row.isStone ? " / chiếc" : ""}
                           </td>
                           <td className="px-3 py-2 text-right font-medium tabular-nums">
-                            {formatDong(item.totalPriceDong)}
+                            {formatDong(row.amountDong)}
                           </td>
                         </tr>
                       ))}

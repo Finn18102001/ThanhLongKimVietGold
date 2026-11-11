@@ -11,7 +11,7 @@ function formatChiTotal(weight: number): string {
 
 export async function InventoryPage() {
   const [rows, ledger] = await Promise.all([
-    listStock({ includeMarketGold: true }),
+    listStock({ includeMarketGold: true, withPurity: true }),
     listLedger(),
   ]);
   const skuCount = rows.length;

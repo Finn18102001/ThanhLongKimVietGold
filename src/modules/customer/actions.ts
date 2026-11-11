@@ -138,7 +138,7 @@ export async function listCustomerActivity(
            id, sale_no, paid_dong, remaining_dong, payment_status, status, payment_method,
            transaction_type, fulfillment_status, customer_id,
            pos_sale_items(
-             product_name_snapshot, unit_price_dong, total_price_dong, quantity,
+             product_name_snapshot, unit_price_dong, total_price_dong, quantity, sku_id, price_row_id,
              pos_skus(name, brands!pos_skus_brand_id_fkey(name))
            )
          )`,
@@ -154,6 +154,7 @@ export async function listCustomerActivity(
          payment_status, status, payment_method,
          pos_buy_items(
            product_name_snapshot, brand_name, unit_price_dong, total_price_dong, quantity,
+           sku_id, price_row_id, gold_age,
            pos_skus(name, brands!pos_skus_brand_id_fkey(name))
          )`,
       )
@@ -173,6 +174,8 @@ export async function listCustomerActivity(
     unit_price_dong: number | null;
     total_price_dong: number | null;
     quantity: number | null;
+    sku_id: string | null;
+    price_row_id: string | null;
     pos_skus: SkuEmbed | SkuEmbed[];
   };
   type SaleEmbed = {
@@ -192,8 +195,18 @@ export async function listCustomerActivity(
     unit_price_dong: number | null;
     total_price_dong: number | null;
     quantity: number | null;
+    sku_id: string | null;
+    price_row_id: string | null;
+    gold_age: string | null;
     pos_skus: SkuEmbed | SkuEmbed[];
   };
+  /** Sale: price row saved at sale. Buy: gold age typed at buy, then its price row. Both fall back to SKU. */
+  const puritySources: Array<{
+    item: CustomerHistoryItem;
+    typed: string;
+    priceRowId: string;
+    skuId: string;
+  }> = [];
 
   function brandNameOf(sku: SkuEmbed | SkuEmbed[] | null | undefined): string {
     const row = Array.isArray(sku) ? sku[0] : sku;
@@ -237,13 +250,20 @@ export async function listCustomerActivity(
       continue;
     }
     for (const [idx, item] of items.entries()) {
-      sales.push({
+      const line: CustomerHistoryItem = {
         ...base,
         activityId: `${base.activityId}:${idx}`,
         totalDong: Number(item.total_price_dong ?? base.totalDong),
         productName: productNameOf(item.product_name_snapshot, item.pos_skus),
         brandName: brandNameOf(item.pos_skus),
         unitPriceDong: item.unit_price_dong == null ? null : Number(item.unit_price_dong),
+      };
+      sales.push(line);
+      puritySources.push({
+        item: line,
+        typed: "",
+        priceRowId: String(item.price_row_id ?? ""),
+        skuId: String(item.sku_id ?? ""),
       });
     }
   }
@@ -273,14 +293,49 @@ export async function listCustomerActivity(
       continue;
     }
     for (const [idx, item] of items.entries()) {
-      buys.push({
+      const line: CustomerHistoryItem = {
         ...base,
         activityId: `${base.activityId}:${idx}`,
         totalDong: Number(item.total_price_dong ?? base.totalDong),
         productName: productNameOf(item.product_name_snapshot, item.pos_skus),
         brandName: item.brand_name?.trim() || brandNameOf(item.pos_skus),
         unitPriceDong: item.unit_price_dong == null ? null : Number(item.unit_price_dong),
+      };
+      buys.push(line);
+      puritySources.push({
+        item: line,
+        typed: String(item.gold_age ?? "").trim(),
+        priceRowId: String(item.price_row_id ?? ""),
+        skuId: String(item.sku_id ?? ""),
       });
+    }
+  }
+
+  if (puritySources.length > 0) {
+    const skuIds = Array.from(new Set(puritySources.map((s) => s.skuId).filter(Boolean)));
+    const priceRowIds = Array.from(
+      new Set(puritySources.map((s) => s.priceRowId).filter(Boolean)),
+    );
+    const [skuRes, priceRes] = await Promise.all([
+      skuIds.length > 0
+        ? supabase.rpc("pos_list_sku_purity", { p_sku_ids: skuIds })
+        : Promise.resolve({ data: {}, error: null }),
+      priceRowIds.length > 0
+        ? supabase.from("gold_price_rows").select("id, purity").in("id", priceRowIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const bySku = (skuRes.error ? {} : (skuRes.data ?? {})) as Record<string, string>;
+    const byPriceRow = new Map<string, string>();
+    for (const row of (priceRes.error ? [] : (priceRes.data ?? [])) as Array<{
+      id: string;
+      purity: string | null;
+    }>) {
+      const purity = String(row.purity ?? "").trim();
+      if (purity) byPriceRow.set(String(row.id), purity);
+    }
+    for (const source of puritySources) {
+      source.item.purity =
+        source.typed || byPriceRow.get(source.priceRowId) || bySku[source.skuId] || "";
     }
   }
 

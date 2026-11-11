@@ -5,6 +5,7 @@ import { assertAdminWrite } from "@/shared/auth/assert";
 import { formatVnIsoDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type { StockCountListRow, StockCountSession } from "./count-types";
+import { fetchSkuPurityMap } from "./query";
 
 function revalidateCount() {
   revalidatePath("/inventory/count");
@@ -58,10 +59,10 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
   if (session.items.length === 0) return session;
   const supabase = await createServerSupabase();
   const skuIds = session.items.map((item) => item.skuId);
-  const { data, error } = await supabase
-    .from("pos_skus")
-    .select("id, weight_chi, brands(name)")
-    .in("id", skuIds);
+  const [{ data, error }, purityBySku] = await Promise.all([
+    supabase.from("pos_skus").select("id, weight_chi, brands(name)").in("id", skuIds),
+    fetchSkuPurityMap(skuIds),
+  ]);
   if (error || !data) return withDayMovements(session);
 
   const metaBySku = new Map<string, { brandName: string | null; weightChi: number }>();
@@ -85,6 +86,7 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
         ...item,
         brandName: meta?.brandName ?? item.brandName ?? null,
         weightChi: meta?.weightChi ?? item.weightChi,
+        purity: purityBySku[item.skuId] ?? null,
       };
     }),
   });

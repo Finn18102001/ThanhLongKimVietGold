@@ -33,6 +33,8 @@ export type GoldObligationRow = {
   partyCitizenId: string;
   /** Payment lines of the source document, for Excel only. */
   paymentHistory: string;
+  /** Hàm lượng as recorded (sale: price row saved at sale; purchase: SKU current). Excel only. */
+  purity: string;
 };
 
 export type GoldObligationSummary = {

@@ -5,7 +5,13 @@ import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import { Modal } from "@/shared/ui/Modal";
 import type { CustomerRecord } from "@/modules/customer/types";
-import { chargesTotalDong, lineTotalDong, type PosChargeDraft } from "../money";
+import {
+  cartLineGoldUnitDong,
+  cartLineTotalDong,
+  chargesTotalDong,
+  laborFinalDong,
+  type PosChargeDraft,
+} from "../money";
 import type { CartLine } from "../types";
 import { ProductThumb } from "./CatalogCard";
 
@@ -151,20 +157,19 @@ export function PosCheckoutDialog({
                           {line.sku}
                           {line.stock <= 0 ? " · Đặt hàng" : ""}
                         </span>
+                        <span className="block text-[12px] text-[var(--tlkv-muted)]">
+                          Vàng {formatDong(cartLineGoldUnitDong(line))}
+                          {line.stonePriceDong > 0 || line.stoneWeightChi > 0
+                            ? ` · Đá ${formatDong(line.stonePriceDong)}`
+                            : ""}
+                          {laborFinalDong(line) !== 0 ? ` · Công ${formatDong(laborFinalDong(line))}` : ""}
+                          {" / chiếc"}
+                        </span>
                       </span>
                     </div>
                   </td>
                   <td className="py-2.5">{line.quantity}</td>
-                  <td className="py-2.5 text-right font-medium">
-                    {formatDong(
-                      lineTotalDong(
-                        line.referenceUnitPriceDong,
-                        line.priceAdjustmentPerChi,
-                        line.weightChi,
-                        line.quantity,
-                      ),
-                    )}
-                  </td>
+                  <td className="py-2.5 text-right font-medium">{formatDong(cartLineTotalDong(line))}</td>
                 </tr>
               ))}
               {charges

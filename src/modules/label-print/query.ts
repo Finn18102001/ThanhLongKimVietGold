@@ -4,6 +4,7 @@ import type {
   LabelHistoryQuery,
   LabelPiece,
   LabelPrintLogRow,
+  LabelReceiveOptions,
   LabelSkuOption,
   LabelStockSize,
 } from "./types";
@@ -78,43 +79,113 @@ function unitPrice(
   return Math.round(sell * (weightChi / boardUnitChi)) + labor;
 }
 
+const LABEL_SKU_COLUMNS =
+  "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_price_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(category, gold_age), brands!pos_skus_brand_id_fkey(name)";
+const LABEL_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock(quantity)`;
+/** Market gold SKUs are inactive by design; only those still in stock can be labelled. */
+const LABEL_MARKET_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock!inner(quantity)`;
+
+type LabelSkuRow = {
+  id: string;
+  sku: string;
+  name: string;
+  weight_chi: number | string;
+  board_unit_chi: number | string;
+  labor_fee_dong: number | string | null;
+  stone_weight_chi: number | string | null;
+  stone_price_dong: number | string | null;
+  is_market_gold: boolean | null;
+  gold_price_rows: unknown;
+  pos_inventory_stock: unknown;
+  products: unknown;
+  brands: unknown;
+};
+
+function mapLabelSku(row: LabelSkuRow): LabelSkuOption {
+  const price = firstEmbed(row.gold_price_rows as { sell: number } | { sell: number }[] | null);
+  const stock = firstEmbed(
+    row.pos_inventory_stock as { quantity: number } | { quantity: number }[] | null,
+  );
+  type ProductEmbed = { category: string | null; gold_age: number | string | null };
+  const product = firstEmbed(row.products as ProductEmbed | ProductEmbed[] | null);
+  const brand = firstEmbed(row.brands as { name: string } | { name: string }[] | null);
+  const goldAge = product?.gold_age == null ? null : Number(product.gold_age);
+  const isMarketGold = Boolean(row.is_market_gold);
+  return {
+    skuId: row.id,
+    sku: row.sku,
+    name: row.name,
+    category: product?.category ?? (isMarketGold ? "Vàng thị trường" : "Khác"),
+    brandName: brand?.name ?? null,
+    weightChi: Number(row.weight_chi),
+    laborFeeDong: Number(row.labor_fee_dong ?? 0),
+    unitPriceDong: unitPrice(
+      price?.sell === undefined ? null : Number(price.sell),
+      Number(row.weight_chi),
+      Number(row.board_unit_chi),
+      Number(row.labor_fee_dong ?? 0),
+    ),
+    stockQty: Number(stock?.quantity ?? 0),
+    goldAge: goldAge != null && Number.isFinite(goldAge) ? goldAge : null,
+    stoneWeightChi: Number(row.stone_weight_chi ?? 0),
+    stonePriceDong: Number(row.stone_price_dong ?? 0),
+    isMarketGold,
+  };
+}
+
 export async function listLabelSkus(): Promise<LabelSkuOption[]> {
+  const supabase = await createServerSupabase();
+  const [active, market] = await Promise.all([
+    supabase.from("pos_skus").select(LABEL_SKU_SELECT).eq("is_active", true).order("name"),
+    supabase
+      .from("pos_skus")
+      .select(LABEL_MARKET_SKU_SELECT)
+      .eq("is_active", false)
+      .eq("is_market_gold", true)
+      .gt("pos_inventory_stock.quantity", 0)
+      .order("name"),
+  ]);
+  if (active.error) throw new Error(active.error.message);
+  if (market.error) throw new Error(market.error.message);
+  return [...((active.data ?? []) as LabelSkuRow[]), ...((market.data ?? []) as LabelSkuRow[])].map(mapLabelSku);
+}
+
+export async function getLabelSku(skuId: string): Promise<LabelSkuOption | null> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("pos_skus")
-    .select(
-      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity), products!pos_skus_catalog_product_id_fkey(category), brands!pos_skus_brand_id_fkey(name)",
-    )
-    .eq("is_active", true)
-    .order("name");
+    .select(LABEL_SKU_SELECT)
+    .eq("id", skuId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
+  return data ? mapLabelSku(data as LabelSkuRow) : null;
+}
 
-  return (data ?? []).map((row) => {
-    const price = firstEmbed(row.gold_price_rows as { sell: number } | { sell: number }[] | null);
-    const stock = firstEmbed(
-      row.pos_inventory_stock as { quantity: number } | { quantity: number }[] | null,
-    );
-    const product = firstEmbed(
-      row.products as { category: string | null } | { category: string | null }[] | null,
-    );
-    const brand = firstEmbed(row.brands as { name: string } | { name: string }[] | null);
-    return {
-      skuId: row.id,
-      sku: row.sku,
-      name: row.name,
-      category: product?.category ?? "Khác",
-      brandName: brand?.name ?? null,
-      weightChi: Number(row.weight_chi),
-      laborFeeDong: Number(row.labor_fee_dong ?? 0),
-      unitPriceDong: unitPrice(
-        price?.sell === undefined ? null : Number(price.sell),
-        Number(row.weight_chi),
-        Number(row.board_unit_chi),
-        Number(row.labor_fee_dong ?? 0),
-      ),
-      stockQty: Number(stock?.quantity ?? 0),
-    };
-  });
+export async function listLabelReceiveOptions(): Promise<LabelReceiveOptions> {
+  const supabase = await createServerSupabase();
+  const [brands, categories, priceRows] = await Promise.all([
+    supabase.rpc("pos_list_brands"),
+    supabase.from("categories").select("id, name").eq("is_active", true).order("sort_order"),
+    supabase.from("gold_price_rows").select("id, product, brand, purity").order("sort_order"),
+  ]);
+  if (brands.error) throw new Error(brands.error.message);
+  if (categories.error) throw new Error(categories.error.message);
+  if (priceRows.error) throw new Error(priceRows.error.message);
+
+  const brandRows = (brands.data as Array<Record<string, unknown>> | null) ?? [];
+  return {
+    brands: brandRows.map((row) => ({ id: String(row.id), name: String(row.name ?? "") })),
+    categories: (categories.data ?? []).map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? ""),
+    })),
+    priceRows: (priceRows.data ?? []).map((row) => ({
+      id: String(row.id),
+      brand: String(row.brand ?? ""),
+      product: String(row.product ?? ""),
+      purity: String(row.purity ?? ""),
+    })),
+  };
 }
 
 export async function listPiecesForSku(skuId: string): Promise<LabelPiece[]> {

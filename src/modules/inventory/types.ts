@@ -10,6 +10,8 @@ export type StockRow = {
   category: string;
   brandId: string | null;
   brandName: string | null;
+  /** Hàm lượng as recorded (only loaded with `withPurity`). */
+  purity?: string | null;
 };
 
 export type LedgerRow = {
@@ -31,6 +33,8 @@ export type LedgerRow = {
   customerName: string | null;
   customerPhone: string | null;
   customerCitizenId: string | null;
+  /** Hàm lượng hiện tại của SKU (RPC `purity`). */
+  purity?: string | null;
 };
 
 export type CategoryOption = {

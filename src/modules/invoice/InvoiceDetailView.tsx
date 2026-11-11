@@ -248,10 +248,14 @@ export function InvoiceDetailView({
       ) : null}
 
       <div className="overflow-x-auto rounded-[12px] bg-white p-4 shadow-[var(--tlkv-shadow)] print:overflow-visible print:rounded-none print:bg-transparent print:p-0 print:shadow-none">
-        {rowCount > 4 ? (
+        {rowCount > 8 ? (
           <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
-            Giấy đảm bảo vàng in tối đa 4 dòng (sản phẩm và khoản thu thêm). Đơn này có {rowCount}{" "}
-            dòng; các dòng sau dòng 4 không in trên mẫu.
+            Giấy đảm bảo vàng in tối đa 8 dòng (vàng, đá, tiền công, khoản thu thêm). Đơn này có {rowCount}{" "}
+            dòng; các dòng sau dòng 8 không in trên mẫu.
+          </p>
+        ) : rowCount > 4 ? (
+          <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">
+            Đơn có {rowCount} dòng in: chữ trong bảng được thu nhỏ để vừa 4 dòng kẻ của phôi. Kiểm tra bản in trước khi giao khách.
           </p>
         ) : null}
         <p className="mb-3 text-[12px] text-[var(--tlkv-muted)] print:hidden">

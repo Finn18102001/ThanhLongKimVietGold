@@ -291,7 +291,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     supabase
       .from("pos_sale_items")
       .select(
-        "sku_id, quantity, qty_delivered, item_status, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity), pos_inventory_stock(quantity))",
+        "sku_id, quantity, qty_delivered, item_status, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, gold_amount_dong, stone_weight_chi, stone_price_dong, labor_final_dong, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity), pos_inventory_stock(quantity))",
       )
       .eq("sale_id", invoice.sale_id),
     supabase
@@ -305,6 +305,24 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   if (itemResult.error) throw new Error(itemResult.error.message);
   const items = itemResult.data;
   const chargeRows = chargeResult.data;
+  // Lines without a price-row purity (vàng thị trường): tuổi vàng typed when that piece was bought.
+  const skuIdsWithoutPurity = (items ?? [])
+    .filter((item) => {
+      const sku = firstEmbed(item.pos_skus);
+      const row = firstEmbed(
+        sku && "gold_price_rows" in sku
+          ? (sku.gold_price_rows as { purity: string | null } | { purity: string | null }[] | null)
+          : null,
+      );
+      return !row?.purity;
+    })
+    .map((item) => String(item.sku_id));
+  const fallbackPurity: Record<string, string> =
+    skuIdsWithoutPurity.length > 0
+      ? await supabase
+          .rpc("pos_list_sku_purity", { p_sku_ids: skuIdsWithoutPurity })
+          .then(({ data, error }) => (error || !data ? {} : (data as Record<string, string>)))
+      : {};
 
   const lines: InvoiceLine[] = (items ?? []).map((item) => {
     const sku = firstEmbed(item.pos_skus);
@@ -341,8 +359,14 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
       unitPriceDong: Number(item.unit_price_dong),
       totalPriceDong: Number(item.total_price_dong),
       weightChi: Number(item.weight_chi),
-      purity: priceRow?.purity ? String(priceRow.purity) : null,
+      purity: priceRow?.purity
+        ? String(priceRow.purity)
+        : (fallbackPurity[String(item.sku_id)] ?? null),
       imageUrl: product?.image || null,
+      goldAmountDong: item.gold_amount_dong == null ? null : Number(item.gold_amount_dong),
+      stoneWeightChi: Number(item.stone_weight_chi ?? 0),
+      stonePriceDong: Number(item.stone_price_dong ?? 0),
+      laborFinalDong: item.labor_final_dong == null ? null : Number(item.labor_final_dong),
     };
   });
 
@@ -607,6 +631,7 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
         quantity: quantityRaw == null || quantityRaw === "" ? null : Number(quantityRaw),
         weightChi: weightRaw == null || weightRaw === "" ? null : Number(weightRaw),
         brandName: String(row.brandName ?? ""),
+        purity: row.purity == null ? "" : String(row.purity),
         unitPriceDong:
           row.unitPriceDong == null || row.unitPriceDong === ""
             ? null

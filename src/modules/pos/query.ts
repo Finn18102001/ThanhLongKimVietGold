@@ -1,6 +1,15 @@
 import { createServerSupabase } from "@/shared/supabase/server";
 import { mapHeldOrderList } from "./heldOrderMap";
-import { browseGroupFromProduct, type HeldOrderListResult, type PosBrandOption, type PosCatalogItem } from "./types";
+import {
+  browseGroupFromProduct,
+  MARKET_GOLD_CLASSES,
+  MARKET_GOLD_GROUP,
+  type HeldOrderListResult,
+  type MarketGoldClass,
+  type MarketGoldClassPrices,
+  type PosBrandOption,
+  type PosCatalogItem,
+} from "./types";
 
 type ProductEmbed =
   | { image: string | null; category: string | null }
@@ -16,6 +25,7 @@ type PriceEmbed = {
 };
 
 type CatalogMeta = PosCatalogItem & {
+  lastCostDong: number | null;
   priceRowId: string | null;
   referenceSellDongPerChi: number;
   suggestedBuyDongPerChi: number;
@@ -58,7 +68,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -92,15 +102,13 @@ async function fetchPosCatalogMeta(options?: {
     const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
     // Purchase catalog price. Never fall back to the sell column.
     const suggestedBuyDongPerChi = buy > 0 ? Math.round(buy / perChiDivisor) : 0;
-    const boardUnitPrice =
-      sell && sell > 0
-        ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) +
-          Number(row.labor_fee_dong)
-        : null;
-    // Market SKUs usually have no price_row — use last inbound cost as POS reference.
-    const unitPriceDong =
-      boardUnitPrice ??
-      (isMarketGold && lastCost != null && lastCost > 0 ? Math.round(lastCost) : null);
+    const laborFeeDong = Number(row.labor_fee_dong ?? 0);
+    const stonePriceDong = Number((row as { stone_price_dong?: number | string | null }).stone_price_dong ?? 0);
+    const stoneWeightChi = Number((row as { stone_weight_chi?: number | string | null }).stone_weight_chi ?? 0);
+    // Market SKUs get their gold price from the group price row in listPosCatalog (P4 C5).
+    const goldUnitDong =
+      !isMarketGold && sell > 0 ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) : null;
+    const unitPriceDong = goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong;
     const category = isMarketGold
       ? product?.category ?? "Vàng thị trường"
       : product?.category ?? "Khác";
@@ -112,19 +120,25 @@ async function fetchPosCatalogMeta(options?: {
       unitPriceDong,
       imageUrl: product?.image || null,
       category,
-      browseGroup: isMarketGold
-        ? "Vàng thị trường"
-        : browseGroupFromProduct(row.name, category),
+      browseGroup:
+        isMarketGold || category.trim().toLowerCase() === MARKET_GOLD_GROUP.toLowerCase()
+          ? MARKET_GOLD_GROUP
+          : browseGroupFromProduct(row.name, category),
       brandId: brand?.id ?? row.brand_id ?? null,
       brandName: brand?.name ?? price?.brand ?? null,
       quantity: Number(stock?.quantity ?? 0),
       isMarketGold,
+      goldUnitDong,
+      laborFeeDong,
+      stoneWeightChi,
+      stonePriceDong,
+      lastCostDong: lastCost,
       priceRowId: row.price_row_id != null ? String(row.price_row_id) : null,
       referenceSellDongPerChi:
         referenceSellDongPerChi > 0
           ? referenceSellDongPerChi
-          : unitPriceDong != null && Number(row.weight_chi) > 0
-            ? Math.round(unitPriceDong / Number(row.weight_chi))
+          : lastCost != null && lastCost > 0 && Number(row.weight_chi) > 0
+            ? Math.round(lastCost / Number(row.weight_chi))
             : 0,
       suggestedBuyDongPerChi,
       goldTypeHint: price?.product ? String(price.product) : null,
@@ -170,22 +184,98 @@ async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, numbe
   return map;
 }
 
+type MarketStockRow = {
+  skuId: string;
+  marketClass: MarketGoldClass;
+  goldType: string | null;
+  goldAge: string | null;
+  boughtAt: string | null;
+};
+
+/** In-stock MG SKUs with their group; empty on failure (grid then shows empty groups). */
+async function fetchMarketGoldStock(): Promise<Map<string, MarketStockRow>> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_market_gold_stock");
+  const map = new Map<string, MarketStockRow>();
+  if (error || !Array.isArray(data)) return map;
+  for (const raw of data as Array<Record<string, unknown>>) {
+    const cls = String(raw.marketClass ?? "") as MarketGoldClass;
+    if (!MARKET_GOLD_CLASSES.includes(cls)) continue;
+    map.set(String(raw.skuId), {
+      skuId: String(raw.skuId),
+      marketClass: cls,
+      goldType: raw.goldType == null ? null : String(raw.goldType),
+      goldAge: raw.goldAge == null ? null : String(raw.goldAge),
+      boughtAt: raw.boughtAt == null ? null : String(raw.boughtAt),
+    });
+  }
+  return map;
+}
+
+/** Display-only price per chỉ for the market group cards (mua / bán tabs). */
+export async function listMarketGoldClassPrices(): Promise<MarketGoldClassPrices> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_market_gold_class_prices");
+  if (error || !data || typeof data !== "object") return {};
+  const out: MarketGoldClassPrices = {};
+  for (const [cls, raw] of Object.entries(data as Record<string, Record<string, unknown>>)) {
+    if (!MARKET_GOLD_CLASSES.includes(cls as MarketGoldClass)) continue;
+    out[cls as MarketGoldClass] = {
+      priceRowId: String(raw.priceRowId ?? ""),
+      buyDong: Number(raw.buyDong ?? 0),
+      sellDong: Number(raw.sellDong ?? 0),
+    };
+  }
+  return out;
+}
+
 export async function listPosCatalog(): Promise<PosCatalogItem[]> {
-  const meta = await fetchPosCatalogMeta({ includeMarketGold: true });
-  return meta.map((item) => ({
-    skuId: item.skuId,
-    sku: item.sku,
-    name: item.name,
-    weightChi: item.weightChi,
-    unitPriceDong: item.unitPriceDong,
-    imageUrl: item.imageUrl,
-    category: item.category,
-    browseGroup: item.browseGroup,
-    brandId: item.brandId,
-    brandName: item.brandName,
-    quantity: item.quantity,
-    isMarketGold: item.isMarketGold,
-  }));
+  const [meta, marketStock, classPrices] = await Promise.all([
+    fetchPosCatalogMeta({ includeMarketGold: true }),
+    fetchMarketGoldStock(),
+    listMarketGoldClassPrices(),
+  ]);
+  return meta.map((item) => {
+    const market = item.isMarketGold ? marketStock.get(item.skuId) : undefined;
+    // MG: giá bán / chỉ của dòng giá nhóm × TL vàng. Không có giá bán → không bán được (C5).
+    const classSell = market ? (classPrices[market.marketClass]?.sellDong ?? 0) : 0;
+    const goldUnitDong = item.isMarketGold
+      ? classSell > 0
+        ? Math.round(classSell * item.weightChi)
+        : null
+      : (item.goldUnitDong ?? null);
+    const laborFeeDong = item.laborFeeDong ?? 0;
+    const stonePriceDong = item.stonePriceDong ?? 0;
+    return {
+      skuId: item.skuId,
+      sku: item.sku,
+      name: item.name,
+      weightChi: item.weightChi,
+      unitPriceDong: goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong,
+      goldUnitDong,
+      laborFeeDong,
+      stoneWeightChi: item.stoneWeightChi ?? 0,
+      stonePriceDong,
+      imageUrl: item.imageUrl,
+      category: item.category,
+      browseGroup: item.browseGroup,
+      brandId: item.brandId,
+      brandName: item.brandName,
+      quantity: item.quantity,
+      isMarketGold: item.isMarketGold,
+      ...marketFields(market),
+    };
+  });
+}
+
+function marketFields(row: MarketStockRow | undefined): Partial<PosCatalogItem> {
+  if (!row) return {};
+  return {
+    marketClass: row.marketClass,
+    goldType: row.goldType,
+    goldAge: row.goldAge,
+    boughtAt: row.boughtAt,
+  };
 }
 
 /**
