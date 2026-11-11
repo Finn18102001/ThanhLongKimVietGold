@@ -14,7 +14,7 @@
   var TLKV_TV_PRICE_HIGHLIGHT_BACKGROUND = "rgb(179, 34, 34)";
   /** Logo TV — dùng lại logo mark chuẩn (không dùng asset TV riêng) */
   var TLKV_TV_LOGO_PATH = "/assets/tlkv-logo-mark-tv.png";
-  var TLKV_TV_LOGO_CACHE_VER = "20261009a";
+  var TLKV_TV_LOGO_CACHE_VER = "20261112a";
 
   function tvStripeHighlightBoxShadow() {
     return "inset 0 0 0 1px rgba(255, 255, 255, 0.28)";

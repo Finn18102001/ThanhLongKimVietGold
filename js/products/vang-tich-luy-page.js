@@ -54,7 +54,7 @@
   function getBrandLogoUrl(brand) {
     if (brand && brand.logo_url) return brand.logo_url;
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[brand.slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261008b";
+    return map[brand.slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261112a";
   }
 
   function formatWeightLabel(weight) {

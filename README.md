@@ -17,6 +17,8 @@ Khi đổi logo hoặc màu nhận diện, **chỉ được đổi file logo và
 
 Màu chữ logo hiện tại: `#FDE48D` / `rgb(253, 228, 141)`. Lần sau chỉ thay mã này hoặc file ảnh logo, không đổi các size ở bảng trên.
 
+Cache ảnh logo và banner trang chủ (hero Bông Lúa Vàng): `?v=20261112a`. Đổi file ảnh thì tăng token này ở mọi URL, kể cả redirect trong `vercel.json` và `routes/web.js`, để trình duyệt tải bản mới ngay khi deploy.
+
 ### Chạy local (khuyến nghị)
 
 Cài dependency và bật Express (router gọn: public / admin / api):
