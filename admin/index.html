@@ -108,6 +108,10 @@
             <h2>Danh sách dòng (bảng giá)</h2>
             <p>Quản lý và theo dõi bảng giá các dòng sản phẩm</p>
           </div>
+          <nav class="catalog-admin-subtabs" aria-label="Lọc bảng giá theo kim loại">
+            <button type="button" class="admin-tab admin-tab--active" data-gold-metal-tab="gold">Vàng</button>
+            <button type="button" class="admin-tab" data-gold-metal-tab="silver">Bạc</button>
+          </nav>
           <div id="admin-gold-table-host" class="admin-gold-table-host">
             <div class="admin-table-wrap">
               <table class="admin-table admin-table--gold-rows">
@@ -374,6 +378,10 @@
         </div>
 
         <h2 class="catalog-admin-section-title">Danh sách sản phẩm</h2>
+        <nav class="catalog-admin-subtabs" aria-label="Lọc sản phẩm theo kim loại">
+          <button type="button" class="admin-tab admin-tab--active" data-product-metal-tab="gold">Vàng</button>
+          <button type="button" class="admin-tab" data-product-metal-tab="silver">Bạc</button>
+        </nav>
         <div class="catalog-admin-filters catalog-admin-filters--list">
           <div class="catalog-admin-field">
             <label class="catalog-admin-label" for="catalog-admin-search">Tìm kiếm</label>
@@ -406,6 +414,8 @@
             <tbody id="admin-product-rows"></tbody>
           </table>
         </div>
+        <div class="admin-pagination" id="admin-products-pagination" aria-label="Phân trang sản phẩm"></div>
+        <div class="admin-pagination-info admin-pagination-info--block" id="admin-products-pagination-info" aria-live="polite"></div>
 
         <hr class="admin-sep" />
 

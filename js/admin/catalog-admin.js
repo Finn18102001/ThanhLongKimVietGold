@@ -15,6 +15,14 @@
   /** Ignore stale admin table renders when a newer refresh is already in flight. */
   var adminTableFetchId = 0;
   var suppressProductsChangedRefresh = false;
+  /** UI state: lọc sản phẩm theo kim loại + phân trang (client-side). */
+  var productMetalTab = "gold"; // "gold" | "silver"
+  var productsPage = 1;
+  var PRODUCTS_PAGE_SIZE = 20;
+  /** Cache map gold_price_rows.id -> metal ("gold"|"silver") để phân loại SP theo priceRowId. */
+  var priceRowMetalById = null;
+  /** Cache kết quả sau khi filter (brand/category/search + metal) để chuyển trang không cần refetch. */
+  var lastFilteredProducts = [];
 
   function escapeHtml(s) {
     return String(s || "")
@@ -22,6 +30,123 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function normKey(value) {
+    return String(value || "")
+      .normalize("NFC")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function resetProductsToFirstPage() {
+    productsPage = 1;
+  }
+
+  function updateProductMetalTabUi() {
+    document.querySelectorAll("[data-product-metal-tab]").forEach(function (btn) {
+      var metal = btn.getAttribute("data-product-metal-tab");
+      btn.classList.toggle("admin-tab--active", metal === productMetalTab);
+      if (btn.getAttribute("role") === "tab") {
+        btn.setAttribute("aria-selected", metal === productMetalTab ? "true" : "false");
+      }
+    });
+  }
+
+  async function ensurePriceRowMetalMap() {
+    if (priceRowMetalById) return priceRowMetalById;
+    var sb = await getSb();
+    priceRowMetalById = Object.create(null);
+    if (!sb) return priceRowMetalById;
+    try {
+      var res = await sb.from("gold_price_rows").select("id, metal").limit(2000);
+      if (res && res.data) {
+        (res.data || []).forEach(function (row) {
+          var id = row && row.id != null ? String(row.id) : "";
+          if (!id) return;
+          priceRowMetalById[id] = row.metal === "silver" ? "silver" : "gold";
+        });
+      }
+    } catch (_) {
+      // swallow — fallback classification below
+    }
+    return priceRowMetalById;
+  }
+
+  function resolveProductMetalKind(p) {
+    // Priority 1: priceRowId -> gold_price_rows.metal
+    var rowId = p && p.priceRowId ? String(p.priceRowId).trim() : "";
+    if (rowId && priceRowMetalById && priceRowMetalById[rowId]) return priceRowMetalById[rowId];
+
+    // Priority 2: category slug/name (existing taxonomy already has "Bạc")
+    var catSlug = normKey(p && p.categorySlug);
+    var catName = normKey(p && (p.categoryName || p.category));
+    if (catSlug === "bac" || catName === "bac" || catName.indexOf("bạc") >= 0) return "silver";
+
+    // Priority 3: name heuristic (best-effort; avoid false positives when name includes both)
+    var name = normKey(p && p.name);
+    if (name && name.indexOf("bạc") >= 0 && name.indexOf("vàng") < 0) return "silver";
+
+    return "gold";
+  }
+
+  function paginate(items, page, pageSize) {
+    var total = items.length;
+    var size = pageSize || PRODUCTS_PAGE_SIZE;
+    var totalPages = Math.max(1, Math.ceil(total / size));
+    var pg = Math.max(1, Math.min(totalPages, page || 1));
+    var from = (pg - 1) * size;
+    var slice = items.slice(from, from + size);
+    return { items: slice, total: total, page: pg, pageSize: size, totalPages: totalPages };
+  }
+
+  function renderProductsPagination(pager) {
+    var host = $("admin-products-pagination");
+    var info = $("admin-products-pagination-info");
+    if (host) host.innerHTML = "";
+    if (info) info.textContent = "";
+    if (!host || !pager) return;
+
+    if (!pager.total || pager.totalPages <= 1) {
+      if (info) info.textContent = "Tổng: " + (pager.total || 0) + " sản phẩm · Trang 1/1";
+      return;
+    }
+
+    function addBtn(label, page, disabled, active) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      if (active) b.classList.add("active");
+      if (disabled) b.disabled = true;
+      b.addEventListener("click", function () {
+        if (disabled) return;
+        productsPage = page;
+        var next = paginate(lastFilteredProducts, productsPage, pager.pageSize);
+        renderProductsTable(next.items);
+        renderProductsPagination(next);
+      });
+      host.appendChild(b);
+    }
+
+    addBtn("‹", pager.page - 1, pager.page <= 1, false);
+    var windowSize = 2;
+    var start = Math.max(1, pager.page - windowSize);
+    var end = Math.min(pager.totalPages, pager.page + windowSize);
+    if (start > 1) {
+      addBtn("1", 1, false, pager.page === 1);
+      if (start > 2) addBtn("…", pager.page, true, false);
+    }
+    for (var p = start; p <= end; p++) {
+      addBtn(String(p), p, false, p === pager.page);
+    }
+    if (end < pager.totalPages) {
+      if (end < pager.totalPages - 1) addBtn("…", pager.page, true, false);
+      addBtn(String(pager.totalPages), pager.totalPages, false, pager.page === pager.totalPages);
+    }
+    addBtn("›", pager.page + 1, pager.page >= pager.totalPages, false);
+
+    if (info) info.textContent = "Tổng: " + pager.total + " sản phẩm · Trang " + pager.page + "/" + pager.totalPages;
   }
 
   async function getSb() {
@@ -218,9 +343,12 @@
   function refreshProductsTableAdmin() {
     if (!window.TLKVProducts) return Promise.resolve();
     var fetchId = ++adminTableFetchId;
-    // Admin table always hits Supabase — ALL products (including ẩn). Website filters separately.
-    return window.TLKVProducts
-      .getProducts({ forceRefresh: true })
+    // Admin table loads ALL products (including ẩn). Website filters separately.
+    // Do not forceRefresh on every keystroke; rely on session cache + tlkv:products-changed invalidation.
+    return ensurePriceRowMetalMap()
+      .then(function () {
+        return window.TLKVProducts.getProducts();
+      })
       .then(function (data) {
         if (fetchId !== adminTableFetchId) return;
         var items = (data && data.items) || [];
@@ -231,9 +359,15 @@
           if (bf && p.brandId !== bf) return false;
           if (cf && p.categoryId !== cf) return false;
           if (q && String(p.name || "").toLowerCase().indexOf(q) < 0) return false;
-          return true;
+          var metal = resolveProductMetalKind(p);
+          if (productMetalTab === "silver") return metal === "silver";
+          return metal === "gold";
         });
-        renderProductsTable(items);
+        lastFilteredProducts = items;
+        var pager = paginate(items, productsPage, PRODUCTS_PAGE_SIZE);
+        productsPage = pager.page;
+        renderProductsTable(pager.items);
+        renderProductsPagination(pager);
       })
       .catch(function (e) {
         if (fetchId !== adminTableFetchId) return;
@@ -582,11 +716,31 @@
       refreshCategoriesTable();
     });
 
+    // Tabs lọc sản phẩm theo kim loại (Vàng/Bạc) — giữ nguyên các điều kiện search/filter khác.
+    document.querySelectorAll("[data-product-metal-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var next = btn.getAttribute("data-product-metal-tab") === "silver" ? "silver" : "gold";
+        if (next === productMetalTab) return;
+        productMetalTab = next;
+        resetProductsToFirstPage();
+        updateProductMetalTabUi();
+        refreshProductsTableAdmin();
+      });
+    });
+    updateProductMetalTabUi();
+
     $("catalog-admin-search")?.addEventListener("input", function () {
+      resetProductsToFirstPage();
       refreshProductsTableAdmin();
     });
-    $("catalog-admin-filter-brand")?.addEventListener("change", refreshProductsTableAdmin);
-    $("catalog-admin-filter-category")?.addEventListener("change", refreshProductsTableAdmin);
+    $("catalog-admin-filter-brand")?.addEventListener("change", function () {
+      resetProductsToFirstPage();
+      refreshProductsTableAdmin();
+    });
+    $("catalog-admin-filter-category")?.addEventListener("change", function () {
+      resetProductsToFirstPage();
+      refreshProductsTableAdmin();
+    });
     $("brand-form")?.addEventListener("submit", saveBrandForm);
     $("category-form")?.addEventListener("submit", saveCategoryForm);
     $("brand-form-refresh")?.addEventListener("click", function () {
@@ -603,6 +757,14 @@
     window.addEventListener("tlkv:products-changed", function () {
       if (suppressProductsChangedRefresh) return;
       refreshProductsTableAdmin();
+    });
+
+    // Nếu bảng giá thay đổi (thêm/sửa/xóa dòng), reload map priceRowId -> metal để lọc Vàng/Bạc chính xác.
+    window.addEventListener("tlkv:gold-table-changed", function () {
+      priceRowMetalById = null;
+    });
+    window.addEventListener("tlkv:gold-rows-updated", function () {
+      priceRowMetalById = null;
     });
   }
 

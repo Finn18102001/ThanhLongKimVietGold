@@ -57,12 +57,35 @@ function showToast(message, type = 'success') {
   var productHistPage = 1;
   /** Các id dòng đang sửa inline (có thể nhiều dòng cùng lúc). */
   var goldInlineEditRowIds = Object.create(null);
+  /** Cache snapshot bảng giá gần nhất để đổi tab Vàng/Bạc không cần refetch. */
+  var goldAdminLastData = null;
+  /** Bộ lọc tab cho danh sách dòng bảng giá (không ảnh hưởng form nhập). */
+  var goldMetalListTab = "gold";
   var goldSkuStocksCache = null;
   var goldMoneySnapshotCache = null;
   var goldMetalObligationsCache = null;
   var goldCapitalSnapshot = null;
   function goldInlineEditHasAny() {
     return Object.keys(goldInlineEditRowIds).length > 0;
+  }
+
+  function updateGoldMetalTabUi() {
+    document.querySelectorAll("[data-gold-metal-tab]").forEach(function (btn) {
+      var metal = btn.getAttribute("data-gold-metal-tab");
+      btn.classList.toggle("admin-tab--active", metal === goldMetalListTab);
+      if (btn.getAttribute("role") === "tab") {
+        btn.setAttribute("aria-selected", metal === goldMetalListTab ? "true" : "false");
+      }
+    });
+  }
+
+  function setGoldMetalListTab(next) {
+    goldMetalListTab = next === "silver" ? "silver" : "gold";
+    updateGoldMetalTabUi();
+    // Đổi tab lọc: thoát chế độ sửa inline để tránh lưu nhầm dòng đang bị ẩn khỏi list hiện tại.
+    clearGoldInlineEdit();
+    // Re-render table using cached data if possible (no refetch).
+    refreshTable(goldAdminLastData || null);
   }
 
   var GOLD_ACTION_LABELS = {
@@ -962,13 +985,27 @@ function showToast(message, type = 'success') {
     var tb = $("admin-rows");
     if (!tb) return;
     tb.innerHTML = "";
-    var rows = (data && data.rows) || [];
+    var allRows = (data && data.rows) || [];
+    var indexById = Object.create(null);
+    for (var ix = 0; ix < allRows.length; ix++) {
+      var rid = allRows[ix] && allRows[ix].id;
+      if (rid != null) indexById[String(rid)] = ix;
+    }
+    // UI rule: không hiển thị dòng có trạng thái "Ẩn website" (isVisibleOnWebsite=false),
+    // và lọc theo tab Vàng/Bạc tại khu vực danh sách.
+    var rows = allRows.filter(function (r) {
+      if (!r) return false;
+      if (r.isVisibleOnWebsite === false) return false;
+      var metal = r.metal === "silver" ? "silver" : "gold";
+      return metal === goldMetalListTab;
+    });
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var isEditing = !!goldInlineEditRowIds[r.id];
+      var originalIndex = indexById[String(r.id)] != null ? indexById[String(r.id)] : -1;
       var productShown =
         String(r.product || "").trim() ||
-        (i >= 0 ? window.TLKVGold.variantParentProduct(rows, i) : "");
+        (originalIndex >= 0 ? window.TLKVGold.variantParentProduct(allRows, originalIndex) : "");
       var tr = document.createElement("tr");
       tr.setAttribute("data-row-id", r.id);
       if (r.metal === "silver") tr.classList.add("row-silver");
@@ -1109,6 +1146,7 @@ function showToast(message, type = 'success') {
     if (goldAdminRefreshInFlight) return goldAdminRefreshInFlight;
     goldAdminRefreshInFlight = getGoldAdminData(opts.forceRefresh === true)
       .then(function (data) {
+        goldAdminLastData = data || null;
         return ensureGoldCapitalInputs(true).then(function () {
           return Promise.all([refreshMetaForm(data || {}), refreshTable(data || {})]).then(function () {
             return data;
@@ -1691,6 +1729,15 @@ function showToast(message, type = 'success') {
       if (!canPerform("products")) return;
       switchTab("products");
     });
+
+    // Tabs lọc danh sách dòng bảng giá (Vàng/Bạc) — chỉ ảnh hưởng UI list.
+    document.querySelectorAll("[data-gold-metal-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!canPerform("gold")) return;
+        setGoldMetalListTab(btn.getAttribute("data-gold-metal-tab"));
+      });
+    });
+    updateGoldMetalTabUi();
 
     $("gold-hist-refresh")?.addEventListener("click", refreshGoldHistory);
     $("product-hist-refresh")?.addEventListener("click", refreshProductHistory);

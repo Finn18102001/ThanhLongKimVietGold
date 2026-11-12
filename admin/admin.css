@@ -883,6 +883,10 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   color: #71717a;
   margin-left: 12px;
 }
+.admin-pagination-info--block {
+  margin: 8px 0 0;
+  text-align: center;
+}
 .admin-export-buttons {
   display: flex;
   gap: 12px;
