@@ -1,0 +1,39 @@
+-- ============================================================================
+-- 08 PRODUCT TYPE + GỘP CATEGORY — ĐÃ CHẠY 13/11/2026 ~22:15 (UTC+7) qua Supabase MCP, người dùng duyệt.
+-- File ghi lại nội dung đã chạy để tra cứu và hoàn tác. KHÔNG chạy lại.
+--
+-- Quyết định người dùng 13/11: VÀNG 24K gồm hàng V24K DÂY CHUYỀN, V24K LẮC TAY; VÀNG 10K gồm hàng
+-- V10K KHUYÊN TAI, VÀNG 10K LẮC TAY. Dây Chuyền / Lắc Tay / Khuyên Tai là Loại sản phẩm, không phải
+-- Category. Sản phẩm chưa có Loại thì để trống, cập nhật sau.
+--
+-- Backup (RLS bật, không grant):
+--   tlkv_backup_20261110.products__cat20261113b
+--   tlkv_backup_20261110.categories__cat20261113b
+--   tlkv_backup_20261110.product_types__cat20261113b
+--
+-- Đã chạy (một transaction, tự dừng nếu số lượng lệch hoặc pos_skus / gold_price_rows bị đổi):
+--   insert product_types: Dây Chuyền (day-chuyen), Lắc Tay (lac-tay), Nhẫn (nhan), Charm (charm),
+--                         Khuyên Tai (khuyen-tai)
+--   update products (9 dòng, chỉ category_id, category, product_type_id; trigger SKU không chạy):
+--     V24K DÂY CHUYỀN  → VÀNG 24K + Dây Chuyền  (V24KDC000296)
+--     V24K LẮC TAY     → VÀNG 24K + Lắc Tay     (V24KLACTAY000297, V24KLT000001)
+--     V10K KHUYÊN TAI  → VÀNG 10K + Khuyên Tai  (V24KHOATAI000300)
+--     VÀNG 10K LẮC TAY → VÀNG 10K + Lắc Tay     (000137, 000338, 000506, LACTAYV10K000491, V10KKLT000340)
+--   update categories set is_active = false (9): V24K DÂY CHUYỀN, V24K LẮC TAY, V24K NHẪN, V24K CHARM,
+--     V10K KHUYÊN TAI, VÀNG 10K LẮC TAY, V610, Tranh, Trang Sức. Không xóa Category nào.
+--   product_change_log: 9 dòng, payload.source = 'catalog-restructure-20261113b'
+--
+-- Website: commit 279f876 (trang chi tiết mở được URL có slug Category cũ và chuyển về URL mới).
+--
+-- HOÀN TÁC (chỉ khi cần; 1 transaction):
+--   update public.products p set category_id = b.category_id, category = b.category,
+--          product_type_id = b.product_type_id
+--     from tlkv_backup_20261110.products__cat20261113b b
+--    where b.id = p.id
+--      and p.id in (select entity_id from public.product_change_log
+--                   where payload->>'source' = 'catalog-restructure-20261113b');
+--   update public.categories c set is_active = b.is_active
+--     from tlkv_backup_20261110.categories__cat20261113b b where b.id = c.id;
+--   update public.product_types set is_active = false
+--    where slug in ('day-chuyen','lac-tay','nhan','charm','khuyen-tai');   -- FK restrict, không xóa
+-- ============================================================================

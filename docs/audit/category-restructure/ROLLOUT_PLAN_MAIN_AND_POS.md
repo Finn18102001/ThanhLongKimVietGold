@@ -119,6 +119,10 @@ Category Tranh, Trang Sức, VÀNG MIẾNG ẩn; đánh giá xóa khi không cò
 | 13/11 21:55 | B2: fast-forward `origin/main` → `142f402` | Xong (người dùng duyệt) |
 | 13/11 21:58 | B3: smoke production `www.thanglongkimviet.vn` | Trang public 200; `js/admin/taxonomy-data.js`, `js/products/product-save-rules.js` đã phục vụ (bản mới đã deploy) |
 | 13/11 22:05 | C (một phần): Vàng Tây, GIFT, GRIF | Brand Vàng Tây (+ VÀNG 10K), sản phẩm 70ad2dbf → Vàng Tây (SKU `xx-tsvt1-1` → `vt-tsvt1-1`, tồn 0); GRIF chỉ còn TLKV; Category GIFT của BTMH nhận 18 sản phẩm Kim Gia Bảo / KGBG; 3 sản phẩm Vàng thị trường → VÀNG 10K. Backup `*__cat20261113`, 22 dòng lịch sử. Chi tiết và hoàn tác: `supabase/catalog-restructure/07_vangtay_gift_grif_APPLIED.sql` |
-| | C (còn lại) + D1 | Chờ: Product Type, V24K * / V10K KHUYÊN TAI / VÀNG 10K LẮC TAY → Category mới + Type; ngừng dùng V610, Tranh, Trang Sức; POS lọc Category + Type |
+| 13/11 22:15 | C: Product Type + gộp Category | 5 Loại (Dây Chuyền, Lắc Tay, Nhẫn, Charm, Khuyên Tai); 9 sản phẩm → VÀNG 24K / VÀNG 10K kèm Loại; ngừng dùng 9 Category (V24K ×4, V10K KHUYÊN TAI, VÀNG 10K LẮC TAY, V610, Tranh, Trang Sức). SKU, dòng giá không đổi. Xem `08_product_types_merge_APPLIED.sql` |
+| 13/11 22:25 | C: URL website | `main` → `279f876`: URL chi tiết có slug Category cũ vẫn mở được và tự chuyển URL mới (30 sản phẩm đổi Category hôm nay). Đã thử trên production |
+| | D1 (POS) | Chờ: lưới Bán / Mua / Kho thêm lọc Category + Loại, giữ nút theo tên |
+
+Sau 22:15, Category đang dùng: VÀNG 24K, VÀNG 10K, GIFT, GRIF KIM GIA BẢO 24K, QUÀ TẶNG 24K, Nhẫn Trơn, VÀNG TÍCH TRỮ, Bạc Tích Trữ, BẠC TRANG SỨC, PHỤ KIỆN, Vàng Thị Trường (0 sản phẩm, chưa ngừng dùng). Trên POS, các nút V24K DÂY CHUYỀN / V24K LẮC TAY / V10K KHUYÊN TAI / VÀNG 10K LẮC TAY gộp vào nút VÀNG 24K / VÀNG 10K (nhóm theo chữ Category). Lưu ý: sản phẩm `V24KHOATAI000300` tên ghi 24K nhưng theo quy tắc V10K KHUYÊN TAI → VÀNG 10K; cần xác nhận.
 
 POS bị ảnh hưởng ngay sau bước 22:05 (đã biết trước): lưới Bán / Mua nhóm theo chữ Category nên 18 sản phẩm Kim Gia Bảo / KGBG hiện ở nút **GIFT** (trước ở GRIF KIM GIA BẢO 24K, VÀNG 24K, QUÀ TẶNG 24K); nút GRIF chỉ còn 2 sản phẩm TLKV. Vàng thị trường vẫn ở nhóm riêng (theo cờ `is_market_gold`).
