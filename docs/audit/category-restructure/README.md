@@ -152,6 +152,7 @@ Các ràng buộc từ spec vẫn giữ: không tự tạo Brand, không xóa Ca
 | 13/11/2026 | Phase 0 tích hợp Brand/Category/Product Type/Product vào `/admin`; gói migration schema | Người dùng đã chạy 01-03; 04 chưa chạy | `PRODUCT_CATALOG_PHASE0_AUDIT.md`, `supabase/catalog-restructure/` |
 | 13/11/2026 | Phase 1-3: CRUD Brand/Category/Product Type, form Product trong `/admin`; xóa trang thử nghiệm `/admin/danh-muc.html` | Xong phần không ghi dữ liệu; chờ duyệt test ghi, chạy 04 và mapping Brand-Category | `PRODUCT_CATALOG_IMPLEMENTATION_REPORT.md` |
 | 13/11/2026 | Viết lại 04 (trigger proof, tự hoàn tác); chuẩn bị mapping 05/06/98; test lưu Product qua form có chặn ghi; sửa lỗi ghi đè `storage_path` ảnh | 04, 05, 06 chưa chạy; chờ quyết định A-K | `BRAND_CATEGORY_MAPPING_REVIEW.md`, `PRODUCT_CATALOG_IMPLEMENTATION_REPORT.md` |
+| 13/11/2026 | Đánh giá impact đưa nhánh lên `main`, phụ thuộc Category của POS, kế hoạch phase A-F | Chờ xác nhận mục 6 của plan | `ROLLOUT_PLAN_MAIN_AND_POS.md` |
 | | Bộ 11 deliverable audit cho Migration | Chưa bắt đầu | Mục 8 |
 
 ## 8. Flow và bước tiếp theo
@@ -166,7 +167,11 @@ Các ràng buộc từ spec vẫn giữ: không tự tạo Brand, không xóa Ca
 
 Bước tiếp theo: viết `PRE_AUDIT_READINESS_REPORT.md` sau khi có xác nhận bắt đầu.
 
-## 9. Trạng thái hiện tại (13/11/2026, cuối ngày)
+## 9. Trạng thái hiện tại
+
+**Cập nhật 13/11/2026 21:45:** 05 đạt; 04 đạt (T1, T2 không chạy đồng bộ SKU; T3, T4 có; dữ liệu không đổi); 06 đã chạy, `brand_categories` = 17 cặp. Bước tiếp theo: Phase B (đưa nhánh lên `main`, deploy, smoke test) theo `ROLLOUT_PLAN_MAIN_AND_POS.md`.
+
+### Ghi chú cũ (13/11/2026, cuối ngày)
 
 Production đã có schema mới (01-03 đã chạy, checksum dữ liệu cũ không đổi). Code `/admin` mới chỉ nằm trên nhánh này, chưa deploy. `brand_categories` và `product_types` đang trống.
 

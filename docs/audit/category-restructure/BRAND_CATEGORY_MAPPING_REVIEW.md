@@ -1,7 +1,9 @@
 # Brand - Category mapping: danh sách chờ duyệt
 
 Ngày: 13/11/2026. Nguồn: spec mục 2.2 (`spec/CATEGORY_PRODUCT_TYPE_RESTRUCTURE_SPEC.md`) và các quyết định ngày 12/11 (`README.md` mục 6).
-Trạng thái: **chưa chạy**. Bảng `brand_categories` hiện có 0 dòng.
+Trạng thái: **đã chạy 13/11/2026 21:40** qua Supabase MCP (người dùng duyệt): 05 đạt (14/14 "co"), 06 thêm **17 cặp** = 14 cặp mục 1 + 3 cặp tạm C, D bên dưới. `brand_categories` = 17 dòng, mọi Brand đang dùng có ít nhất 1 Category, không sản phẩm nào bị sửa.
+
+Quyết định 13/11 cho mục 2: **C** liên kết tạm Bạc → Bạc Tích Trữ và Bạc → BẠC TRANG SỨC; **D** liên kết tạm VÀNG TRANG SỨC TLKV → QUÀ TẶNG 24K; **E** không thêm (GRIF thuộc BTMH), 2 sản phẩm "TLKV Bông hoa 0.1 chỉ", "TLKV Bó Hoa 0.1 chỉ" xử lý ở Phase C/E; **F** V610 bỏ, ngừng dùng ở Phase C (3 món TLKVTS000004-006 còn tồn). Các mục còn lại theo kế hoạch Phase C.
 
 File:
 
