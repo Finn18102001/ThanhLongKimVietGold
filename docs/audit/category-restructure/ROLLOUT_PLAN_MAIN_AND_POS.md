@@ -115,4 +115,7 @@ Category Tranh, Trang Sức, VÀNG MIẾNG ẩn; đánh giá xóa khi không cò
 | 13/11 21:35 | A: 05 preview | Đạt, 14/14 cặp "co" |
 | 13/11 21:38 | A: 04 trigger proof | Đạt: T1, T2 KHONG chay; T3, T4 CO chay; dữ liệu không đổi |
 | 13/11 21:40 | B1: 06 mapping | 17 cặp; 0 sản phẩm bị sửa |
-| | B2-B3: lên `main`, deploy, smoke | Đang làm |
+| 13/11 21:50 | B: smoke local (cổng 5190, database production, chỉ đọc) | Form sản phẩm lọc Category đúng 17 cặp; danh sách có cột Loại; `/`, `/sanpham`, danh mục, thương hiệu, `/api/public/brands` 200; test 12/12 |
+| 13/11 21:55 | B2: fast-forward `origin/main` → `142f402` | Xong (người dùng duyệt) |
+| 13/11 21:58 | B3: smoke production `www.thanglongkimviet.vn` | Trang public 200; `js/admin/taxonomy-data.js`, `js/products/product-save-rules.js` đã phục vụ (bản mới đã deploy) |
+| | C + D1 | Chờ: Product Type, chuyển sản phẩm, ngừng dùng V610 / Category đã gộp; POS lọc Category + Type |
