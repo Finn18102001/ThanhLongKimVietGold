@@ -9,12 +9,11 @@ import {
   type MarketGoldClassPrices,
   type PosBrandOption,
   type PosCatalogItem,
+  type PosProductTypeOption,
 } from "./types";
 
-type ProductEmbed =
-  | { image: string | null; category: string | null }
-  | { image: string | null; category: string | null }[]
-  | null;
+type ProductRow = { image: string | null; category: string | null; product_type_id: string | null };
+type ProductEmbed = ProductRow | ProductRow[] | null;
 
 type PriceEmbed = {
   sell: number | string | null;
@@ -68,7 +67,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -130,6 +129,7 @@ async function fetchPosCatalogMeta(options?: {
           : browseGroupFromProduct(row.name, category),
       brandId: brand?.id ?? row.brand_id ?? null,
       brandName: brand?.name ?? price?.brand ?? null,
+      productTypeId: product?.product_type_id ?? null,
       quantity: Number(stock?.quantity ?? 0),
       isMarketGold,
       goldUnitDong,
@@ -162,6 +162,19 @@ export async function listPosBrands(): Promise<PosBrandOption[]> {
   return rows
     .filter((row) => row.isActive !== false)
     .map((row) => ({ id: row.id, name: row.name, slug: row.slug }));
+}
+
+/** Published contract: active product types (Loại sản phẩm) for catalog filters. */
+export async function listPosProductTypes(): Promise<PosProductTypeOption[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("product_types")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name ?? "") }));
 }
 
 async function fetchPosStockMap(skuIds?: string[]): Promise<Record<string, number>> {
@@ -269,6 +282,7 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       browseGroup: item.browseGroup,
       brandId: item.brandId,
       brandName: item.brandName,
+      productTypeId: item.productTypeId ?? null,
       quantity: item.quantity,
       isMarketGold: item.isMarketGold,
       ...marketFields(market),

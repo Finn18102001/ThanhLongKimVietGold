@@ -4,6 +4,7 @@ import type {
   LabelHistoryQuery,
   LabelPiece,
   LabelPrintLogRow,
+  LabelProductType,
   LabelReceiveOptions,
   LabelSkuOption,
   LabelStockSize,
@@ -80,7 +81,7 @@ function unitPrice(
 }
 
 const LABEL_SKU_COLUMNS =
-  "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(category, gold_age), brands!pos_skus_brand_id_fkey(name)";
+  "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(category, gold_age, product_type_id), brands!pos_skus_brand_id_fkey(name)";
 const LABEL_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock(quantity)`;
 /** Market gold SKUs are inactive by design; only those still in stock can be labelled. */
 const LABEL_MARKET_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock!inner(quantity)`;
@@ -108,7 +109,11 @@ function mapLabelSku(row: LabelSkuRow): LabelSkuOption {
   const stock = firstEmbed(
     row.pos_inventory_stock as { quantity: number } | { quantity: number }[] | null,
   );
-  type ProductEmbed = { category: string | null; gold_age: number | string | null };
+  type ProductEmbed = {
+    category: string | null;
+    gold_age: number | string | null;
+    product_type_id: string | null;
+  };
   const product = firstEmbed(row.products as ProductEmbed | ProductEmbed[] | null);
   const brand = firstEmbed(row.brands as { name: string } | { name: string }[] | null);
   const goldAge = product?.gold_age == null ? null : Number(product.gold_age);
@@ -119,6 +124,7 @@ function mapLabelSku(row: LabelSkuRow): LabelSkuOption {
     name: row.name,
     category: product?.category ?? (isMarketGold ? "Vàng thị trường" : "Khác"),
     brandName: brand?.name ?? null,
+    productTypeId: product?.product_type_id ?? null,
     weightChi: Number(row.weight_chi),
     laborFeeDong: Number(row.labor_fee_dong ?? 0),
     unitPriceDong: unitPrice(
@@ -165,20 +171,42 @@ export async function getLabelSku(skuId: string): Promise<LabelSkuOption | null>
   return data ? mapLabelSku(data as LabelSkuRow) : null;
 }
 
+export async function listLabelProductTypes(): Promise<LabelProductType[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("product_types")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name ?? "") }));
+}
+
 export async function listLabelReceiveOptions(): Promise<LabelReceiveOptions> {
   const supabase = await createServerSupabase();
-  const [brands, categories, priceRows] = await Promise.all([
+  const [brands, categories, priceRows, productTypes, links] = await Promise.all([
     supabase.rpc("pos_list_brands"),
     supabase.from("categories").select("id, name").eq("is_active", true).order("sort_order"),
     supabase.from("gold_price_rows").select("id, product, brand, purity").order("sort_order"),
+    listLabelProductTypes(),
+    supabase.from("brand_categories").select("brand_id, category_id"),
   ]);
   if (brands.error) throw new Error(brands.error.message);
   if (categories.error) throw new Error(categories.error.message);
   if (priceRows.error) throw new Error(priceRows.error.message);
+  if (links.error) throw new Error(links.error.message);
 
   const brandRows = (brands.data as Array<Record<string, unknown>> | null) ?? [];
   return {
-    brands: brandRows.map((row) => ({ id: String(row.id), name: String(row.name ?? "") })),
+    brands: brandRows
+      .filter((row) => row.isActive !== false)
+      .map((row) => ({ id: String(row.id), name: String(row.name ?? "") })),
+    productTypes,
+    brandCategories: (links.data ?? []).map((row) => ({
+      brandId: String(row.brand_id),
+      categoryId: String(row.category_id),
+    })),
     categories: (categories.data ?? []).map((row) => ({
       id: String(row.id),
       name: String(row.name ?? ""),

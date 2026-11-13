@@ -10,9 +10,16 @@ export type StockRow = {
   category: string;
   brandId: string | null;
   brandName: string | null;
+  /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
+  productTypeId: string | null;
   /** Hàm lượng as recorded (only loaded with `withPurity`). */
   purity?: string | null;
 };
+
+export type ProductTypeOption = { id: string; name: string };
+
+/** One row of `brand_categories`: the category may be used with that brand. */
+export type BrandCategoryLink = { brandId: string; categoryId: string };
 
 export type LedgerRow = {
   id: string;

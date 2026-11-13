@@ -1,20 +1,23 @@
-import { getPosSession } from "@/shared/auth/session";
-import { canMutateAdminData } from "@/shared/auth/permissions";
-import { listCategories } from "./actions";
-import { CategoryDirectory } from "./CategoryDirectory";
+import { CatalogTaxonomyView } from "./CatalogTaxonomyView";
+import { getTaxonomyOverview } from "./taxonomy-query";
+import type { TaxonomyOverview } from "./types";
 
 export async function CategoryPage() {
-  const session = await getPosSession();
-  let initial: Awaited<ReturnType<typeof listCategories>> = [];
+  let overview: TaxonomyOverview = { brands: [], categories: [], productTypes: [] };
+  let loadError: string | null = null;
   try {
-    initial = await listCategories();
-  } catch {
-    // Migration chưa apply
+    overview = await getTaxonomyOverview();
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Không tải được danh mục.";
   }
   return (
-    <CategoryDirectory
-      initial={initial}
-      canMutate={session ? canMutateAdminData(session.role) : false}
-    />
+    <>
+      {loadError ? (
+        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
+          {loadError}
+        </p>
+      ) : null}
+      <CatalogTaxonomyView overview={overview} />
+    </>
   );
 }

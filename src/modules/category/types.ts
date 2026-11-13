@@ -23,3 +23,19 @@ export type AssignableSku = {
   sku: string;
   name: string;
 };
+
+/** One row of the read-only catalog view (brand, category or product type). */
+export type TaxonomyRow = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  productCount: number;
+  /** Brand: linked category names. Category: linked brand names. Product type: empty. */
+  linked: string[];
+};
+
+export type TaxonomyOverview = {
+  brands: TaxonomyRow[];
+  categories: TaxonomyRow[];
+  productTypes: TaxonomyRow[];
+};

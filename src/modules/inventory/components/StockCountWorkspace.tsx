@@ -183,7 +183,7 @@ export function StockCountWorkspace({
               className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
             >
               <option value="ALL">Toàn kho</option>
-              <option value="CATEGORY">Theo danh mục POS</option>
+              <option value="CATEGORY">Theo danh mục</option>
             </select>
             {scopeType === "CATEGORY" ? (
               <select

@@ -1,13 +1,22 @@
 "use server";
 
-import { listMarketGoldClassPrices, listPosCatalogWithPricing } from "@/modules/pos/query";
-import type { MarketGoldClassPrices } from "@/modules/pos/types";
+import {
+  listMarketGoldClassPrices,
+  listPosCatalogWithPricing,
+  listPosProductTypes,
+} from "@/modules/pos/query";
+import type { MarketGoldClassPrices, PosProductTypeOption } from "@/modules/pos/types";
 import { listMarketGoldRefs as listMarketGoldRefsAction } from "./actions";
 import type { MarketGoldRef, PurchaseCatalogItem } from "./types";
 
 /** Cross-module: POS contract for the display price of the 4 market group cards. */
 export async function listPurchaseMarketPrices(): Promise<MarketGoldClassPrices> {
   return listMarketGoldClassPrices();
+}
+
+/** Cross-module: POS contract for Loại sản phẩm filter options. */
+export async function listPurchaseProductTypes(): Promise<PosProductTypeOption[]> {
+  return listPosProductTypes();
 }
 
 /** RSC initial load: market gold reference prices (optional hints only). */
@@ -32,6 +41,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       browseGroup: item.browseGroup,
       category: item.category,
       brandName: item.brandName,
+      productTypeId: item.productTypeId ?? null,
       weightChi: item.weightChi,
       referenceSellDongPerChi: item.referenceSellDongPerChi,
       suggestedBuyDongPerChi: item.suggestedBuyDongPerChi,

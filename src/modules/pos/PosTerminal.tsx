@@ -44,6 +44,7 @@ import {
   type MarketGoldClassPrices,
   type PosBrandOption,
   type PosCatalogItem,
+  type PosProductTypeOption,
   type PosSaleContext,
 } from "./types";
 import { CatalogCard, ProductThumb } from "./components/CatalogCard";
@@ -168,12 +169,14 @@ export function PosTerminal({
   catalog: initialCatalog,
   marketPrices = {},
   brands,
+  productTypes = [],
   initialHeldOrders,
   saleContext,
 }: {
   catalog: PosCatalogItem[];
   marketPrices?: MarketGoldClassPrices;
   brands: PosBrandOption[];
+  productTypes?: PosProductTypeOption[];
   initialHeldOrders: HeldOrderListResult;
   saleContext: PosSaleContext;
 }) {
@@ -185,6 +188,7 @@ export function PosTerminal({
   const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [brandId, setBrandId] = useState("all");
+  const [productTypeId, setProductTypeId] = useState("all");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
   const [cart, setCart] = useState<CartQtyMap>({});
@@ -362,6 +366,9 @@ export function PosTerminal({
       const matchesBrand =
         brandId === "all" ||
         (brandId === "none" ? !item.brandId : item.brandId === brandId);
+      const matchesType =
+        productTypeId === "all" ||
+        (productTypeId === "none" ? !item.productTypeId : item.productTypeId === productTypeId);
       const matchesGroup = group === "Tất cả" || item.browseGroup === group;
       const matchesQuery =
         !q ||
@@ -369,10 +376,10 @@ export function PosTerminal({
         item.sku.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
         (item.brandName || "").toLowerCase().includes(q);
-      return matchesBrand && matchesGroup && matchesQuery;
+      return matchesBrand && matchesType && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandId, gridCatalog, group, query]);
+  }, [brandId, gridCatalog, group, productTypeId, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -1152,6 +1159,25 @@ export function PosTerminal({
                 </option>
               ))}
               <option value="none">Không thương hiệu</option>
+            </select>
+          </label>
+          <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-white px-3 text-[13px]">
+            <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Loại sản phẩm</span>
+            <select
+              value={productTypeId}
+              onChange={(event) => {
+                setProductTypeId(event.target.value);
+                setPageIndex(0);
+              }}
+              className="max-w-[160px] bg-transparent text-[13px] font-medium outline-none"
+            >
+              <option value="all">Tất cả loại</option>
+              {productTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+              <option value="none">Chưa phân loại</option>
             </select>
           </label>
           <button

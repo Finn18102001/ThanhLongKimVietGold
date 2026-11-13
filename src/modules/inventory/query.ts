@@ -1,5 +1,12 @@
 import { createServerSupabase } from "@/shared/supabase/server";
-import type { CategoryOption, LedgerRow, PriceRowOption, StockRow } from "./types";
+import type {
+  BrandCategoryLink,
+  CategoryOption,
+  LedgerRow,
+  PriceRowOption,
+  ProductTypeOption,
+  StockRow,
+} from "./types";
 
 function unitPrice(
   sell: number | null,
@@ -39,7 +46,7 @@ export async function listStock(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(name)",
+      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id), brands!pos_skus_brand_id_fkey(name)",
     )
     .order("name");
   request = options?.includeMarketGold
@@ -54,7 +61,8 @@ export async function listStock(options?: {
   return (data ?? []).map((row) => {
     const price = firstEmbed(row.gold_price_rows);
     const stock = firstEmbed(row.pos_inventory_stock);
-    const product = firstEmbed(row.products as { image: string | null; category: string | null }[] | { image: string | null; category: string | null } | null);
+    type ProductEmbed = { image: string | null; category: string | null; product_type_id: string | null };
+    const product = firstEmbed(row.products as ProductEmbed[] | ProductEmbed | null);
     const brand = firstEmbed(
       (row as { brands?: { name: string } | { name: string }[] | null }).brands,
     );
@@ -81,6 +89,7 @@ export async function listStock(options?: {
       category: product?.category ?? "Khác",
       brandId: (row as { brand_id?: string | null }).brand_id ?? null,
       brandName: brand?.name ?? null,
+      productTypeId: product?.product_type_id ?? null,
       ...(purityBySku ? { purity: purityBySku[row.id] ?? null } : {}),
     };
   });
@@ -128,6 +137,28 @@ export async function listCategories(): Promise<CategoryOption[]> {
     .select("id, name")
     .eq("is_active", true)
     .order("sort_order");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name ?? "") }));
+}
+
+export async function listBrandCategoryLinks(): Promise<BrandCategoryLink[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.from("brand_categories").select("brand_id, category_id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    brandId: String(row.brand_id),
+    categoryId: String(row.category_id),
+  }));
+}
+
+export async function listProductTypes(): Promise<ProductTypeOption[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("product_types")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order")
+    .order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name ?? "") }));
 }

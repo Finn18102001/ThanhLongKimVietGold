@@ -7,13 +7,15 @@ import {
   listPosBrands,
   listPosCatalog,
   listPosOperators,
+  listPosProductTypes,
 } from "./query";
 import { isSharedPosCounterEmail } from "./types";
 
 export async function PosPage() {
-  const [catalog, brands, heldOrders, session, marketPrices] = await Promise.all([
+  const [catalog, brands, productTypes, heldOrders, session, marketPrices] = await Promise.all([
     listPosCatalog(),
     listPosBrands(),
+    listPosProductTypes(),
     listHeldOrders(),
     getPosSession(),
     listMarketGoldClassPrices(),
@@ -26,6 +28,7 @@ export async function PosPage() {
         catalog={catalog}
         marketPrices={marketPrices}
         brands={brands}
+        productTypes={productTypes}
         initialHeldOrders={heldOrders}
         saleContext={{
           staffId: session?.staffId ?? null,

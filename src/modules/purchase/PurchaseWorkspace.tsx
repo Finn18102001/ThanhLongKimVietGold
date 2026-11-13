@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ClockCounterClockwise, Printer, Warning } from "@phosphor-icons/react";
 import { CustomerSelectModal } from "@/modules/customer/components/CustomerSelectModal";
-import type { MarketGoldClass, MarketGoldClassPrices } from "@/modules/pos/types";
+import type {
+  MarketGoldClass,
+  MarketGoldClassPrices,
+  PosProductTypeOption,
+} from "@/modules/pos/types";
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
@@ -82,10 +86,12 @@ export function PurchaseWorkspace({
   catalog,
   marketRefs,
   marketPrices = {},
+  productTypes = [],
 }: {
   catalog: PurchaseCatalogItem[];
   marketRefs: MarketGoldRef[];
   marketPrices?: MarketGoldClassPrices;
+  productTypes?: PosProductTypeOption[];
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
@@ -652,6 +658,7 @@ export function PurchaseWorkspace({
           <div className="flex min-h-0 flex-col gap-4">
             <PurchaseCatalogPanel
               catalog={catalog}
+              productTypes={productTypes}
               onPickCatalog={addCatalogItem}
               marketPrices={marketPrices}
               onOpenMarket={(cls) => {

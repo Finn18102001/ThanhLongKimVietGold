@@ -6,7 +6,7 @@ import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { downloadCsv } from "@/shared/lib/csv";
 import { STOCK_STATUS_LABEL } from "../labels";
-import { stockStatus, type StockFilter, type StockRow } from "../types";
+import { stockStatus, type ProductTypeOption, type StockFilter, type StockRow } from "../types";
 
 const PAGE_SIZE = 8;
 
@@ -22,10 +22,17 @@ const TABS: { id: StockFilter; label: string }[] = [
   { id: "OUT_OF_STOCK", label: "Hết hàng" },
 ];
 
-export function StockTable({ rows }: { rows: StockRow[] }) {
+export function StockTable({
+  rows,
+  productTypes = [],
+}: {
+  rows: StockRow[];
+  productTypes?: ProductTypeOption[];
+}) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<StockFilter>("ALL");
   const [category, setCategory] = useState("");
+  const [productTypeId, setProductTypeId] = useState("");
   const [brand, setBrand] = useState("");
   const [page, setPage] = useState(0);
 
@@ -54,6 +61,9 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
       const status = stockStatus(row.quantity);
       const matchesTab = tab === "ALL" || status === tab;
       const matchesCategory = !category || row.category === category;
+      const matchesType =
+        !productTypeId ||
+        (productTypeId === "__none__" ? !row.productTypeId : row.productTypeId === productTypeId);
       const matchesBrand =
         !brand ||
         (brand === "__none__" ? !row.brandName : row.brandName === brand);
@@ -63,9 +73,9 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
         row.sku.toLowerCase().includes(q) ||
         row.category.toLowerCase().includes(q) ||
         (row.brandName ?? "").toLowerCase().includes(q);
-      return matchesTab && matchesCategory && matchesBrand && matchesQuery;
+      return matchesTab && matchesCategory && matchesType && matchesBrand && matchesQuery;
     });
-  }, [rows, query, tab, category, brand]);
+  }, [rows, query, tab, category, productTypeId, brand]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -171,6 +181,23 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               {item}
             </option>
           ))}
+        </select>
+        <select
+          value={productTypeId}
+          onChange={(event) => {
+            setProductTypeId(event.target.value);
+            setPage(0);
+          }}
+          aria-label="Loại sản phẩm"
+          className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+        >
+          <option value="">Tất cả loại sản phẩm</option>
+          {productTypes.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))}
+          <option value="__none__">Chưa phân loại</option>
         </select>
         <select
           value={tab}

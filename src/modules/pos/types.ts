@@ -10,6 +10,8 @@ export type PosCatalogItem = {
   browseGroup: string;
   brandId: string | null;
   brandName: string | null;
+  /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
+  productTypeId?: string | null;
   /** Vàng/bạc thị trường — sold from stock; soft-inactive by design. */
   isMarketGold?: boolean;
   /** Real MG SKU only: group from RPC `pos_list_market_gold_stock`. */
@@ -52,6 +54,11 @@ export type PosBrandOption = {
   id: string;
   name: string;
   slug: string;
+};
+
+export type PosProductTypeOption = {
+  id: string;
+  name: string;
 };
 
 export type CartLine = {

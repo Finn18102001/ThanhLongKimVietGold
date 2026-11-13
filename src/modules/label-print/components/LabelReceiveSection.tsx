@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Package } from "@phosphor-icons/react";
 import { formatDong } from "../labels";
 import { receiveLabelOrderPurchase } from "../receive-actions";
@@ -20,6 +20,7 @@ type Draft = {
   name: string;
   brandId: string;
   categoryId: string;
+  productTypeId: string;
   priceRowId: string;
   priceNote: string;
   skuPrefix: string;
@@ -39,6 +40,7 @@ function emptyDraft(defaultBrandId: string): Draft {
     name: "",
     brandId: defaultBrandId,
     categoryId: "",
+    productTypeId: "",
     priceRowId: "",
     priceNote: "",
     skuPrefix: "TLKVTS",
@@ -74,6 +76,22 @@ export function LabelReceiveSection({
 
   function patch(next: Partial<Draft>) {
     setDraft((prev) => ({ ...prev, ...next }));
+  }
+
+  const linkedCategories = useMemo(() => {
+    const allowed = new Set(
+      options.brandCategories
+        .filter((link) => link.brandId === draft.brandId)
+        .map((link) => link.categoryId),
+    );
+    return options.categories.filter((category) => allowed.has(category.id));
+  }, [draft.brandId, options.brandCategories, options.categories]);
+
+  function changeBrand(brandId: string) {
+    const stillLinked = options.brandCategories.some(
+      (link) => link.brandId === brandId && link.categoryId === draft.categoryId,
+    );
+    patch({ brandId, categoryId: stillLinked ? draft.categoryId : "" });
   }
 
   const receivedQty = isWholeNumber(draft.receivedQty) ? Number(draft.receivedQty) : 0;
@@ -122,6 +140,7 @@ export function LabelReceiveSection({
         name: draft.name,
         brandId: draft.brandId,
         categoryId: draft.categoryId,
+        productTypeId: draft.productTypeId,
         priceRowId: draft.priceRowId,
         priceNote: draft.priceNote,
         skuPrefix: draft.skuPrefix,
@@ -180,7 +199,7 @@ export function LabelReceiveSection({
           Thương hiệu
           <select
             value={draft.brandId}
-            onChange={(e) => patch({ brandId: e.target.value })}
+            onChange={(e) => changeBrand(e.target.value)}
             className={FIELD}
           >
             <option value="">Chọn thương hiệu</option>
@@ -199,9 +218,29 @@ export function LabelReceiveSection({
             className={FIELD}
           >
             <option value="">Không chọn</option>
-            {options.categories.map((category) => (
+            {linkedCategories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
+              </option>
+            ))}
+          </select>
+          {draft.brandId && linkedCategories.length === 0 ? (
+            <span className="mt-1 block text-[11px]">
+              Thương hiệu này chưa liên kết danh mục nào. Liên kết ở /admin website.
+            </span>
+          ) : null}
+        </label>
+        <label className={LABEL}>
+          Loại sản phẩm
+          <select
+            value={draft.productTypeId}
+            onChange={(e) => patch({ productTypeId: e.target.value })}
+            className={FIELD}
+          >
+            <option value="">Chưa phân loại</option>
+            {options.productTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
               </option>
             ))}
           </select>

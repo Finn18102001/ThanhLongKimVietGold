@@ -14,6 +14,7 @@ import {
   MARKET_GOLD_GROUP,
   type MarketGoldClass,
   type MarketGoldClassPrices,
+  type PosProductTypeOption,
 } from "@/modules/pos/types";
 import type { PurchaseCatalogItem } from "../types";
 import { PurchaseCatalogCard } from "./PurchaseCatalogCard";
@@ -22,17 +23,20 @@ const PAGE_SIZE = 12;
 
 export function PurchaseCatalogPanel({
   catalog,
+  productTypes = [],
   marketPrices = {},
   onPickCatalog,
   onOpenMarket,
 }: {
   catalog: PurchaseCatalogItem[];
+  productTypes?: PosProductTypeOption[];
   marketPrices?: MarketGoldClassPrices;
   onPickCatalog: (item: PurchaseCatalogItem) => void;
   onOpenMarket: (marketClass: MarketGoldClass) => void;
 }) {
   const [group, setGroup] = useState("Tất cả");
   const [brandName, setBrandName] = useState("all");
+  const [productTypeId, setProductTypeId] = useState("all");
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
 
@@ -43,6 +47,7 @@ export function PurchaseCatalogPanel({
   const showMarketCards =
     (group === "Tất cả" || group === MARKET_GOLD_GROUP) &&
     (brandName === "all" || brandName === MARKET_GOLD_GROUP) &&
+    productTypeId === "all" &&
     (!query.trim() || MARKET_GOLD_GROUP.toLowerCase().includes(query.trim().toLowerCase()) ||
       "bạc thị trường".includes(query.trim().toLowerCase()));
 
@@ -61,6 +66,9 @@ export function PurchaseCatalogPanel({
         (brandName === "none"
           ? !item.brandName
           : (item.brandName || "").trim() === brandName);
+      const matchesType =
+        productTypeId === "all" ||
+        (productTypeId === "none" ? !item.productTypeId : item.productTypeId === productTypeId);
       const matchesGroup = group === "Tất cả" || item.browseGroup === group;
       const matchesQuery =
         !q ||
@@ -68,14 +76,14 @@ export function PurchaseCatalogPanel({
         item.sku.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
         (item.brandName || "").toLowerCase().includes(q);
-      return matchesBrand && matchesGroup && matchesQuery;
+      return matchesBrand && matchesType && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandName, catalog, group, query]);
+  }, [brandName, catalog, group, productTypeId, query]);
 
   useEffect(() => {
     setPageIndex(0);
-  }, [brandName, group, query]);
+  }, [brandName, group, productTypeId, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(pageIndex, pageCount - 1);
@@ -114,6 +122,22 @@ export function PurchaseCatalogPanel({
               </option>
             ))}
             <option value="none">Không thương hiệu</option>
+          </select>
+        </label>
+        <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px]">
+          <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Loại sản phẩm</span>
+          <select
+            value={productTypeId}
+            onChange={(e) => setProductTypeId(e.target.value)}
+            className="max-w-[160px] bg-transparent text-[13px] font-medium outline-none"
+          >
+            <option value="all">Tất cả loại</option>
+            {productTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+            <option value="none">Chưa phân loại</option>
           </select>
         </label>
       </div>

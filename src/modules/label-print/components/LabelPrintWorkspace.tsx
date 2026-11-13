@@ -51,6 +51,7 @@ import type {
   LabelPrintLogRow,
   LabelPrintPayload,
   LabelPrefill,
+  LabelProductType,
   LabelReceiveOptions,
   LabelReceiveResult,
   LabelSkuOption,
@@ -93,10 +94,12 @@ function historyCacheKey(filter: LabelHistoryFilter, pageSize: number): string {
 
 export function LabelPrintWorkspace({
   skus: initialSkus,
+  productTypes = [],
   receiveOptions = null,
   prefill = null,
 }: {
   skus: LabelSkuOption[];
+  productTypes?: LabelProductType[];
   /** Present only for ADMIN (admin write) — renders "Nhập hàng" above "Thông tin in". */
   receiveOptions?: LabelReceiveOptions | null;
   /** Opened from a buy invoice: preselect the SKU and fill purity / weights / stone. */
@@ -112,6 +115,7 @@ export function LabelPrintWorkspace({
     const ids = new Set(initialSkus.map((s) => s.skuId));
     return [...receivedSkus.filter((s) => !ids.has(s.skuId)), ...initialSkus];
   }, [initialSkus, receivedSkus]);
+  const [skuTypeFilter, setSkuTypeFilter] = useState("");
   const [tab, setTab] = useState<Tab>("print");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(() =>
@@ -651,6 +655,22 @@ export function LabelPrintWorkspace({
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
+                Loại sản phẩm (lọc danh sách SKU)
+                <select
+                  value={skuTypeFilter}
+                  onChange={(e) => setSkuTypeFilter(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)]"
+                >
+                  <option value="">Tất cả loại sản phẩm</option>
+                  {productTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                  <option value="__none__">Chưa phân loại</option>
+                </select>
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)] sm:col-span-2">
                 Sản phẩm (SKU)
                 <select
                   value={skuId}
@@ -658,7 +678,16 @@ export function LabelPrintWorkspace({
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)]"
                 >
                   <option value="">Chọn sản phẩm...</option>
-                  {skus.map((s) => (
+                  {skus
+                    .filter(
+                      (s) =>
+                        s.skuId === skuId ||
+                        !skuTypeFilter ||
+                        (skuTypeFilter === "__none__"
+                          ? !s.productTypeId
+                          : s.productTypeId === skuTypeFilter),
+                    )
+                    .map((s) => (
                     <option key={s.skuId} value={s.skuId}>
                       {s.name} ({s.sku}) · tồn {s.stockQty}
                     </option>
@@ -1230,7 +1259,7 @@ function HistoryPanel({
           />
         </label>
         <label className="text-[12px] text-[var(--tlkv-muted)]">
-          Loại sản phẩm
+          Danh mục
           <select
             value={filter.productType}
             onChange={(e) => onFilter({ productType: e.target.value })}
@@ -1320,7 +1349,7 @@ function HistoryPanel({
               <th className="px-2 py-2 font-medium">Thời gian</th>
               <th className="px-2 py-2 font-medium">MSP</th>
               <th className="px-2 py-2 font-medium">Mã vạch</th>
-              <th className="px-2 py-2 font-medium">Loại SP</th>
+              <th className="px-2 py-2 font-medium">Danh mục</th>
               <th className="px-2 py-2 font-medium">Sản phẩm</th>
               <th className="px-2 py-2 font-medium">Thương hiệu</th>
               <th className="px-2 py-2 text-right font-medium">KLT</th>

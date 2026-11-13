@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { receivePurchase } from "../actions";
-import type { BrandOption, CategoryOption, PriceRowOption, StockRow } from "../types";
+import type {
+  BrandCategoryLink,
+  BrandOption,
+  CategoryOption,
+  PriceRowOption,
+  ProductTypeOption,
+  StockRow,
+} from "../types";
 
 type LineMode = "catalog" | "order";
 
@@ -15,11 +22,15 @@ export function ReceiveForm({
   brands = [],
   categories = [],
   priceRows = [],
+  productTypes = [],
+  brandCategories = [],
 }: {
   rows: StockRow[];
   brands?: BrandOption[];
   categories?: CategoryOption[];
   priceRows?: PriceRowOption[];
+  productTypes?: ProductTypeOption[];
+  brandCategories?: BrandCategoryLink[];
 }) {
   const [pending, setPending] = useState(false);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
@@ -30,7 +41,23 @@ export function ReceiveForm({
   const [orderName, setOrderName] = useState("");
   const [orderBrandId, setOrderBrandId] = useState(brands[0]?.id ?? "");
   const [orderCategoryId, setOrderCategoryId] = useState("");
+  const [orderProductTypeId, setOrderProductTypeId] = useState("");
   const [orderPriceRowId, setOrderPriceRowId] = useState("");
+
+  const linkedCategories = useMemo(() => {
+    const allowed = new Set(
+      brandCategories.filter((link) => link.brandId === orderBrandId).map((link) => link.categoryId),
+    );
+    return categories.filter((category) => allowed.has(category.id));
+  }, [brandCategories, categories, orderBrandId]);
+
+  function changeOrderBrand(brandId: string) {
+    setOrderBrandId(brandId);
+    const stillLinked = brandCategories.some(
+      (link) => link.brandId === brandId && link.categoryId === orderCategoryId,
+    );
+    if (!stillLinked) setOrderCategoryId("");
+  }
   const [orderPriceNote, setOrderPriceNote] = useState("");
   const [orderSkuPrefix, setOrderSkuPrefix] = useState("TLKVTS");
   const [orderVisible, setOrderVisible] = useState(false);
@@ -40,6 +67,7 @@ export function ReceiveForm({
     setOrderName("");
     setOrderBrandId(brands[0]?.id ?? "");
     setOrderCategoryId("");
+    setOrderProductTypeId("");
     setOrderPriceRowId("");
     setOrderPriceNote("");
     setOrderSkuPrefix("TLKVTS");
@@ -107,6 +135,7 @@ export function ReceiveForm({
               name,
               brand_id: brandId,
               category_id: orderCategoryId || null,
+              product_type_id: orderProductTypeId || null,
               price_row_id: orderPriceRowId || null,
               price_note: orderPriceNote.trim(),
               sku_prefix: prefix,
@@ -229,7 +258,7 @@ export function ReceiveForm({
               <select
                 required
                 value={orderBrandId}
-                onChange={(e) => setOrderBrandId(e.target.value)}
+                onChange={(e) => changeOrderBrand(e.target.value)}
                 className={FIELD}
               >
                 <option value="">Chọn thương hiệu</option>
@@ -248,9 +277,29 @@ export function ReceiveForm({
                 className={FIELD}
               >
                 <option value="">Không chọn</option>
-                {categories.map((category) => (
+                {linkedCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
+                  </option>
+                ))}
+              </select>
+              {orderBrandId && linkedCategories.length === 0 ? (
+                <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+                  Thương hiệu này chưa liên kết danh mục nào. Liên kết ở /admin website.
+                </span>
+              ) : null}
+            </label>
+            <label className="text-sm">
+              Loại sản phẩm
+              <select
+                value={orderProductTypeId}
+                onChange={(e) => setOrderProductTypeId(e.target.value)}
+                className={FIELD}
+              >
+                <option value="">Chưa phân loại</option>
+                {productTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
                   </option>
                 ))}
               </select>

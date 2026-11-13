@@ -65,6 +65,8 @@ export type PurchaseCatalogItem = {
   browseGroup: string;
   category: string;
   brandName: string | null;
+  /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
+  productTypeId: string | null;
   weightChi: number;
   /** Giá bán ra website / chỉ (gold_price_rows.sell). Mốc ±300k, không phải giá mua. */
   referenceSellDongPerChi: number;

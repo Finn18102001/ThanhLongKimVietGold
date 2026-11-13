@@ -78,6 +78,7 @@ export async function receiveLabelOrderPurchase(
           name: input.name.trim(),
           brand_id: input.brandId,
           category_id: input.categoryId || null,
+          product_type_id: input.productTypeId || null,
           price_row_id: input.priceRowId || null,
           price_note: input.priceNote.trim(),
           sku_prefix: input.skuPrefix.trim().toUpperCase(),

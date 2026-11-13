@@ -9,6 +9,8 @@ export type LabelSkuOption = {
   name: string;
   category: string;
   brandName: string | null;
+  /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
+  productTypeId: string | null;
   weightChi: number;
   laborFeeDong: number;
   unitPriceDong: number | null;
@@ -129,12 +131,17 @@ export const DEFAULT_LABEL_HISTORY_PAGE_SIZE = 20;
 export type LabelReceiveBrand = { id: string; name: string };
 export type LabelReceiveCategory = { id: string; name: string };
 export type LabelReceivePriceRow = { id: string; brand: string; product: string; purity: string };
+export type LabelProductType = { id: string; name: string };
+/** One row of `brand_categories`: the category may be used with that brand. */
+export type LabelBrandCategoryLink = { brandId: string; categoryId: string };
 
 /** Dropdown sources for "Nhập hàng" on the label screen (ADMIN only). */
 export type LabelReceiveOptions = {
   brands: LabelReceiveBrand[];
   categories: LabelReceiveCategory[];
   priceRows: LabelReceivePriceRow[];
+  productTypes: LabelProductType[];
+  brandCategories: LabelBrandCategoryLink[];
 };
 
 export type LabelReceivePaymentMethod = "CASH" | "TRANSFER";
@@ -144,6 +151,8 @@ export type LabelReceiveInput = {
   name: string;
   brandId: string;
   categoryId: string;
+  /** Loại sản phẩm, optional ("" = chưa phân loại). */
+  productTypeId: string;
   priceRowId: string;
   priceNote: string;
   skuPrefix: string;

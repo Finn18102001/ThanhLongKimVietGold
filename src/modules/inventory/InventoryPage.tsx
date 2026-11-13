@@ -2,7 +2,7 @@ import { formatDong } from "@/shared/lib/money";
 import { InventoryKpis } from "./components/InventoryKpis";
 import { InventorySidePanels } from "./components/InventorySidePanels";
 import { StockTable } from "./components/StockTable";
-import { listLedger, listStock } from "./query";
+import { listLedger, listProductTypes, listStock } from "./query";
 import { LOW_STOCK_DISPLAY_QTY, stockStatus } from "./types";
 
 function formatChiTotal(weight: number): string {
@@ -10,9 +10,10 @@ function formatChiTotal(weight: number): string {
 }
 
 export async function InventoryPage() {
-  const [rows, ledger] = await Promise.all([
+  const [rows, ledger, productTypes] = await Promise.all([
     listStock({ includeMarketGold: true, withPurity: true }),
     listLedger(),
+    listProductTypes(),
   ]);
   const skuCount = rows.length;
   const totalQty = rows.reduce((sum, row) => sum + row.quantity, 0);
@@ -41,7 +42,7 @@ export async function InventoryPage() {
         lowStockHint={`Sắp hết / hết hàng (tồn ≤ ${LOW_STOCK_DISPLAY_QTY})`}
       />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <StockTable rows={rows} />
+        <StockTable rows={rows} productTypes={productTypes} />
         <InventorySidePanels ledger={ledger} />
       </div>
     </div>
