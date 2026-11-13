@@ -144,6 +144,9 @@
         root.innerHTML = '<p class="tlkv-product-empty">Không tìm thấy sản phẩm.</p>';
         return;
       }
+      if (p.categorySlug && p.categorySlug !== parsed.categorySlug && window.history && history.replaceState) {
+        history.replaceState(null, "", "/sanpham/" + p.categorySlug + "/" + parsed.productSlug + window.location.search);
+      }
 
       p = await applyDerivedPrice(p);
       state.product = p;

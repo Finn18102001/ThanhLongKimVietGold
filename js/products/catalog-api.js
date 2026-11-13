@@ -642,9 +642,8 @@
       return q.eq("slug", productSlug).eq("is_active", true).maybeSingle();
     });
     if (!res.data) return null;
-    var p = normalizeProduct(res.data, resolveFn());
-    if (categorySlug && p.categorySlug && p.categorySlug !== categorySlug) return null;
-    return p;
+    // Product slug is unique; a stale category segment (product moved to another category) still resolves.
+    return normalizeProduct(res.data, resolveFn());
   }
 
   async function fetchFlatLegacyProducts() {
