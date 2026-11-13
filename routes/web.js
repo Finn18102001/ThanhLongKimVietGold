@@ -16,7 +16,7 @@ module.exports = function webRouter(ROOT) {
   });
 
   /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
-  var LOGO_V = "20261114d";
+  var LOGO_V = "20261114e";
   var LEGACY_LOGO_REDIRECTS = [
     ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],

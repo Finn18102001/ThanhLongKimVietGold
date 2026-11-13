@@ -159,9 +159,10 @@
 .vtl-brand-tab__logo {
   width: var(--vtl-tab-logo);
   height: var(--vtl-tab-logo);
-  object-fit: cover;
+  object-fit: contain;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: 0;
+  background: transparent;
 }
 
 .vtl-brand-tab__logo.tlkv-brand-logo-plate {
@@ -175,9 +176,9 @@
   padding: 0;
 }
 
-
-.vtl-brand-tab.is-active .vtl-brand-tab__logo {
-  filter: brightness(1.15);
+/* TLKV mark trong suốt trên nền tab đỏ — không filter/box chồng */
+.vtl-brand-tab.is-active .vtl-brand-tab__logo:not(.tlkv-brand-logo-plate) {
+  filter: none;
 }
 
 
@@ -236,17 +237,10 @@
   background: var(--vtl-bg);
 }
 
-/* TLKV lockup đã có nền #8a1c1d — full-bleed, không pad cream */
-.vtl-brand-view__logo[src*="tlkv-logo-lockup"] {
-  object-fit: cover;
-  padding: 0;
-  background: #8a1c1d;
-  border-radius: 8px;
-}
-
 .vtl-brand-view__logo.tlkv-brand-logo-plate {
-  padding: 0.55rem;
+  padding: 0.45rem;
   background: var(--tlkv-brand-logo-plate, #8a1c1d);
+  border-radius: 8px;
 }
 
 

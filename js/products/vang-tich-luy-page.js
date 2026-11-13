@@ -53,16 +53,16 @@
 
   function getBrandLogoUrl(brand) {
     var slug = brand && brand.slug ? String(brand.slug) : "";
+    // TLKV: mark trong suốt — tab/navbar nền đỏ CSS; head dùng plate CSS.
     if (slug === "thang-long-kim-viet") {
       return (
-        global.TLKV_SITE_LOGO_PLATE_URL ||
-        global.TLKV_SITE_LOGO_LOCKUP_URL ||
-        "/assets/tlkv-logo-lockup.png?v=20261114d"
+        global.TLKV_SITE_LOGO_MARK_URL ||
+        "/assets/tlkv-logo-mark.png?v=20261114e"
       );
     }
     if (brand && brand.logo_url) return brand.logo_url;
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114d";
+    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114e";
   }
 
   function formatWeightLabel(weight) {
@@ -363,8 +363,8 @@
 
     var logo = document.createElement("img");
     logo.className = "vtl-brand-view__logo";
-    // TLKV dùng lockup đã có nền #8a1c1d — không phủ plate CSS thêm.
-    if (needsLogoPlate(brand) && String((brand && brand.slug) || "") !== "thang-long-kim-viet") {
+    // TLKV: mark trong suốt trên plate CSS #8a1c1d (đồng bộ navbar).
+    if (needsLogoPlate(brand)) {
       logo.classList.add("tlkv-brand-logo-plate");
     }
     logo.src = getBrandLogoUrl(brand);
@@ -514,6 +514,7 @@
 
       var logo = document.createElement("img");
       logo.className = "vtl-brand-tab__logo";
+      // TLKV: không plate — mark trong suốt nằm trực tiếp trên nền tab (đỏ khi active).
       if (needsLogoPlate(section.brand) && slug !== "thang-long-kim-viet") {
         logo.classList.add("tlkv-brand-logo-plate");
       }

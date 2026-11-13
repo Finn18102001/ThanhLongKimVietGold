@@ -177,17 +177,16 @@
 
   function getBrandLogoUrl(brand) {
     var slug = String((brand && brand.slug) || "");
-    // TLKV: luôn dùng lockup (vàng trên đỏ #8a1c1d) cho card nổi bật — không lấy logo_url cũ từ API/CDN.
+    // TLKV: mark trong suốt — nền đỏ do CSS plate (không dùng lockup chồng màu).
     if (slug === "thang-long-kim-viet") {
       return (
-        global.TLKV_SITE_LOGO_PLATE_URL ||
-        global.TLKV_SITE_LOGO_LOCKUP_URL ||
-        "/assets/tlkv-logo-lockup.png?v=20261114d"
+        global.TLKV_SITE_LOGO_MARK_URL ||
+        "/assets/tlkv-logo-mark.png?v=20261114e"
       );
     }
     if (brand && brand.logo_url) return String(brand.logo_url);
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114d";
+    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114e";
   }
 
   function buildSignature(brands) {
@@ -219,11 +218,7 @@
 
     var logoWrap = document.createElement("div");
     logoWrap.className = "tlkv-featured-brand-card__logo-wrap";
-    var slug = String((brand && brand.slug) || "");
-    // Lockup đã có nền đỏ sẵn → giữ khung vuông, không phủ plate CSS chồng màu.
-    if (slug === "thang-long-kim-viet") {
-      logoWrap.classList.add("tlkv-featured-brand-card__logo-wrap--tlkv-lockup");
-    } else if (needsLogoPlate(brand)) {
+    if (needsLogoPlate(brand)) {
       logoWrap.classList.add("tlkv-brand-logo-plate");
     }
 

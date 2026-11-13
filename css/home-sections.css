@@ -617,7 +617,7 @@
   border-radius: 0;
   background: transparent;
   box-sizing: border-box;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .tlkv-featured-brand-card__logo {
