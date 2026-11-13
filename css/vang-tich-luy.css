@@ -159,8 +159,9 @@
 .vtl-brand-tab__logo {
   width: var(--vtl-tab-logo);
   height: var(--vtl-tab-logo);
-  object-fit: contain;
+  object-fit: cover;
   flex-shrink: 0;
+  border-radius: 6px;
 }
 
 .vtl-brand-tab__logo.tlkv-brand-logo-plate {
@@ -233,6 +234,14 @@
   padding: 0.25rem;
   border-radius: 10px;
   background: var(--vtl-bg);
+}
+
+/* TLKV lockup đã có nền #8a1c1d — full-bleed, không pad cream */
+.vtl-brand-view__logo[src*="tlkv-logo-lockup"] {
+  object-fit: cover;
+  padding: 0;
+  background: #8a1c1d;
+  border-radius: 8px;
 }
 
 .vtl-brand-view__logo.tlkv-brand-logo-plate {

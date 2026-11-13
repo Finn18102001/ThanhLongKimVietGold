@@ -182,12 +182,12 @@
       return (
         global.TLKV_SITE_LOGO_PLATE_URL ||
         global.TLKV_SITE_LOGO_LOCKUP_URL ||
-        "/assets/tlkv-logo-lockup.png?v=20261114c"
+        "/assets/tlkv-logo-lockup.png?v=20261114d"
       );
     }
     if (brand && brand.logo_url) return String(brand.logo_url);
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114c";
+    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114d";
   }
 
   function buildSignature(brands) {

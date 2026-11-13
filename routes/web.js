@@ -8,15 +8,15 @@ module.exports = function webRouter(ROOT) {
   const router = express.Router();
   const send = (rel) => (req, res) => res.sendFile(path.join(ROOT, rel));
 
-  /** Google / trình duyệt thường gọi /favicon.ico — PNG 48px. Không immutable: URL không có ?v=. */
+  /** Google / trình duyệt thường gọi /favicon.ico — lockup nền đỏ #8a1c1d. */
   router.get("/favicon.ico", function (req, res) {
     res.type("image/png");
-    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
     res.sendFile(path.join(ROOT, "assets", "favicon-48.png"));
   });
 
   /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
-  var LOGO_V = "20261114c";
+  var LOGO_V = "20261114d";
   var LEGACY_LOGO_REDIRECTS = [
     ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],

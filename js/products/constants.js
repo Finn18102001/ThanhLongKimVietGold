@@ -4,20 +4,22 @@
   global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
   /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
-  global.TLKV_LOGO_ASSET_VERSION = "20261114c";
+  global.TLKV_LOGO_ASSET_VERSION = "20261114d";
   var logoV = "?v=" + global.TLKV_LOGO_ASSET_VERSION;
 
+  /** Mark trong suốt — chỉ dùng trên nền đỏ CSS (navbar / footer). */
   global.TLKV_SITE_LOGO_MARK_URL = "/assets/tlkv-logo-mark.png" + logoV;
+  /** Lockup vàng trên đỏ #8a1c1d — favicon, OG, card/tab/vuông thương hiệu. */
   global.TLKV_SITE_LOGO_LOCKUP_URL = "/assets/tlkv-logo-lockup.png" + logoV;
   global.TLKV_SITE_LOGO_URL = global.TLKV_SITE_LOGO_MARK_URL;
   global.TLKV_SITE_LOGO_OG_URL =
     "https://thanglongkimviet.vn/assets/og-logo-tlkv-red-v2.png" + logoV;
 
-  /** Full-bleed mark-on-red tile — dùng cho card Sản phẩm nổi bật / plate vuông. */
+  /** Full-bleed mark-on-red tile — Sản phẩm nổi bật / Vàng tích lũy / plate vuông. */
   global.TLKV_SITE_LOGO_PLATE_URL = global.TLKV_SITE_LOGO_LOCKUP_URL;
 
   global.TLKV_BRAND_LOGO_FALLBACKS = {
-    "thang-long-kim-viet": "/assets/tlkv-logo-mark.png" + logoV,
+    "thang-long-kim-viet": "/assets/tlkv-logo-lockup.png" + logoV,
     "bao-tin-manh-hai": "/assets/brands/bao-tin-manh-hai.png?v=20260727b",
     "bao-tin-minh-chau": "/assets/brands/bao-tin-minh-chau.png?v=20260727b",
   };

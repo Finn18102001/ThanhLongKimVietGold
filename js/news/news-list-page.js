@@ -107,7 +107,7 @@
     }
     var fallback =
       (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-      "/assets/tlkv-logo-mark.png?v=20261114c";
+      "/assets/tlkv-logo-mark.png?v=20261114d";
     return { src: fallback, isFallback: true };
   }
 
@@ -118,7 +118,7 @@
     if (thumb && thumb.isFallback) return thumb.src;
     return (
       (typeof TLKV_SITE_LOGO_MARK_URL !== "undefined" && TLKV_SITE_LOGO_MARK_URL) ||
-      "/assets/tlkv-logo-mark.png?v=20261114c"
+      "/assets/tlkv-logo-mark.png?v=20261114d"
     );
   }
 
