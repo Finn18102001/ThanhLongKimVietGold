@@ -5,6 +5,8 @@ Trạng thái: **đã chạy 13/11/2026 21:40** qua Supabase MCP (người dùng
 
 Quyết định 13/11 cho mục 2: **C** liên kết tạm Bạc → Bạc Tích Trữ và Bạc → BẠC TRANG SỨC; **D** liên kết tạm VÀNG TRANG SỨC TLKV → QUÀ TẶNG 24K; **E** không thêm (GRIF thuộc BTMH), 2 sản phẩm "TLKV Bông hoa 0.1 chỉ", "TLKV Bó Hoa 0.1 chỉ" xử lý ở Phase C/E; **F** V610 bỏ, ngừng dùng ở Phase C (3 món TLKVTS000004-006 còn tồn). Các mục còn lại theo kế hoạch Phase C.
 
+**Đổi lúc 22:05 cùng ngày (người dùng quyết định lại):** GRIF là Category của **Thăng Long Kim Việt** (bỏ cặp BTMH → GRIF, thêm TLKV → GRIF); BTMH có Category mới **GIFT** chứa 18 sản phẩm Kim Gia Bảo / KGBG; Brand mới **Vàng Tây** có VÀNG 10K; Vàng thị trường chỉ có VÀNG 10K. Hiện có 19 cặp. Xem `supabase/catalog-restructure/07_vangtay_gift_grif_APPLIED.sql`.
+
 File:
 
 | Thứ tự | File | Loại |

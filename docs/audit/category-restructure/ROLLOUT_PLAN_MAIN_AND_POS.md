@@ -118,4 +118,7 @@ Category Tranh, Trang Sức, VÀNG MIẾNG ẩn; đánh giá xóa khi không cò
 | 13/11 21:50 | B: smoke local (cổng 5190, database production, chỉ đọc) | Form sản phẩm lọc Category đúng 17 cặp; danh sách có cột Loại; `/`, `/sanpham`, danh mục, thương hiệu, `/api/public/brands` 200; test 12/12 |
 | 13/11 21:55 | B2: fast-forward `origin/main` → `142f402` | Xong (người dùng duyệt) |
 | 13/11 21:58 | B3: smoke production `www.thanglongkimviet.vn` | Trang public 200; `js/admin/taxonomy-data.js`, `js/products/product-save-rules.js` đã phục vụ (bản mới đã deploy) |
-| | C + D1 | Chờ: Product Type, chuyển sản phẩm, ngừng dùng V610 / Category đã gộp; POS lọc Category + Type |
+| 13/11 22:05 | C (một phần): Vàng Tây, GIFT, GRIF | Brand Vàng Tây (+ VÀNG 10K), sản phẩm 70ad2dbf → Vàng Tây (SKU `xx-tsvt1-1` → `vt-tsvt1-1`, tồn 0); GRIF chỉ còn TLKV; Category GIFT của BTMH nhận 18 sản phẩm Kim Gia Bảo / KGBG; 3 sản phẩm Vàng thị trường → VÀNG 10K. Backup `*__cat20261113`, 22 dòng lịch sử. Chi tiết và hoàn tác: `supabase/catalog-restructure/07_vangtay_gift_grif_APPLIED.sql` |
+| | C (còn lại) + D1 | Chờ: Product Type, V24K * / V10K KHUYÊN TAI / VÀNG 10K LẮC TAY → Category mới + Type; ngừng dùng V610, Tranh, Trang Sức; POS lọc Category + Type |
+
+POS bị ảnh hưởng ngay sau bước 22:05 (đã biết trước): lưới Bán / Mua nhóm theo chữ Category nên 18 sản phẩm Kim Gia Bảo / KGBG hiện ở nút **GIFT** (trước ở GRIF KIM GIA BẢO 24K, VÀNG 24K, QUÀ TẶNG 24K); nút GRIF chỉ còn 2 sản phẩm TLKV. Vàng thị trường vẫn ở nhóm riêng (theo cờ `is_market_gold`).

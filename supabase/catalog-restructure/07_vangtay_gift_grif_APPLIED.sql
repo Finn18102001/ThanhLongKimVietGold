@@ -1,0 +1,48 @@
+-- ============================================================================
+-- 07 VÀNG TÂY / GIFT / GRIF — ĐÃ CHẠY 13/11/2026 ~22:05 (UTC+7) qua Supabase MCP, người dùng duyệt.
+-- File này ghi lại nội dung đã chạy để tra cứu và hoàn tác. KHÔNG chạy lại.
+--
+-- Quyết định người dùng 13/11:
+--   1. Vàng thị trường là Brand, chỉ có Category VÀNG 10K. Tạo Brand "Vàng Tây" có VÀNG 10K;
+--      sản phẩm 70ad2dbf-e3db-4bcc-8462-0a5a9fa20041 (TRANG SỨC VÀNG TÂY 10K) thuộc Vàng Tây.
+--   2. GRIF KIM GIA BẢO 24K là Category của Thăng Long Kim Việt (bỏ cặp BTMH).
+--   3. Kim Gia Bảo Gift thuộc Category GIFT của Bảo Tín Mạnh Hải; cả 5 sản phẩm KGB và
+--      13 sản phẩm KGBG (cùng dòng giá r-1793247764434) chuyển sang GIFT.
+--
+-- Backup trước khi đổi (RLS bật, không grant):
+--   tlkv_backup_20261110.products__cat20261113
+--   tlkv_backup_20261110.brands__cat20261113
+--   tlkv_backup_20261110.categories__cat20261113
+--   tlkv_backup_20261110.brand_categories__cat20261113
+--
+-- Đã chạy (một transaction, tự dừng nếu số lượng lệch hoặc SKU / dòng giá khác bị đổi):
+--   insert brands (Vàng Tây, slug vang-tay, sort 100)
+--   insert categories (GIFT, slug gift, sort 45)
+--   insert brand_categories: Vàng Tây → VÀNG 10K; TLKV → GRIF; BTMH → GIFT
+--   delete brand_categories: BTMH → GRIF
+--   update products set category_id = GIFT, category = 'GIFT'
+--     where brand = BTMH and price_row_id = 'r-1793247764434'            -- 18 dòng
+--   update products set category_id = VÀNG 10K, category = 'VÀNG 10K'
+--     where brand = Vàng thị trường and category = Vàng Thị Trường        -- 3 dòng
+--   update products set brand_id = Vàng Tây where id = '70ad2dbf-…'      -- 1 dòng
+--     (trigger đồng bộ SKU chạy: pos_skus.sku xx-tsvt1-1 → vt-tsvt1-1; tồn 0, chưa bán)
+--   product_change_log: 22 dòng, payload.source = 'catalog-restructure-20261113'
+--
+-- Kiểm sau khi chạy: checksum pos_skus (trừ SKU đích), gold_price_rows, price_row_id / brand_id
+-- của sản phẩm khác không đổi.
+--
+-- HOÀN TÁC (chỉ khi cần; chạy trong 1 transaction):
+--   update public.products p set category_id = b.category_id, category = b.category, brand_id = b.brand_id
+--     from tlkv_backup_20261110.products__cat20261113 b
+--    where b.id = p.id
+--      and p.id in (select entity_id from public.product_change_log
+--                   where payload->>'source' = 'catalog-restructure-20261113');
+--   delete from public.brand_categories where (brand_id, category_id) in (
+--     select x.brand_id, x.category_id from public.brand_categories x
+--     except select y.brand_id, y.category_id from tlkv_backup_20261110.brand_categories__cat20261113 y);
+--   insert into public.brand_categories select * from tlkv_backup_20261110.brand_categories__cat20261113
+--     on conflict do nothing;
+--   update public.categories set is_active = false where slug = 'gift';   -- không xóa, tránh FK
+--   update public.brands set is_active = false where slug = 'vang-tay';
+--   Lưu ý: đổi lại brand_id của 70ad2dbf chạy lại trigger, SKU về mã cũ dạng xx-…
+-- ============================================================================
