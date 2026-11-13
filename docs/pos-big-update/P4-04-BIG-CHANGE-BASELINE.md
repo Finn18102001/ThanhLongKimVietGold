@@ -2,7 +2,7 @@
 
 > Chốt: 2026-11-13 · Người chốt: chủ dự án · Tài liệu gốc: "TLKV POS – BIG CHANGE – Consolidated Business Requirements" (gửi trong phiên làm việc 2026-11-13).
 > File này ghi **bản tóm lược có đánh số** của bộ quy tắc đã chốt, đối chiếu với code + DB production (chỉ đọc), các câu hỏi, và quyết định triển khai (§5).
-> Trạng thái 2026-11-13: QD-1 đến QD-7 đã trả lời; code đã sửa trên working tree; **migration đã áp lên production** (§6); hard-test đạt; chứng từ test DH003544, PN000120, BUY-000446 **chưa hủy** (§7).
+> Trạng thái 2026-11-13: QD-1 đến QD-7 đã trả lời; code đã sửa trên working tree; **migration đã áp lên production** (§6); hard-test đạt; DH003544 đã hủy, PN000120 đã đảo, BUY-000446 **chưa hủy**; lỗi hủy đơn Đặt cọc không hoàn kho chờ xử lý (§7).
 > Hiện trạng chi tiết: mua [`P4-01-BUY-FLOW.md`](./P4-01-BUY-FLOW.md) · bán [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md) · báo cáo [`P4-03-REPORT-EXCEL.md`](./P4-03-REPORT-EXCEL.md) · quyết định cũ C1–C11 [`P4-00-GOLD-STONE.md`](./P4-00-GOLD-STONE.md).
 > Khi quy tắc ở đây khác C1–C11 hoặc khác ba file flow, **file này thắng**. Khi code khác quy tắc ở đây: báo điểm lệch, tác động, phương án; không tự chọn cách hiểu khác.
 
@@ -196,13 +196,17 @@ Hard-test sau khi áp: đã được đồng ý (tài khoản hard-test, hủy t
 - 2026-11-13: ghi trả lời QD-1 đến QD-7; thêm §5 quyết định triển khai, §6 kế hoạch migration; đính chính L4 (phôi Giấy đảm bảo không in STT). Code đã sửa trên working tree, migration chưa áp.
 - 2026-11-13: migration được duyệt và đã áp (4 version ở §6). Hard-test toàn luồng mua và bán (đặt hàng trả nhiều lần) **đạt**. Sửa thêm: thẻ sản phẩm POS hiện giá vàng / chỉ không cộng đá và công (trước đó chia tổng giá chiếc cho trọng lượng vàng).
 
-### Chứng từ hard-test 2026-11-13 (khách test KH000169, **chưa hủy**, cần hủy theo thứ tự dưới)
+### Chứng từ hard-test 2026-11-13 (khách test KH000169)
 
-| Thứ tự hủy | Mã | Loại | Nội dung |
-|---|---|---|---|
-| 1 | **DH003544** (PRE-000437, PDC-000144) | Đặt hàng, đã giao, đã thu đủ | SKU TLKVTS000018: vàng 1.296.000 + đá 2 viên × 35.000 = 70.000 + công 100.000 = 1.466.000; thu 3 lần tiền mặt 500.000 + 466.000 + 500.000 |
-| 2 | **PN000120** | Nhập hàng tab In tem (giá vốn 0) | Tạo SKU **TLKVTS000018** (0,1 chỉ, 999,9), MSP 000739; sau khi hủy thì ẩn SKU |
-| 3 | **BUY-000446** (PCN20261113-564, BK20261113-565) | Mua vàng thị trường 999.9, đã hoàn thành | 0,1 → 0,09 chỉ × 1.000.000 + đá 3 viên × 25.000 = 75.000; tổng 165.000, chi tiền mặt; SKU MG-EC1D49810C67, MSP 000738 |
+| Thứ tự hủy | Mã | Loại | Nội dung | Trạng thái |
+|---|---|---|---|---|
+| 1 | **DH003544** (PRE-000437, PDC-000144) | Đặt hàng, đã giao, đã thu đủ | SKU TLKVTS000018: vàng 1.296.000 + đá 2 viên × 35.000 = 70.000 + công 100.000 = 1.466.000; thu 3 lần tiền mặt 500.000 + 466.000 + 500.000 | **Đã hủy** 21:00 (lý do "test"): hoàn 3 khoản tiền `SALE_VOID_REFUND`. Kho **không** được hoàn (lỗi L-VOID-DEPOSIT bên dưới), đã bổ sung 1 bút toán `SALE_VOID` +1 qua `pos_private.apply_stock_change` lúc 21:10 |
+| 2 | **PN000120** | Nhập hàng tab In tem (giá vốn 0) | Tạo SKU **TLKVTS000018** (0,1 chỉ, 999,9), MSP 000739 | **Đã đảo** 21:12 (`PURCHASE_VOID` −1, trạng thái CANCELLED, không có dòng tiền). Kho TLKVTS000018 = 0 sau 4 bút toán. SKU **chưa ẩn** |
+| 3 | **BUY-000446** (PCN20261113-564, BK20261113-565) | Mua vàng thị trường 999.9, đã hoàn thành | 0,1 → 0,09 chỉ × 1.000.000 + đá 3 viên × 25.000 = 75.000; tổng 165.000, chi tiền mặt; SKU MG-EC1D49810C67, MSP 000738 | **Chưa hủy** |
+
+**L-VOID-DEPOSIT (lỗi có sẵn, chưa sửa, phát hiện khi dọn test):** `pos_private.void_sale_invoice` chỉ hoàn kho khi `transaction_type = 'SALE'` hoặc `'PREORDER'` + `FULFILLED`. Đơn Đặt cọc (`DEPOSIT`) đã giao khi hủy thì hoàn tiền nhưng **không hoàn kho** (trái quy tắc 6). Ngoài DH003544 còn 8 đơn đã hủy cùng tình trạng, cần đối soát kho trước khi sửa dữ liệu (BRD §9.15): DH000118, DH000157, DH000154, DH000211, DH000213, DH000564, DH002818, DH002924. Hướng sửa đề xuất: thêm `DEPOSIT` vào điều kiện hoàn kho (migration có backup), đối soát từng SKU rồi mới bổ sung bút toán.
+
+**Hóa đơn thật bị hủy trong round:** HD000446 (26/09/2026, 1.386.000 đ) bị hủy 10:28 ngày 13/11 bằng tài khoản hard-test qua dev server local, lý do "ttsss". Không do agent thực hiện; cần chủ cửa hàng xác nhận.
 
 Kết quả kiểm chứng từ:
 
