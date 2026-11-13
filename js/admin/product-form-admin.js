@@ -15,6 +15,13 @@
     goldRows: [],
     goldRowsLoaded: false,
     suppressBrandClear: false,
+    /** Saved classification + price link of the product being edited (null in create mode). */
+    original: null,
+    /** Becomes true only when the user changes the price row (or the brand, which clears it). */
+    priceRowTouched: false,
+    /** Serialized form values right after the form was filled; used to detect unsaved changes. */
+    baseline: "",
+    taxonomy: { categories: [], productTypes: [], links: [] },
   };
 
   var DEFAULTS = {
@@ -22,6 +29,7 @@
     name: "",
     brandId: "",
     categoryId: "",
+    productTypeId: "",
     category: "",
     priceText: "",
     priceRowId: "",
@@ -296,11 +304,16 @@
     return formState.goldRows;
   }
 
+  function savedPriceRowId() {
+    return formState.mode === "edit" && formState.original ? formState.original.priceRowId || "" : "";
+  }
+
   function fillPriceRowSelect(selectedId) {
     var sel = $("pf-price-row-id");
     if (!sel) return;
     var brandId = $("pf-brand-id") && $("pf-brand-id").value;
     var keep = String(selectedId || sel.value || "").trim();
+    var saved = savedPriceRowId();
     sel.innerHTML = "";
     var placeholder = document.createElement("option");
     placeholder.value = "";
@@ -322,37 +335,20 @@
       sel.appendChild(o);
     });
     sel.disabled = false;
-    if (keep && Array.prototype.some.call(sel.options, function (opt) {
+    var hasKeep = keep && Array.prototype.some.call(sel.options, function (opt) {
       return opt.value === keep;
-    })) {
-      sel.value = keep;
-    } else {
-      sel.value = "";
-    }
-  }
-
-  function matchPriceRowId(item) {
-    var explicit = item && item.priceRowId ? String(item.priceRowId).trim() : "";
-    if (explicit && findGoldRow(explicit)) return explicit;
-    var source = item && item.priceSourceProduct ? String(item.priceSourceProduct).trim() : "";
-    if (!source) return "";
-    var brandRows = rowsForSelectedBrand();
-    var exact = brandRows.find(function (row) {
-      return brandKey(row.product) === brandKey(source);
     });
-    if (exact) return exact.id;
-    var engine = global.TLKVProductPriceEngine;
-    if (engine && typeof engine.resolveGoldRowLookupKey === "function") {
-      var index = engine.buildGoldPriceIndex ? engine.buildGoldPriceIndex(brandRows) : null;
-      var lookup = engine.resolveGoldRowLookupKey(source, null, index, item && item.weight);
-      if (lookup) {
-        var aliased = brandRows.find(function (row) {
-          return brandKey(row.product) === brandKey(lookup);
-        });
-        if (aliased) return aliased.id;
-      }
+    if (!hasKeep && keep && keep === saved && !formState.priceRowTouched) {
+      // Saved row not listed under this brand's name: show it so the link is never dropped silently.
+      var savedRow = findGoldRow(keep);
+      var extra = document.createElement("option");
+      extra.value = keep;
+      extra.textContent = (savedRow ? savedRow.product : keep) + " (dòng giá đang lưu)";
+      if (savedRow) extra.setAttribute("data-product", savedRow.product);
+      sel.appendChild(extra);
+      hasKeep = true;
     }
-    return "";
+    sel.value = hasKeep ? keep : "";
   }
 
   function updatePriceSourceStatus() {
@@ -423,8 +419,6 @@
     var selectedId = opts.selectedId != null ? opts.selectedId : undefined;
     return ensureGoldRows()
       .then(function () {
-        var selectedId = opts.selectedId != null ? opts.selectedId : undefined;
-        if (!selectedId && opts.item) selectedId = matchPriceRowId(opts.item);
         fillPriceRowSelect(selectedId);
         updatePriceSourceStatus();
       })
@@ -436,9 +430,169 @@
 
   function onBrandChangedByUser() {
     if (formState.suppressBrandClear) return;
+    formState.priceRowTouched = true;
     fillPriceRowSelect("");
     updatePriceSourceStatus();
     refreshPriceRowOptions({ selectedId: "" });
+    var catSel = $("pf-category-id");
+    renderCategoryOptions(catSel ? catSel.value : "", { brandChanged: true });
+  }
+
+  /* ───── Category (filtered by Brand–Category links) and Product Type ───── */
+
+  function findById(list, id) {
+    return (list || []).find(function (x) {
+      return x.id === id;
+    }) || null;
+  }
+
+  function linkedCategoryIds(brandId) {
+    return (formState.taxonomy.links || [])
+      .filter(function (l) {
+        return l.brand_id === brandId;
+      })
+      .map(function (l) {
+        return l.category_id;
+      });
+  }
+
+  function setCategoryNote(message, tone) {
+    var note = $("pf-category-note");
+    if (!note) return;
+    note.textContent = message || "";
+    note.hidden = !message;
+    note.setAttribute("data-tone", tone || "info");
+  }
+
+  /**
+   * Lists only categories linked to the selected brand. A saved legacy value that is not
+   * linked stays selected (marked) while the brand is unchanged; it is never replaced silently.
+   */
+  function renderCategoryOptions(selectedId, opts) {
+    opts = opts || {};
+    var sel = $("pf-category-id");
+    if (!sel) return;
+    var brandId = $("pf-brand-id") ? $("pf-brand-id").value : "";
+    var selected = String(selectedId || "").trim();
+    var orig = formState.original;
+    var categories = formState.taxonomy.categories || [];
+    var linked = brandId ? linkedCategoryIds(brandId) : [];
+    var options = categories.filter(function (c) {
+      return linked.indexOf(c.id) >= 0 && (c.is_active !== false || c.id === selected);
+    });
+
+    sel.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = !brandId
+      ? "— Chọn thương hiệu trước —"
+      : options.length
+      ? "— Chọn danh mục —"
+      : "— Thương hiệu chưa có danh mục liên kết —";
+    sel.appendChild(ph);
+    options.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.name + (c.is_active === false ? " (ẩn)" : "");
+      sel.appendChild(o);
+    });
+
+    var message = "";
+    var tone = "info";
+    var keepLegacy =
+      formState.mode === "edit" && orig && selected && selected === orig.categoryId && brandId === orig.brandId;
+    if (selected && options.some(function (c) { return c.id === selected; })) {
+      sel.value = selected;
+    } else if (keepLegacy) {
+      var legacy = findById(categories, selected);
+      var lo = document.createElement("option");
+      lo.value = selected;
+      lo.textContent = (legacy ? legacy.name : "Danh mục đang lưu") + " (chưa liên kết với thương hiệu)";
+      sel.appendChild(lo);
+      sel.value = selected;
+      message =
+        "Danh mục đang lưu chưa được liên kết với thương hiệu này. Dữ liệu được giữ nguyên; muốn đổi thì chọn danh mục khác.";
+      tone = "warn";
+    } else {
+      sel.value = "";
+      if (selected && opts.brandChanged) {
+        var old = findById(categories, selected);
+        message = "Danh mục «" + (old ? old.name : "đã chọn") + "» không thuộc thương hiệu mới. Vui lòng chọn lại danh mục.";
+        tone = "warn";
+      }
+    }
+    if (!message && brandId && !options.length) {
+      message = "Thương hiệu này chưa được liên kết danh mục nào. Liên kết ở tab Thương hiệu hoặc Danh mục.";
+      tone = "warn";
+    }
+    sel.disabled = !brandId;
+    setCategoryNote(message, tone);
+  }
+
+  function renderProductTypeOptions(selectedId) {
+    var sel = $("pf-product-type-id");
+    if (!sel) return;
+    var selected = String(selectedId || "").trim();
+    var types = formState.taxonomy.productTypes || [];
+    sel.innerHTML = "";
+    var none = document.createElement("option");
+    none.value = "";
+    none.textContent = "— Không chọn —";
+    sel.appendChild(none);
+    types
+      .filter(function (t) {
+        return t.is_active !== false || t.id === selected;
+      })
+      .forEach(function (t) {
+        var o = document.createElement("option");
+        o.value = t.id;
+        o.textContent = t.name + (t.is_active === false ? " (ngừng dùng)" : "");
+        sel.appendChild(o);
+      });
+    if (selected && !findById(types, selected)) {
+      var missing = document.createElement("option");
+      missing.value = selected;
+      missing.textContent = "Loại đang lưu (không còn trong danh sách)";
+      sel.appendChild(missing);
+    }
+    sel.value = selected;
+  }
+
+  /** Called by catalog-admin after brands/categories/product types/links are (re)loaded. */
+  function setTaxonomy(taxonomy) {
+    var wasDirty = isDirty();
+    formState.taxonomy = {
+      categories: (taxonomy && taxonomy.categories) || [],
+      productTypes: (taxonomy && taxonomy.productTypes) || [],
+      links: (taxonomy && taxonomy.links) || [],
+    };
+    var catSel = $("pf-category-id");
+    var typeSel = $("pf-product-type-id");
+    var orig = formState.original;
+    renderCategoryOptions((catSel && catSel.value) || (orig && orig.categoryId) || "");
+    renderProductTypeOptions((typeSel && typeSel.value) || (orig && orig.productTypeId) || "");
+    if (!wasDirty) formState.baseline = snapshot();
+  }
+
+  /* ───── Unsaved-change tracking ───── */
+
+  function snapshot() {
+    var v = readFromDom();
+    return JSON.stringify([
+      v.name, v.brandId, v.categoryId, v.productTypeId, v.priceText, v.priceRowId, v.weight, v.image,
+      v.isFeatured, v.isBestSeller, v.isHot, v.isActive,
+    ]);
+  }
+
+  function isDirty() {
+    if (!formState.baseline) return false;
+    return snapshot() !== formState.baseline;
+  }
+
+  /** @returns {boolean} true when it is fine to leave the current form state */
+  function confirmDiscardIfDirty() {
+    if (!isDirty()) return true;
+    return global.confirm("Form sản phẩm có thay đổi chưa lưu. Bỏ các thay đổi này?");
   }
 
   function setCheckboxes(flags) {
@@ -454,7 +608,8 @@
     if ($("pf-id")) $("pf-id").value = data.id || "";
     if ($("pf-name")) $("pf-name").value = data.name || "";
     if ($("pf-brand-id")) $("pf-brand-id").value = data.brandId || "";
-    if ($("pf-category-id")) $("pf-category-id").value = data.categoryId || "";
+    renderCategoryOptions(data.categoryId || "");
+    renderProductTypeOptions(data.productTypeId || "");
     if ($("pf-category")) $("pf-category").value = data.category || "";
     if ($("pf-priceText")) $("pf-priceText").value = data.priceText || "";
     if ($("pf-weight")) $("pf-weight").value = formatWeightInputValue(data.weight);
@@ -463,9 +618,11 @@
     setCheckboxes(data);
     updateSlugPreview(data.name || "");
     formState.suppressBrandClear = true;
-    refreshPriceRowOptions({
+    // Baseline is taken now: the async price-row fill below never changes the compared values
+    // (in edit mode the saved price row is used until the user changes it).
+    formState.baseline = snapshot();
+    return refreshPriceRowOptions({
       selectedId: data.priceRowId || "",
-      item: data,
     }).then(function () {
       formState.suppressBrandClear = false;
     });
@@ -484,15 +641,22 @@
       (priceRowOpt && priceRowOpt.getAttribute("data-product")) ||
       (findGoldRow(priceRowId) && findGoldRow(priceRowId).product) ||
       "";
+    var priceSourceProduct = priceRowId ? String(linkedProduct).trim() : "";
+    if (formState.mode === "edit" && formState.original && !formState.priceRowTouched) {
+      // Price row is only changed by an explicit user action.
+      priceRowId = formState.original.priceRowId || "";
+      priceSourceProduct = formState.original.priceSourceProduct || "";
+    }
     return {
       id: ($("pf-id") && $("pf-id").value.trim()) || "",
       name: ($("pf-name") && $("pf-name").value.trim()) || "",
       brandId: brandId,
       categoryId: categoryId,
+      productTypeId: ($("pf-product-type-id") && $("pf-product-type-id").value) || "",
       category: catRow ? catRow.name : ($("pf-category") && $("pf-category").value.trim()) || "",
       priceText: ($("pf-priceText") && $("pf-priceText").value.trim()) || "",
       priceRowId: priceRowId,
-      priceSourceProduct: priceRowId ? String(linkedProduct).trim() : "",
+      priceSourceProduct: priceSourceProduct,
       weight: parseWeightInput($("pf-weight") && $("pf-weight").value),
       image: ($("pf-image") && $("pf-image").value.trim()) || "",
       imageStoragePath: ($("pf-image-path") && $("pf-image-path").value.trim()) || "",
@@ -508,12 +672,16 @@
     var title = $("product-form-title");
     if (!title) return;
     title.textContent = formState.mode === "edit" ? "Sửa sản phẩm" : "Thêm sản phẩm mới";
+    var cancel = $("btn-product-cancel");
+    if (cancel) cancel.hidden = formState.mode !== "edit";
   }
 
   function resetToCreateMode() {
     formState.mode = "create";
     formState.productId = "";
     formState.originalSlug = "";
+    formState.original = null;
+    formState.priceRowTouched = false;
 
     var form = $("product-form");
     if (form) form.reset();
@@ -535,12 +703,21 @@
     formState.mode = "edit";
     formState.productId = item.id || "";
     formState.originalSlug = String(item.slug || "").trim();
+    formState.priceRowTouched = false;
+    formState.original = {
+      brandId: item.brandId || "",
+      categoryId: item.categoryId || "",
+      productTypeId: item.productTypeId || "",
+      priceRowId: item.priceRowId || "",
+      priceSourceProduct: item.priceSourceProduct || "",
+    };
 
     applyToDom({
       id: item.id || "",
       name: item.name || "",
       brandId: item.brandId || "",
       categoryId: item.categoryId || "",
+      productTypeId: item.productTypeId || "",
       category: item.category || "",
       priceText: item.priceText || "",
       priceRowId: item.priceRowId || "",
@@ -613,7 +790,36 @@
     });
 
     $("pf-brand-id")?.addEventListener("change", onBrandChangedByUser);
-    $("pf-price-row-id")?.addEventListener("change", updatePriceSourceStatus);
+    $("pf-category-id")?.addEventListener("change", function () {
+      var catSel = $("pf-category-id");
+      var orig = formState.original;
+      var stillLegacy =
+        formState.mode === "edit" && orig && catSel && catSel.value === orig.categoryId &&
+        linkedCategoryIds($("pf-brand-id").value).indexOf(orig.categoryId) < 0;
+      if (!stillLegacy) setCategoryNote("");
+    });
+    $("pf-price-row-id")?.addEventListener("change", function () {
+      formState.priceRowTouched = true;
+      updatePriceSourceStatus();
+    });
+
+    // Capture phase on the form so the guard runs before any other "Mục mới" listener.
+    form.addEventListener(
+      "click",
+      function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest("#btn-product-new") : null;
+        if (!btn) return;
+        if (!confirmDiscardIfDirty()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true
+    );
+    $("btn-product-cancel")?.addEventListener("click", function () {
+      if (!confirmDiscardIfDirty()) return;
+      resetToCreateMode();
+    });
     $("pf-priceText")?.addEventListener("input", updatePriceSourceStatus);
     $("pf-weight")?.addEventListener("input", updatePriceSourceStatus);
 
@@ -643,6 +849,9 @@
     updateSlugPreview: updateSlugPreview,
     refreshPriceRowOptions: refreshPriceRowOptions,
     updatePriceSourceStatus: updatePriceSourceStatus,
+    setTaxonomy: setTaxonomy,
+    isDirty: isDirty,
+    confirmDiscardIfDirty: confirmDiscardIfDirty,
     getMode: function () {
       return formState.mode;
     },

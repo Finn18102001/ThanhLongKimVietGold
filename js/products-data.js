@@ -260,6 +260,8 @@
       category: r.category ?? (cat && cat.name) ?? "",
       categoryId: r.category_id ?? (cat && cat.id) ?? "",
       categorySlug: (cat && cat.slug) || "",
+      productTypeId: r.product_type_id ?? "",
+      productTypeName: (r.product_types && r.product_types.name) || "",
       brandId: r.brand_id ?? (brand && brand.id) ?? "",
       brandName: (brand && brand.name) || "",
       brandSlug: (brand && brand.slug) || "",
@@ -365,7 +367,7 @@
     const path = String(storagePath || pathFromProductPublicUrl(publicUrl) || "").trim();
     const { data: existing, error: eSel } = await sb
       .from("product_images")
-      .select("id")
+      .select("id, public_url, storage_path")
       .eq("product_id", productId)
       .eq("role", "thumbnail")
       .maybeSingle();
@@ -373,6 +375,7 @@
       throwProductCrudError(eSel, productCrudContext("sync_image", null, { id: productId }));
     }
     if (existing && existing.id) {
+      if (existing.public_url === publicUrl && (!path || (existing.storage_path || null) === path)) return;
       const { error: eUp } = await sb
         .from("product_images")
         .update({ public_url: publicUrl, storage_path: path || null })
@@ -403,11 +406,16 @@
 
   /** Không dùng .order(sort_order) trên query — tránh lỗi cột/không index; sắp xếp sau khi nhận dữ liệu. */
   const PRODUCT_ADMIN_SELECT =
-    "*, brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)";
+    "*, brands(id, name, slug), categories(id, name, slug), product_types(id, name, slug), product_images(role, public_url, sort_order)";
 
   async function fetchProductsFromSupabase(sb) {
     // Admin + shared list: ALL rows. Never filter is_active here — website catalog filters separately.
     let res = await sb.from("products").select(PRODUCT_ADMIN_SELECT);
+    if (res.error && String(res.error.message || "").toLowerCase().includes("product_types")) {
+      res = await sb
+        .from("products")
+        .select("*, brands(id, name, slug), categories(id, name, slug), product_images(role, public_url, sort_order)");
+    }
     if (res.error && String(res.error.message || "").toLowerCase().includes("product_images")) {
       res = await sb.from("products").select("*, brands(id, name, slug), categories(id, name, slug)");
     }
@@ -507,6 +515,8 @@
       category: String(p.category ?? ""),
       categoryId: p.categoryId ? String(p.categoryId) : "",
       categorySlug: String(p.categorySlug ?? ""),
+      productTypeId: p.productTypeId ? String(p.productTypeId) : "",
+      productTypeName: String(p.productTypeName ?? ""),
       brandId: p.brandId ? String(p.brandId) : "",
       brandName: String(p.brandName ?? ""),
       brandSlug: String(p.brandSlug ?? ""),
@@ -568,6 +578,7 @@
       sort_order: sortOrder != null ? sortOrder : 0,
       brand_id: p.brandId || null,
       category_id: p.categoryId || null,
+      product_type_id: p.productTypeId || null,
       is_featured: !!p.isFeatured,
       is_best_seller: !!p.isBestSeller,
       is_hot: !!p.isHot,
@@ -610,7 +621,7 @@
     if (!sb) throwProductCrudError(new Error("Supabase chưa cấu hình."), productCrudContext("read", null, { id: id }));
     const res = await sb
       .from("products")
-      .select("*, brands(id, name, slug), categories(id, name, slug)")
+      .select("*, brands(id, name, slug), categories(id, name, slug), product_types(id, name, slug)")
       .eq("id", id)
       .maybeSingle();
     if (res.error) throwProductCrudError(res.error, productCrudContext("read", null, { id: id }));
@@ -704,6 +715,42 @@
     return data.user;
   }
 
+  function classificationError(message, context) {
+    var err = new Error(message);
+    err.code = "VALIDATION";
+    throwProductCrudError(err, context);
+  }
+
+  /**
+   * Brand–Category must be linked and Product Type must be active — checked only when the
+   * value is new (create) or changed (edit), so legacy values are kept as they are.
+   */
+  async function assertClassificationAllowed(sb, row, beforeRow, changes, context) {
+    const isCreate = !beforeRow;
+    const pairChanged = isCreate || (changes && ("brand_id" in changes || "category_id" in changes));
+    if (row.brand_id && row.category_id && pairChanged) {
+      const link = await sb
+        .from("brand_categories")
+        .select("brand_id")
+        .eq("brand_id", row.brand_id)
+        .eq("category_id", row.category_id)
+        .limit(1);
+      if (link.error) throwProductCrudError(link.error, context);
+      if (!link.data || !link.data.length) {
+        classificationError("Danh mục đã chọn chưa được liên kết với thương hiệu này. Chọn lại danh mục.", context);
+      }
+    }
+    const typeChanged = isCreate || (changes && "product_type_id" in changes);
+    if (row.product_type_id && typeChanged) {
+      const pt = await sb.from("product_types").select("id, is_active").eq("id", row.product_type_id).maybeSingle();
+      if (pt.error) throwProductCrudError(pt.error, context);
+      if (!pt.data) classificationError("Loại sản phẩm đã chọn không còn tồn tại. Chọn lại loại sản phẩm.", context);
+      if (pt.data.is_active === false) {
+        classificationError("Loại sản phẩm đã chọn đang ngừng sử dụng. Chọn loại khác hoặc để trống.", context);
+      }
+    }
+  }
+
   async function saveProduct(item, opts) {
     assertProductsAdminWrite();
     opts = opts || {};
@@ -740,10 +787,51 @@
       brandId: row.brand_id,
       categoryId: row.category_id,
     });
-    const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
-    if (error) throwProductCrudError(error, saveContext);
+    let beforeRow = null;
+    let changes = null;
+    if (mode === "edit") {
+      const rules = global.TLKVProductSaveRules;
+      if (!rules || typeof rules.diffProductUpdate !== "function") {
+        throwProductCrudError(new Error("Thiếu js/products/product-save-rules.js."), saveContext);
+      }
+      const cur = await sb.from("products").select("*").eq("id", normalized.id).maybeSingle();
+      if (cur.error) throwProductCrudError(cur.error, saveContext);
+      if (!cur.data) {
+        throwProductCrudError(new Error("Sản phẩm không còn tồn tại. Tải lại danh sách rồi thử lại."), saveContext);
+      }
+      beforeRow = cur.data;
+      changes = rules.diffProductUpdate(beforeRow, row);
+    }
+    await assertClassificationAllowed(sb, row, beforeRow, changes, saveContext);
+
+    if (mode === "edit") {
+      if (Object.keys(changes).length) {
+        const upd = await sb.from("products").update(changes).eq("id", normalized.id).select("id");
+        if (upd.error) throwProductCrudError(upd.error, saveContext);
+        if (!upd.data || !upd.data.length) {
+          throwProductCrudError(
+            new Error("Không cập nhật được sản phẩm (không tìm thấy hoặc không có quyền)."),
+            saveContext
+          );
+        }
+      }
+    } else {
+      const { error } = await sb.from("products").upsert(row, { onConflict: "id" });
+      if (error) throwProductCrudError(error, saveContext);
+    }
+    Object.defineProperty(normalized, "__change", {
+      value: {
+        mode: mode,
+        before: beforeRow ? productDbToApp(beforeRow) : null,
+        changedColumns: changes ? Object.keys(changes) : null,
+      },
+      enumerable: false,
+    });
     normalized.priceSource = resolveOfficialPriceSourceForSave(normalized);
-    normalized.priceSourceProduct = row.price_source_product;
+    normalized.priceSourceProduct =
+      mode === "edit" && changes && !("price_source_product" in changes)
+        ? beforeRow.price_source_product
+        : row.price_source_product;
     if (normalized.image) {
       try {
         await syncProductThumbnailRecord(

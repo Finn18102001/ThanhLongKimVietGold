@@ -143,6 +143,17 @@ Các ràng buộc từ spec vẫn giữ: không tự tạo Brand, không xóa Ca
 - 40 sản phẩm Quà Tặng 24K của Brand `VÀNG TRANG SỨC TLKV` chưa gắn dòng giá.
 - Có POS SKU còn bán được nhưng `price_row_id` là NULL. Số liệu chi tiết sẽ chạy lại ở Phase 1.
 
+## Tiến độ
+
+| Ngày | Hạng mục | Trạng thái | Tài liệu |
+|---|---|---|---|
+| 12/11/2026 | Ghi chú khởi động audit, chốt quyết định | Xong | File này |
+| 13/11/2026 | Module quản lý Brand, Category, Product Type mới trên dữ liệu thử nghiệm (`/admin/danh-muc.html`), chưa nối database | Xong, chờ review | `CATEGORY_MODULE_PRE_IMPLEMENTATION_AUDIT.md`, `CATEGORY_MODULE_IMPLEMENTATION_REPORT.md` |
+| 13/11/2026 | Phase 0 tích hợp Brand/Category/Product Type/Product vào `/admin`; gói migration schema | Người dùng đã chạy 01-03; 04 chưa chạy | `PRODUCT_CATALOG_PHASE0_AUDIT.md`, `supabase/catalog-restructure/` |
+| 13/11/2026 | Phase 1-3: CRUD Brand/Category/Product Type, form Product trong `/admin`; xóa trang thử nghiệm `/admin/danh-muc.html` | Xong phần không ghi dữ liệu; chờ duyệt test ghi, chạy 04 và mapping Brand-Category | `PRODUCT_CATALOG_IMPLEMENTATION_REPORT.md` |
+| 13/11/2026 | Viết lại 04 (trigger proof, tự hoàn tác); chuẩn bị mapping 05/06/98; test lưu Product qua form có chặn ghi; sửa lỗi ghi đè `storage_path` ảnh | 04, 05, 06 chưa chạy; chờ quyết định A-K | `BRAND_CATEGORY_MAPPING_REVIEW.md`, `PRODUCT_CATALOG_IMPLEMENTATION_REPORT.md` |
+| | Bộ 11 deliverable audit cho Migration | Chưa bắt đầu | Mục 8 |
+
 ## 8. Flow và bước tiếp theo
 
 1. Phase 0: `PRE_AUDIT_READINESS_REPORT.md`, xác nhận blocker.
@@ -154,3 +165,22 @@ Các ràng buộc từ spec vẫn giữ: không tự tạo Brand, không xóa Ca
 7. `OPEN_QUESTIONS_AND_DECISIONS.md` cập nhật xuyên suốt. Hết mục treo mới qua Implementation Gate.
 
 Bước tiếp theo: viết `PRE_AUDIT_READINESS_REPORT.md` sau khi có xác nhận bắt đầu.
+
+## 9. Trạng thái hiện tại (13/11/2026, cuối ngày)
+
+Production đã có schema mới (01-03 đã chạy, checksum dữ liệu cũ không đổi). Code `/admin` mới chỉ nằm trên nhánh này, chưa deploy. `brand_categories` và `product_types` đang trống.
+
+Việc tiếp theo, theo thứ tự:
+
+1. Chạy `supabase/catalog-restructure/05_mapping_preview_readonly.sql` (chỉ đọc), đối chiếu 14 cặp.
+2. Chạy `04_trigger_proof_autorollback.sql` (tự hoàn tác). Mong đợi: T1, T2 = KHONG chay; T3, T4 = CO chay; dữ liệu sau hoàn tác không đổi.
+3. Quyết định các điểm A-K trong `BRAND_CATEGORY_MAPPING_REVIEW.md`.
+4. Chạy `06_brand_category_mapping.sql` (gỡ bằng `98_mapping_rollback.sql`).
+5. Merge, deploy, kiểm tra bằng 1 sản phẩm thử. Không deploy khi `brand_categories` còn trống: form tạo sản phẩm sẽ không có Category để chọn.
+
+Ghi chú khi làm trên máy khác:
+
+- Test: `node --test tests/product-catalog.test.js` (12 test). Repo không có script lint/build.
+- `admin/admin.css`, `js/admin-app.js` trên máy cũ bị đổi line ending CRLF sang LF (nội dung không đổi), không commit.
+- `node_modules` ở thư mục gốc trên máy cũ đã mất các package của POS; khi chuyển sang nhánh POS cần `npm install`.
+- `js/admin-audit.js` bỏ qua ghi lịch sử sản phẩm cho tài khoản `tuananh18101@gmail.com` (hành vi có sẵn).
