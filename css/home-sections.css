@@ -582,7 +582,8 @@
   min-height: 0;
 }
 
-.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate,
+.tlkv-featured-brand-card__logo-wrap--tlkv-lockup {
   width: var(--tlkv-featured-brand-logo-square);
   height: var(--tlkv-featured-brand-logo-square);
   min-width: var(--tlkv-featured-brand-logo-square);
@@ -591,13 +592,19 @@
   max-height: var(--tlkv-featured-brand-logo-square);
   flex: 0 0 var(--tlkv-featured-brand-logo-square);
   aspect-ratio: 1;
-  padding: 5px;
+  padding: 0;
   border-radius: 0;
   box-sizing: border-box;
-  background: var(--tlkv-brand-logo-plate, #8c0003);
+  overflow: hidden;
+  background: var(--tlkv-brand-logo-plate, #8a1c1d);
 }
 
-.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo {
+.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+  padding: 5px;
+}
+
+.tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo,
+.tlkv-featured-brand-card__logo-wrap--tlkv-lockup .tlkv-featured-brand-card__logo {
   width: 100%;
   height: 100%;
   max-width: none;
@@ -610,7 +617,7 @@
   border-radius: 0;
   background: transparent;
   box-sizing: border-box;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .tlkv-featured-brand-card__logo {
@@ -993,7 +1000,8 @@
     min-height: 0;
   }
 
-  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate,
+  .tlkv-featured-brand-card__logo-wrap--tlkv-lockup {
     width: var(--tlkv-featured-brand-logo-square);
     height: var(--tlkv-featured-brand-logo-square);
     min-width: var(--tlkv-featured-brand-logo-square);
@@ -1001,10 +1009,15 @@
     max-width: var(--tlkv-featured-brand-logo-square);
     max-height: var(--tlkv-featured-brand-logo-square);
     flex: 0 0 var(--tlkv-featured-brand-logo-square);
+    padding: 0;
+  }
+
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate {
     padding: 4px;
   }
 
-  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo {
+  .tlkv-featured-brand-card__logo-wrap.tlkv-brand-logo-plate .tlkv-featured-brand-card__logo,
+  .tlkv-featured-brand-card__logo-wrap--tlkv-lockup .tlkv-featured-brand-card__logo {
     width: 100%;
     height: 100%;
   }

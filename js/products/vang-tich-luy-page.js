@@ -52,9 +52,17 @@
   }
 
   function getBrandLogoUrl(brand) {
+    var slug = brand && brand.slug ? String(brand.slug) : "";
+    if (slug === "thang-long-kim-viet") {
+      return (
+        global.TLKV_SITE_LOGO_PLATE_URL ||
+        global.TLKV_SITE_LOGO_LOCKUP_URL ||
+        "/assets/tlkv-logo-lockup.png?v=20261114c"
+      );
+    }
     if (brand && brand.logo_url) return brand.logo_url;
     var map = global.TLKV_BRAND_LOGO_FALLBACKS || {};
-    return map[brand.slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261112a";
+    return map[slug] || global.TLKV_SITE_LOGO_URL || "/assets/tlkv-logo-mark.png?v=20261114c";
   }
 
   function formatWeightLabel(weight) {
@@ -355,7 +363,8 @@
 
     var logo = document.createElement("img");
     logo.className = "vtl-brand-view__logo";
-    if (needsLogoPlate(brand)) {
+    // TLKV dùng lockup đã có nền #8a1c1d — không phủ plate CSS thêm.
+    if (needsLogoPlate(brand) && String((brand && brand.slug) || "") !== "thang-long-kim-viet") {
       logo.classList.add("tlkv-brand-logo-plate");
     }
     logo.src = getBrandLogoUrl(brand);
@@ -505,7 +514,7 @@
 
       var logo = document.createElement("img");
       logo.className = "vtl-brand-tab__logo";
-      if (needsLogoPlate(section.brand)) {
+      if (needsLogoPlate(section.brand) && slug !== "thang-long-kim-viet") {
         logo.classList.add("tlkv-brand-logo-plate");
       }
       logo.src = getBrandLogoUrl(section.brand);

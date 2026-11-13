@@ -92,7 +92,7 @@
 /* Samsung "Prefer media query over force dark" — same gold the price title uses. */
 @media (max-width: 768px) and (prefers-color-scheme: dark) {
   .header-mb {
-    background-color: #9b0102 !important;
+    background-color: #8a1c1d !important;
     -webkit-filter: none !important;
     filter: none !important;
   }

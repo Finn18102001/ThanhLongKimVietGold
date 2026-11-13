@@ -34,8 +34,8 @@
   --tlkv-header-nav-gap: 4px;
   --tlkv-header-nav-offset: 10%;
   --tlkv-brand-name-color: rgb(253, 228, 141);
-  --tlkv-brand-name-stroke: 1px #9b0102;
-  --tlkv-header-brand-red: #9b0102;
+  --tlkv-brand-name-stroke: 1px #8a1c1d;
+  --tlkv-header-brand-red: #8a1c1d;
   --tlkv-header-divider-inset: 42px;
 }
 
@@ -628,7 +628,7 @@
   color: var(--tlkv-brand-name-color);
   /*
     Samsung Internet / Chrome on Galaxy paints -webkit-text-stroke on top of
-    the fill and ignores paint-order. The shared stroke is 1px #9b0102, the
+    the fill and ignores paint-order. The shared stroke is 1px #8a1c1d, the
     same red as .header-mb, so "Thăng Long Kim Việt" disappears. iOS and
     other Android browsers keep the gold fill, so the name still shows.
     The red stroke is invisible on this red bar anyway — drop it and pin

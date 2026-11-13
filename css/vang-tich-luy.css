@@ -4,8 +4,8 @@
    Responsive typography + card scale (mobile → desktop)
    ========================================================================== */
 .vtl-page {
-  --vtl-red: #9d221d;
-  --vtl-red-deep: #7a1a16;
+  --vtl-red: #8a1c1d;
+  --vtl-red-deep: #8a1c1d;
   --vtl-gold: #c89b3c;
   --vtl-gold-text: #6b4f28;
   --vtl-bg: #f8f4ed;
@@ -237,7 +237,7 @@
 
 .vtl-brand-view__logo.tlkv-brand-logo-plate {
   padding: 0.55rem;
-  background: var(--tlkv-brand-logo-plate, #8c0003);
+  background: var(--tlkv-brand-logo-plate, #8a1c1d);
 }
 
 

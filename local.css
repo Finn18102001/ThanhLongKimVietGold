@@ -86,7 +86,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--tlkv-brand-logo-plate, #8c0003);
+  background: var(--tlkv-brand-logo-plate, #8a1c1d);
   box-sizing: border-box;
 }
 
@@ -1278,7 +1278,7 @@ html {
   margin: 0 auto 20px;
   padding: 14px;
   border-radius: 12px;
-  background: var(--tlkv-brand-logo-plate, #8c0003);
+  background: var(--tlkv-brand-logo-plate, #8a1c1d);
   box-sizing: border-box;
   box-shadow: 0 10px 24px rgba(140, 0, 3, 0.28);
 }
