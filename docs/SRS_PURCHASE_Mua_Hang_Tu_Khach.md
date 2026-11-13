@@ -1,6 +1,8 @@
 # SRS bổ sung – PURCHASE / MUA HÀNG TỪ KHÁCH
 
 > Nguồn: cập nhật khách hàng 2026-08-23. Cập nhật flow nấu / hoàn thành 2026-09-15.
+>
+> **Cập nhật Phase 4 (2026-11-13):** dòng vàng thị trường có thêm thành phần **đá** (trọng lượng đá / chiếc, tiền đá / chiếc). Thành tiền dòng = tiền vàng + tiền đá × số lượng; nhập cân sau nấu chỉ tính lại phần vàng. Flow mua **không có tiền công**. Tài liệu này vẫn là nguồn cho rule giá ±300.000 đ/chỉ và luồng nấu 7 bước; nhập liệu, validation, công thức và dữ liệu lưu của phần đá đọc ở [`pos-big-update/P4-01-BUY-FLOW.md`](./pos-big-update/P4-01-BUY-FLOW.md). Câu "Không đổi: công thức tiền, trọng lượng" bên dưới nói về thay đổi 2026-09-15, không phủ định phần đá của Phase 4.
 
 ## 6.x. NGUYÊN TẮC XÁC ĐỊNH GIÁ KHI MUA HÀNG
 

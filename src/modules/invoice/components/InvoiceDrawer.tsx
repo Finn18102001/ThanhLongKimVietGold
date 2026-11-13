@@ -517,7 +517,7 @@ export function InvoiceDrawer({
                       <p className="text-[11px] text-[var(--tlkv-muted)]">
                         Vàng {formatDong(line.goldAmountDong)}
                         {line.stoneWeightChi > 0 || line.stonePriceDong > 0
-                          ? ` · Đá ${formatChi(line.stoneWeightChi)}, ${formatDong(line.stonePriceDong)}`
+                          ? ` · Đá ${line.stoneWeightChi > 0 ? `${formatChi(line.stoneWeightChi)}, ` : ""}${line.stoneQuantity > 0 ? `${line.stoneQuantity} viên × ${formatDong(line.stoneUnitPriceDong)} = ` : ""}${formatDong(line.stonePriceDong)}`
                           : ""}
                         {(line.laborFinalDong ?? 0) !== 0 ? ` · Công ${formatDong(line.laborFinalDong ?? 0)}` : ""}
                         {" / chiếc"}

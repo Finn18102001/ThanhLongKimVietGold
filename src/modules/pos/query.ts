@@ -68,7 +68,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -105,6 +105,10 @@ async function fetchPosCatalogMeta(options?: {
     const laborFeeDong = Number(row.labor_fee_dong ?? 0);
     const stonePriceDong = Number((row as { stone_price_dong?: number | string | null }).stone_price_dong ?? 0);
     const stoneWeightChi = Number((row as { stone_weight_chi?: number | string | null }).stone_weight_chi ?? 0);
+    const stoneQuantity = Number((row as { stone_quantity?: number | string | null }).stone_quantity ?? 0);
+    const stoneUnitPriceDong = Number(
+      (row as { stone_unit_price_dong?: number | string | null }).stone_unit_price_dong ?? 0,
+    );
     // Market SKUs get their gold price from the group price row in listPosCatalog (P4 C5).
     const goldUnitDong =
       !isMarketGold && sell > 0 ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) : null;
@@ -131,6 +135,8 @@ async function fetchPosCatalogMeta(options?: {
       goldUnitDong,
       laborFeeDong,
       stoneWeightChi,
+      stoneQuantity,
+      stoneUnitPriceDong,
       stonePriceDong,
       lastCostDong: lastCost,
       priceRowId: row.price_row_id != null ? String(row.price_row_id) : null,
@@ -255,6 +261,8 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       goldUnitDong,
       laborFeeDong,
       stoneWeightChi: item.stoneWeightChi ?? 0,
+      stoneQuantity: item.stoneQuantity ?? 0,
+      stoneUnitPriceDong: item.stoneUnitPriceDong ?? 0,
       stonePriceDong,
       imageUrl: item.imageUrl,
       category: item.category,

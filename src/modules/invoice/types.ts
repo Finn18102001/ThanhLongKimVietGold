@@ -33,6 +33,11 @@ export type InvoiceLine = {
   /** Per piece snapshot (P4). Null on lines sold before the gold / stone / labor split. */
   goldAmountDong: number | null;
   stoneWeightChi: number;
+  /** Số lượng đá (viên) / chiếc. 0 on lines sold with a hand-typed stone amount. */
+  stoneQuantity: number;
+  /** Đơn giá đá / viên. */
+  stoneUnitPriceDong: number;
+  /** Thành tiền đá / chiếc = đơn giá đá × số lượng đá. */
   stonePriceDong: number;
   laborFinalDong: number | null;
 };

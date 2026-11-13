@@ -13,15 +13,17 @@ import {
   confirmBuyMelt,
   issueMeltCommitment,
   setBuyMeltWeights,
+  setBuyStone,
   startBuyMelting,
   uploadBuyFile,
   voidBuy,
 } from "../actions";
-import { formatChi, paymentMethodLabel, paymentStatusLabel } from "../labels";
+import { formatChi, formatStoneDetail, paymentMethodLabel, paymentStatusLabel } from "../labels";
 import {
   buyItemHasStone,
   type BuyAttachmentDocKind,
   type BuyDetail,
+  type BuyStoneItemPayload,
   type MeltWeightItemPayload,
   type PaymentMethod,
 } from "../types";
@@ -75,8 +77,8 @@ export function BuyDetailDrawer({
   async function runWorkflow(
     action: () => Promise<ActionResult<BuyDetail>>,
     opts?: { print?: PrintDocKind; successTitle?: string },
-  ) {
-    if (pending) return;
+  ): Promise<boolean> {
+    if (pending) return false;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
     setPending(true);
     try {
@@ -88,7 +90,7 @@ export function BuyDetailDrawer({
           reason: formatActionError(result.message, "Lỗi không xác định."),
         });
         workflowKey.current = crypto.randomUUID();
-        return;
+        return false;
       }
       const next = result.data;
       setBuy({ ...next, attachments: next.attachments ?? [] });
@@ -98,6 +100,7 @@ export function BuyDetailDrawer({
       if (opts?.successTitle) {
         setAlert({ tone: "success", title: opts.successTitle, reason: next.buyNo });
       }
+      return true;
     } catch (err) {
       setAlert({
         tone: "error",
@@ -105,6 +108,7 @@ export function BuyDetailDrawer({
         reason: formatActionError(err, "Lỗi không xác định."),
       });
       workflowKey.current = crypto.randomUUID();
+      return false;
     } finally {
       setPending(false);
     }
@@ -247,7 +251,7 @@ export function BuyDetailDrawer({
                             {item.productName}
                             {buyItemHasStone(item) ? (
                               <span className="block text-[11px] text-[var(--tlkv-muted)]">
-                                Đá {formatChi(item.stoneWeightChi)} · {formatDong(item.stonePriceDong)} / chiếc
+                                Đá {formatStoneDetail(item)} · {formatDong(item.stonePriceDong)}
                               </span>
                             ) : null}
                           </td>
@@ -350,6 +354,17 @@ export function BuyDetailDrawer({
                         idempotencyKey: workflowKey.current || undefined,
                       }),
                     { successTitle: "Đã lưu khối lượng sau nấu" },
+                  )
+                }
+                onSetStone={(items: BuyStoneItemPayload[]) =>
+                  runWorkflow(
+                    () =>
+                      setBuyStone({
+                        buyId: buy.id,
+                        items,
+                        idempotencyKey: workflowKey.current || undefined,
+                      }),
+                    { successTitle: "Đã lưu thông tin đá" },
                   )
                 }
                 onUploadFile={(file, docKind) => onUploadWorkflowFile(file, docKind)}

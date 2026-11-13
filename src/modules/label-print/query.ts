@@ -80,7 +80,7 @@ function unitPrice(
 }
 
 const LABEL_SKU_COLUMNS =
-  "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_price_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(category, gold_age), brands!pos_skus_brand_id_fkey(name)";
+  "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), products!pos_skus_catalog_product_id_fkey(category, gold_age), brands!pos_skus_brand_id_fkey(name)";
 const LABEL_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock(quantity)`;
 /** Market gold SKUs are inactive by design; only those still in stock can be labelled. */
 const LABEL_MARKET_SKU_SELECT = `${LABEL_SKU_COLUMNS}, pos_inventory_stock!inner(quantity)`;
@@ -93,6 +93,8 @@ type LabelSkuRow = {
   board_unit_chi: number | string;
   labor_fee_dong: number | string | null;
   stone_weight_chi: number | string | null;
+  stone_quantity: number | string | null;
+  stone_unit_price_dong: number | string | null;
   stone_price_dong: number | string | null;
   is_market_gold: boolean | null;
   gold_price_rows: unknown;
@@ -128,6 +130,8 @@ function mapLabelSku(row: LabelSkuRow): LabelSkuOption {
     stockQty: Number(stock?.quantity ?? 0),
     goldAge: goldAge != null && Number.isFinite(goldAge) ? goldAge : null,
     stoneWeightChi: Number(row.stone_weight_chi ?? 0),
+    stoneQuantity: Number(row.stone_quantity ?? 0),
+    stoneUnitPriceDong: Number(row.stone_unit_price_dong ?? 0),
     stonePriceDong: Number(row.stone_price_dong ?? 0),
     isMarketGold,
   };

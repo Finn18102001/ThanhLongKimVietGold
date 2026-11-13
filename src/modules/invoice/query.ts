@@ -291,7 +291,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
     supabase
       .from("pos_sale_items")
       .select(
-        "sku_id, quantity, qty_delivered, item_status, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, gold_amount_dong, stone_weight_chi, stone_price_dong, labor_final_dong, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity), pos_inventory_stock(quantity))",
+        "sku_id, quantity, qty_delivered, item_status, unit_price_dong, total_price_dong, weight_chi, product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi, gold_amount_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, labor_final_dong, pos_skus(sku, name, products!pos_skus_catalog_product_id_fkey(image), gold_price_rows!pos_skus_price_row_id_fkey(purity), pos_inventory_stock(quantity))",
       )
       .eq("sale_id", invoice.sale_id),
     supabase
@@ -365,6 +365,8 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
       imageUrl: product?.image || null,
       goldAmountDong: item.gold_amount_dong == null ? null : Number(item.gold_amount_dong),
       stoneWeightChi: Number(item.stone_weight_chi ?? 0),
+      stoneQuantity: Number(item.stone_quantity ?? 0),
+      stoneUnitPriceDong: Number(item.stone_unit_price_dong ?? 0),
       stonePriceDong: Number(item.stone_price_dong ?? 0),
       laborFinalDong: item.labor_final_dong == null ? null : Number(item.labor_final_dong),
     };

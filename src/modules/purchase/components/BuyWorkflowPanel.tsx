@@ -13,8 +13,15 @@ import {
 import { IMAGE_PRESET_PRODUCT, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
-import { formatChi } from "../labels";
-import type { BuyAttachmentDocKind, BuyDetail, MeltWeightItemPayload } from "../types";
+import { formatChi, formatStoneDetail } from "../labels";
+import {
+  buyItemHasStone,
+  type BuyAttachmentDocKind,
+  type BuyDetail,
+  type BuyDetailItem,
+  type BuyStoneItemPayload,
+  type MeltWeightItemPayload,
+} from "../types";
 import {
   buyAttachmentKindLabel,
   canPrintCommitmentFromFlow,
@@ -31,6 +38,8 @@ export type BuyWorkflowPanelProps = {
   onIssueCommitment: () => void;
   onStartMelt: () => void;
   onSetWeights: (items: MeltWeightItemPayload[]) => void;
+  /** Saves stone weight / quantity at the purity-upload step. Resolves false when the save failed. */
+  onSetStone: (items: BuyStoneItemPayload[]) => Promise<boolean>;
   onUploadFile: (file: File, docKind: BuyAttachmentDocKind) => void | Promise<void>;
   onConfirmAgree: () => void;
   onConfirmCancel: () => void;
@@ -40,6 +49,27 @@ export type BuyWorkflowPanelProps = {
   onPrintForm02: () => void;
   onPrintInvoice: () => void;
 };
+
+type StoneDraft = { weight: string; quantity: string };
+
+/** Lines bought before stone quantity / unit price existed: stone money was typed by hand, so only weight is editable. */
+function isLegacyStoneItem(item: BuyDetailItem): boolean {
+  return item.stoneQuantity === 0 && item.stoneUnitPriceDong === 0 && item.stonePriceDong > 0;
+}
+
+function parseStoneDraft(draft: StoneDraft | undefined, item: BuyDetailItem) {
+  const weightRaw = (draft?.weight ?? "").trim().replace(",", ".");
+  const quantityRaw = (draft?.quantity ?? "").trim();
+  const weight = weightRaw === "" ? 0 : Number(weightRaw);
+  const quantity = quantityRaw === "" ? 0 : Number(quantityRaw);
+  const valid = Number.isFinite(weight) && weight >= 0 && Number.isInteger(quantity) && quantity >= 0;
+  return {
+    weight,
+    quantity,
+    valid,
+    dirty: valid && (weight !== item.stoneWeightChi || quantity !== item.stoneQuantity),
+  };
+}
 
 /**
  * Compact right-side melt workflow chrome: stepper, summary, timeline, next actions.
@@ -51,6 +81,7 @@ export function BuyWorkflowPanel({
   onIssueCommitment,
   onStartMelt,
   onSetWeights,
+  onSetStone,
   onUploadFile,
   onConfirmAgree,
   onConfirmCancel,
@@ -63,6 +94,8 @@ export function BuyWorkflowPanel({
   const wf = String(buy.workflowStatus || "INTAKE");
   const inFlow = isBuyInMeltWorkflow(buy);
   const [draftWeights, setDraftWeights] = useState<Record<string, string>>({});
+  const [draftStone, setDraftStone] = useState<Record<string, StoneDraft>>({});
+  const [stoneError, setStoneError] = useState<string | null>(null);
   const purityRef = useRef<HTMLInputElement | null>(null);
   const relatedRef = useRef<HTMLInputElement | null>(null);
   const hasPurity = hasPurityTestAttachment(buy.attachments);
@@ -78,7 +111,36 @@ export function BuyWorkflowPanel({
           : "";
     }
     setDraftWeights(next);
+    const nextStone: Record<string, StoneDraft> = {};
+    for (const item of buy.items) {
+      if (!buyItemHasStone(item)) continue;
+      nextStone[item.id] = {
+        weight: item.stoneWeightChi > 0 ? String(item.stoneWeightChi) : "",
+        quantity: item.stoneQuantity > 0 ? String(item.stoneQuantity) : "",
+      };
+    }
+    setDraftStone(nextStone);
+    setStoneError(null);
   }, [buy.id, buy.items]);
+
+  const stoneItems = buy.items.filter(buyItemHasStone);
+  const stoneDirty = stoneItems.some((item) => parseStoneDraft(draftStone[item.id], item).dirty);
+
+  /** Saves edited stone weight / quantity. Resolves true when nothing changed or the save succeeded. */
+  async function saveStone(): Promise<boolean> {
+    const items: BuyStoneItemPayload[] = [];
+    for (const item of stoneItems) {
+      const parsed = parseStoneDraft(draftStone[item.id], item);
+      if (!parsed.valid) {
+        setStoneError(`${item.productName}: trọng lượng đá phải là số không âm, số lượng đá phải là số nguyên không âm.`);
+        return false;
+      }
+      items.push({ item_id: item.id, stone_weight_chi: parsed.weight, stone_quantity: parsed.quantity });
+    }
+    setStoneError(null);
+    if (!stoneDirty) return true;
+    return onSetStone(items);
+  }
 
   function submitWeights() {
     const items: MeltWeightItemPayload[] = [];
@@ -101,6 +163,8 @@ export function BuyWorkflowPanel({
 
   async function handlePick(file: File | null, docKind: BuyAttachmentDocKind) {
     if (!file || uploadPending) return;
+    // Stone weight / quantity are saved together with the purity upload (the upload moves the buy to the next step).
+    if (docKind === "PURITY_TEST" && !(await saveStone())) return;
     let next = file;
     const mime = (file.type || "").toLowerCase();
     const isPdf = mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -269,6 +333,89 @@ export function BuyWorkflowPanel({
           <p className="text-[11px] text-[var(--tlkv-muted)]">
             PDF giữ nguyên PDF. Ảnh được chuyển WebP trước khi tải lên.
           </p>
+          {stoneItems.length > 0 ? (
+            <div className="space-y-2 rounded-lg border border-[var(--tlkv-line)] bg-white p-2">
+              <p className="text-[12px] font-semibold">Thông tin đá sau nấu</p>
+              <p className="text-[11px] text-[var(--tlkv-muted)]">
+                Sửa được trọng lượng và số lượng đá. Đơn giá đá giữ nguyên. Thành tiền đá = đơn giá × số lượng.
+                Thay đổi được lưu cùng lúc khi tải phiếu HL.
+              </p>
+              {stoneItems.map((item) => {
+                const legacy = isLegacyStoneItem(item);
+                const parsed = parseStoneDraft(draftStone[item.id], item);
+                const amount = legacy
+                  ? item.stonePriceDong
+                  : item.stoneUnitPriceDong * (parsed.valid ? parsed.quantity : item.stoneQuantity);
+                return (
+                  <div key={item.id} className="text-[11px]">
+                    <p className="text-[var(--tlkv-muted)]">
+                      {item.productName}
+                      {legacy ? " · tiền đá nhập tay" : ` · ${formatDong(item.stoneUnitPriceDong)}/viên`}
+                    </p>
+                    <div className="mt-1 grid grid-cols-2 gap-1.5">
+                      <label className="block">
+                        <span className="text-[var(--tlkv-muted)]">Trọng lượng đá (chỉ)</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          disabled={busy}
+                          value={draftStone[item.id]?.weight ?? ""}
+                          onChange={(e) =>
+                            setDraftStone((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                quantity: prev[item.id]?.quantity ?? "",
+                                weight: e.target.value.replace(",", ".").replace(/[^\d.]/g, ""),
+                              },
+                            }))
+                          }
+                          className="mt-0.5 h-8 w-full rounded-lg border border-[var(--tlkv-line)] px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)]"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-[var(--tlkv-muted)]">Số lượng đá (viên)</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          disabled={busy || legacy}
+                          value={draftStone[item.id]?.quantity ?? ""}
+                          onChange={(e) =>
+                            setDraftStone((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                weight: prev[item.id]?.weight ?? "",
+                                quantity: e.target.value.replace(/[^\d]/g, ""),
+                              },
+                            }))
+                          }
+                          className="mt-0.5 h-8 w-full rounded-lg border border-[var(--tlkv-line)] px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-1 text-[var(--tlkv-muted)]">
+                      Thành tiền đá:{" "}
+                      <span className="font-semibold tabular-nums text-[var(--tlkv-text)]">
+                        {formatDong(amount)}
+                      </span>
+                    </p>
+                  </div>
+                );
+              })}
+              {stoneError ? (
+                <p className="text-[11px] font-medium text-[var(--tlkv-red)]">{stoneError}</p>
+              ) : null}
+              {stoneDirty ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void saveStone()}
+                  className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[12px] font-medium hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
+                >
+                  Lưu thông tin đá
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {/* label+input: programmatic .click() on display:none file inputs is unreliable in Safari/Chrome */}
           <input
             id="buy-purity-file"
@@ -308,7 +455,11 @@ export function BuyWorkflowPanel({
                 {item.productName}: trước{" "}
                 {formatChi(item.weightBeforeChi > 0 ? item.weightBeforeChi : item.weightChi)} → sau{" "}
                 {item.weightAfterChi != null ? formatChi(item.weightAfterChi) : "—"} ·{" "}
-                {formatDong(item.unitPriceDong)}/chỉ · {formatDong(item.totalPriceDong)}
+                {formatDong(item.unitPriceDong)}/chỉ
+                {buyItemHasStone(item)
+                  ? ` · Đá ${formatStoneDetail(item)}, tiền đá ${formatDong(item.stonePriceDong * item.quantity)}`
+                  : ""}{" "}
+                · {formatDong(item.totalPriceDong)}
               </li>
             ))}
             <li>

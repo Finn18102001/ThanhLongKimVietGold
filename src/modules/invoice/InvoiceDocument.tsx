@@ -23,8 +23,12 @@ function weightWithQty(weightChi: number, quantity: number): string {
 }
 
 /**
- * P4 C9: each product prints up to 3 rows: vàng, đá (when the piece has stone), tiền công (only when ≠ 0).
+ * P4 C9 + Big Change BC-19: each product prints its gold row, then detail rows right under it:
+ * đá (only when the piece has stone) and tiền công (only when ≠ 0). Gold unit price never includes stone / labor.
+ * Stone row: số lượng viên in the name, TL đá in the weight cell (display only), đơn giá = giá / viên,
+ * thành tiền = đơn giá × số lượng đá × số chiếc.
  * Lines sold before the split (goldAmountDong null) keep the single legacy row.
+ * Row limit is unchanged: detail rows still count toward MAX_FITTED_ROWS.
  */
 function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
   const rows: Omit<PrintItem, "stt">[] = [];
@@ -47,11 +51,13 @@ function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
       amountDong: line.goldAmountDong * line.quantity,
     });
     if (line.stoneWeightChi > 0 || line.stonePriceDong > 0) {
+      // Lines sold with a hand-typed stone amount (no stone quantity) keep printing that amount per piece.
+      const hasStoneQty = line.stoneQuantity > 0;
       rows.push({
-        productName: "Đá",
+        productName: hasStoneQty ? `Đá (${line.stoneQuantity.toLocaleString("vi-VN")} viên)` : "Đá",
         purity: "",
         weightLabel: weightWithQty(line.stoneWeightChi, line.quantity),
-        unitPriceDong: line.stonePriceDong,
+        unitPriceDong: hasStoneQty ? line.stoneUnitPriceDong : line.stonePriceDong,
         amountDong: line.stonePriceDong * line.quantity,
       });
     }
@@ -83,7 +89,7 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
     : "";
   const paidDong = Math.max(0, invoice.paidDong);
 
-  // Đơn giá on phôi: vàng = giá / 1 chỉ; đá, công = giá / 1 chiếc. Qty goes into the weight cell.
+  // Đơn giá on phôi: vàng = giá / 1 chỉ; đá = giá / 1 viên; công = giá / 1 chiếc. Qty goes into the weight cell.
   const productItems = invoiceProductRows(invoice).map((row, index) => ({ stt: index + 1, ...row }));
   const chargeItems = (invoice.charges ?? []).map((charge: InvoiceCharge, index) => ({
     stt: productItems.length + index + 1,

@@ -71,7 +71,7 @@ export function HandoverMinutesDocument({ bundle }: { bundle: DepositSaleBundle 
       <p className="font-bold uppercase" style={{ marginTop: "3.5mm" }}>
         Chi tiết vàng giao nhận
       </p>
-      <DepositGoodsTable lines={bundle.lines} amountHeader="Thành tiền" />
+      <DepositGoodsTable lines={bundle.lines} charges={bundle.charges} amountHeader="Thành tiền" />
 
       <p style={{ marginTop: "2.5mm", textAlign: "justify" }}>
         Bên Mua xác nhận đã trực tiếp kiểm tra số vàng nêu trên và nhận đủ số lượng, chủng loại, trọng

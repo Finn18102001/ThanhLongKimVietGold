@@ -2,6 +2,8 @@
 
 > Mở: 2026-11-12 · Yêu cầu: tuananh18101@gmail.com · Trạng thái: **Xong 4.1–4.5 (C1–C11), đã hard-test giao dịch thật và hủy chứng từ test** (xem §9). Còn: giá bán MG, đơn tạm / đặt cọc, cột xuất Excel.
 > Liên quan: [`P1-06-MARKET-GOLD.md`](./P1-06-MARKET-GOLD.md) (D1–D9), [`P1-01-RECEIVE-LABEL.md`](./P1-01-RECEIVE-LABEL.md), [`02-IMPACT-ASSESSMENT.md`](./02-IMPACT-ASSESSMENT.md). Thuộc GĐ5 (mua) + GĐ6 (bán) trong plan 7 giai đoạn.
+> **Flow hiện hành (audit 2026-11-13):** mua [`P4-01-BUY-FLOW.md`](./P4-01-BUY-FLOW.md) · bán [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md) · báo cáo / Excel [`P4-03-REPORT-EXCEL.md`](./P4-03-REPORT-EXCEL.md). File này giữ vai trò sổ quyết định (C1–C11) và nhật ký triển khai / hard-test; công thức, validation, dữ liệu lưu và khoảng trống đọc ở ba file trên. §2 và §3 bên dưới là rà soát và đề xuất **trước khi làm**, không phải hiện trạng.
+> **Big Change 2026-11-13:** C2 (tiền đá / chiếc nhập tay) và yêu cầu in dòng đá riêng trên phiếu mua được thay bởi [`P4-04-BIG-CHANGE-BASELINE.md`](./P4-04-BIG-CHANGE-BASELINE.md) (BC-2, BC-3, BC-11; triển khai ở §5). Các quyết định C khác giữ nguyên khi không trái P4-04.
 
 ## 1. Yêu cầu (tóm tắt nguyên văn)
 
@@ -123,6 +125,7 @@ Giả định kèm theo (sửa nếu sai): SKU từ tab In tem cũng có `weight
 - 2026-11-12: tạo file, rà soát impact, chờ chốt Q1–Q11.
 - 2026-11-12: chốt C1–C11 (thay D9 Phase 1 bằng C5). Bắt đầu bước 4.1.
 - 2026-11-12: xong 4.1–4.5 (3 migration + UI mua / in tem / POS / hóa đơn), kiểm chứng không tạo giao dịch.
+- 2026-11-13: audit lại code + DB, tách mô tả flow sang `P4-01-BUY-FLOW.md`, `P4-02-SELL-FLOW.md`, `P4-03-REPORT-EXCEL.md`. Thêm yêu cầu mục tiêu **chiết khấu** (chưa triển khai, P4-02 §9). Không đổi code hay DB.
 
 ## 9. Đã làm (2026-11-12)
 
@@ -172,3 +175,9 @@ Phát hiện khi test: `pos_mint_label_piece` chỉ nhận SKU active → không
 2. Đợt sau (C10): Đơn tạm / Đặt cọc lưu giá đá + điều chỉnh công (hiện đơn tạm chỉ lưu điều chỉnh/chỉ; mở lại đơn tạm dùng đá / công mặc định).
 3. Xuất Excel / báo cáo thêm cột TL đá, giá đá, công (dữ liệu đã lưu, chưa xuất). Snapshot hủy phiếu mua (`void_buy`) chưa ghi trường đá (dòng mua vẫn giữ đủ).
 4. In thử Giấy đảm bảo trên phôi thật khi đơn > 4 dòng.
+
+Danh sách khoảng trống đầy đủ sau audit 2026-11-13 (gồm cả các mục trên): mua [`P4-01-BUY-FLOW.md`](./P4-01-BUY-FLOW.md) §9, bán [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md) §10, báo cáo [`P4-03-REPORT-EXCEL.md`](./P4-03-REPORT-EXCEL.md) §8. Ba điểm audit thấy khác với ghi chép ở file này:
+
+- **C10:** giao dịch Đặt cọc / Đặt trước tạo từ POS đi chung `complete_sale` nên dòng bán **đã lưu đủ** vàng / đá / công (7 dòng thật). Phần chưa làm là chứng từ đặt cọc và đơn tạm. Chờ xác nhận ở P4-02 Q-S9.
+- **§3.1 và §3.2 (đề xuất):** cột `pos_inventory_transactions.stone_weight_chi`, cột lý do `stone_price_reason` / `labor_adjust_reason`, trường đá trong `void_buy`, `pos_list_form02` và các RPC xuất **chưa được triển khai**.
+- **Chiết khấu:** chưa có trong hệ thống; là yêu cầu mục tiêu mới, xem P4-02 §9.

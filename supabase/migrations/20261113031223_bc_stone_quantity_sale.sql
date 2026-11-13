@@ -1,0 +1,501 @@
+-- Big Change phần 3 / 4 (xem 20261113031055_bc_stone_quantity_columns.sql): bán lưu số lượng đá + đơn giá đá.
+-- Production: áp ngày 2026-11-13 qua Supabase MCP. Các function có sẵn được vá từ bản đang chạy bằng khối DO có kiểm md5
+-- (sai một ký tự thì cả khối rollback); md5(prosrc) trên production sau khi áp trùng với thân function trong file này:
+--   pos_private.complete_sale (13 tham số) c16b21385540599fb4d1b5a3d7c4eff7
+
+-- 4. complete_sale: tiền đá / chiếc = đơn giá đá × số lượng đá, lưu cả hai vế (BC-3, BC-12, BC-25)
+CREATE OR REPLACE FUNCTION pos_private.complete_sale(p_idempotency_key text, p_customer_name text, p_customer_phone text, p_payment_method text, p_items jsonb, p_customer_id uuid DEFAULT NULL::uuid, p_note text DEFAULT NULL::text, p_paid_dong bigint DEFAULT NULL::bigint, p_due_date date DEFAULT NULL::date, p_charges jsonb DEFAULT '[]'::jsonb, p_operator_staff_id uuid DEFAULT NULL::uuid, p_pickup_due_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_payment_splits jsonb DEFAULT NULL::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor text;
+  v_cached jsonb;
+  v_customer_id uuid;
+  v_sale_id uuid;
+  v_sale_no text;
+  v_invoice_id uuid;
+  v_invoice_no text;
+  v_item record;
+  v_charge record;
+  v_sku public.pos_skus%rowtype;
+  v_gold record;
+  v_total bigint := 0;
+  v_sku_ids uuid[];
+  v_stock integer;
+  v_result jsonb;
+  v_note text := nullif(trim(coalesce(p_note, '')), '');
+  v_paid bigint;
+  v_remaining bigint;
+  v_pay_status text;
+  v_due date := p_due_date;
+  v_operator uuid;
+  v_tx_type text := 'SALE';
+  v_fulfill text := 'DELIVERED';
+  v_any_short boolean := false;
+  v_adj bigint;
+  v_gold_unit bigint;
+  v_stone_default bigint;
+  v_stone_unit bigint;
+  v_stone_qty integer;
+  v_stone_unit_price bigint;
+  v_labor_base bigint;
+  v_labor_adj bigint;
+  v_labor_final bigint;
+  v_actual_unit bigint;
+  v_line_total bigint;
+  v_line_edits jsonb := '[]'::jsonb;
+  v_today date := (timezone('Asia/Ho_Chi_Minh', now()))::date;
+  v_pickup timestamptz := p_pickup_due_at;
+  v_charge_name text;
+  v_deposit_wf text := null;
+  v_avail integer;
+  v_item_status text;
+  v_split record;
+  v_split_sum bigint := 0;
+  v_sale_method text := p_payment_method;
+begin
+  v_actor := pos_private.require_pos_user();
+  v_cached := pos_private.begin_idempotency(p_idempotency_key, 'complete_sale');
+  if v_cached is not null then
+    return v_cached;
+  end if;
+
+  begin
+    v_operator := pos_private.resolve_operator_staff_id(p_operator_staff_id);
+
+    if p_payment_method not in ('CASH', 'TRANSFER', 'CARD', 'MIXED') then
+      raise exception 'Phương thức thanh toán không hợp lệ' using errcode = '22023';
+    end if;
+    if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
+      raise exception 'Giỏ hàng trống' using errcode = '22023';
+    end if;
+
+    select array_agg(x.sku_id order by x.sku_id) into v_sku_ids
+    from jsonb_to_recordset(p_items) as x(sku_id uuid, quantity integer, price_adjustment_per_chi bigint);
+
+    if exists (
+      select 1 from jsonb_to_recordset(p_items) as x(sku_id uuid, quantity integer, price_adjustment_per_chi bigint)
+      group by x.sku_id having count(*) > 1
+    ) then
+      raise exception 'SKU trùng trong giỏ hàng' using errcode = '22023';
+    end if;
+
+    perform s.sku_id
+    from public.pos_inventory_stock s
+    where s.sku_id = any(v_sku_ids)
+    order by s.sku_id
+    for update;
+
+    for v_item in
+      select * from jsonb_to_recordset(p_items) as x(sku_id uuid, quantity integer, price_adjustment_per_chi bigint)
+    loop
+      if v_item.quantity is null or v_item.quantity <= 0 then
+        raise exception 'Số lượng bán phải > 0' using errcode = '22023';
+      end if;
+      select quantity into v_stock from public.pos_inventory_stock where sku_id = v_item.sku_id;
+      if v_stock is null then
+        raise exception 'SKU không tồn tại trên sổ kho' using errcode = 'P0001';
+      end if;
+      if v_stock < v_item.quantity then
+        v_any_short := true;
+      end if;
+    end loop;
+
+    if v_any_short then
+      v_tx_type := 'PREORDER';
+      v_fulfill := 'UNFULFILLED';
+      if v_pickup is null then
+        raise exception 'Đơn đặt hàng phải có ngày giờ hẹn lấy hàng' using errcode = '22023';
+      end if;
+      if v_pickup < now() then
+        raise exception 'Hẹn lấy hàng không được trước thời điểm đặt' using errcode = '22023';
+      end if;
+    end if;
+
+    if p_customer_id is not null then
+      select c.id into v_customer_id from public.pos_customers c where c.id = p_customer_id;
+      if v_customer_id is null then
+        raise exception 'Không tìm thấy khách hàng' using errcode = 'P0002';
+      end if;
+    else
+      v_customer_id := pos_private.upsert_customer(p_customer_name, p_customer_phone);
+    end if;
+
+    if v_tx_type = 'PREORDER' then
+      v_sale_no := 'PRE-' || lpad(nextval('public.pos_preorder_seq')::text, 6, '0');
+      v_invoice_no := 'DH' || lpad(nextval('public.pos_invoice_seq')::text, 6, '0');
+    else
+      v_sale_no := 'SALE-' || lpad(nextval('public.pos_sale_seq')::text, 6, '0');
+      v_invoice_no := 'HD' || lpad(nextval('public.pos_invoice_seq')::text, 6, '0');
+    end if;
+
+    insert into public.pos_sales (
+      sale_no, customer_id, status, payment_method, total_dong,
+      idempotency_key, actor_email, completed_at, note,
+      transaction_type, operator_staff_id, pickup_due_at, fulfillment_status,
+      deposit_workflow_status, deposit_price_locked
+    ) values (
+      v_sale_no, v_customer_id, 'COMPLETED', p_payment_method, 0,
+      trim(p_idempotency_key), v_actor, now(), v_note,
+      v_tx_type, v_operator, v_pickup, v_fulfill,
+      null, true
+    )
+    returning id into v_sale_id;
+
+    for v_item in
+      select * from jsonb_to_recordset(p_items) as x(
+        sku_id uuid,
+        quantity integer,
+        price_adjustment_per_chi bigint,
+        stone_price_dong bigint,
+        labor_adjust_dong bigint,
+        stone_quantity integer,
+        stone_unit_price_dong bigint
+      )
+    loop
+      v_sku := pos_private.require_saleable_sku(v_item.sku_id);
+      if v_sku.weight_chi is null or v_sku.weight_chi <= 0 then
+        raise exception 'Trọng lượng sản phẩm không hợp lệ' using errcode = '22023';
+      end if;
+
+      select * into v_gold from pos_private.compute_gold_unit(v_sku);
+      v_adj := coalesce(v_item.price_adjustment_per_chi, 0);
+
+      if not coalesce(v_sku.is_market_gold, false) then
+        perform pos_private.assert_price_within_or_exception(
+          round(v_gold.gold_sell_dong::numeric / v_sku.board_unit_chi)::bigint + v_adj,
+          round(v_gold.gold_sell_dong::numeric / v_sku.board_unit_chi)::bigint,
+          false, false, null
+        );
+      end if;
+
+      v_gold_unit := v_gold.gold_unit_dong + round(v_adj * v_sku.weight_chi)::bigint;
+      if v_gold_unit < 0 then
+        raise exception 'Giá giao dịch không hợp lệ' using errcode = '22023';
+      end if;
+
+      v_stone_default := coalesce(v_sku.stone_price_dong, 0);
+      if v_item.stone_quantity is not null or v_item.stone_unit_price_dong is not null then
+        -- BC-3: tiền đá / chiếc = đơn giá đá × số lượng đá. Thiếu vế nào thì lấy mặc định của SKU.
+        v_stone_qty := coalesce(v_item.stone_quantity, v_sku.stone_quantity, 0);
+        v_stone_unit_price := coalesce(v_item.stone_unit_price_dong, v_sku.stone_unit_price_dong, 0);
+        if v_stone_qty < 0 then
+          raise exception 'Số lượng đá không hợp lệ' using errcode = '22023';
+        end if;
+        if v_stone_unit_price < 0 then
+          raise exception 'Đơn giá đá không hợp lệ' using errcode = '22023';
+        end if;
+        v_stone_unit := v_stone_unit_price * v_stone_qty;
+      elsif v_item.stone_price_dong is not null and v_item.stone_price_dong <> v_stone_default then
+        -- Client cũ sửa tay tiền đá / chiếc: không có số lượng, đơn giá.
+        v_stone_qty := 0;
+        v_stone_unit_price := 0;
+        v_stone_unit := v_item.stone_price_dong;
+      else
+        v_stone_qty := coalesce(v_sku.stone_quantity, 0);
+        v_stone_unit_price := coalesce(v_sku.stone_unit_price_dong, 0);
+        v_stone_unit := v_stone_default;
+      end if;
+      if v_stone_unit < 0 then
+        raise exception 'Giá đá không hợp lệ' using errcode = '22023';
+      end if;
+
+      v_labor_base := coalesce(v_sku.labor_fee_dong, 0);
+      v_labor_adj := coalesce(v_item.labor_adjust_dong, 0);
+      v_labor_final := v_labor_base + v_labor_adj;
+      if v_labor_final < 0 then
+        raise exception 'Tiền công sau điều chỉnh không được nhỏ hơn 0 (%)', v_sku.sku using errcode = '22023';
+      end if;
+
+      v_actual_unit := v_gold_unit + v_stone_unit + v_labor_final;
+      v_line_total := v_actual_unit * v_item.quantity;
+
+      select quantity into v_stock from public.pos_inventory_stock where sku_id = v_item.sku_id;
+      v_avail := least(greatest(coalesce(v_stock, 0), 0), v_item.quantity);
+      if v_avail >= v_item.quantity then
+        v_item_status := 'IN_STOCK';
+      else
+        v_item_status := 'BACKORDER';
+      end if;
+
+      insert into public.pos_sale_items (
+        sale_id, sku_id, quantity, unit_price_dong, total_price_dong,
+        gold_sell_dong, weight_chi, board_unit_chi, labor_fee_dong, price_row_id,
+        product_name_snapshot, sku_snapshot, reference_unit_price_dong, price_adjustment_per_chi,
+        qty_available_at_order, qty_delivered, item_status,
+        gold_amount_dong, stone_weight_chi, stone_price_dong, stone_price_default_dong,
+        labor_adjust_dong, labor_final_dong,
+        stone_quantity, stone_unit_price_dong
+      ) values (
+        v_sale_id, v_sku.id, v_item.quantity, v_actual_unit, v_line_total,
+        v_gold.gold_sell_dong, v_sku.weight_chi, v_sku.board_unit_chi,
+        v_labor_base, coalesce(v_gold.price_row_id, v_sku.price_row_id, ''),
+        v_sku.name, v_sku.sku, v_gold.gold_unit_dong + v_stone_default + v_labor_base, v_adj,
+        v_avail, 0, v_item_status,
+        v_gold_unit, coalesce(v_sku.stone_weight_chi, 0), v_stone_unit, v_stone_default,
+        v_labor_adj, v_labor_final,
+        v_stone_qty, v_stone_unit_price
+      );
+
+      if v_adj <> 0 then
+        insert into public.pos_price_exceptions (
+          transaction_type, transaction_id, line_id,
+          reference_price_dong_per_chi, actual_price_dong_per_chi,
+          difference_per_chi, weight_chi, reason, created_by
+        )
+        select
+          'SALE', v_sale_id, si.id,
+          round(v_gold.gold_sell_dong::numeric / v_sku.board_unit_chi)::bigint,
+          round(v_gold.gold_sell_dong::numeric / v_sku.board_unit_chi)::bigint + v_adj,
+          v_adj, v_sku.weight_chi,
+          'Điều chỉnh giá POS ±300.000đ/chỉ', v_actor
+        from public.pos_sale_items si
+        where si.sale_id = v_sale_id and si.sku_id = v_sku.id
+        order by si.id desc
+        limit 1;
+      end if;
+
+      if v_stone_unit <> v_stone_default or v_labor_adj <> 0
+         or v_stone_qty <> coalesce(v_sku.stone_quantity, 0)
+         or v_stone_unit_price <> coalesce(v_sku.stone_unit_price_dong, 0) then
+        v_line_edits := v_line_edits || jsonb_build_array(jsonb_build_object(
+          'sku', v_sku.sku,
+          'stone_price_default_dong', v_stone_default,
+          'stone_price_dong', v_stone_unit,
+          'stone_quantity_default', coalesce(v_sku.stone_quantity, 0),
+          'stone_quantity', v_stone_qty,
+          'stone_unit_price_default_dong', coalesce(v_sku.stone_unit_price_dong, 0),
+          'stone_unit_price_dong', v_stone_unit_price,
+          'labor_fee_dong', v_labor_base,
+          'labor_adjust_dong', v_labor_adj,
+          'labor_final_dong', v_labor_final
+        ));
+      end if;
+
+      v_total := v_total + v_line_total;
+    end loop;
+
+    if p_charges is not null and jsonb_typeof(p_charges) = 'array' then
+      for v_charge in
+        select * from jsonb_to_recordset(p_charges) as x(name text, amount_dong bigint, reason text)
+      loop
+        v_charge_name := nullif(trim(coalesce(v_charge.name, '')), '');
+        if v_charge_name is null then
+          raise exception 'Khoản phải thu phải có tên' using errcode = '22023';
+        end if;
+        if v_charge.amount_dong is null or v_charge.amount_dong <= 0 then
+          raise exception 'Số tiền khoản phải thu phải > 0' using errcode = '22023';
+        end if;
+        insert into public.pos_sale_charges (sale_id, name, amount_dong, reason, created_by)
+        values (
+          v_sale_id, v_charge_name, v_charge.amount_dong,
+          nullif(trim(coalesce(v_charge.reason, '')), ''), v_actor
+        );
+        v_total := v_total + v_charge.amount_dong;
+      end loop;
+    end if;
+
+    v_paid := coalesce(p_paid_dong, v_total);
+    if v_paid < 0 then
+      raise exception 'Số tiền thanh toán không hợp lệ' using errcode = '22023';
+    end if;
+    if v_paid > v_total then
+      raise exception 'Số tiền thanh toán vượt tổng đơn' using errcode = '22023';
+    end if;
+    v_remaining := v_total - v_paid;
+    if v_remaining > 0 then
+      if v_due is null then
+        raise exception 'Đơn còn nợ phải có ngày hẹn trả' using errcode = '22023';
+      end if;
+      if v_due < v_today then
+        raise exception 'Ngày hẹn thanh toán không được trong quá khứ' using errcode = '22023';
+      end if;
+    else
+      v_due := null;
+    end if;
+    v_pay_status := pos_private.derive_sale_payment_status(v_paid, v_total, v_due);
+
+    if v_tx_type = 'SALE' and (v_remaining > 0 or v_pickup is not null) then
+      v_tx_type := 'DEPOSIT';
+      v_fulfill := 'UNFULFILLED';
+      v_deposit_wf := 'AWAITING_AGREEMENT';
+      if v_pickup is null then
+        raise exception 'Đặt cọc / giữ vàng phải có thời gian dự kiến giao vàng' using errcode = '22023';
+      end if;
+      if v_pickup < now() then
+        raise exception 'Thời gian dự kiến giao vàng không được trước thời điểm đặt' using errcode = '22023';
+      end if;
+      v_sale_no := 'PRE-' || lpad(nextval('public.pos_preorder_seq')::text, 6, '0');
+      v_invoice_no := 'DH' || lpad(nextval('public.pos_invoice_seq')::text, 6, '0');
+    elsif v_tx_type = 'PREORDER' and v_remaining > 0 then
+      v_deposit_wf := 'AWAITING_AGREEMENT';
+    elsif v_tx_type = 'SALE' then
+      v_pickup := null;
+    end if;
+
+    update public.pos_sales
+    set
+      sale_no = v_sale_no,
+      total_dong = v_total,
+      paid_dong = v_paid,
+      remaining_dong = v_remaining,
+      payment_status = v_pay_status,
+      due_date = v_due,
+      transaction_type = v_tx_type,
+      fulfillment_status = v_fulfill,
+      pickup_due_at = v_pickup,
+      deposit_workflow_status = v_deposit_wf
+    where id = v_sale_id;
+
+    insert into public.pos_invoices (
+      invoice_no, sale_id, customer_id, status, total_dong, issued_at, actor_email
+    ) values (
+      v_invoice_no, v_sale_id, v_customer_id, 'ISSUED', v_total, now(), v_actor
+    )
+    returning id into v_invoice_id;
+
+    if v_paid > 0 then
+      if p_payment_splits is not null
+         and jsonb_typeof(p_payment_splits) = 'array'
+         and jsonb_array_length(p_payment_splits) > 0 then
+        for v_split in
+          select * from jsonb_to_recordset(p_payment_splits) as x(method text, amount_dong bigint)
+        loop
+          if v_split.method not in ('CASH', 'TRANSFER') then
+            raise exception 'Hình thức thanh toán không hợp lệ' using errcode = '22023';
+          end if;
+          if v_split.amount_dong is null or v_split.amount_dong <= 0 then
+            raise exception 'Số tiền theo hình thức phải > 0' using errcode = '22023';
+          end if;
+          v_split_sum := v_split_sum + v_split.amount_dong;
+          insert into public.pos_sale_payments (
+            sale_id, amount_dong, payment_method, paid_at, actor_email, note,
+            idempotency_key, received_by_staff_id
+          ) values (
+            v_sale_id, v_split.amount_dong, v_split.method, now(), v_actor,
+            case
+              when v_deposit_wf is not null then 'Tiền đặt cọc lúc bán'
+              else 'Thanh toán lúc bán'
+            end,
+            'sale-open:' || trim(p_idempotency_key) || ':' || v_split.method,
+            v_operator
+          );
+        end loop;
+        if v_split_sum <> v_paid then
+          raise exception 'Tổng các khoản thanh toán phải khớp số tiền thu' using errcode = '22023';
+        end if;
+        if (
+          select count(distinct x.method)
+          from jsonb_to_recordset(p_payment_splits) as x(method text, amount_dong bigint)
+        ) > 1 then
+          v_sale_method := 'MIXED';
+        else
+          select x.method into v_sale_method
+          from jsonb_to_recordset(p_payment_splits) as x(method text, amount_dong bigint)
+          limit 1;
+        end if;
+        update public.pos_sales
+        set payment_method = v_sale_method
+        where id = v_sale_id;
+      else
+        if p_payment_method = 'MIXED' then
+          raise exception 'Thanh toán hỗn hợp cần tách số tiền từng hình thức' using errcode = '22023';
+        end if;
+        insert into public.pos_sale_payments (
+          sale_id, amount_dong, payment_method, paid_at, actor_email, note,
+          idempotency_key, received_by_staff_id
+        ) values (
+          v_sale_id, v_paid, p_payment_method, now(), v_actor,
+          case
+            when v_deposit_wf is not null then 'Tiền đặt cọc lúc bán'
+            else 'Thanh toán lúc bán'
+          end,
+          'sale-open:' || trim(p_idempotency_key),
+          v_operator
+        );
+      end if;
+    end if;
+
+    if v_tx_type = 'SALE' then
+      for v_item in
+        select * from jsonb_to_recordset(p_items) as x(sku_id uuid, quantity integer, price_adjustment_per_chi bigint)
+      loop
+        perform pos_private.apply_stock_change(
+          v_item.sku_id, - v_item.quantity,
+          'SALE', 'Bán hàng', 'SALE', v_sale_id, v_actor
+        );
+      end loop;
+      update public.pos_sale_items
+      set qty_delivered = quantity, item_status = 'DELIVERED'
+      where sale_id = v_sale_id;
+    else
+      perform pos_private.sync_sale_fulfillment_header(v_sale_id);
+    end if;
+
+    insert into public.pos_audit_log(actor_email, action, entity_type, entity_id, reason, payload)
+    values (
+      v_actor,
+      case
+        when v_tx_type = 'PREORDER' then 'PREORDER_CREATE'
+        when v_tx_type = 'DEPOSIT' then 'DEPOSIT_CREATE'
+        else 'SALE'
+      end,
+      'sale', v_sale_id,
+      case
+        when v_tx_type = 'PREORDER' then 'Tạo đơn đặt hàng'
+        when v_tx_type = 'DEPOSIT' then 'Tạo đơn đặt cọc / TT một phần'
+        else 'Bán hàng'
+      end,
+      jsonb_build_object(
+        'sale_no', v_sale_no,
+        'invoice_no', v_invoice_no,
+        'invoice_id', v_invoice_id,
+        'customer_id', v_customer_id,
+        'total_dong', v_total,
+        'paid_dong', v_paid,
+        'remaining_dong', v_remaining,
+        'payment_status', v_pay_status,
+        'due_date', v_due,
+        'transaction_type', v_tx_type,
+        'fulfillment_status', v_fulfill,
+        'pickup_due_at', v_pickup,
+        'deposit_workflow_status', v_deposit_wf,
+        'payment_method', v_sale_method,
+        'operator_staff_id', v_operator,
+        'login_account', v_actor,
+        'line_edits', v_line_edits
+      )
+    );
+
+    v_result := jsonb_build_object(
+      'ok', true,
+      'sale_id', v_sale_id,
+      'sale_no', v_sale_no,
+      'invoice_id', v_invoice_id,
+      'invoice_no', v_invoice_no,
+      'customer_id', v_customer_id,
+      'total_dong', v_total,
+      'paid_dong', v_paid,
+      'remaining_dong', v_remaining,
+      'payment_status', v_pay_status,
+      'due_date', v_due,
+      'status', 'COMPLETED',
+      'transaction_type', v_tx_type,
+      'fulfillment_status', (
+        select fulfillment_status from public.pos_sales where id = v_sale_id
+      ),
+      'pickup_due_at', v_pickup,
+      'deposit_workflow_status', v_deposit_wf,
+      'payment_method', v_sale_method,
+      'operator_staff_id', v_operator
+    );
+    return pos_private.finish_idempotency(p_idempotency_key, v_result);
+  exception when others then
+    perform pos_private.clear_pending_idempotency(p_idempotency_key);
+    raise;
+  end;
+end;
+$function$;

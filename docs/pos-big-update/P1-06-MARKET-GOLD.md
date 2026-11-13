@@ -32,7 +32,7 @@
 | D6 | Card "9" và "Bạc thị trường": chưa tạo dòng giá, hiện "Chưa có giá" (admin cập nhật sau). |
 | D7 | Tab Mua: 3 card (+ Bạc) mở form mua vàng thị trường hiện tại, điền sẵn nhóm + giá mua từ dòng giá; NV vẫn gõ tuổi vàng thật. Nhóm lưu theo card đã bấm (cột mới, additive). |
 | D8 | Gộp nhóm "Vàng thị trường" / "Vàng Thị Trường"; **ẩn** 7 SKU cũ (Vàng Thị Trường 9/99/999/9999, VTT 99/999/9999 — tồn 0) bằng inactive + audit, không xóa. |
-| D9 | Giá thực tế mua / bán trong hóa đơn, kho, báo cáo **không đổi** (bán = `last_cost_dong` của món MG + điều chỉnh/chỉ như cũ). **Thay bởi P4 C5 (2026-11-12):** MG bán theo giá bán dòng giá nhóm × TL vàng + đá + công; giá bán = 0 → chặn bán. Xem [`P4-00-GOLD-STONE.md`](./P4-00-GOLD-STONE.md). |
+| D9 | Giá thực tế mua / bán trong hóa đơn, kho, báo cáo **không đổi** (bán = `last_cost_dong` của món MG + điều chỉnh/chỉ như cũ). **Thay bởi P4 C5 (2026-11-12):** MG bán theo giá bán dòng giá nhóm × TL vàng + đá + công; giá bán = 0 → chặn bán. Xem [`P4-00-GOLD-STONE.md`](./P4-00-GOLD-STONE.md); công thức bán hiện hành ở [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md) §6, mua có đá ở [`P4-01-BUY-FLOW.md`](./P4-01-BUY-FLOW.md) §5. Các dòng nhật ký test bên dưới ghi theo logic giá vốn cũ. |
 
 ## 4. Đã làm (2026-11-11)
 

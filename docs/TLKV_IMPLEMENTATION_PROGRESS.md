@@ -3,7 +3,8 @@
 > Spec gốc: [`TLKV_AI_IMPLEMENTATION_SPEC.md`](./TLKV_AI_IMPLEMENTATION_SPEC.md)  
 > Contract kỹ thuật: [`SYSTEM_DEVELOPMENT_RULES.md`](./SYSTEM_DEVELOPMENT_RULES.md)  
 > Cập nhật: 2026-09-15 (module Quản lý vàng — xem [`GOLD_MANAGEMENT.md`](./GOLD_MANAGEMENT.md))  
-> **Tiến độ tổng (ước lượng): ~72%**
+> **Tiến độ tổng (ước lượng): ~72%**  
+> Từ 2026-11: tiến độ POS big update (gồm Phase 4 vàng + đá + tiền công) theo dõi ở [`pos-big-update/03-PROGRESS.md`](./pos-big-update/03-PROGRESS.md), không cập nhật vào file này. Flow hiện hành: mua [`P4-01-BUY-FLOW.md`](./pos-big-update/P4-01-BUY-FLOW.md), bán [`P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md), báo cáo / Excel [`P4-03-REPORT-EXCEL.md`](./pos-big-update/P4-03-REPORT-EXCEL.md).
 
 Cách tính: `Σ(trọng_số × %_epic)`. Chỉ đánh dấu ✅ khi đã có DB + backend enforce + UI dùng được trên môi trường thật.
 

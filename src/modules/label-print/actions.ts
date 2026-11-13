@@ -178,22 +178,41 @@ export async function recordLabelPrint(input: {
   };
 }
 
-/** Saves tag labor / stone as the SKU defaults used by POS (no stock change). */
+/**
+ * Saves tag labor / stone as the SKU defaults used by POS (no stock change).
+ * Stone amount is computed on the server: đơn giá đá × số lượng đá.
+ * `legacyStonePriceDong`: hand-typed stone amount of a SKU saved before stone quantity / unit price existed.
+ * While quantity and unit price stay 0 that amount is kept as is (old RPC), never silently cleared.
+ */
 export async function saveLabelSkuComponents(input: {
   skuId: string;
   laborFeeDong: number;
   stoneWeightChi: number;
-  stonePriceDong: number;
+  stoneQuantity: number;
+  stoneUnitPriceDong: number;
+  legacyStonePriceDong?: number;
 }): Promise<ActionResult<{ changed: boolean }>> {
   return runAction(async () => {
     await assertStaffMutate();
     const supabase = await createServerSupabase();
-    const { data, error } = await supabase.rpc("pos_set_sku_sale_components", {
-      p_sku_id: input.skuId,
-      p_labor_fee_dong: Math.max(0, Math.round(input.laborFeeDong)),
-      p_stone_weight_chi: Math.max(0, input.stoneWeightChi),
-      p_stone_price_dong: Math.max(0, Math.round(input.stonePriceDong)),
-    });
+    const stoneQuantity = Math.max(0, Math.trunc(input.stoneQuantity));
+    const stoneUnitPriceDong = Math.max(0, Math.round(input.stoneUnitPriceDong));
+    const legacyAmount = Math.max(0, Math.round(input.legacyStonePriceDong ?? 0));
+    const keepLegacy = stoneQuantity === 0 && stoneUnitPriceDong === 0 && legacyAmount > 0;
+    const { data, error } = keepLegacy
+      ? await supabase.rpc("pos_set_sku_sale_components", {
+          p_sku_id: input.skuId,
+          p_labor_fee_dong: Math.max(0, Math.round(input.laborFeeDong)),
+          p_stone_weight_chi: Math.max(0, input.stoneWeightChi),
+          p_stone_price_dong: legacyAmount,
+        })
+      : await supabase.rpc("pos_set_sku_sale_components_v2", {
+          p_sku_id: input.skuId,
+          p_labor_fee_dong: Math.max(0, Math.round(input.laborFeeDong)),
+          p_stone_weight_chi: Math.max(0, input.stoneWeightChi),
+          p_stone_quantity: stoneQuantity,
+          p_stone_unit_price_dong: stoneUnitPriceDong,
+        });
     if (error) throw new Error(error.message);
     const changed = Boolean((data as { changed?: boolean } | null)?.changed);
     if (changed) revalidateLabelPrint();

@@ -102,6 +102,11 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
               </td>
               <td className="border border-black" style={{ ...tdStyle, wordBreak: "break-word" }}>
                 {row.name}
+                {row.stoneNote ? (
+                  <span className="block" style={{ fontSize: "10pt", lineHeight: 1.25, marginTop: "0.6mm" }}>
+                    {row.stoneNote}
+                  </span>
+                ) : null}
               </td>
               <td className="border border-black text-center" style={tdStyle}>
                 {row.purity}
@@ -114,7 +119,6 @@ export function PurchaseVoucherDocument({ buy }: { buy: BuyDetail }) {
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatDongCompact(row.unitPriceDong)}
-                {row.isStone ? <span style={{ fontSize: "10pt" }}>/chiếc</span> : null}
               </td>
               <td className="border border-black text-right tabular-nums" style={tdStyle}>
                 {formatDongCompact(row.amountDong)}

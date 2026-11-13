@@ -23,6 +23,11 @@ export type PosCatalogItem = {
   goldUnitDong?: number | null;
   laborFeeDong?: number;
   stoneWeightChi?: number;
+  /** Số lượng đá (viên) mặc định của SKU. */
+  stoneQuantity?: number;
+  /** Đơn giá đá / viên mặc định của SKU. */
+  stoneUnitPriceDong?: number;
+  /** Thành tiền đá / 1 chiếc = đơn giá đá × số lượng đá (SKU cũ có thể là số nhập tay). */
   stonePriceDong?: number;
 };
 
@@ -64,7 +69,16 @@ export type CartLine = {
   imageUrl: string | null;
   stoneWeightChi: number;
   stonePriceDefaultDong: number;
-  /** Giá đá / 1 chiếc khi bán (sửa được). */
+  /** Số lượng đá (viên) khi bán (sửa được). */
+  stoneQuantity: number;
+  /** Đơn giá đá / viên khi bán (sửa được). */
+  stoneUnitPriceDong: number;
+  /**
+   * SKU cũ chỉ có tiền đá nhập tay (chưa có số lượng + đơn giá) và dòng chưa nhập số lượng / đơn giá:
+   * giữ nguyên số tiền đó, gửi server theo đường cũ.
+   */
+  stoneLegacyAmount: boolean;
+  /** Thành tiền đá / 1 chiếc = đơn giá đá × số lượng đá (tự tính, không nhập tay). */
   stonePriceDong: number;
   /** Tiền công gốc / 1 chiếc (SKU). */
   laborFeeDong: number;

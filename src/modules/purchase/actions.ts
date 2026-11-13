@@ -18,6 +18,7 @@ import type {
   BuyListRow,
   BuyPaymentRow,
   BuyStatus,
+  BuyStoneItemPayload,
   BuyWorkflowStatus,
   CollectBuyPaymentResult,
   CompleteBuyResult,
@@ -130,6 +131,8 @@ function mapBuyDetailItem(item: Record<string, unknown>): BuyDetailItem {
     isMarketGold: Boolean(item.isMarketGold ?? item.is_market_gold),
     priceException: Boolean(item.priceException ?? item.price_exception),
     stoneWeightChi: asNumber(item.stoneWeightChi ?? item.stone_weight_chi ?? 0),
+    stoneQuantity: asNumber(item.stoneQuantity ?? item.stone_quantity ?? 0),
+    stoneUnitPriceDong: asNumber(item.stoneUnitPriceDong ?? item.stone_unit_price_dong ?? 0),
     stonePriceDong,
     goldAmountDong: goldRaw == null ? totalPriceDong - stonePriceDong * quantity : asNumber(goldRaw),
   };
@@ -283,6 +286,28 @@ export async function setBuyMeltWeights(input: {
     revalidatePath("/purchase");
     return getBuy(input.buyId);
   }, "Không lưu được khối lượng sau nấu.");
+}
+
+/**
+ * Sửa trọng lượng đá + số lượng đá ở bước upload phiếu kiểm tra hàm lượng (WEIGHT_ENTERED).
+ * Đơn giá đá không đổi; server tính lại thành tiền đá = đơn giá × số lượng mới và tổng phiếu.
+ */
+export async function setBuyStone(input: {
+  buyId: string;
+  items: BuyStoneItemPayload[];
+  idempotencyKey?: string;
+}): Promise<ActionResult<BuyDetail>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_set_buy_stone", {
+      p_buy_id: input.buyId,
+      p_items: input.items,
+      p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    return getBuy(input.buyId);
+  }, "Không lưu được thông tin đá.");
 }
 
 /**

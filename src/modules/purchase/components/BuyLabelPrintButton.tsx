@@ -15,7 +15,8 @@ function hrefFor(buy: BuyDetail, item: BuyDetailItem): string | null {
     goldAge: item.goldAge,
     klvChi: item.weightChi,
     kldChi: item.stoneWeightChi,
-    stonePriceDong: item.stonePriceDong,
+    stoneQuantity: item.stoneQuantity,
+    stoneUnitPriceDong: item.stoneUnitPriceDong,
     note: buy.note,
   });
 }

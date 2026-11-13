@@ -159,6 +159,8 @@ price_reference
 price_adjustment
 ```
 
+> **Cập nhật Phase 4 (2026-11-13):** dòng bán còn snapshot từng thành phần: giá vàng, trọng lượng đá, tiền đá mặc định / thực tế, tiền công gốc / điều chỉnh / thực tế. Xem [`pos-big-update/P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md) §7.
+
 ## 1.5. Backend là nguồn sự thật
 
 Frontend chỉ hỗ trợ UI.
@@ -780,6 +782,8 @@ nếu hệ thống chưa có requirement riêng cho discount/adjustment.
 
 Giảm giá phải là nghiệp vụ riêng, không dùng "receivable" để lách
 discount.
+
+> **Cập nhật Phase 4 (2026-11-13):** nghiệp vụ chiết khấu vẫn **chưa triển khai**. Yêu cầu mục tiêu (tổng trước chiết khấu từ vàng + đá + công, sau đó mới áp chiết khấu) và các điểm cần chốt: [`pos-big-update/P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md) §9.
 
 ## 5.7. Số tiền bằng 0
 
@@ -1973,6 +1977,8 @@ actual_unit_price
 total_price
 ```
 
+> **Cập nhật Phase 4 (2026-11-13):** Sale Item có thêm cột thành phần (`gold_amount_dong`, `stone_weight_chi`, `stone_price_dong`, `stone_price_default_dong`, `labor_adjust_dong`, `labor_final_dong`). Danh sách cột và ý nghĩa: [`pos-big-update/P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md) §7.
+
 ## Additional Receivable / Charge
 
 ``` text
@@ -2024,6 +2030,8 @@ Tùy schema hiện tại, nếu sản phẩm đang tính theo công thức khác
 reuse canonical calculation hiện tại.
 
 Không được tạo một công thức thứ hai gây sai tổng.
+
+> **Cập nhật Phase 4 (2026-11-13):** công thức canonical hiện hành của dòng bán là theo chiếc: đơn giá chiếc = giá vàng giao dịch (giá / chỉ sau điều chỉnh × trọng lượng vàng) + tiền đá + tiền công; thành tiền dòng = đơn giá chiếc × số lượng. Điều chỉnh / chỉ chỉ tác động phần vàng. Công thức `line_total = actual_price_per_chi × total_weight` ở trên chỉ còn đúng cho dòng không có đá và tiền công = 0. Chi tiết: [`pos-big-update/P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md) §6.
 
 ------------------------------------------------------------------------
 

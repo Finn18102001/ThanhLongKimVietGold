@@ -50,6 +50,23 @@ export type DepositLine = {
   qtyAvailableAtOrder: number;
   qtyDelivered: number;
   currentStock: number;
+  /** Per piece snapshot. Null on lines sold before the gold / stone / labor split (print the single legacy row). */
+  goldAmountDong: number | null;
+  stoneWeightChi: number;
+  /** Số lượng đá (viên) / chiếc. 0 on lines sold with a hand-typed stone amount. */
+  stoneQuantity: number;
+  /** Đơn giá đá / viên. */
+  stoneUnitPriceDong: number;
+  /** Thành tiền đá / chiếc = đơn giá đá × số lượng đá. */
+  stonePriceDong: number;
+  laborFinalDong: number | null;
+};
+
+/** Khoản thu thêm của đơn (`pos_sale_charges`): in riêng, không gộp vào đơn giá vàng. */
+export type DepositCharge = {
+  id: string;
+  name: string;
+  amountDong: number;
 };
 
 export type DepositPayment = {
@@ -91,6 +108,7 @@ export type DepositSaleBundle = {
   depositPriceLocked: boolean;
   payload: DepositDocPayload;
   lines: DepositLine[];
+  charges: DepositCharge[];
   payments: DepositPayment[];
 };
 

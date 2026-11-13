@@ -91,10 +91,12 @@ type BuyLineBase = {
   referencePriceDongPerChi: number;
   priceRowId: string | null;
   imageUrl?: string | null;
-  /** TL đá / 1 chiếc (chỉ). `weightChi` là TL vàng. */
+  /** TL đá của 1 chiếc (chỉ). `weightChi` là TL vàng. Chỉ ghi nhận, không tham gia tính tiền. */
   stoneWeightChi?: number;
-  /** Giá đá / 1 chiếc (integer VND). */
-  stonePriceDong?: number;
+  /** Số lượng đá (viên) của 1 chiếc. */
+  stoneQuantity?: number;
+  /** Đơn giá đá / 1 viên (integer VND). Thành tiền đá = đơn giá × số lượng. */
+  stoneUnitPriceDong?: number;
 };
 
 export type MarketBuyLine = BuyLineBase & {
@@ -129,9 +131,10 @@ export type BuyItemPayload = {
   /** Catalog: sell / chỉ. Market: 0 (BE skips ±300k for market). */
   reference_price_dong_per_chi: number;
   price_row_id: string | null;
-  /** Per piece; server total = gold + stone_price_dong × quantity. */
+  /** Per piece; server stone amount = stone_unit_price_dong × stone_quantity, line total = gold + stone amount × quantity. */
   stone_weight_chi: number;
-  stone_price_dong: number;
+  stone_quantity: number;
+  stone_unit_price_dong: number;
   /** Market only; ignored by pos_create_buy_intake, sent to pos_set_market_gold_class. */
   market_class?: MarketGoldClass | null;
 };
@@ -185,9 +188,13 @@ export type BuyDetailItem = {
   totalPriceDong: number;
   isMarketGold: boolean;
   priceException: boolean;
-  /** TL đá / 1 chiếc (chỉ). 0 = không có đá. */
+  /** TL đá của 1 chiếc (chỉ). 0 = không có đá. Chỉ ghi nhận, không tham gia tính tiền. */
   stoneWeightChi: number;
-  /** Giá đá / 1 chiếc (VND), snapshot lúc mua. */
+  /** Số lượng đá (viên) của 1 chiếc. 0 trên dòng cũ nhập tiền đá bằng tay. */
+  stoneQuantity: number;
+  /** Đơn giá đá / 1 viên (VND) lúc mua. */
+  stoneUnitPriceDong: number;
+  /** Thành tiền đá của 1 chiếc (VND) = đơn giá đá × số lượng đá. */
   stonePriceDong: number;
   /** Tiền vàng cả dòng (VND). totalPriceDong = goldAmountDong + stonePriceDong × quantity. */
   goldAmountDong: number;
@@ -244,6 +251,13 @@ export type MeltWeightItemPayload = {
   weight_after_chi: number;
 };
 
+/** Payload row for pos_set_buy_stone (đơn giá đá không sửa được sau tiếp nhận). */
+export type BuyStoneItemPayload = {
+  item_id: string;
+  stone_weight_chi: number;
+  stone_quantity: number;
+};
+
 export type DebtSummary = {
   receivableDong: number;
   payableDong: number;
@@ -275,19 +289,32 @@ export function lineGoldDong(line: Pick<BuyLine, "unitPriceDong" | "weightChi" |
   return Math.round(line.unitPriceDong * line.weightChi * line.quantity);
 }
 
-export function lineStoneDong(line: Pick<BuyLine, "stonePriceDong" | "quantity">): number {
-  return (line.stonePriceDong ?? 0) * line.quantity;
+type BuyLineStone = Pick<BuyLine, "stoneWeightChi" | "stoneQuantity" | "stoneUnitPriceDong">;
+
+/** Thành tiền đá của 1 chiếc = đơn giá đá × số lượng đá. Trọng lượng đá không tham gia. */
+export function lineStonePieceDong(line: Pick<BuyLine, "stoneQuantity" | "stoneUnitPriceDong">): number {
+  return (line.stoneUnitPriceDong ?? 0) * (line.stoneQuantity ?? 0);
 }
 
-/** Mirrors pos_create_buy_intake: gold (unit × TL vàng × SL) + giá đá / chiếc × SL. */
+export function lineStoneDong(line: Pick<BuyLine, "stoneQuantity" | "stoneUnitPriceDong" | "quantity">): number {
+  return lineStonePieceDong(line) * line.quantity;
+}
+
+/** Mirrors pos_create_buy_intake: gold (unit × TL vàng × SL) + (đơn giá đá × số lượng đá) × SL. */
 export function lineTotalDong(
-  line: Pick<BuyLine, "unitPriceDong" | "weightChi" | "quantity" | "stonePriceDong">,
+  line: Pick<BuyLine, "unitPriceDong" | "weightChi" | "quantity" | "stoneQuantity" | "stoneUnitPriceDong">,
 ): number {
   return lineGoldDong(line) + lineStoneDong(line);
 }
 
-export function buyItemHasStone(item: Pick<BuyDetailItem, "stoneWeightChi" | "stonePriceDong">): boolean {
-  return item.stoneWeightChi > 0 || item.stonePriceDong > 0;
+export function buyLineHasStone(line: BuyLineStone): boolean {
+  return (line.stoneWeightChi ?? 0) > 0 || (line.stoneQuantity ?? 0) > 0 || (line.stoneUnitPriceDong ?? 0) > 0;
+}
+
+export function buyItemHasStone(
+  item: Pick<BuyDetailItem, "stoneWeightChi" | "stoneQuantity" | "stonePriceDong">,
+): boolean {
+  return item.stoneWeightChi > 0 || item.stoneQuantity > 0 || item.stonePriceDong > 0;
 }
 
 /**
@@ -348,7 +375,8 @@ export function toBuyItemPayload(line: BuyLine): BuyItemPayload {
     reference_price_dong_per_chi: line.isMarketGold ? 0 : line.referencePriceDongPerChi,
     price_row_id: line.priceRowId,
     stone_weight_chi: line.stoneWeightChi ?? 0,
-    stone_price_dong: line.stonePriceDong ?? 0,
+    stone_quantity: line.stoneQuantity ?? 0,
+    stone_unit_price_dong: line.stoneUnitPriceDong ?? 0,
     ...(line.kind === "market" && line.marketClass ? { market_class: line.marketClass } : {}),
   };
 }

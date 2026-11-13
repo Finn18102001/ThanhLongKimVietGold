@@ -5,7 +5,7 @@ import { Info } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { Modal } from "@/shared/ui/Modal";
 import { MARKET_GOLD_CLASS_LABEL, type MarketGoldClass, type MarketGoldClassPrice } from "@/modules/pos/types";
-import { lineGoldDong, lineStoneDong, type MarketBuyLine, type MarketGoldRef } from "../types";
+import { lineGoldDong, lineStonePieceDong, type MarketBuyLine, type MarketGoldRef } from "../types";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 
 const GOLD_AGE_SUGGESTIONS = ["999.9", "99.9", "980", "750", "610", "585", "418"] as const;
@@ -37,7 +37,8 @@ type MarketFormState = {
   priceRowId: string;
   unitPriceDong: string;
   stoneWeightChi: string;
-  stonePriceDong: string;
+  stoneQuantity: string;
+  stoneUnitPriceDong: string;
 };
 
 const EMPTY: MarketFormState = {
@@ -49,7 +50,8 @@ const EMPTY: MarketFormState = {
   priceRowId: "",
   unitPriceDong: "",
   stoneWeightChi: "",
-  stonePriceDong: "",
+  stoneQuantity: "",
+  stoneUnitPriceDong: "",
 };
 
 export function MarketGoldModal({
@@ -77,7 +79,12 @@ export function MarketGoldModal({
     weightChi: parseWeightInput(form.weightChi),
     quantity: previewQty,
   });
-  const previewStone = lineStoneDong({ stonePriceDong: parseDongInput(form.stonePriceDong), quantity: previewQty });
+  // Thành tiền đá = đơn giá đá × số lượng đá (trọng lượng đá chỉ để ghi nhận).
+  const previewStonePiece = lineStonePieceDong({
+    stoneQuantity: Math.floor(parseDongInput(form.stoneQuantity)) || 0,
+    stoneUnitPriceDong: parseDongInput(form.stoneUnitPriceDong),
+  });
+  const previewStone = previewStonePiece * previewQty;
 
   function onPickHint(refId: string) {
     const ref = marketRefs.find((r) => r.id === refId);
@@ -101,7 +108,9 @@ export function MarketGoldModal({
     const quantity = Math.floor(parseDongInput(form.quantity)) || 0;
     const unitPrice = parseDongInput(form.unitPriceDong);
     const stoneWeightChi = form.stoneWeightChi.trim() === "" ? 0 : parseWeightInput(form.stoneWeightChi);
-    const stonePriceDong = form.stonePriceDong.trim() === "" ? 0 : parseDongInput(form.stonePriceDong);
+    const stoneQuantity = form.stoneQuantity.trim() === "" ? 0 : Math.floor(parseDongInput(form.stoneQuantity));
+    const stoneUnitPriceDong =
+      form.stoneUnitPriceDong.trim() === "" ? 0 : parseDongInput(form.stoneUnitPriceDong);
 
     if (!name) {
       setError("Nhập tên sản phẩm / mô tả vàng thị trường.");
@@ -128,8 +137,16 @@ export function MarketGoldModal({
       setError("Trọng lượng đá phải là số không âm.");
       return;
     }
-    if (!Number.isFinite(stonePriceDong) || stonePriceDong < 0) {
-      setError("Giá tiền đá phải là số nguyên VND không âm.");
+    if (!Number.isInteger(stoneQuantity) || stoneQuantity < 0) {
+      setError("Số lượng đá phải là số nguyên không âm.");
+      return;
+    }
+    if (!Number.isInteger(stoneUnitPriceDong) || stoneUnitPriceDong < 0) {
+      setError("Đơn giá đá phải là số nguyên VND không âm.");
+      return;
+    }
+    if (stoneUnitPriceDong > 0 && stoneQuantity <= 0) {
+      setError("Có đơn giá đá thì phải nhập số lượng đá.");
       return;
     }
 
@@ -149,7 +166,8 @@ export function MarketGoldModal({
       brandName: "Vàng thị trường",
       marketClass,
       stoneWeightChi,
-      stonePriceDong,
+      stoneQuantity,
+      stoneUnitPriceDong,
     });
   }
 
@@ -269,7 +287,7 @@ export function MarketGoldModal({
           />
         </label>
         <label className="block text-[12px]">
-          <span className="text-[var(--tlkv-muted)]">Trọng lượng đá / chiếc (chỉ)</span>
+          <span className="text-[var(--tlkv-muted)]">Trọng lượng đá (chỉ)</span>
           <input
             value={form.stoneWeightChi}
             onChange={(e) =>
@@ -281,15 +299,39 @@ export function MarketGoldModal({
           />
         </label>
         <label className="block text-[12px]">
-          <span className="text-[var(--tlkv-muted)]">Giá tiền đá / chiếc (VND)</span>
+          <span className="text-[var(--tlkv-muted)]">Số lượng đá (viên)</span>
           <input
-            value={form.stonePriceDong}
-            onChange={(e) => setForm((p) => ({ ...p, stonePriceDong: e.target.value.replace(/[^\d]/g, "") }))}
+            value={form.stoneQuantity}
+            onChange={(e) => setForm((p) => ({ ...p, stoneQuantity: e.target.value.replace(/[^\d]/g, "") }))}
+            inputMode="numeric"
+            className={`${purchaseInputClass} mt-1`}
+            placeholder="Không có đá để trống"
+          />
+        </label>
+        <label className="block text-[12px]">
+          <span className="text-[var(--tlkv-muted)]">Đơn giá đá (VND / viên)</span>
+          <input
+            value={form.stoneUnitPriceDong}
+            onChange={(e) => setForm((p) => ({ ...p, stoneUnitPriceDong: e.target.value.replace(/[^\d]/g, "") }))}
             inputMode="numeric"
             className={`${purchaseInputClass} mt-1`}
             placeholder="Nhập thủ công"
           />
         </label>
+        <div className="block text-[12px]">
+          <span className="text-[var(--tlkv-muted)]">Thành tiền đá (tự tính)</span>
+          <p
+            className={`${purchaseInputClass} mt-1 flex items-center bg-[var(--tlkv-bg)] tabular-nums`}
+            aria-live="polite"
+          >
+            {formatDong(previewStonePiece)}
+          </p>
+        </div>
+        {previewQty > 1 && previewStonePiece > 0 ? (
+          <p className="text-[11px] text-[var(--tlkv-muted)] sm:col-span-2">
+            Thông tin đá tính cho 1 chiếc. Tiền đá cả dòng = thành tiền đá × {previewQty} chiếc.
+          </p>
+        ) : null}
       </div>
 
       <dl className="mt-3 grid grid-cols-3 gap-2 rounded-lg border border-[var(--tlkv-line)] px-3 py-2.5 text-[12px]">

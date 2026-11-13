@@ -84,7 +84,7 @@ export function CatalogCard({
         {item.unitPriceDong === null
           ? "Chưa có giá"
           : item.weightChi > 0
-            ? `${formatDong(Math.round(item.unitPriceDong / item.weightChi))}/chỉ`
+            ? `${formatDong(Math.round((item.goldUnitDong ?? item.unitPriceDong) / item.weightChi))}/chỉ`
             : formatDong(item.unitPriceDong)}
       </p>
       <p

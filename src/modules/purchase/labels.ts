@@ -43,6 +43,25 @@ export function formatChi(weightChi: number): string {
 }
 
 /**
+ * Chi tiết đá của 1 chiếc sản phẩm, VD "5 viên · 2 chỉ · 600.000 đ/viên".
+ * Chỉ ghi phần có dữ liệu. Thành tiền đá = đơn giá × số lượng, không theo trọng lượng.
+ */
+export function formatStoneDetail(stone: {
+  stoneQuantity?: number;
+  stoneWeightChi?: number;
+  stoneUnitPriceDong?: number;
+}): string {
+  const parts: string[] = [];
+  const quantity = stone.stoneQuantity ?? 0;
+  const weightChi = stone.stoneWeightChi ?? 0;
+  const unitPriceDong = stone.stoneUnitPriceDong ?? 0;
+  if (quantity > 0) parts.push(`${quantity.toLocaleString("vi-VN")} viên`);
+  if (weightChi > 0) parts.push(formatChi(weightChi));
+  if (unitPriceDong > 0) parts.push(`${unitPriceDong.toLocaleString("vi-VN")} đ/viên`);
+  return parts.join(" · ");
+}
+
+/**
  * Trọng lượng in trên phiếu mua và mẫu 02.
  * weightChi lưu số chỉ của một sản phẩm; tổng chỉ = số lượng × số chỉ/sản phẩm.
  */

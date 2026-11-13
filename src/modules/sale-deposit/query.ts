@@ -78,6 +78,7 @@ export async function getDepositSaleBundle(saleId: string): Promise<DepositSaleB
     .from("pos_sale_items")
     .select(
       `id, sku_id, quantity, unit_price_dong, total_price_dong, weight_chi,
+       gold_amount_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, labor_final_dong,
        product_name_snapshot, sku_snapshot, item_status, qty_available_at_order, qty_delivered,
        pos_skus(sku, name, gold_price_rows!pos_skus_price_row_id_fkey(purity))`,
     )
@@ -96,6 +97,13 @@ export async function getDepositSaleBundle(saleId: string): Promise<DepositSaleB
       stockMap[String(row.sku_id)] = Number(row.quantity ?? 0);
     }
   }
+
+  const { data: chargeRows, error: chargeError } = await supabase
+    .from("pos_sale_charges")
+    .select("id, name, amount_dong")
+    .eq("sale_id", saleId)
+    .order("created_at", { ascending: true });
+  if (chargeError) throw new Error(chargeError.message);
 
   const { data: payRows } = await supabase
     .from("pos_sale_payments")
@@ -147,6 +155,12 @@ export async function getDepositSaleBundle(saleId: string): Promise<DepositSaleB
       qtyAvailableAtOrder: Number(item.qty_available_at_order ?? 0),
       qtyDelivered: Number(item.qty_delivered ?? 0),
       currentStock: stockMap[String(item.sku_id)] ?? 0,
+      goldAmountDong: item.gold_amount_dong == null ? null : asDong(item.gold_amount_dong),
+      stoneWeightChi: Number(item.stone_weight_chi ?? 0),
+      stoneQuantity: Number(item.stone_quantity ?? 0),
+      stoneUnitPriceDong: asDong(item.stone_unit_price_dong),
+      stonePriceDong: asDong(item.stone_price_dong),
+      laborFinalDong: item.labor_final_dong == null ? null : asDong(item.labor_final_dong),
     };
   });
 
@@ -182,6 +196,11 @@ export async function getDepositSaleBundle(saleId: string): Promise<DepositSaleB
     depositPriceLocked: sale.deposit_price_locked !== false,
     payload: asPayload(sale.deposit_doc_payload),
     lines,
+    charges: (chargeRows ?? []).map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? ""),
+      amountDong: asDong(row.amount_dong),
+    })),
     payments: (payRows ?? []).map((row) => ({
       id: String(row.id),
       amountDong: asDong(row.amount_dong),

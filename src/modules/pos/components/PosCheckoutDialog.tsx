@@ -160,7 +160,7 @@ export function PosCheckoutDialog({
                         <span className="block text-[12px] text-[var(--tlkv-muted)]">
                           Vàng {formatDong(cartLineGoldUnitDong(line))}
                           {line.stonePriceDong > 0 || line.stoneWeightChi > 0
-                            ? ` · Đá ${formatDong(line.stonePriceDong)}`
+                            ? ` · Đá ${line.stoneQuantity > 0 ? `${line.stoneQuantity} viên × ${formatDong(line.stoneUnitPriceDong)} = ` : ""}${formatDong(line.stonePriceDong)}`
                             : ""}
                           {laborFinalDong(line) !== 0 ? ` · Công ${formatDong(laborFinalDong(line))}` : ""}
                           {" / chiếc"}

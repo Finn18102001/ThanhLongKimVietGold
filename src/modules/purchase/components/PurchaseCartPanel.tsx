@@ -4,13 +4,15 @@ import { Minus, Plus, Trash, Warning } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
-import { formatChi } from "../labels";
+import { formatChi, formatStoneDetail } from "../labels";
 import {
   PRICE_EXCEPTION_THRESHOLD_DONG,
   PRICE_OUT_OF_RANGE_INLINE,
   buyUnitPriceBounds,
   clampBuyUnitPriceDong,
+  buyLineHasStone,
   lineHasPriceException,
+  lineStonePieceDong,
   lineTotalDong,
   type BuyLine,
   type BuyPayMode,
@@ -172,9 +174,9 @@ export function PurchaseCartPanel({
                                 : ""}
                             {line.weightChi > 0 ? ` · ${formatChi(line.weightChi)}` : ""}
                           </p>
-                          {(line.stoneWeightChi ?? 0) > 0 || (line.stonePriceDong ?? 0) > 0 ? (
+                          {buyLineHasStone(line) ? (
                             <p className="text-[11px] text-[var(--tlkv-muted)]">
-                              Đá {formatChi(line.stoneWeightChi ?? 0)} · {formatDong(line.stonePriceDong ?? 0)} / chiếc
+                              Đá {formatStoneDetail(line)} · {formatDong(lineStonePieceDong(line))}
                             </p>
                           ) : null}
                         </div>

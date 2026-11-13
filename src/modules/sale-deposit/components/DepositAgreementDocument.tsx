@@ -87,7 +87,7 @@ export function DepositAgreementDocument({ bundle }: { bundle: DepositSaleBundle
       <p style={{ marginTop: "1.2mm" }}>
         Bên Mua đặt cọc cho Bên Bán để thực hiện việc mua vàng theo thông tin sau:
       </p>
-      <DepositGoodsTable lines={bundle.lines} />
+      <DepositGoodsTable lines={bundle.lines} charges={bundle.charges} />
       <DottedFill
         label="Tổng giá trị giao dịch dự kiến:"
         value={formatDongCompact(bundle.totalDong)}

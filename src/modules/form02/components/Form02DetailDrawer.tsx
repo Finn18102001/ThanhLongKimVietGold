@@ -143,13 +143,17 @@ export function Form02DetailDrawer({
                       {buyPrintRows(buy.items).map((row) => (
                         <tr key={row.key} className="border-t border-[var(--tlkv-line)]">
                           <td className="px-3 py-2 tabular-nums">{row.stt}</td>
-                          <td className="px-3 py-2">{row.name}</td>
+                          <td className="px-3 py-2">
+                            {row.name}
+                            {row.stoneNote ? (
+                              <span className="block text-[11px] text-[var(--tlkv-muted)]">{row.stoneNote}</span>
+                            ) : null}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums">
                             {row.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })}
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">
                             {formatDong(row.unitPriceDong)}
-                            {row.isStone ? " / chiếc" : ""}
                           </td>
                           <td className="px-3 py-2 text-right font-medium tabular-nums">
                             {formatDong(row.amountDong)}

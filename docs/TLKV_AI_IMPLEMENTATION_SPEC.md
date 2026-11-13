@@ -273,6 +273,8 @@ is_market_gold
 
 Nếu schema hiện tại có tên field tương đương thì **reuse**, không tạo duplicate field chỉ vì tên khác.
 
+> **Cập nhật Phase 4 (2026-11-13):** purchase item có thêm thành phần đá (`stone_weight_chi`, `stone_price_dong` theo 1 chiếc) và tiền vàng cả dòng (`gold_amount_dong`); `weight` là trọng lượng vàng; `total_price` = tiền vàng + tiền đá × số lượng. Flow mua không có tiền công. Chi tiết: [`pos-big-update/P4-01-BUY-FLOW.md`](./pos-big-update/P4-01-BUY-FLOW.md).
+
 ---
 
 # 8. VÀNG THỊ TRƯỜNG
@@ -666,6 +668,8 @@ Tổng còn lại
 
 Không export ảnh CCCD mặc định.
 
+> **Cập nhật Phase 4 (2026-11-13):** các file xuất hiện có chưa có cột trọng lượng đá, tiền đá, tiền công. Đối chiếu cột và tác động tương thích: [`pos-big-update/P4-03-REPORT-EXCEL.md`](./pos-big-update/P4-03-REPORT-EXCEL.md).
+
 ---
 
 # 21. CUSTOMER – CCCD
@@ -944,6 +948,8 @@ total_price
 
 Không render transaction history bằng giá hiện tại từ Product table.
 
+> **Cập nhật Phase 4 (2026-11-13):** snapshot còn gồm từng thành phần giá trị. Dòng mua: trọng lượng đá, tiền đá, tiền vàng ([`P4-01`](./pos-big-update/P4-01-BUY-FLOW.md) §6). Dòng bán: giá vàng, trọng lượng đá, tiền đá mặc định / thực tế, tiền công gốc / điều chỉnh / thực tế ([`P4-02`](./pos-big-update/P4-02-SELL-FLOW.md) §7).
+
 ---
 
 # 30. MONEY PRECISION
@@ -1132,6 +1138,8 @@ Due date
 ```
 
 Không phá UI hiện tại nếu chức năng đã hoạt động.
+
+> **Cập nhật Phase 4 (2026-11-13):** dòng bán hiển thị và lưu riêng giá vàng, tiền đá, tiền công (đơn giá chiếc = vàng + đá + công). Chiết khấu là yêu cầu mục tiêu, chưa triển khai. Chi tiết: [`pos-big-update/P4-02-SELL-FLOW.md`](./pos-big-update/P4-02-SELL-FLOW.md).
 
 ---
 

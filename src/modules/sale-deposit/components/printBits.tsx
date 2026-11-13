@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { formatDongCompact } from "@/shared/lib/money";
-import type { DepositLine } from "../types";
+import type { DepositCharge, DepositLine } from "../types";
 
 const th: CSSProperties = {
   padding: "1.1mm 0.7mm",
@@ -13,14 +13,106 @@ const td: CSSProperties = {
   verticalAlign: "middle",
 };
 
+type GoodsRow = {
+  key: string;
+  /** Empty on detail rows (đá, tiền công): they belong to the product row above. */
+  stt: string;
+  name: string;
+  detail: boolean;
+  quantity: string;
+  weight: string;
+  unit: string;
+  purity: string;
+  unitPriceDong: number | null;
+  amountDong: number;
+};
+
+/**
+ * Big Change (QD-7): value components print separately instead of one combined unit price.
+ * Product row = gold only (đơn giá vàng / chiếc, thành tiền vàng). Under it, only when present:
+ * a stone detail row (TL đá, số lượng, đơn giá đá, thành tiền đá) and a labor detail row.
+ * Extra charges print as their own rows. The rows always add up to the document total.
+ * Gold-only products and lines sold before the split print exactly as before.
+ */
+export function depositGoodsRows(lines: DepositLine[], charges: DepositCharge[]): GoodsRow[] {
+  const rows: GoodsRow[] = [];
+  let stt = 0;
+  for (const line of lines) {
+    stt += 1;
+    const split = line.goldAmountDong != null;
+    rows.push({
+      key: line.id,
+      stt: String(stt),
+      name: line.name,
+      detail: false,
+      quantity: String(line.quantity),
+      weight: formatWeight(line.totalWeightChi),
+      unit: "chiếc",
+      purity: line.purity || "",
+      unitPriceDong: split ? (line.goldAmountDong as number) : line.unitPriceDong,
+      amountDong: split ? (line.goldAmountDong as number) * line.quantity : line.totalPriceDong,
+    });
+    if (!split) continue;
+    if (line.stoneWeightChi > 0 || line.stonePriceDong > 0 || line.stoneQuantity > 0) {
+      // Lines sold with a hand-typed stone amount have no stone quantity: print the amount per piece.
+      const hasQty = line.stoneQuantity > 0;
+      rows.push({
+        key: `${line.id}-stone`,
+        stt: "",
+        name: "Đá kèm",
+        detail: true,
+        quantity: hasQty ? String(line.stoneQuantity * line.quantity) : String(line.quantity),
+        weight: line.stoneWeightChi > 0 ? formatWeight(line.stoneWeightChi * line.quantity) : "",
+        unit: hasQty ? "viên" : "chiếc",
+        purity: "",
+        unitPriceDong: hasQty ? line.stoneUnitPriceDong : line.stonePriceDong,
+        amountDong: line.stonePriceDong * line.quantity,
+      });
+    }
+    const labor = line.laborFinalDong ?? 0;
+    if (labor !== 0) {
+      rows.push({
+        key: `${line.id}-labor`,
+        stt: "",
+        name: "Tiền công",
+        detail: true,
+        quantity: String(line.quantity),
+        weight: "",
+        unit: "chiếc",
+        purity: "",
+        unitPriceDong: labor,
+        amountDong: labor * line.quantity,
+      });
+    }
+  }
+  for (const charge of charges) {
+    stt += 1;
+    rows.push({
+      key: `charge-${charge.id}`,
+      stt: String(stt),
+      name: charge.name,
+      detail: false,
+      quantity: "",
+      weight: "",
+      unit: "",
+      purity: "",
+      unitPriceDong: null,
+      amountDong: charge.amountDong,
+    });
+  }
+  return rows;
+}
+
 export function DepositGoodsTable({
   lines,
+  charges = [],
   amountHeader = "Thành tiền tạm tính",
 }: {
   lines: DepositLine[];
+  charges?: DepositCharge[];
   amountHeader?: string;
 }) {
-  const rows = lines.length > 0 ? lines : [];
+  const rows = depositGoodsRows(lines, charges);
   const empty = Math.max(0, 1 - rows.length);
   return (
     <table
@@ -71,31 +163,34 @@ export function DepositGoodsTable({
         </tr>
       </thead>
       <tbody>
-        {rows.map((line, index) => (
-          <tr key={line.id}>
+        {rows.map((row) => (
+          <tr key={row.key}>
             <td className="border border-black text-center" style={td}>
-              {index + 1}
+              {row.stt}
             </td>
-            <td className="border border-black text-left" style={td}>
-              {line.name}
+            <td
+              className="border border-black text-left"
+              style={row.detail ? { ...td, paddingLeft: "3mm", fontStyle: "italic" } : td}
+            >
+              {row.name}
             </td>
             <td className="border border-black text-center tabular-nums" style={td}>
-              {line.quantity}
+              {row.quantity}
             </td>
             <td className="border border-black text-center tabular-nums" style={td}>
-              {formatWeight(line.totalWeightChi)}
+              {row.weight}
             </td>
             <td className="border border-black text-center" style={td}>
-              chiếc
+              {row.unit}
             </td>
             <td className="border border-black text-center" style={td}>
-              {line.purity || ""}
+              {row.purity}
             </td>
             <td className="border border-black text-right tabular-nums" style={td}>
-              {formatDongCompact(line.unitPriceDong)}
+              {row.unitPriceDong == null ? "" : formatDongCompact(row.unitPriceDong)}
             </td>
             <td className="border border-black text-right tabular-nums" style={td}>
-              {formatDongCompact(line.totalPriceDong)}
+              {formatDongCompact(row.amountDong)}
             </td>
           </tr>
         ))}

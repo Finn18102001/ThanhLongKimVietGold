@@ -63,6 +63,9 @@ export function MarketGoldPickerModal({
                       {(item.stoneWeightChi ?? 0) > 0 || (item.stonePriceDong ?? 0) > 0 ? (
                         <span className="block text-[11px] text-[var(--tlkv-muted)]">
                           Đá {(item.stoneWeightChi ?? 0).toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ ·{" "}
+                          {(item.stoneQuantity ?? 0) > 0
+                            ? `${item.stoneQuantity} viên × ${formatDong(item.stoneUnitPriceDong ?? 0)} = `
+                            : ""}
                           {formatDong(item.stonePriceDong ?? 0)}
                         </span>
                       ) : null}

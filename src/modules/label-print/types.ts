@@ -15,8 +15,13 @@ export type LabelSkuOption = {
   stockQty: number;
   /** `products.gold_age` (tuổi vàng, ≤ 3 decimals); null when not set. */
   goldAge: number | null;
-  /** Default stone weight / giá đá per piece saved on the SKU (`weightChi` = TL vàng). */
+  /** Default stone data per piece saved on the SKU (`weightChi` = TL vàng). */
   stoneWeightChi: number;
+  /** Số lượng đá (viên). */
+  stoneQuantity: number;
+  /** Đơn giá đá / viên. */
+  stoneUnitPriceDong: number;
+  /** Thành tiền đá / chiếc = đơn giá đá × số lượng đá (rows saved before 2026-11-13 may hold a hand-typed amount). */
   stonePriceDong: number;
   isMarketGold: boolean;
 };
@@ -28,7 +33,8 @@ export type LabelPrefill = {
   goldAgeText: string | null;
   klvChi: number | null;
   kldChi: number | null;
-  stonePriceDong: number | null;
+  stoneQuantity: number | null;
+  stoneUnitPriceDong: number | null;
   note: string | null;
 };
 

@@ -1,7 +1,8 @@
 # Phase 1 · Section 1 — Nhập hàng kiêm in tem
 
 > Chốt: 2026-11-10 · Người chốt: tuananh18101@gmail.com  
-> Tổng quan Phase 1: [`P1-00-OVERVIEW.md`](./P1-00-OVERVIEW.md)
+> Tổng quan Phase 1: [`P1-00-OVERVIEW.md`](./P1-00-OVERVIEW.md)  
+> Phase 4 (2026-11-13): form tem có thêm KLĐ và Giá đá; sau khi in, công / KLĐ / giá đá lưu lên SKU làm mặc định khi bán. Xem [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md) §3. Logic nhập hàng ở file này không đổi.
 
 ## 1. Yêu cầu đã chốt
 

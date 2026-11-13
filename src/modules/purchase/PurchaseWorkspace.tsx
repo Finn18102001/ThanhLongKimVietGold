@@ -24,6 +24,7 @@ import {
   getCustomerDebtSummary,
   issueMeltCommitment,
   setBuyMeltWeights,
+  setBuyStone,
   skipBuyMelt,
   startBuyMelting,
   uploadBuyFile,
@@ -47,6 +48,7 @@ import {
 } from "./components/purchaseFormUtils";
 import {
   formatChi,
+  formatStoneDetail,
   paymentMethodLabel,
   paymentStatusBadgeClass,
   paymentStatusLabel,
@@ -55,6 +57,8 @@ import {
   PRICE_OUT_OF_RANGE_CONFIRM,
   lineHasPriceException,
   buyItemHasStone,
+  buyLineHasStone,
+  lineStonePieceDong,
   lineTotalDong,
   toBuyItemPayload,
   type BuyAttachmentDocKind,
@@ -64,6 +68,7 @@ import {
   type CatalogBuyLine,
   type DebtSummary,
   type MarketBuyLine,
+  type BuyStoneItemPayload,
   type MarketGoldRef,
   type MeltWeightItemPayload,
   type PaymentMethod,
@@ -448,8 +453,8 @@ export function PurchaseWorkspace({
   async function runWorkflow(
     action: () => Promise<ActionResult<BuyDetail>>,
     opts?: { print?: PrintDocKind; successTitle?: string },
-  ) {
-    if (workflowPending) return;
+  ): Promise<boolean> {
+    if (workflowPending) return false;
     if (!workflowKey.current) workflowKey.current = crypto.randomUUID();
     setWorkflowPending(true);
     try {
@@ -461,7 +466,7 @@ export function PurchaseWorkspace({
           reason: formatActionError(result.message, "Lỗi không xác định."),
         });
         workflowKey.current = crypto.randomUUID();
-        return;
+        return false;
       }
       const buy = result.data;
       setDetail(buy);
@@ -472,6 +477,7 @@ export function PurchaseWorkspace({
       if (opts?.successTitle) {
         setAlert({ tone: "success", title: opts.successTitle, reason: buy.buyNo });
       }
+      return true;
     } catch (err) {
       setAlert({
         tone: "error",
@@ -479,6 +485,7 @@ export function PurchaseWorkspace({
         reason: formatActionError(err, "Lỗi không xác định."),
       });
       workflowKey.current = crypto.randomUUID();
+      return false;
     } finally {
       setWorkflowPending(false);
     }
@@ -772,9 +779,9 @@ export function PurchaseWorkspace({
                         {line.isMarketGold ? (
                           <span className="ml-1 text-[10px] text-[var(--tlkv-muted)]">(TT)</span>
                         ) : null}
-                        {(line.stoneWeightChi ?? 0) > 0 || (line.stonePriceDong ?? 0) > 0 ? (
+                        {buyLineHasStone(line) ? (
                           <span className="block text-[11px] text-[var(--tlkv-muted)]">
-                            Đá {formatChi(line.stoneWeightChi ?? 0)} · {formatDong(line.stonePriceDong ?? 0)} / chiếc
+                            Đá {formatStoneDetail(line)} · {formatDong(lineStonePieceDong(line))}
                           </span>
                         ) : null}
                       </td>
@@ -1030,7 +1037,7 @@ export function PurchaseWorkspace({
                             ) : null}
                             {buyItemHasStone(item) ? (
                               <span className="block text-[11px] text-[var(--tlkv-muted)]">
-                                Đá {formatChi(item.stoneWeightChi)} · {formatDong(item.stonePriceDong)} / chiếc
+                                Đá {formatStoneDetail(item)} · {formatDong(item.stonePriceDong)}
                               </span>
                             ) : null}
                           </td>
@@ -1168,6 +1175,17 @@ export function PurchaseWorkspace({
                           idempotencyKey: workflowKey.current || undefined,
                         }),
                       { successTitle: "Đã lưu khối lượng sau nấu" },
+                    )
+                  }
+                  onSetStone={(items: BuyStoneItemPayload[]) =>
+                    runWorkflow(
+                      () =>
+                        setBuyStone({
+                          buyId: detail.id,
+                          items,
+                          idempotencyKey: workflowKey.current || undefined,
+                        }),
+                      { successTitle: "Đã lưu thông tin đá" },
                     )
                   }
                   onUploadFile={(file, docKind) => onUploadWorkflowFile(file, docKind)}

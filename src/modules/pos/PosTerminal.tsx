@@ -57,8 +57,10 @@ import { DepositPosPanel } from "@/modules/sale-deposit/components/DepositPosPan
 type CartEntry = {
   quantity: number;
   adj: number;
-  /** Giá đá / chiếc khi bán; undefined = mặc định SKU. */
-  stone?: number;
+  /** Số lượng đá (viên) khi bán; undefined = mặc định SKU. */
+  stoneQty?: number;
+  /** Đơn giá đá / viên khi bán; undefined = mặc định SKU. */
+  stoneUnit?: number;
   laborAdj?: number;
 };
 type CartQtyMap = Record<string, CartEntry>;
@@ -93,6 +95,15 @@ function toCartLine(item: PosCatalogItem, entry: CartEntry): CartLine | null {
   const laborFeeDong = item.laborFeeDong ?? 0;
   const stonePriceDefaultDong = item.stonePriceDong ?? 0;
   const goldUnitDong = item.goldUnitDong ?? item.unitPriceDong - laborFeeDong - stonePriceDefaultDong;
+  const stoneQuantity = Math.max(0, Math.trunc(entry.stoneQty ?? item.stoneQuantity ?? 0));
+  const stoneUnitPriceDong = Math.max(0, Math.trunc(entry.stoneUnit ?? item.stoneUnitPriceDong ?? 0));
+  // SKU cũ: tiền đá nhập tay, chưa có số lượng + đơn giá. Giữ số đó cho tới khi quầy nhập số lượng / đơn giá.
+  const stoneLegacyAmount =
+    (item.stoneQuantity ?? 0) === 0 &&
+    (item.stoneUnitPriceDong ?? 0) === 0 &&
+    stonePriceDefaultDong > 0 &&
+    stoneQuantity === 0 &&
+    stoneUnitPriceDong === 0;
   const line: CartLine = {
     skuId: item.skuId,
     sku: item.sku,
@@ -106,7 +117,11 @@ function toCartLine(item: PosCatalogItem, entry: CartEntry): CartLine | null {
     imageUrl: item.imageUrl,
     stoneWeightChi: item.stoneWeightChi ?? 0,
     stonePriceDefaultDong,
-    stonePriceDong: Math.max(0, Math.trunc(entry.stone ?? stonePriceDefaultDong)),
+    stoneQuantity,
+    stoneUnitPriceDong,
+    stoneLegacyAmount,
+    // BC-3: thành tiền đá = đơn giá đá × số lượng đá. Không nhập tay thành tiền.
+    stonePriceDong: stoneLegacyAmount ? stonePriceDefaultDong : stoneUnitPriceDong * stoneQuantity,
     laborFeeDong,
     laborAdjustDong: Math.max(-laborFeeDong, Math.trunc(entry.laborAdj ?? 0)),
   };
@@ -490,12 +505,21 @@ export function PosTerminal({
     });
   }
 
-  function setStonePrice(skuId: string, stoneDong: number) {
+  function setStoneQuantity(skuId: string, quantity: number) {
     setCart((current) => {
       const entry = current[skuId];
       if (!entry) return current;
-      const next = Number.isFinite(stoneDong) ? Math.max(0, Math.trunc(stoneDong)) : 0;
-      return { ...current, [skuId]: { ...entry, stone: next } };
+      const next = Number.isFinite(quantity) ? Math.max(0, Math.trunc(quantity)) : 0;
+      return { ...current, [skuId]: { ...entry, stoneQty: next } };
+    });
+  }
+
+  function setStoneUnitPrice(skuId: string, unitDong: number) {
+    setCart((current) => {
+      const entry = current[skuId];
+      if (!entry) return current;
+      const next = Number.isFinite(unitDong) ? Math.max(0, Math.trunc(unitDong)) : 0;
+      return { ...current, [skuId]: { ...entry, stoneUnit: next } };
     });
   }
 
@@ -970,7 +994,10 @@ export function PosTerminal({
         sku_id: line.skuId,
         quantity: line.quantity,
         price_adjustment_per_chi: line.priceAdjustmentPerChi,
-        stone_price_dong: line.stonePriceDong,
+        // Server tính thành tiền đá = đơn giá × số lượng. SKU cũ (tiền đá nhập tay) đi đường cũ.
+        ...(line.stoneLegacyAmount
+          ? { stone_price_dong: line.stonePriceDong }
+          : { stone_quantity: line.stoneQuantity, stone_unit_price_dong: line.stoneUnitPriceDong }),
         labor_adjust_dong: line.laborAdjustDong,
       })),
     };
@@ -1286,7 +1313,8 @@ export function PosTerminal({
             onDueDateChange={setDueDate}
             onQty={setQty}
             onAdj={setAdj}
-            onStonePrice={setStonePrice}
+            onStoneQuantity={setStoneQuantity}
+            onStoneUnitPrice={setStoneUnitPrice}
             onLaborAdj={setLaborAdj}
             onRemove={removeLine}
             onChargesChange={setCharges}

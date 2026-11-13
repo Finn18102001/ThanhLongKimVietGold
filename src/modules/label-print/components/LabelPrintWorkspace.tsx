@@ -135,7 +135,8 @@ export function LabelPrintWorkspace({
   const [kltChi, setKltChi] = useState(initial?.kltChi ?? 0);
   const [klvChi, setKlvChi] = useState(initial?.klvChi ?? 0);
   const [kldChi, setKldChi] = useState(initial?.kldChi ?? 0);
-  const [stonePriceDong, setStonePriceDong] = useState(initial?.stonePriceDong ?? 0);
+  const [stoneQuantity, setStoneQuantity] = useState(initial?.stoneQuantity ?? 0);
+  const [stoneUnitPriceDong, setStoneUnitPriceDong] = useState(initial?.stoneUnitPriceDong ?? 0);
   const [tagName, setTagName] = useState(initial?.tagName ?? "");
   const [goldAgeText, setGoldAgeText] = useState(initial?.goldAgeText ?? "");
   const [originText, setOriginText] = useState(DEFAULT_ORIGIN);
@@ -336,7 +337,8 @@ export function LabelPrintWorkspace({
       setKltChi(0);
       setKlvChi(0);
       setKldChi(0);
-      setStonePriceDong(0);
+      setStoneQuantity(0);
+      setStoneUnitPriceDong(0);
     }
   }, [selectedSku]);
 
@@ -388,6 +390,14 @@ export function LabelPrintWorkspace({
 
   const hasPrintedBefore = Boolean(selectedPiece && printedPieceIds.has(selectedPiece.id));
 
+  /** SKU saved before stone quantity / unit price existed: its hand-typed stone amount is kept until both are entered. */
+  const legacyStoneDong =
+    selectedSku && selectedSku.stoneQuantity === 0 && selectedSku.stoneUnitPriceDong === 0
+      ? selectedSku.stonePriceDong
+      : 0;
+  const stoneAmountDong =
+    stoneQuantity === 0 && stoneUnitPriceDong === 0 ? legacyStoneDong : stoneUnitPriceDong * stoneQuantity;
+
   function selectSku(nextId: string, list: LabelSkuOption[] = skus) {
     setSkuId(nextId);
     const sku = list.find((s) => s.skuId === nextId);
@@ -397,7 +407,8 @@ export function LabelPrintWorkspace({
       setKltChi(0);
       setKlvChi(0);
       setKldChi(0);
-      setStonePriceDong(0);
+      setStoneQuantity(0);
+      setStoneUnitPriceDong(0);
       setTagName("");
       setGoldAgeText("");
       return;
@@ -408,7 +419,8 @@ export function LabelPrintWorkspace({
     setKltChi(d.kltChi);
     setKlvChi(d.klvChi);
     setKldChi(d.kldChi);
-    setStonePriceDong(d.stonePriceDong);
+    setStoneQuantity(d.stoneQuantity);
+    setStoneUnitPriceDong(d.stoneUnitPriceDong);
     setTagName(d.tagName);
     setGoldAgeText(d.goldAgeText);
   }
@@ -514,7 +526,9 @@ export function LabelPrintWorkspace({
           skuId: selectedSku.skuId,
           laborFeeDong,
           stoneWeightChi: kldChi,
-          stonePriceDong,
+          stoneQuantity,
+          stoneUnitPriceDong,
+          legacyStonePriceDong: legacyStoneDong,
         });
         setMessage(
           `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${recorded.msp || piece.msp} (không đổi tồn kho).` +
@@ -547,7 +561,8 @@ export function LabelPrintWorkspace({
     setKlvChi(row.klvChi);
     setKldChi(row.kldChi ?? 0);
     const reprintSku = skus.find((s) => s.skuId === row.skuId);
-    setStonePriceDong(reprintSku?.stonePriceDong ?? 0);
+    setStoneQuantity(reprintSku?.stoneQuantity ?? 0);
+    setStoneUnitPriceDong(reprintSku?.stoneUnitPriceDong ?? 0);
     setTagName(reprintSku?.name ?? row.productName);
     setGoldAgeText(formatGoldAge(reprintSku?.goldAge ?? null));
     setOriginText(DEFAULT_ORIGIN);
@@ -768,16 +783,43 @@ export function LabelPrintWorkspace({
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                Giá đá / chiếc (đ), lưu vào SKU, không in
+                Số lượng đá (viên), lưu vào SKU, không in
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={selectedSku ? stoneQuantity : ""}
+                  disabled={!selectedSku}
+                  onChange={(e) => setStoneQuantity(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+                />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                Đơn giá đá (đ / viên), lưu vào SKU, không in
                 <input
                   type="number"
                   min={0}
                   step={1000}
-                  value={selectedSku ? stonePriceDong : ""}
+                  value={selectedSku ? stoneUnitPriceDong : ""}
                   disabled={!selectedSku}
-                  onChange={(e) => setStonePriceDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  onChange={(e) => setStoneUnitPriceDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
+              </label>
+              <label className="text-[12px] text-[var(--tlkv-muted)]">
+                Thành tiền đá (tự tính = đơn giá × số lượng)
+                <input
+                  readOnly
+                  tabIndex={-1}
+                  value={selectedSku ? stoneAmountDong.toLocaleString("vi-VN") : ""}
+                  disabled={!selectedSku}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] tabular-nums text-[var(--tlkv-text)] outline-none"
+                />
+                {legacyStoneDong > 0 && stoneQuantity === 0 && stoneUnitPriceDong === 0 ? (
+                  <span className="mt-1 block text-[11px]">
+                    Tiền đá nhập tay trước đây. Nhập số lượng và đơn giá đá để thay thế.
+                  </span>
+                ) : null}
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 HL (Hàm lượng / tuổi vàng)

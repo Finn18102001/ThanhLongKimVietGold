@@ -48,3 +48,5 @@ Kiểm chứng trên DB (rollback): hóa đơn 55/56 dòng có hàm lượng; gi
 **Cột "Hàm lượng" đã thêm ở 8 file:** `chung-tu.csv`, `tlkv-giao-dich-*.csv`, `ton-kho.csv`, `lich-su-bien-dong-kho.csv`, `kiem-ke-*.csv`, `quan-ly-vang-*.csv`, `phieu-02.csv`, `hoat-dong-*.csv`.
 
 **Còn lại:** sổ biến động kho đã 5 006 dòng → xuất "Tất cả" không lọc sẽ thiếu 6 dòng cũ nhất (dùng bộ lọc ngày); chưa tải thử file thật qua trình duyệt.
+
+**Phase 4 (2026-11-13):** các file trên chưa có cột trọng lượng đá, tiền đá, tiền công. Đối chiếu với file tham chiếu, ý nghĩa hiện tại của cột Đơn giá / Số chỉ / Tổng và tác động tương thích khi thêm cột: [`P4-03-REPORT-EXCEL.md`](./P4-03-REPORT-EXCEL.md).

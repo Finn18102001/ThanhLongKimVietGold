@@ -160,13 +160,19 @@ export function Form02Document({ buy }: { buy: BuyDetail }) {
               <td className="border border-black px-0.5 py-1.5 text-center">
                 {index === 0 ? buy.customerPhone || "" : ""}
               </td>
-              <td className="border border-black px-0.5 py-1.5">{row.name}</td>
+              <td className="border border-black px-0.5 py-1.5">
+                {row.name}
+                {row.stoneNote ? (
+                  <span className="block" style={{ fontSize: "9px", lineHeight: 1.25, marginTop: 1 }}>
+                    {row.stoneNote}
+                  </span>
+                ) : null}
+              </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
                 {formatChi(row.weightChi)}
               </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
                 {formatDongCompact(row.unitPriceDong)}
-                {row.isStone ? "/chiếc" : ""}
               </td>
               <td className="border border-black px-0.5 py-1.5 text-right tabular-nums">
                 {formatDongCompact(row.amountDong)}

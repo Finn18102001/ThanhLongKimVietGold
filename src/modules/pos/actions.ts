@@ -50,7 +50,10 @@ type CompleteSaleInput = {
     sku_id: string;
     quantity: number;
     price_adjustment_per_chi?: number;
-    /** Giá đá / chiếc khi bán; omit = mặc định SKU. */
+    /** Số lượng đá (viên) + đơn giá đá / viên khi bán; server tính thành tiền đá. Omit = mặc định SKU. */
+    stone_quantity?: number;
+    stone_unit_price_dong?: number;
+    /** Chỉ dùng cho SKU cũ có tiền đá nhập tay (chưa có số lượng + đơn giá). */
     stone_price_dong?: number;
     labor_adjust_dong?: number;
   }>;

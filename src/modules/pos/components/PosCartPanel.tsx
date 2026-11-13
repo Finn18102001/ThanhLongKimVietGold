@@ -56,7 +56,8 @@ export function PosCartPanel({
   onDueDateChange,
   onQty,
   onAdj,
-  onStonePrice,
+  onStoneQuantity,
+  onStoneUnitPrice,
   onLaborAdj,
   onRemove,
   onChargesChange,
@@ -102,7 +103,8 @@ export function PosCartPanel({
   onDueDateChange: (value: string) => void;
   onQty: (skuId: string, quantity: number) => void;
   onAdj: (skuId: string, adjustmentPerChi: number) => void;
-  onStonePrice: (skuId: string, stonePriceDong: number) => void;
+  onStoneQuantity: (skuId: string, stoneQuantity: number) => void;
+  onStoneUnitPrice: (skuId: string, stoneUnitPriceDong: number) => void;
   onLaborAdj: (skuId: string, laborAdjustDong: number) => void;
   onRemove: (skuId: string) => void;
   onChargesChange: (charges: PosChargeDraft[]) => void;
@@ -198,7 +200,11 @@ export function PosCartPanel({
             {lines.map((line) => {
               const lineTotal = cartLineTotalDong(line);
               const laborFinal = laborFinalDong(line);
-              const hasStone = line.stoneWeightChi > 0 || line.stonePriceDefaultDong > 0;
+              const hasStone =
+                line.stoneWeightChi > 0 ||
+                line.stonePriceDefaultDong > 0 ||
+                line.stoneQuantity > 0 ||
+                line.stoneUnitPriceDong > 0;
               const out = line.stock <= 0;
               const boardPerChi = referencePricePerChiDong(
                 line.referenceUnitPriceDong,
@@ -340,18 +346,39 @@ export function PosCartPanel({
                       ) : null}
                       <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         {hasStone ? (
-                          <label className="block text-[11px] text-[var(--tlkv-muted)]">
-                            Giá đá / chiếc
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              min={0}
-                              step={PRICE_UNIT_STEP_DONG}
-                              value={line.stonePriceDong}
-                              onChange={(event) => onStonePrice(line.skuId, Number(event.target.value) || 0)}
-                              className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
-                            />
-                          </label>
+                          <>
+                            <label className="block text-[11px] text-[var(--tlkv-muted)]">
+                              Số lượng đá (viên)
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                step={1}
+                                value={line.stoneQuantity}
+                                onChange={(event) => onStoneQuantity(line.skuId, Number(event.target.value) || 0)}
+                                className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                              />
+                            </label>
+                            <label className="block text-[11px] text-[var(--tlkv-muted)]">
+                              Đơn giá đá / viên
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                step={PRICE_UNIT_STEP_DONG}
+                                value={line.stoneUnitPriceDong}
+                                onChange={(event) => onStoneUnitPrice(line.skuId, Number(event.target.value) || 0)}
+                                className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                              />
+                            </label>
+                            <p className="col-span-2 text-[11px] text-[var(--tlkv-muted)]">
+                              Thành tiền đá / chiếc:{" "}
+                              <span className="font-semibold tabular-nums text-[var(--tlkv-text)]">
+                                {formatDong(line.stonePriceDong)}
+                              </span>
+                              {line.stoneLegacyAmount ? " (tiền đá nhập tay trước đây)" : " (đơn giá × số lượng)"}
+                            </p>
+                          </>
                         ) : null}
                         <label className="block text-[11px] text-[var(--tlkv-muted)]">
                           Tiền công / chiếc
@@ -375,7 +402,7 @@ export function PosCartPanel({
                       <p className="mt-0.5 text-[11px] text-[var(--tlkv-muted)]">
                         Vàng {formatDong(cartLineGoldUnitDong(line))}
                         {hasStone
-                          ? ` · Đá ${line.stoneWeightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ, ${formatDong(line.stonePriceDong)}`
+                          ? ` · Đá ${line.stoneWeightChi > 0 ? `${line.stoneWeightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ, ` : ""}${formatDong(line.stonePriceDong)}`
                           : ""}
                         {` · Công ${formatDong(laborFinal)}`}
                         {line.laborAdjustDong !== 0

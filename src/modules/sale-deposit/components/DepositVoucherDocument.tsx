@@ -56,7 +56,7 @@ export function DepositVoucherDocument({ bundle }: { bundle: DepositSaleBundle }
       <p className="font-bold uppercase" style={{ marginTop: "4mm" }}>
         2. Thông tin đơn hàng
       </p>
-      <DepositGoodsTable lines={bundle.lines} />
+      <DepositGoodsTable lines={bundle.lines} charges={bundle.charges} />
       <DottedFill
         label="Tổng giá trị đơn hàng tạm tính:"
         value={formatDongCompact(bundle.totalDong)}
