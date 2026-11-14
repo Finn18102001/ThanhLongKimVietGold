@@ -44,6 +44,7 @@ import {
   saveLabelFonts,
   type LabelPrintFonts,
 } from "../fonts";
+import { composeLabelMsp } from "../msp";
 import type {
   LabelHistoryFilter,
   LabelPiece,
@@ -306,7 +307,7 @@ export function LabelPrintWorkspace({
   );
 
   const composedMsp = selectedPiece
-    ? `${typeCodeDraft.trim().toUpperCase()}${selectedPiece.serialNo}`
+    ? composeLabelMsp(typeCodeDraft, selectedPiece.serialNo)
     : "";
 
   useEffect(() => {
@@ -459,6 +460,36 @@ export function LabelPrintWorkspace({
         setMessage(`Đã tạo MSP ${minted.msp} / ${minted.barcode}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tạo được MSP");
+      }
+    });
+  }
+
+  /** Sau in lần đầu: tạo / chọn MSP kế tiếp cùng SKU để in tem tiếp (không in lại cùng piece). */
+  function onPrintNext() {
+    if (!skuId || !selectedSku) return;
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const nextUnprinted = pieces.find((p) => p.id !== pieceId && !printedPieceIds.has(p.id));
+        if (nextUnprinted) {
+          setPieceId(nextUnprinted.id);
+          setTypeCodeDraft(nextUnprinted.typeCode);
+          setPrintQty(1);
+          setMessage(
+            `Đã chuyển sang MSP ${nextUnprinted.msp} — bấm "In tem" để in tiếp.`,
+          );
+          return;
+        }
+        const minted = await mintLabelPiece(skuId, typeCodeDraft || selectedPiece?.typeCode || "");
+        const rows = await listPiecesForSkuAction(skuId);
+        setPieces(rows);
+        setPieceId(minted.id);
+        setTypeCodeDraft(minted.typeCode);
+        setPrintQty(1);
+        setMessage(`Đã tạo MSP tiếp ${minted.msp} — bấm "In tem" để in tiếp.`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Không tạo được MSP tiếp theo");
       }
     });
   }
@@ -731,9 +762,9 @@ export function LabelPrintWorkspace({
                 <input
                   value={typeCodeDraft}
                   disabled={!selectedPiece && !skuId}
-                  onChange={(e) => setTypeCodeDraft(e.target.value.toUpperCase())}
+                  onChange={(e) => setTypeCodeDraft(e.target.value.toUpperCase().replace(/-/g, ""))}
                   onBlur={() => onTypeCodeBlur()}
-                  placeholder="VD: VBTMC"
+                  placeholder="VD: TLKV"
                   maxLength={24}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
@@ -747,7 +778,7 @@ export function LabelPrintWorkspace({
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                MSP hoàn chỉnh
+                MSP hoàn chỉnh (PREFIX-######)
                 <input
                   value={composedMsp || selectedPiece?.msp || ""}
                   disabled
@@ -1041,7 +1072,25 @@ export function LabelPrintWorkspace({
                 <Printer size={16} weight="bold" />
                 {hasPrintedBefore ? "In lại" : "In tem"}
               </button>
+              {hasPrintedBefore && selectedSku && selectedSku.stockQty >= 2 ? (
+                <button
+                  type="button"
+                  disabled={pending || !skuId}
+                  onClick={onPrintNext}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-red)] bg-white px-4 text-[13px] font-semibold text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)] disabled:opacity-40 active:scale-[0.98]"
+                >
+                  <Plus size={16} weight="bold" />
+                  In tiếp
+                </button>
+              ) : null}
             </div>
+            {hasPrintedBefore && selectedSku && selectedSku.stockQty >= 2 ? (
+              <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
+                <span className="font-medium text-[var(--tlkv-text)]">In lại</span> = in lại MSP
+                hiện tại · <span className="font-medium text-[var(--tlkv-text)]">In tiếp</span> =
+                chuyển / tạo MSP kế tiếp cho sản phẩm cùng mã (tồn {selectedSku.stockQty}).
+              </p>
+            ) : null}
           </section>
 
           <section

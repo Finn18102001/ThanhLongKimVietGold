@@ -6,13 +6,16 @@ import { formatDong } from "@/shared/lib/money";
 import {
   confirmDepositHandover,
   fetchDepositSale,
+  issueDepositSlip,
   prepareDepositHandover,
   saveDepositDocPayload,
 } from "../actions";
 import {
   DEPOSIT_INVOICE_STEPS,
   depositInvoiceStepIndex,
+  depositWorkflowLabel,
   formatDepositActionError,
+  formatLegalDocNo,
   itemStatusLabel,
 } from "../labels";
 import { printDepositDocument } from "../print";
@@ -81,14 +84,23 @@ export function InvoiceDepositPanel({
     (line) => line.itemStatus === "BACKORDER" && line.qtyDelivered < line.quantity,
   );
   const paidOff = remainingDong <= 0;
-  const canPrepare = paidOff && !bundle.deliveryReceiptNo && bundle.fulfillmentStatus !== "FULFILLED";
+  const hasDepositSlip = Boolean(bundle.depositSlipNo);
+  const hasAgreement = Boolean(bundle.depositAgreementNo);
+  /** RPC cũng chặn nếu thiếu PDC — UI phải báo rõ trước khi bấm. */
+  const canPrepare =
+    paidOff &&
+    hasDepositSlip &&
+    !bundle.deliveryReceiptNo &&
+    bundle.fulfillmentStatus !== "FULFILLED";
   const canConfirmHandover =
     Boolean(bundle.deliveryReceiptNo) &&
     paidOff &&
+    hasDepositSlip &&
     bundle.fulfillmentStatus !== "FULFILLED" &&
     !hasBackorder;
   const done = bundle.fulfillmentStatus === "FULFILLED" || bundle.depositWorkflowStatus === "COMPLETED";
   const viewingPast = viewStep < workflowStep;
+  const canIssueSlip = hasAgreement && !hasDepositSlip && !done;
 
   async function saveExtras() {
     setPending(true);
@@ -102,9 +114,30 @@ export function InvoiceDepositPanel({
     setPending(false);
   }
 
+  async function onIssueSlip() {
+    setPending(true);
+    setError(null);
+    const result = await issueDepositSlip({ saleId });
+    if (!result.ok) {
+      setError(formatDepositActionError(result.message));
+    } else {
+      setBundle(result.bundle);
+      setViewStep(depositInvoiceStepIndex({ ...result.bundle, remainingDong }));
+      onReloadInvoice?.();
+    }
+    setPending(false);
+  }
+
   async function onPrepare() {
     setPending(true);
     setError(null);
+    if (!hasDepositSlip) {
+      setError(
+        "Chưa có phiếu đặt cọc (PDC). Lập phiếu đặt cọc trước khi xác nhận — lập biên bản giao nhận.",
+      );
+      setPending(false);
+      return;
+    }
     const saved = await saveDepositDocPayload({ saleId, payload });
     if (!saved.ok) {
       setError(formatDepositActionError(saved.message));
@@ -168,6 +201,38 @@ export function InvoiceDepositPanel({
           ))}
         </ul>
 
+        <div className="mt-3 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-slate-soft)] px-2.5 py-2 text-[12px]">
+          <p className="font-semibold text-[var(--tlkv-text)]">
+            Trạng thái: {depositWorkflowLabel(bundle.depositWorkflowStatus)}
+          </p>
+          <p className="mt-1 text-[var(--tlkv-slate)]">
+            Thỏa thuận:{" "}
+            <span className="font-medium text-[var(--tlkv-text)]">
+              {bundle.depositAgreementNo
+                ? formatLegalDocNo(bundle.depositAgreementNo, "TTĐC")
+                : "Chưa có"}
+            </span>
+          </p>
+          <p className="mt-0.5 text-[var(--tlkv-slate)]">
+            Phiếu đặt cọc (PDC):{" "}
+            {hasDepositSlip ? (
+              <span className="font-semibold text-[var(--tlkv-green,#15803d)]">
+                Đã có — {formatLegalDocNo(bundle.depositSlipNo, "PDC")}
+              </span>
+            ) : (
+              <span className="font-semibold text-[var(--tlkv-red)]">
+                Chưa có — bắt buộc trước khi lập biên bản giao nhận
+              </span>
+            )}
+          </p>
+          {!hasDepositSlip ? (
+            <p className="mt-1.5 text-[var(--tlkv-amber)]">
+              Hệ thống chỉ cho «Xác nhận — lập biên bản giao nhận» khi đã có số PDC. Nếu đã xác
+              nhận thỏa thuận ở POS mà vẫn thiếu PDC, bấm «Lập phiếu đặt cọc» bên dưới.
+            </p>
+          ) : null}
+        </div>
+
         <div className="mt-3 space-y-2">
           {bundle.depositAgreementNo || bundle.depositWorkflowStatus === "AWAITING_AGREEMENT" ? (
             <DepositDocToolbar
@@ -220,6 +285,16 @@ export function InvoiceDepositPanel({
 
         {!viewingPast ? (
           <div className="mt-3 flex flex-col gap-2">
+            {canIssueSlip ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void onIssueSlip()}
+                className="h-10 rounded-lg border border-[var(--tlkv-red)] text-[13px] font-semibold text-[var(--tlkv-red)] disabled:opacity-40"
+              >
+                {pending ? "Đang lập PDC..." : "Lập phiếu đặt cọc (PDC)"}
+              </button>
+            ) : null}
             {paidOff && !done ? (
               <button
                 type="button"
@@ -228,6 +303,16 @@ export function InvoiceDepositPanel({
                 className="h-10 rounded-lg border border-[var(--tlkv-line)] text-[13px] font-medium disabled:opacity-40"
               >
                 Lưu thông tin biên bản
+              </button>
+            ) : null}
+            {paidOff && !done && !hasDepositSlip ? (
+              <button
+                type="button"
+                disabled
+                className="h-10 rounded-lg bg-[var(--tlkv-red)] text-[13px] font-semibold text-white opacity-40"
+                title="Cần phiếu đặt cọc (PDC) trước"
+              >
+                Xác nhận — lập biên bản giao nhận (cần PDC)
               </button>
             ) : null}
             {canPrepare ? (
