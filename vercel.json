@@ -16,13 +16,25 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
+    },
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/((?!assets/).*)\\.(?:css|js)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
+      ]
     }
   ],
   "routes": [
-    { "src": "/assets/logo-tv-modal.svg", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261112a" } },
-    { "src": "/assets/logo-thang-long-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261112a" } },
-    { "src": "/assets/logo-thanglong-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261112a" } },
-    { "src": "/assets/og-logo-256.png", "status": 301, "headers": { "Location": "/assets/og-logo-tlkv-red-v2.png?v=20261112a" } },
+    { "src": "/assets/logo-tv-modal.svg", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261114e" } },
+    { "src": "/assets/logo-thang-long-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261114e" } },
+    { "src": "/assets/logo-thanglong-kim-viet.png", "status": 301, "headers": { "Location": "/assets/tlkv-logo-mark.png?v=20261114e" } },
+    { "src": "/assets/og-logo-256.png", "status": 301, "headers": { "Location": "/assets/og-logo-tlkv-red-v2.png?v=20261114e" } },
     { "src": "/admin/news/edit/([0-9a-fA-F-]+)", "dest": "server.js" },
     { "src": "/admin/news/new", "dest": "server.js" },
     { "src": "/admin/news", "dest": "server.js" },

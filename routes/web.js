@@ -1,12 +1,19 @@
 const express = require("express");
 const path = require("path");
+const { TLKV_UI_ASSET_VERSION } = require("../lib/ui-asset-version");
+
+/** HTML entry must revalidate so Google/browsers pick up new ?v= asset URLs after deploy. */
+const HTML_CACHE_CONTROL = "public, max-age=0, must-revalidate";
 
 /**
  * Public HTML routes (clean paths). Static js/data/assets are served after this router in server.js.
  */
 module.exports = function webRouter(ROOT) {
   const router = express.Router();
-  const send = (rel) => (req, res) => res.sendFile(path.join(ROOT, rel));
+  const send = (rel) => (req, res) => {
+    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+    res.sendFile(path.join(ROOT, rel));
+  };
 
   /** Google / trình duyệt thường gọi /favicon.ico — lockup nền đỏ #8a1c1d. */
   router.get("/favicon.ico", function (req, res) {
@@ -16,7 +23,7 @@ module.exports = function webRouter(ROOT) {
   });
 
   /** Legacy logo assets — 301 về logo mới để Google gỡ cache/index logo cũ. */
-  var LOGO_V = "20261114e";
+  var LOGO_V = TLKV_UI_ASSET_VERSION;
   var LEGACY_LOGO_REDIRECTS = [
     ["/assets/logo-tv-modal.svg", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
     ["/assets/logo-thang-long-kim-viet.png", "/assets/tlkv-logo-mark.png?v=" + LOGO_V],
@@ -56,6 +63,7 @@ module.exports = function webRouter(ROOT) {
     ) {
       return next();
     }
+    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
     res.sendFile(path.join(ROOT, "san-pham", "chi-tiet.html"));
   });
   router.get("/tv-model", function (req, res) {
@@ -102,6 +110,7 @@ module.exports = function webRouter(ROOT) {
   router.get("/tin-tuc/:slug", function (req, res, next) {
     var slug = String(req.params.slug || "");
     if (!/^[a-z0-9][a-z0-9-]{1,198}[a-z0-9]$/.test(slug)) return next();
+    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
     res.sendFile(path.join(ROOT, "tin-tuc", "chi-tiet.html"));
   });
 

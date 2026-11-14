@@ -106,6 +106,16 @@ module.exports = function registerRoutes(app, ROOT) {
           res.setHeader("Cache-Control", "no-store");
           return;
         }
+        // HTML entry: always revalidate so clients/Google load matching ?v= assets.
+        if (ext === ".html") {
+          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+          return;
+        }
+        // CSS/JS use query versions in HTML; allow short cache but force revalidate.
+        if (ext === ".css" || ext === ".js") {
+          res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
+          return;
+        }
         // Ảnh/icon dưới /assets → disk cache lâu (Chrome hiển thị "disk cache" lần tải sau).
         if (DISK_CACHE_IMAGE_EXTS[ext] && filePath.indexOf(assetsRoot) === 0) {
           res.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);

@@ -17,7 +17,7 @@ Khi đổi logo hoặc màu nhận diện, **chỉ được đổi file logo và
 
 Màu chữ logo hiện tại: `#FDE48D` / `rgb(253, 228, 141)`. Lần sau chỉ thay mã này hoặc file ảnh logo, không đổi các size ở bảng trên.
 
-Cache ảnh logo và banner trang chủ (hero Bông Lúa Vàng): `?v=20261112a`. Đổi file ảnh thì tăng token này ở mọi URL, kể cả redirect trong `vercel.json` và `routes/web.js`, để trình duyệt tải bản mới ngay khi deploy.
+Cache ảnh logo và banner trang chủ (hero Bông Lúa Vàng): `?v=20261114e` (nguồn trung tâm: `lib/ui-asset-version.js` + `js/products/constants.js`). Đổi file ảnh thì tăng token này ở mọi URL, kể cả redirect trong `vercel.json`, `site.webmanifest` và `routes/web.js`, để trình duyệt/Google tải bản mới ngay khi deploy. Chi tiết: [`docs/audit/WEBSITE_UI_CACHE_VERSION_AUDIT.md`](./docs/audit/WEBSITE_UI_CACHE_VERSION_AUDIT.md).
 
 ### Chạy local (khuyến nghị)
 

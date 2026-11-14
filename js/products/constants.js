@@ -3,7 +3,10 @@
   global.TLKV_PRODUCT_ZALO_URL = "https://zalo.me/0995682568";
   global.TLKV_PRODUCTS_PER_BRAND_SECTION = 8;
 
-  /** Bump when logo binaries change — busts CDN/browser cache after deploy. */
+  /**
+   * Bump when logo binaries change — busts CDN/browser/Google cache after deploy.
+   * Keep in sync with lib/ui-asset-version.js, vercel.json redirects, site.webmanifest.
+   */
   global.TLKV_LOGO_ASSET_VERSION = "20261114e";
   var logoV = "?v=" + global.TLKV_LOGO_ASSET_VERSION;
 
