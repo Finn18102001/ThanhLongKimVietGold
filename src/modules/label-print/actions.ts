@@ -99,6 +99,49 @@ export async function mintLabelPiece(
   };
 }
 
+/** Mode mã có sẵn: tạo hoặc tái dùng piece theo type + số SP (chữ+số), không mint sequence. */
+export async function ensurePreassignedLabelPiece(
+  skuId: string,
+  typeCode: string,
+  productNumber: string,
+): Promise<{
+  id: string;
+  msp: string;
+  barcode: string;
+  typeCode: string;
+  serialNo: string;
+  skuId: string;
+  created: boolean;
+}> {
+  await assertStaffMutate();
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_ensure_preassigned_label_piece", {
+    p_sku_id: skuId,
+    p_type_code: typeCode,
+    p_product_number: productNumber,
+  });
+  if (error) throw new Error(error.message);
+  const payload = data as {
+    id: string;
+    msp: string;
+    barcode: string;
+    sku_id: string;
+    type_code?: string;
+    serial_no?: string;
+    created?: boolean;
+  };
+  revalidateLabelPrint();
+  return {
+    id: payload.id,
+    msp: payload.msp,
+    barcode: payload.barcode,
+    typeCode: String(payload.type_code ?? ""),
+    serialNo: String(payload.serial_no ?? ""),
+    skuId: payload.sku_id,
+    created: Boolean(payload.created),
+  };
+}
+
 /** Update editable product-type prefix; serial stays immutable. Checks MSP uniqueness. */
 export async function setLabelPieceTypeCode(
   pieceId: string,

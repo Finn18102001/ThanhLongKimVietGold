@@ -5,6 +5,7 @@ import { Printer, Plus, ArrowClockwise } from "@phosphor-icons/react";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import {
   mintLabelPiece,
+  ensurePreassignedLabelPiece,
   recordLabelPrint,
   listPiecesForSkuAction,
   setLabelPieceTypeCode,
@@ -44,8 +45,9 @@ import {
   saveLabelFonts,
   type LabelPrintFonts,
 } from "../fonts";
-import { composeLabelMsp } from "../msp";
+import { composeLabelMsp, composePreassignedLabelCode, normalizeLabelCodePart } from "../msp";
 import type {
+  LabelCodeMode,
   LabelHistoryFilter,
   LabelPiece,
   LabelPrintAction,
@@ -129,8 +131,12 @@ export function LabelPrintWorkspace({
   const [skuId, setSkuId] = useState(initial?.skuId ?? "");
   const [pieces, setPieces] = useState<LabelPiece[]>([]);
   const [pieceId, setPieceId] = useState("");
+  /** AUTO_MSP = luồng cũ. PRE_ASSIGNED = nhập mã loại + số SP (được có chữ). */
+  const [codeMode, setCodeMode] = useState<LabelCodeMode>("AUTO_MSP");
   /** Editable product-type prefix; composed MSP = typeCodeDraft + serialNo. */
   const [typeCodeDraft, setTypeCodeDraft] = useState("");
+  /** Chỉ dùng mode PRE_ASSIGNED — số SP được có chữ (vd 766HHH). */
+  const [productNumberDraft, setProductNumberDraft] = useState("");
   const [stockSize, setStockSize] = useState<LabelStockSize>("90x14");
   const [printQty, setPrintQty] = useState(1);
   const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_SHORT);
@@ -306,13 +312,28 @@ export function LabelPrintWorkspace({
     [pieces, pieceId],
   );
 
-  const composedMsp = selectedPiece
-    ? composeLabelMsp(typeCodeDraft, selectedPiece.serialNo)
-    : "";
+  const isPreassigned = codeMode === "PRE_ASSIGNED";
+  const composedMsp = isPreassigned
+    ? composePreassignedLabelCode(typeCodeDraft, productNumberDraft)
+    : selectedPiece
+      ? composeLabelMsp(typeCodeDraft, selectedPiece.serialNo)
+      : "";
 
   useEffect(() => {
+    if (isPreassigned) {
+      if (!selectedPiece) return;
+      const type = selectedPiece.typeCode ?? "";
+      setTypeCodeDraft(type);
+      const msp = selectedPiece.msp ?? "";
+      const product =
+        type && msp.toUpperCase().startsWith(type.toUpperCase())
+          ? msp.slice(type.length)
+          : selectedPiece.serialNo;
+      setProductNumberDraft(normalizeLabelCodePart(product));
+      return;
+    }
     setTypeCodeDraft(selectedPiece?.typeCode ?? "");
-  }, [selectedPiece?.id, selectedPiece?.typeCode]);
+  }, [selectedPiece?.id, selectedPiece?.typeCode, selectedPiece?.msp, selectedPiece?.serialNo, isPreassigned]);
 
   useEffect(() => {
     if (!pieceId) return;
@@ -368,12 +389,18 @@ export function LabelPrintWorkspace({
     };
   }, [skuId]);
 
+  const preassignedReady =
+    isPreassigned && Boolean(selectedSku && typeCodeDraft.trim() && productNumberDraft.trim());
+  const autoReady = !isPreassigned && Boolean(selectedSku && selectedPiece);
+
   const payload: LabelPrintPayload | null =
-    selectedSku && selectedPiece
+    selectedSku && (autoReady || preassignedReady)
       ? {
-          pieceId: selectedPiece.id,
-          msp: composedMsp || selectedPiece.msp,
-          barcode: selectedPiece.barcode,
+          pieceId: selectedPiece?.id ?? "",
+          msp: composedMsp || selectedPiece?.msp || "",
+          barcode: isPreassigned
+            ? composedMsp || selectedPiece?.barcode || ""
+            : selectedPiece?.barcode || "",
           productName: selectedSku.name,
           productType: selectedSku.category,
           brandName: selectedSku.brandName ?? "",
@@ -469,6 +496,13 @@ export function LabelPrintWorkspace({
     if (!skuId || !selectedSku) return;
     setError(null);
     setMessage(null);
+    if (isPreassigned) {
+      setPieceId("");
+      setProductNumberDraft("");
+      setPrintQty(1);
+      setMessage('Nhập số sản phẩm tiếp theo rồi bấm "In tem" (mã có sẵn, không mint MSP).');
+      return;
+    }
     startTransition(async () => {
       try {
         const nextUnprinted = pieces.find((p) => p.id !== pieceId && !printedPieceIds.has(p.id));
@@ -531,13 +565,45 @@ export function LabelPrintWorkspace({
   }
 
   function onPrint() {
-    if (!payload || !selectedPiece || !selectedSku) return;
+    if (!payload || !selectedSku) return;
+    if (!isPreassigned && !selectedPiece) return;
+    if (isPreassigned && (!typeCodeDraft.trim() || !productNumberDraft.trim())) return;
     setError(null);
     setMessage(null);
-    const actionType: LabelPrintAction = hasPrintedBefore ? "REPRINT" : "FIRST_PRINT";
     startTransition(async () => {
       try {
-        const piece = (await flushTypeCodeIfNeeded()) ?? selectedPiece;
+        let piece: LabelPiece;
+        if (isPreassigned) {
+          const ensured = await ensurePreassignedLabelPiece(
+            selectedSku.skuId,
+            typeCodeDraft,
+            productNumberDraft,
+          );
+          piece = {
+            id: ensured.id,
+            msp: ensured.msp,
+            barcode: ensured.barcode,
+            typeCode: ensured.typeCode,
+            serialNo: ensured.serialNo,
+            skuId: ensured.skuId,
+            createdAt: new Date().toISOString(),
+            createdBy: "",
+          };
+          setPieces((prev) => {
+            const without = prev.filter((p) => p.id !== piece.id);
+            return [piece, ...without];
+          });
+          setPieceId(piece.id);
+          setTypeCodeDraft(ensured.typeCode);
+          setProductNumberDraft(ensured.serialNo);
+        } else {
+          piece = (await flushTypeCodeIfNeeded()) ?? selectedPiece!;
+        }
+
+        const actionType: LabelPrintAction =
+          printedPieceIds.has(piece.id) || (!isPreassigned && hasPrintedBefore)
+            ? "REPRINT"
+            : "FIRST_PRINT";
         const recorded = await recordLabelPrint({
           pieceId: piece.id,
           printQty,
@@ -565,8 +631,9 @@ export function LabelPrintWorkspace({
           stoneUnitPriceDong,
           legacyStonePriceDong: legacyStoneDong,
         });
+        const codeLabel = isPreassigned ? "mã" : "MSP";
         setMessage(
-          `${ACTION_LABEL[actionType]} ${printQty} tem · MSP ${recorded.msp || piece.msp} (không đổi tồn kho).` +
+          `${ACTION_LABEL[actionType]} ${printQty} tem · ${codeLabel} ${recorded.msp || piece.msp} (không đổi tồn kho).` +
             (saved.ok && saved.data.changed ? " Đã lưu tiền công / đá vào SKU." : ""),
         );
         if (!saved.ok) setError(`Đã in nhưng chưa lưu tiền công / đá vào SKU: ${saved.message}`);
@@ -601,7 +668,23 @@ export function LabelPrintWorkspace({
     setTagName(reprintSku?.name ?? row.productName);
     setGoldAgeText(formatGoldAge(reprintSku?.goldAge ?? null));
     setOriginText(DEFAULT_ORIGIN);
-    setMessage(`Đã nạp MSP ${row.msp} để in lại. Layout phôi 90×14 mm.`);
+    const looksAuto = /-[0-9]{6}$/.test(row.msp);
+    if (looksAuto) {
+      setCodeMode("AUTO_MSP");
+      setProductNumberDraft("");
+      setMessage(`Đã nạp MSP ${row.msp} để in lại. Layout phôi 90×14 mm.`);
+    } else {
+      setCodeMode("PRE_ASSIGNED");
+      const piece = pieces.find((p) => p.id === row.pieceId);
+      const type = piece?.typeCode || "";
+      setTypeCodeDraft(type);
+      const product =
+        type && row.msp.toUpperCase().startsWith(type.toUpperCase())
+          ? row.msp.slice(type.length)
+          : row.msp;
+      setProductNumberDraft(normalizeLabelCodePart(product));
+      setMessage(`Đã nạp mã có sẵn ${row.msp} để in lại. Layout phôi 90×14 mm.`);
+    }
   }
 
   const historyTypes = useMemo(
@@ -726,59 +809,118 @@ export function LabelPrintWorkspace({
                 </select>
               </label>
 
-              <div className="sm:col-span-2 flex flex-wrap items-end gap-2">
-                <label className="min-w-[200px] flex-1 text-[12px] text-[var(--tlkv-muted)]">
-                  MSP đã tạo cho SKU này
-                  <select
-                    value={pieceId}
-                    onChange={(e) => setPieceId(e.target.value)}
-                    disabled={!skuId || pieces.length === 0}
-                    className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] disabled:bg-[var(--tlkv-bg)]"
+              <fieldset className="sm:col-span-2">
+                <legend className="text-[12px] text-[var(--tlkv-muted)]">Phương thức mã trên tem</legend>
+                <div className="mt-1 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {(
+                    [
+                      {
+                        value: "AUTO_MSP" as const,
+                        label: "Tạo mã sản phẩm tự động",
+                        hint: "MSP PREFIX-###### (sequence)",
+                      },
+                      {
+                        value: "PRE_ASSIGNED" as const,
+                        label: "Sử dụng mã có sẵn",
+                        hint: "Nhập mã loại + số SP (được có chữ)",
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const active = codeMode === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setCodeMode(opt.value);
+                          setError(null);
+                          setMessage(null);
+                          if (opt.value === "PRE_ASSIGNED") {
+                            setPieceId("");
+                            setProductNumberDraft("");
+                          }
+                        }}
+                        className={`rounded-lg px-3 py-2 text-left text-[12px] ${
+                          active
+                            ? "bg-[var(--tlkv-red)] font-semibold text-white"
+                            : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+                        }`}
+                      >
+                        <span className="block font-semibold">{opt.label}</span>
+                        <span className={active ? "opacity-90" : "text-[var(--tlkv-muted)]"}>
+                          {opt.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              {!isPreassigned ? (
+                <div className="sm:col-span-2 flex flex-wrap items-end gap-2">
+                  <label className="min-w-[200px] flex-1 text-[12px] text-[var(--tlkv-muted)]">
+                    MSP đã tạo cho SKU này
+                    <select
+                      value={pieceId}
+                      onChange={(e) => setPieceId(e.target.value)}
+                      disabled={!skuId || pieces.length === 0}
+                      className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] disabled:bg-[var(--tlkv-bg)]"
+                    >
+                      {pieces.length === 0 ? (
+                        <option value="">Chưa có MSP — bấm Tạo MSP</option>
+                      ) : (
+                        pieces.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            MSP {p.msp} · {p.barcode}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!skuId || pending}
+                    onClick={onMint}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
                   >
-                    {pieces.length === 0 ? (
-                      <option value="">Chưa có MSP — bấm Tạo MSP</option>
-                    ) : (
-                      pieces.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          MSP {p.msp} · {p.barcode}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  disabled={!skuId || pending}
-                  onClick={onMint}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] font-medium hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
-                >
-                  <Plus size={15} weight="bold" />
-                  Tạo MSP mới
-                </button>
-              </div>
+                    <Plus size={15} weight="bold" />
+                    Tạo MSP mới
+                  </button>
+                </div>
+              ) : null}
 
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 Mã loại sản phẩm
                 <input
                   value={typeCodeDraft}
-                  disabled={!selectedPiece && !skuId}
-                  onChange={(e) => setTypeCodeDraft(e.target.value.toUpperCase().replace(/-/g, ""))}
-                  onBlur={() => onTypeCodeBlur()}
-                  placeholder="VD: TLKV"
+                  disabled={!skuId}
+                  onChange={(e) => {
+                    const next = isPreassigned
+                      ? normalizeLabelCodePart(e.target.value)
+                      : e.target.value.toUpperCase().replace(/-/g, "");
+                    setTypeCodeDraft(next);
+                  }}
+                  onBlur={() => {
+                    if (!isPreassigned) onTypeCodeBlur();
+                  }}
+                  placeholder={isPreassigned ? "VD: CHARM" : "VD: TLKV"}
                   maxLength={24}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                Số sản phẩm
+                Số sản phẩm{isPreassigned ? " (được có chữ)" : ""}
                 <input
-                  value={selectedPiece?.serialNo ?? ""}
-                  disabled
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] text-[var(--tlkv-text)]"
+                  value={isPreassigned ? productNumberDraft : (selectedPiece?.serialNo ?? "")}
+                  disabled={!isPreassigned || !skuId}
+                  onChange={(e) => setProductNumberDraft(normalizeLabelCodePart(e.target.value))}
+                  placeholder={isPreassigned ? "VD: 766HHH" : undefined}
+                  maxLength={32}
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
-                MSP hoàn chỉnh (PREFIX-######)
+                {isPreassigned ? "Mã hoàn chỉnh (loại + số SP)" : "MSP hoàn chỉnh (PREFIX-######)"}
                 <input
                   value={composedMsp || selectedPiece?.msp || ""}
                   disabled
@@ -788,7 +930,11 @@ export function LabelPrintWorkspace({
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 Mã vạch
                 <input
-                  value={selectedPiece?.barcode ?? ""}
+                  value={
+                    isPreassigned
+                      ? composedMsp || selectedPiece?.barcode || ""
+                      : (selectedPiece?.barcode ?? "")
+                  }
                   disabled
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] text-[var(--tlkv-text)]"
                 />
@@ -1072,7 +1218,9 @@ export function LabelPrintWorkspace({
                 <Printer size={16} weight="bold" />
                 {hasPrintedBefore ? "In lại" : "In tem"}
               </button>
-              {hasPrintedBefore && selectedSku && selectedSku.stockQty >= 2 ? (
+              {(hasPrintedBefore || (isPreassigned && Boolean(pieceId))) &&
+              selectedSku &&
+              selectedSku.stockQty >= 2 ? (
                 <button
                   type="button"
                   disabled={pending || !skuId}
@@ -1084,11 +1232,23 @@ export function LabelPrintWorkspace({
                 </button>
               ) : null}
             </div>
-            {hasPrintedBefore && selectedSku && selectedSku.stockQty >= 2 ? (
+            {(hasPrintedBefore || (isPreassigned && Boolean(pieceId))) &&
+            selectedSku &&
+            selectedSku.stockQty >= 2 ? (
               <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-                <span className="font-medium text-[var(--tlkv-text)]">In lại</span> = in lại MSP
-                hiện tại · <span className="font-medium text-[var(--tlkv-text)]">In tiếp</span> =
-                chuyển / tạo MSP kế tiếp cho sản phẩm cùng mã (tồn {selectedSku.stockQty}).
+                {isPreassigned ? (
+                  <>
+                    <span className="font-medium text-[var(--tlkv-text)]">In lại</span> = in lại mã
+                    hiện tại · <span className="font-medium text-[var(--tlkv-text)]">In tiếp</span> =
+                    nhập số SP khác (được có chữ), không mint sequence (tồn {selectedSku.stockQty}).
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-[var(--tlkv-text)]">In lại</span> = in lại MSP
+                    hiện tại · <span className="font-medium text-[var(--tlkv-text)]">In tiếp</span> =
+                    chuyển / tạo MSP kế tiếp cho sản phẩm cùng mã (tồn {selectedSku.stockQty}).
+                  </>
+                )}
               </p>
             ) : null}
           </section>

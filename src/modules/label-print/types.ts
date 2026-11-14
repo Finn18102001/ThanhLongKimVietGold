@@ -3,6 +3,9 @@ export type LabelStockSize = "90x14" | "21x10" | "21x12";
 
 export type LabelPrintAction = "FIRST_PRINT" | "REPRINT";
 
+/** AUTO_MSP = mint sequence PREFIX-######. PRE_ASSIGNED = user nhập mã loại + số SP (được có chữ). */
+export type LabelCodeMode = "AUTO_MSP" | "PRE_ASSIGNED";
+
 export type LabelSkuOption = {
   skuId: string;
   sku: string;
