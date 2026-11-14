@@ -178,6 +178,7 @@ export async function getStaffSalesReport(from: string, to: string): Promise<Sta
 export async function getTransactionExport(
   from: string,
   to: string,
+  mspQuery?: string | null,
 ): Promise<TransactionExportRow[]> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_export_transactions", {
@@ -185,8 +186,35 @@ export async function getTransactionExport(
     p_to: to,
   });
   if (error) throw new Error(error.message);
-  const rows = Array.isArray(data) ? data : [];
-  return rows.map((row) => mapTransactionExportRow(row as Record<string, unknown>));
+  let rows = Array.isArray(data)
+    ? data.map((row) => mapTransactionExportRow(row as Record<string, unknown>))
+    : [];
+
+  // P7: filter by MSP→SKU only when a real piece/unit link exists (no invented history MSP).
+  const msp = String(mspQuery || "").trim();
+  if (msp.length >= 2) {
+    try {
+      const { findSkuIdsByMspQuery } = await import("@/modules/label-print/msp-search");
+      const skuIds = await findSkuIdsByMspQuery(msp);
+      if (skuIds.length === 0) {
+        rows = [];
+      } else {
+        const { data: skus, error: skuError } = await supabase
+          .from("pos_skus")
+          .select("sku")
+          .in("id", skuIds);
+        if (skuError) throw new Error(skuError.message);
+        const skuCodes = new Set(
+          (skus ?? []).map((row) => String(row.sku || "").toLowerCase()).filter(Boolean),
+        );
+        rows = rows.filter((row) => skuCodes.has(String(row.sku || "").toLowerCase()));
+      }
+    } catch {
+      // Keep unfiltered export if MSP lookup fails.
+    }
+  }
+
+  return rows;
 }
 
 function fillPurchaseDaily(
@@ -218,10 +246,21 @@ export async function getPurchaseReportSnapshot(
   const brandId = filters.brandId?.trim() || null;
   const skuId = filters.skuId?.trim() || null;
   const actorEmail = filters.actorEmail?.trim() || null;
+  const mspQuery = filters.mspQuery?.trim() || null;
 
   const supabase = await createServerSupabase();
   const fromIso = `${from}T00:00:00+07:00`;
   const toIso = `${to}T23:59:59.999+07:00`;
+
+  let mspSkuIds = new Set<string>();
+  if (mspQuery && mspQuery.length >= 2) {
+    try {
+      const { findSkuIdsByMspQuery } = await import("@/modules/label-print/msp-search");
+      mspSkuIds = new Set(await findSkuIdsByMspQuery(mspQuery));
+    } catch {
+      mspSkuIds = new Set();
+    }
+  }
 
   const [{ data: buys, error: buyError }, { data: sales, error: saleError }, brandsRpc, skusRes] =
     await Promise.all([
@@ -262,14 +301,22 @@ export async function getPurchaseReportSnapshot(
     pos_skus: { sku: string; name: string } | { sku: string; name: string }[] | null;
   };
 
+  const matchItemSku = (item: BuyItem) => {
+    if (skuId && item.sku_id !== skuId) return false;
+    if (mspQuery && mspQuery.length >= 2) {
+      if (mspSkuIds.size === 0) return false;
+      return item.sku_id != null && mspSkuIds.has(item.sku_id);
+    }
+    return true;
+  };
+
   const filteredBuys = (buys ?? []).filter((buy) => {
     if (actorEmail && String(buy.actor_email ?? "") !== actorEmail) return false;
     const items = (buy.pos_buy_items ?? []) as BuyItem[];
-    if (!brandId && !skuId) return true;
+    if (!brandId && !skuId && !(mspQuery && mspQuery.length >= 2)) return true;
     return items.some((item) => {
       const matchBrand = !brandId || item.brand_id === brandId;
-      const matchSku = !skuId || item.sku_id === skuId;
-      return matchBrand && matchSku;
+      return matchBrand && matchItemSku(item);
     });
   });
 
@@ -293,14 +340,14 @@ export async function getPurchaseReportSnapshot(
     const day = formatVnIsoDate(String(buy.completed_at));
     const items = ((buy.pos_buy_items ?? []) as BuyItem[]).filter((item) => {
       const matchBrand = !brandId || item.brand_id === brandId;
-      const matchSku = !skuId || item.sku_id === skuId;
-      return matchBrand && matchSku;
+      return matchBrand && matchItemSku(item);
     });
     if (items.length === 0) continue;
 
-    const buyTotal = brandId || skuId
-      ? items.reduce((sum, item) => sum + Number(item.total_price_dong), 0)
-      : Number(buy.total_dong);
+    const buyTotal =
+      brandId || skuId || (mspQuery && mspQuery.length >= 2)
+        ? items.reduce((sum, item) => sum + Number(item.total_price_dong), 0)
+        : Number(buy.total_dong);
     const buyQty = items.reduce((sum, item) => sum + Number(item.quantity), 0);
 
     totalPurchaseDong += buyTotal;

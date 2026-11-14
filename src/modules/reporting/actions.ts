@@ -16,8 +16,12 @@ export async function fetchStaffSalesReport(from: string, to: string) {
   return loadStaffSalesReport(from, to);
 }
 
-export async function fetchTransactionExport(from: string, to: string) {
-  return loadTransactionExport(from, to);
+export async function fetchTransactionExport(
+  from: string,
+  to: string,
+  mspQuery?: string | null,
+) {
+  return loadTransactionExport(from, to, mspQuery);
 }
 
 export async function fetchPurchaseReport(filters: PurchaseReportFilters) {

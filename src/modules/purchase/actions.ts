@@ -606,23 +606,80 @@ export async function listBuys(input?: {
 }): Promise<BuyListPage> {
   const limit = Math.min(Math.max(input?.limit ?? 10, 1), 50);
   const offset = Math.max(input?.offset ?? 0, 0);
+  const q = input?.q?.trim() || null;
+  const paymentStatus = input?.paymentStatus || null;
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_list_buys", {
     p_limit: limit,
     p_offset: offset,
-    p_payment_status: input?.paymentStatus || null,
-    p_q: input?.q?.trim() || null,
+    p_payment_status: paymentStatus,
+    p_q: q,
   });
   if (error) {
     throw new Error(error.message);
   }
   const rows = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
-  const items = rows.map(mapBuyListRow);
+  let items = rows.map(mapBuyListRow);
   const totalRaw = rows[0]?.totalCount ?? rows[0]?.total_count;
-  const total =
+  let total =
     totalRaw != null && Number.isFinite(Number(totalRaw))
       ? Number(totalRaw)
       : offset + items.length;
+
+  // P7: OR MSP→SKU→buy_items (only real piece/unit links; no invented history MSP).
+  if (q && q.length >= 2 && offset === 0) {
+    try {
+      const { findSkuIdsByMspQuery } = await import("@/modules/label-print/msp-search");
+      const skuIds = await findSkuIdsByMspQuery(q);
+      if (skuIds.length > 0) {
+        const { data: buyItems, error: buyItemError } = await supabase
+          .from("pos_buy_items")
+          .select("buy_id")
+          .in("sku_id", skuIds)
+          .limit(100);
+        if (buyItemError) throw new Error(buyItemError.message);
+        const buyIds = Array.from(
+          new Set((buyItems ?? []).map((row) => String(row.buy_id)).filter(Boolean)),
+        );
+        const existing = new Set(items.map((row) => row.id));
+        const missing = buyIds.filter((id) => !existing.has(id));
+        for (const buyId of missing.slice(0, limit)) {
+          const detail = await getBuy(buyId);
+          if (paymentStatus && detail.paymentStatus !== paymentStatus) continue;
+          items = [
+            {
+              id: detail.id,
+              buyNo: detail.buyNo,
+              customerId: detail.customerId,
+              customerName: detail.customerName,
+              customerPhone: detail.customerPhone,
+              totalDong: detail.totalDong,
+              paidDong: detail.paidDong,
+              remainingDong: detail.remainingDong,
+              paymentStatus: detail.paymentStatus,
+              paymentMethod: detail.paymentMethod,
+              dueDate: detail.dueDate,
+              actorEmail: detail.actorEmail,
+              completedAt: detail.completedAt,
+              note: detail.note,
+              status: detail.status,
+              workflowStatus: detail.workflowStatus,
+              meltCommitmentNo: detail.meltCommitmentNo,
+              form02No: detail.form02No,
+              meltingStartedAt: detail.meltingStartedAt,
+              attachmentPdfPath: detail.attachmentPdfPath,
+            },
+            ...items,
+          ];
+        }
+        items = items.slice(0, limit);
+        total = Math.max(total, items.length);
+      }
+    } catch {
+      // Keep RPC results if MSP lookup fails.
+    }
+  }
+
   return { items, total, limit, offset };
 }
 

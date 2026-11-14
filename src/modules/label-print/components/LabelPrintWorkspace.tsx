@@ -22,8 +22,8 @@ import {
   formatGoldAge,
 } from "../labels";
 import { printLabelNodes } from "../print";
+import { DraftLabelPanel } from "./DraftLabelPanel";
 import { LabelPreview, LabelTag } from "./LabelPreview";
-import { LabelReceiveSection } from "./LabelReceiveSection";
 import { BASE_LABEL_FONTS } from "../layoutDefaults";
 import {
   DEFAULT_LABEL_OFFSETS,
@@ -55,8 +55,6 @@ import type {
   LabelPrintPayload,
   LabelPrefill,
   LabelProductType,
-  LabelReceiveOptions,
-  LabelReceiveResult,
   LabelSkuOption,
   LabelStockSize,
 } from "../types";
@@ -68,7 +66,7 @@ import {
   LABEL_HISTORY_PAGE_SIZES,
 } from "../types";
 
-type Tab = "print" | "history";
+type Tab = "print" | "draft" | "history";
 
 const EMPTY_HISTORY_FILTER: LabelHistoryFilter = {
   dateFrom: "",
@@ -98,13 +96,10 @@ function historyCacheKey(filter: LabelHistoryFilter, pageSize: number): string {
 export function LabelPrintWorkspace({
   skus: initialSkus,
   productTypes = [],
-  receiveOptions = null,
   prefill = null,
 }: {
   skus: LabelSkuOption[];
   productTypes?: LabelProductType[];
-  /** Present only for ADMIN (admin write) — renders "Nhập hàng" above "Thông tin in". */
-  receiveOptions?: LabelReceiveOptions | null;
   /** Opened from a buy invoice: preselect the SKU and fill purity / weights / stone. */
   prefill?: LabelPrefill | null;
 }) {
@@ -112,12 +107,7 @@ export function LabelPrintWorkspace({
     const sku = prefill ? initialSkus.find((s) => s.skuId === prefill.skuId) : undefined;
     return prefill && sku ? { skuId: sku.skuId, ...prefillFormDefaults(sku, prefill) } : null;
   });
-  /** SKUs received on this screen before the server list refreshes. */
-  const [receivedSkus, setReceivedSkus] = useState<LabelSkuOption[]>([]);
-  const skus = useMemo(() => {
-    const ids = new Set(initialSkus.map((s) => s.skuId));
-    return [...receivedSkus.filter((s) => !ids.has(s.skuId)), ...initialSkus];
-  }, [initialSkus, receivedSkus]);
+  const skus = initialSkus;
   const [skuTypeFilter, setSkuTypeFilter] = useState("");
   const [tab, setTab] = useState<Tab>("print");
   const [pending, startTransition] = useTransition();
@@ -457,22 +447,6 @@ export function LabelPrintWorkspace({
     setGoldAgeText(d.goldAgeText);
   }
 
-  function onReceived(result: LabelReceiveResult) {
-    setError(null);
-    const received = result.sku;
-    if (!received) {
-      setMessage(
-        `Đã nhập phiếu ${result.receiptNo} · mã ${result.skuCode}. Tải lại trang để chọn mã này ở Thông tin in.`,
-      );
-      return;
-    }
-    setReceivedSkus((prev) => [received, ...prev.filter((s) => s.skuId !== received.skuId)]);
-    selectSku(received.skuId, [received]);
-    setMessage(
-      `Đã chọn ${received.name} (${received.sku}) · tồn ${received.stockQty}. Bấm "Tạo MSP mới" nếu mã chưa có MSP.`,
-    );
-  }
-
   function onMint() {
     if (!skuId) return;
     setError(null);
@@ -719,7 +693,8 @@ export function LabelPrintWorkspace({
       <div className="flex flex-wrap gap-2">
         {(
           [
-            { id: "print" as const, label: "In tem" },
+            { id: "print" as const, label: "In tem (SKU)" },
+            { id: "draft" as const, label: "Tem trước nhập kho" },
             { id: "history" as const, label: "Lịch sử" },
           ] as const
         ).map((item) => (
@@ -749,11 +724,10 @@ export function LabelPrintWorkspace({
         </p>
       ) : null}
 
+      {tab === "draft" ? <DraftLabelPanel /> : null}
+
       {tab === "print" ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          {receiveOptions ? (
-            <LabelReceiveSection options={receiveOptions} onReceived={onReceived} />
-          ) : null}
           <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
             <h2 className="text-[15px] font-semibold">Thông tin in</h2>
             {initial && prefill ? (
@@ -1253,13 +1227,7 @@ export function LabelPrintWorkspace({
             ) : null}
           </section>
 
-          <section
-            className={`rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] ${
-              receiveOptions
-                ? "xl:sticky xl:top-4 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:self-start"
-                : ""
-            }`}
-          >
+          <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] xl:sticky xl:top-4 xl:self-start">
             <h2 className="text-[15px] font-semibold">Layout tem</h2>
             <div className="mt-4">
               <LabelPreview

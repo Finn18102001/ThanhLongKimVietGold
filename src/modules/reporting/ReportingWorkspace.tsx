@@ -33,6 +33,8 @@ export function ReportingWorkspace({
   const [purchaseBrandId, setPurchaseBrandId] = useState("");
   const [purchaseSkuId, setPurchaseSkuId] = useState("");
   const [purchaseActor, setPurchaseActor] = useState("");
+  const [purchaseMspQuery, setPurchaseMspQuery] = useState("");
+  const [mspQuery, setMspQuery] = useState("");
   const [staffRows, setStaffRows] = useState<StaffSalesRow[]>([]);
   const [transactions, setTransactions] = useState<TransactionExportRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +60,9 @@ export function ReportingWorkspace({
             brandId: purchaseBrandId || null,
             skuId: purchaseSkuId || null,
             actorEmail: purchaseActor || null,
+            mspQuery: purchaseMspQuery || null,
           }),
-          fetchTransactionExport(nextFrom, nextTo),
+          fetchTransactionExport(nextFrom, nextTo, mspQuery || null),
         ]);
         setSnapshot(nextSnapshot);
         setStaffRows(nextStaff);
@@ -78,6 +81,7 @@ export function ReportingWorkspace({
     brandId = purchaseBrandId,
     skuId = purchaseSkuId,
     actorEmail = purchaseActor,
+    nextMsp = purchaseMspQuery,
   ) {
     startTransition(async () => {
       try {
@@ -87,6 +91,7 @@ export function ReportingWorkspace({
           brandId: brandId || null,
           skuId: skuId || null,
           actorEmail: actorEmail || null,
+          mspQuery: nextMsp || null,
         });
         setPurchase(nextPurchase);
         setError(null);
@@ -123,7 +128,7 @@ export function ReportingWorkspace({
   async function exportTransactions() {
     setExporting(true);
     try {
-      const rows = await fetchTransactionExport(from, to);
+      const rows = await fetchTransactionExport(from, to, mspQuery || null);
       const selected =
         exportLimit > 0
           ? limitExportRows(
@@ -163,6 +168,14 @@ export function ReportingWorkspace({
               value={to}
               onChange={(event) => setTo(event.target.value)}
               className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            />
+            <input
+              type="search"
+              value={mspQuery}
+              onChange={(event) => setMspQuery(event.target.value)}
+              placeholder="MSP / mã SP"
+              aria-label="Tìm theo MSP"
+              className="h-10 w-[140px] rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
             />
             <button
               type="button"
@@ -368,6 +381,14 @@ export function ReportingWorkspace({
                 </option>
               ))}
             </select>
+            <input
+              type="search"
+              value={purchaseMspQuery}
+              onChange={(e) => setPurchaseMspQuery(e.target.value)}
+              placeholder="MSP / mã SP"
+              aria-label="Tìm mua hàng theo MSP"
+              className="h-10 w-[140px] rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+            />
             <button
               type="button"
               disabled={pending}

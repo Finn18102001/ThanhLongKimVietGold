@@ -70,6 +70,8 @@ export type PurchaseReportFilters = {
   brandId?: string | null;
   skuId?: string | null;
   actorEmail?: string | null;
+  /** P7: MSP / shared product code — resolved via piece/unit links only. */
+  mspQuery?: string | null;
 };
 
 export type PurchaseReportOption = {

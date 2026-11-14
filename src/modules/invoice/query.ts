@@ -170,6 +170,26 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
 
   if (query) {
     const looksLikeDocNo = /^[0-9a-z\-]+$/i.test(query) && /\d/.test(query);
+    // P7: MSP → SKU via piece/unit only (no invented history links).
+    let mspSaleIds: string[] = [];
+    try {
+      const { findSkuIdsByMspQuery } = await import("@/modules/label-print/msp-search");
+      const skuIds = await findSkuIdsByMspQuery(query);
+      if (skuIds.length > 0) {
+        const { data: saleItems, error: saleItemError } = await supabase
+          .from("pos_sale_items")
+          .select("sale_id")
+          .in("sku_id", skuIds)
+          .limit(200);
+        if (saleItemError) throw new Error(saleItemError.message);
+        mspSaleIds = Array.from(
+          new Set((saleItems ?? []).map((row) => String(row.sale_id)).filter(Boolean)),
+        );
+      }
+    } catch {
+      mspSaleIds = [];
+    }
+
     if (looksLikeDocNo) {
       // Prefer indexed document/phone match; skip broad customer-name scan.
       const { data: customers, error: customerError } = await supabase
@@ -179,11 +199,10 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
         .limit(30);
       if (customerError) throw new Error(customerError.message);
       const ids = (customers ?? []).map((row) => row.id);
-      if (ids.length > 0) {
-        builder = builder.or(`invoice_no.ilike.%${query}%,customer_id.in.(${ids.join(",")})`);
-      } else {
-        builder = builder.ilike("invoice_no", `%${query}%`);
-      }
+      const parts = [`invoice_no.ilike.%${query}%`];
+      if (ids.length > 0) parts.push(`customer_id.in.(${ids.join(",")})`);
+      if (mspSaleIds.length > 0) parts.push(`sale_id.in.(${mspSaleIds.join(",")})`);
+      builder = builder.or(parts.join(","));
     } else {
       const { data: customers, error: customerError } = await supabase
         .from("pos_customers")
@@ -192,11 +211,10 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
         .limit(50);
       if (customerError) throw new Error(customerError.message);
       const ids = (customers ?? []).map((row) => row.id);
-      if (ids.length > 0) {
-        builder = builder.or(`invoice_no.ilike.%${query}%,customer_id.in.(${ids.join(",")})`);
-      } else {
-        builder = builder.ilike("invoice_no", `%${query}%`);
-      }
+      const parts = [`invoice_no.ilike.%${query}%`];
+      if (ids.length > 0) parts.push(`customer_id.in.(${ids.join(",")})`);
+      if (mspSaleIds.length > 0) parts.push(`sale_id.in.(${mspSaleIds.join(",")})`);
+      builder = builder.or(parts.join(","));
     }
   }
 

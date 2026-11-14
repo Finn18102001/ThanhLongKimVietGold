@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { downloadCsv } from "@/shared/lib/csv";
+import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
 import { STOCK_STATUS_LABEL } from "../labels";
 import { stockStatus, type ProductTypeOption, type StockFilter, type StockRow } from "../types";
 
@@ -30,11 +31,31 @@ export function StockTable({
   productTypes?: ProductTypeOption[];
 }) {
   const [query, setQuery] = useState("");
+  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
   const [tab, setTab] = useState<StockFilter>("ALL");
   const [category, setCategory] = useState("");
   const [productTypeId, setProductTypeId] = useState("");
   const [brand, setBrand] = useState("");
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (q.length < 2) {
+      setMspSkuIds([]);
+      return;
+    }
+    void findSkuIdsByMspQuery(q)
+      .then((ids) => {
+        if (!cancelled) setMspSkuIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setMspSkuIds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
 
   const categories = useMemo(
     () => Array.from(new Set(rows.map((row) => row.category).filter(Boolean))),
@@ -72,10 +93,11 @@ export function StockTable({
         row.name.toLowerCase().includes(q) ||
         row.sku.toLowerCase().includes(q) ||
         row.category.toLowerCase().includes(q) ||
-        (row.brandName ?? "").toLowerCase().includes(q);
+        (row.brandName ?? "").toLowerCase().includes(q) ||
+        mspSkuIds.includes(row.skuId);
       return matchesTab && matchesCategory && matchesType && matchesBrand && matchesQuery;
     });
-  }, [rows, query, tab, category, productTypeId, brand]);
+  }, [rows, query, tab, category, productTypeId, brand, mspSkuIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);

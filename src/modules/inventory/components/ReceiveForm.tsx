@@ -403,6 +403,20 @@ export function ReceiveForm({
           />
         </label>
         <label className="text-sm sm:col-span-2">
+          Giá bán / chiếc (VND, số nguyên)
+          <input
+            name="sell_price_dong"
+            type="number"
+            min={0}
+            step={1}
+            className={FIELD}
+          />
+          <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+            P7: đối chiếu với giá trên tem/draft. Chỉ ghi vào nguồn giá bán chính thức của SKU sau khi
+            chốt S1/S2/S3 (xem docs/pos-big-update/P7-00-PRERECEIPT-LABELING.md §2.2).
+          </span>
+        </label>
+        <label className="text-sm sm:col-span-2">
           Nhà cung cấp
           <input name="supplier_name" required className={FIELD} />
         </label>

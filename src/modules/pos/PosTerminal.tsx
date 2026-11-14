@@ -12,6 +12,7 @@ import {
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
 import { formatActionError } from "@/shared/lib/action-result";
+import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { Modal } from "@/shared/ui/Modal";
@@ -187,10 +188,30 @@ export function PosTerminal({
   const [catalog, setCatalog] = useState(initialCatalog);
   const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
+  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
   const [brandId, setBrandId] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (q.length < 2) {
+      setMspSkuIds([]);
+      return;
+    }
+    void findSkuIdsByMspQuery(q)
+      .then((ids) => {
+        if (!cancelled) setMspSkuIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setMspSkuIds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
   const [cart, setCart] = useState<CartQtyMap>({});
   const [charges, setCharges] = useState<PosChargeDraft[]>([]);
   const [operatorStaffId, setOperatorStaffId] = useState("");
@@ -375,11 +396,12 @@ export function PosTerminal({
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
-        (item.brandName || "").toLowerCase().includes(q);
+        (item.brandName || "").toLowerCase().includes(q) ||
+        mspSkuIds.includes(item.skuId);
       return matchesBrand && matchesType && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandId, gridCatalog, group, productTypeId, query]);
+  }, [brandId, gridCatalog, group, productTypeId, query, mspSkuIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
