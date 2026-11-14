@@ -69,7 +69,7 @@ export function LabelPreview({
   if (!payload) {
     return (
       <div className="flex min-h-[220px] items-center justify-center rounded-[12px] border border-dashed border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] text-[13px] text-[var(--tlkv-muted)]">
-        Chọn sản phẩm và MSP để xem layout tem.
+        Điền thông tin tem (SKU hoặc draft) để xem layout.
       </div>
     );
   }

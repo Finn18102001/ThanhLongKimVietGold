@@ -1253,7 +1253,9 @@ export function LabelPrintWorkspace({
             ) : null}
           </section>
         </div>
-      ) : (
+      ) : null}
+
+      {tab === "history" ? (
         <HistoryPanel
           rows={historyRows}
           filter={historyFilter}
@@ -1272,7 +1274,7 @@ export function LabelPrintWorkspace({
           onPageChange={goHistoryPage}
           onPageSizeChange={changeHistoryPageSize}
         />
-      )}
+      ) : null}
     </div>
   );
 }

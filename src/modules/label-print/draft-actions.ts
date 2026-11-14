@@ -79,6 +79,8 @@ export async function createLabelDraftAction(
 export async function recordLabelDraftPrintAction(input: {
   draftId: string;
   printQty?: number;
+  /** Snapshot of what was printed on the physical label (layout fields). */
+  payload?: Record<string, unknown>;
 }): Promise<ActionResult<{ logId: string; printableCode: string; actionType: string }>> {
   return runAction(async () => {
     await assertStaffMutate();
@@ -87,7 +89,7 @@ export async function recordLabelDraftPrintAction(input: {
       p_draft_id: input.draftId,
       p_print_qty: input.printQty ?? 1,
       p_stock_size: "90x14",
-      p_payload: {},
+      p_payload: input.payload ?? {},
     });
     if (error) throw new Error(error.message);
     const row = data as {
