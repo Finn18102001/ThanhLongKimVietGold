@@ -44,17 +44,23 @@ module.exports = function registerRoutes(app, ROOT) {
    * Inject Supabase public config từ .env / .env.local (phải load trước /js/supabaseClient.js).
    * Đăng ký trước static để không bị ghi đè bởi file tĩnh.
    */
-  app.get("/js/gold-data.js", function (req, res) {
-    res.type("application/javascript; charset=utf-8");
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.sendFile(path.join(ROOT, "js", "gold-data.js"));
-  });
+  function sendPricingJs(rel) {
+    return function (req, res) {
+      res.type("application/javascript; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("CDN-Cache-Control", "no-store");
+      res.sendFile(path.join(ROOT, rel));
+    };
+  }
 
-  app.get("/js/tv-gold-board.js", function (req, res) {
-    res.type("application/javascript; charset=utf-8");
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.sendFile(path.join(ROOT, "js", "tv-gold-board.js"));
-  });
+  app.get("/js/gold-data.js", sendPricingJs("js/gold-data.js"));
+  app.get("/js/tv-gold-board.js", sendPricingJs("js/tv-gold-board.js"));
+  app.get("/js/products/product-price-engine.js", sendPricingJs("js/products/product-price-engine.js"));
+  app.get("/js/products/featured-products-section.js", sendPricingJs("js/products/featured-products-section.js"));
+  app.get("/js/products/vang-tich-luy-page.js", sendPricingJs("js/products/vang-tich-luy-page.js"));
+  app.get("/js/products/product-detail-page.js", sendPricingJs("js/products/product-detail-page.js"));
+  app.get("/js/products/catalog-archive.js", sendPricingJs("js/products/catalog-archive.js"));
+  app.get("/js/products/catalog-api.js", sendPricingJs("js/products/catalog-api.js"));
 
   app.get("/js/boot-supabase-env.js", function (req, res) {
     res.type("application/javascript; charset=utf-8");
@@ -111,9 +117,14 @@ module.exports = function registerRoutes(app, ROOT) {
           res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
           return;
         }
-        // CSS/JS use query versions in HTML; allow short cache but force revalidate.
-        if (ext === ".css" || ext === ".js") {
+        // CSS: short cache + revalidate. JS: max-age=0 so formula/price engine
+        // updates reach users without Ctrl+F5 (query ?v= alone is not enough if HTML is stale).
+        if (ext === ".css") {
           res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
+          return;
+        }
+        if (ext === ".js") {
+          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
           return;
         }
         // Ảnh/icon dưới /assets → disk cache lâu (Chrome hiển thị "disk cache" lần tải sau).

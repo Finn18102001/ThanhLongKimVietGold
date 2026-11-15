@@ -1721,8 +1721,11 @@
       if (cached && __goldVersionVerifiedThisLoad) return cached;
       if (__goldTableFetchInFlight) return __goldTableFetchInFlight;
       if (cached) {
+        // Never silent: product cards / featured must hear tlkv:gold-rows-updated
+        // when price_version changed — otherwise soft reload keeps stale card prices
+        // until the user hard-refreshes (Ctrl+F5).
         __goldTableFetchInFlight = revalidateGoldCacheAgainstVersion("session-hydrate", {
-          silent: true,
+          silent: false,
         });
         try {
           return await __goldTableFetchInFlight;

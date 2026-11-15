@@ -5,13 +5,19 @@ const { TLKV_UI_ASSET_VERSION } = require("../lib/ui-asset-version");
 /** HTML entry must revalidate so Google/browsers pick up new ?v= asset URLs after deploy. */
 const HTML_CACHE_CONTROL = "public, max-age=0, must-revalidate";
 
+function setHtmlCacheHeaders(res) {
+  res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+  res.setHeader("CDN-Cache-Control", HTML_CACHE_CONTROL);
+  res.setHeader("Surrogate-Control", HTML_CACHE_CONTROL);
+}
+
 /**
  * Public HTML routes (clean paths). Static js/data/assets are served after this router in server.js.
  */
 module.exports = function webRouter(ROOT) {
   const router = express.Router();
   const send = (rel) => (req, res) => {
-    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+    setHtmlCacheHeaders(res);
     res.sendFile(path.join(ROOT, rel));
   };
 
@@ -63,11 +69,12 @@ module.exports = function webRouter(ROOT) {
     ) {
       return next();
     }
-    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+    setHtmlCacheHeaders(res);
     res.sendFile(path.join(ROOT, "san-pham", "chi-tiet.html"));
   });
   router.get("/tv-model", function (req, res) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("CDN-Cache-Control", "no-store");
     res.setHeader("Pragma", "no-cache");
     res.sendFile(path.join(ROOT, "tv-model.html"));
   });
@@ -110,7 +117,7 @@ module.exports = function webRouter(ROOT) {
   router.get("/tin-tuc/:slug", function (req, res, next) {
     var slug = String(req.params.slug || "");
     if (!/^[a-z0-9][a-z0-9-]{1,198}[a-z0-9]$/.test(slug)) return next();
-    res.setHeader("Cache-Control", HTML_CACHE_CONTROL);
+    setHtmlCacheHeaders(res);
     res.sendFile(path.join(ROOT, "tin-tuc", "chi-tiet.html"));
   });
 

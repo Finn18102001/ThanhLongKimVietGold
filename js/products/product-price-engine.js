@@ -500,14 +500,18 @@
     return brandRows;
   }
 
+  /**
+   * Always revalidate via getGoldTable (price_version). Do not short-circuit on
+   * getLastGoldRows — that left product cards on session-stale gold until Ctrl+F5.
+   */
   async function resolveGoldRowsForPricing() {
-    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
-      var cached = global.TLKVGold.getLastGoldRows();
-      if (cached && cached.length) return cached;
-    }
     if (global.TLKVGold && typeof global.TLKVGold.getGoldTable === "function") {
       var data = await global.TLKVGold.getGoldTable();
       return (data && data.rows) || [];
+    }
+    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
+      var cached = global.TLKVGold.getLastGoldRows();
+      if (cached && cached.length) return cached;
     }
     return [];
   }

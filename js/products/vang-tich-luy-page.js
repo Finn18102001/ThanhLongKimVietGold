@@ -84,9 +84,9 @@
   }
 
   async function resolveGoldRowsForPricing() {
-    if (global.TLKVGold && typeof global.TLKVGold.getLastGoldRows === "function") {
-      var cached = global.TLKVGold.getLastGoldRows();
-      if (cached && cached.length) return cached;
+    var engine = global.TLKVProductPriceEngine;
+    if (engine && typeof engine.resolveGoldRowsForPricing === "function") {
+      return engine.resolveGoldRowsForPricing();
     }
     if (global.TLKVGold && typeof global.TLKVGold.getGoldTable === "function") {
       var data = await global.TLKVGold.getGoldTable();
