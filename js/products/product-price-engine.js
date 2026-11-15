@@ -39,8 +39,12 @@
   /** Một dòng gold_price_rows — giá đồng/chỉ hoặc giá cố định theo lượng ghi trên dòng (VD: 0.1 chỉ). */
   var KIM_GIA_BAO_GOLD_ROW_KEY = "Kim Gia Bảo";
   var NHAN_TRON_KIM_VIET_GOLD_ROW_KEY = "Nhẫn Tròn Kim Việt";
+  /** Live board title (admin): "Nhẫn Tròn Thăng Long Kim Việt". */
+  var NHAN_TRON_THANG_LONG_GOLD_ROW_KEY = "Nhẫn Tròn Thăng Long Kim Việt";
   var BONG_LUA_VANG_GOLD_ROW_KEY = "Bông Lúa Vàng 0.1 chỉ";
   var HAT_GAO_VANG_GOLD_ROW_KEY = "Hạt Gạo Vàng 0.1 chỉ";
+  /** Live combined board title after admin rename (comma + single 0.1 chỉ denom). */
+  var BONG_LUA_HAT_GAO_COMBINED_GOLD_ROW_KEY = "Bông Lúa Vàng, Hạt Gạo Vàng 0.1 chỉ";
   /** Live board rows (BTMC split). */
   var DONG_XU_VANG_RONG_GOLD_ROW_KEY = "Đồng Xu Vàng Rồng Thăng Long";
   var NHAN_VANG_RONG_GOLD_ROW_KEY = "Nhẫn Vàng Rồng Thăng Long";
@@ -70,10 +74,11 @@
     return /^Hạt Gạo Vàng\b/i.test(key);
   }
 
-  /** Nhẫn Tròn Kim Việt, Nhẫn Tròn Kim Việt 1, … 0.1–10 chỉ → cùng dòng giá/chỉ. */
+  /** Nhẫn Tròn Kim Việt / Nhẫn Tròn Thăng Long Kim Việt → cùng dòng giá/chỉ. */
   function isNhanTronKimVietFamilyLabel(label) {
     var key = normalizeProductKey(label);
     if (!key) return false;
+    if (/^Nhẫn Tròn Thăng Long Kim Việt\b/i.test(key)) return true;
     return /^Nhẫn Tròn Kim Việt\b/i.test(key);
   }
 
@@ -112,20 +117,30 @@
     var key = normalizeProductKey(label);
     if (!key) return null;
     if (index && index.has && index.has(key)) return key;
-    if (isBongLuaVangFamilyLabel(key)) {
-      if (index && index.has && index.has(BONG_LUA_VANG_GOLD_ROW_KEY)) {
+    if (isBongLuaVangFamilyLabel(key) || isHatGaoVangFamilyLabel(key)) {
+      if (index && index.has && index.has(BONG_LUA_HAT_GAO_COMBINED_GOLD_ROW_KEY)) {
+        return BONG_LUA_HAT_GAO_COMBINED_GOLD_ROW_KEY;
+      }
+      if (isBongLuaVangFamilyLabel(key) && index && index.has && index.has(BONG_LUA_VANG_GOLD_ROW_KEY)) {
         return BONG_LUA_VANG_GOLD_ROW_KEY;
       }
-      return BONG_LUA_VANG_GOLD_ROW_KEY;
-    }
-    if (isHatGaoVangFamilyLabel(key)) {
-      if (index && index.has && index.has(HAT_GAO_VANG_GOLD_ROW_KEY)) {
+      if (isHatGaoVangFamilyLabel(key) && index && index.has && index.has(HAT_GAO_VANG_GOLD_ROW_KEY)) {
         return HAT_GAO_VANG_GOLD_ROW_KEY;
       }
-      return HAT_GAO_VANG_GOLD_ROW_KEY;
+      return isHatGaoVangFamilyLabel(key)
+        ? HAT_GAO_VANG_GOLD_ROW_KEY
+        : BONG_LUA_VANG_GOLD_ROW_KEY;
     }
     if (isKimGiaBaoFamilyLabel(key)) return KIM_GIA_BAO_GOLD_ROW_KEY;
-    if (isNhanTronKimVietFamilyLabel(key)) return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
+    if (isNhanTronKimVietFamilyLabel(key)) {
+      if (index && index.has && index.has(NHAN_TRON_THANG_LONG_GOLD_ROW_KEY)) {
+        return NHAN_TRON_THANG_LONG_GOLD_ROW_KEY;
+      }
+      if (index && index.has && index.has(NHAN_TRON_KIM_VIET_GOLD_ROW_KEY)) {
+        return NHAN_TRON_KIM_VIET_GOLD_ROW_KEY;
+      }
+      return NHAN_TRON_THANG_LONG_GOLD_ROW_KEY;
+    }
     if (isDongXuVangRongFamilyLabel(key)) {
       if (index && index.has && index.has(DONG_XU_VANG_RONG_GOLD_ROW_KEY)) {
         return DONG_XU_VANG_RONG_GOLD_ROW_KEY;
@@ -249,7 +264,11 @@
   function resolveReferenceWeightForGoldRow(sourceKey) {
     var key = normalizeProductKey(sourceKey);
     if (!key) return 1;
-    if (key === BONG_LUA_VANG_GOLD_ROW_KEY || key === HAT_GAO_VANG_GOLD_ROW_KEY) {
+    if (
+      key === BONG_LUA_VANG_GOLD_ROW_KEY ||
+      key === HAT_GAO_VANG_GOLD_ROW_KEY ||
+      key === BONG_LUA_HAT_GAO_COMBINED_GOLD_ROW_KEY
+    ) {
       return 0.1;
     }
     if (isVangRongThangLongFamilyLabel(key)) return 1;
@@ -296,11 +315,26 @@
       if (!key) return;
       var buyNum = row.buyNum != null ? row.buyNum : parseMoney(row.buy);
       var sellNum = row.sellNum != null ? row.sellNum : parseMoney(row.sell);
-      index.set(key, {
+      var entry = {
         product: key,
         buyNum: buyNum,
         sellNum: sellNum,
-      });
+      };
+      index.set(key, entry);
+      // Admin renamed live board to combined title; keep legacy aliases for lookup.
+      if (
+        /bông\s*lúa/i.test(key) &&
+        /hạt\s*gạo/i.test(key) &&
+        /0[,.]1\s*ch[ỉi]/i.test(key)
+      ) {
+        index.set(BONG_LUA_HAT_GAO_COMBINED_GOLD_ROW_KEY, entry);
+        index.set(BONG_LUA_VANG_GOLD_ROW_KEY, entry);
+        index.set(HAT_GAO_VANG_GOLD_ROW_KEY, entry);
+      }
+      if (/nhẫn\s*tròn/i.test(key) && /kim\s*việt/i.test(key)) {
+        index.set(NHAN_TRON_THANG_LONG_GOLD_ROW_KEY, entry);
+        index.set(NHAN_TRON_KIM_VIET_GOLD_ROW_KEY, entry);
+      }
     });
     return index;
   }
