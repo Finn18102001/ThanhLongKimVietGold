@@ -804,6 +804,8 @@
       metal: r.metal,
       highlight: r.highlight === true,
       is_visible_on_website: r.is_visible_on_website,
+      sort_order: r.sort_order,
+      sortOrder: r.sort_order,
     });
     row.buyNum = parseGoldMoneyToInt(r.buy);
     row.sellNum = parseGoldMoneyToInt(r.sell);
@@ -838,7 +840,7 @@
   }
 
   function filterWebsiteBoardRows(rows) {
-    return (rows || []).filter(isGoldRowVisibleOnWebsite);
+    return orderRowsForTable((rows || []).filter(isGoldRowVisibleOnWebsite));
   }
 
   async function fetchGoldFromSupabase(sb, options) {
@@ -1327,15 +1329,27 @@
     }
   }
 
-  /** Bạc luôn xuống cuối bảng; thứ tự vàng giữ nguyên tương đối. */
+  function goldRowSortOrderNum(r) {
+    if (!r || typeof r !== "object") return Number.MAX_SAFE_INTEGER;
+    const n = Number(r.sortOrder != null ? r.sortOrder : r.sort_order);
+    return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+  }
+
+  /**
+   * Thứ tự bảng giá = `sort_order` đã lưu từ admin (nguồn sự thật).
+   * Thiếu sort_order: giữ ổn định tương đối; bạc xếp sau vàng khi hòa.
+   */
   function orderRowsForTable(rows) {
-    const gold = [];
-    const silver = [];
-    rows.forEach(function (r) {
-      if (r.metal === "silver") silver.push(r);
-      else gold.push(r);
+    const list = (rows || []).slice();
+    list.sort(function (a, b) {
+      const sa = goldRowSortOrderNum(a);
+      const sb = goldRowSortOrderNum(b);
+      if (sa !== sb) return sa - sb;
+      const ma = a && a.metal === "silver" ? 1 : 0;
+      const mb = b && b.metal === "silver" ? 1 : 0;
+      return ma - mb;
     });
-    return gold.concat(silver);
+    return list;
   }
 
   const META_DEFAULTS = {
@@ -1432,6 +1446,8 @@
     if (metal === "silver") {
       purity = purity.replace(/,/g, ".");
     }
+    const sortRaw = r.sortOrder != null ? r.sortOrder : r.sort_order;
+    const sortNum = Number(sortRaw);
     const out = {
       id: String(
         r.id || (global.crypto && crypto.randomUUID ? crypto.randomUUID() : "id-" + Math.random().toString(36).slice(2))
@@ -1445,6 +1461,10 @@
       highlight: r.highlight === true,
       isVisibleOnWebsite: isGoldRowVisibleOnWebsite(r),
     };
+    if (Number.isFinite(sortNum)) {
+      out.sortOrder = sortNum;
+      out.sort_order = sortNum;
+    }
     const bn = Number(r.buyNum);
     if (Number.isFinite(bn)) out.buyNum = Math.round(bn);
     const sn = Number(r.sellNum);
@@ -1807,7 +1827,7 @@ function applyMetaToDom(meta) {
     const opts = options && typeof options === "object" ? options : {};
     const displayRows = filterWebsiteBoardRows(rows);
     if (opts.trackPricingRows !== false) {
-      global.__TLKV_LAST_GOLD_ROWS = rows;
+      global.__TLKV_LAST_GOLD_ROWS = orderRowsForTable(rows);
     }
     global.__TLKV_WEBSITE_BOARD_ROWS = displayRows;
     const table = tbody.closest("table");

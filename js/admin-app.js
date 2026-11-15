@@ -999,6 +999,17 @@ function showToast(message, type = 'success') {
       var metal = r.metal === "silver" ? "silver" : "gold";
       return metal === goldMetalListTab;
     });
+    if (window.TLKVGold && typeof window.TLKVGold.orderRowsForTable === "function") {
+      rows = window.TLKVGold.orderRowsForTable(rows);
+    } else {
+      rows = rows.slice().sort(function (a, b) {
+        var sa = Number(a && (a.sortOrder != null ? a.sortOrder : a.sort_order));
+        var sb = Number(b && (b.sortOrder != null ? b.sortOrder : b.sort_order));
+        if (!Number.isFinite(sa)) sa = Number.MAX_SAFE_INTEGER;
+        if (!Number.isFinite(sb)) sb = Number.MAX_SAFE_INTEGER;
+        return sa - sb;
+      });
+    }
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var isEditing = !!goldInlineEditRowIds[r.id];
