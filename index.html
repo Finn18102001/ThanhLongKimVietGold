@@ -608,16 +608,16 @@
   <script src="/js/boot-supabase-env.js"></script>
   <script src="/js/tlkv-supabase-client.js"></script>
   <script src="/js/tlkv-skeleton.js"></script>
-  <script src="/js/gold-data.js?v=20261115c"></script>
-  <script src="/js/gold-pricing-layout.js"></script>
+  <script src="/js/gold-data.js?v=20261115d"></script>
+  <script src="/js/gold-pricing-layout.js?v=20261115d"></script>
   <script src="/js/world-gold-xau.js"></script>
   <script src="/js/products/constants.js"></script>
   <script src="/js/products-data.js"></script>
   <script src="/js/products/product-card-layout.js"></script>
   <script src="/js/products/product-card.js"></script>
-  <script src="/js/products/catalog-api.js?v=20260907b"></script>
-  <script src="/js/products/product-price-engine.js?v=20261115c"></script>
-  <script src="/js/products/featured-products-section.js?v=20260907b"></script>
+  <script src="/js/products/catalog-api.js?v=20261115d"></script>
+  <script src="/js/products/product-price-engine.js?v=20261115d"></script>
+  <script src="/js/products/featured-products-section.js?v=20261115d"></script>
   <script src="/js/news/news-api.js"></script>
   <script src="/js/news/news-prefetch.js"></script>
   <script src="/js/news/news-home-preview.js"></script>
@@ -631,9 +631,26 @@
     var featuredLimit =
       typeof TLKV_PRODUCTS_PER_BRAND_SECTION === "number" ? TLKV_PRODUCTS_PER_BRAND_SECTION : 8;
 
+    function finalizeHomeFeaturedPrices() {
+      if (
+        !window.TLKVFeaturedProductsSection ||
+        typeof window.TLKVFeaturedProductsSection.finalizeFeaturedPrices !== "function"
+      ) {
+        return;
+      }
+      var root = document.querySelector(featuredRoot);
+      if (!root) return;
+      var host = root.querySelector("[data-featured-products-host]") || root;
+      window.TLKVFeaturedProductsSection.finalizeFeaturedPrices(host);
+    }
+
     function mountFeaturedSection() {
       if (!window.TLKVFeaturedProductsSection) return Promise.resolve();
-      return TLKVFeaturedProductsSection.mountFeaturedProductsSection(featuredRoot, { limit: featuredLimit });
+      return TLKVFeaturedProductsSection.mountFeaturedProductsSection(featuredRoot, {
+        limit: featuredLimit,
+      }).then(function () {
+        finalizeHomeFeaturedPrices();
+      });
     }
 
     TLKVGold.mountGoldTable("#gold-table-body");
@@ -676,15 +693,11 @@
 
     window.addEventListener("tlkv:gold-table-changed", function () {
       TLKVGold.mountGoldTable("#gold-table-body");
+      finalizeHomeFeaturedPrices();
     });
 
     window.addEventListener("tlkv:gold-rows-updated", function () {
-      if (window.TLKVFeaturedProductsSection && typeof window.TLKVFeaturedProductsSection.finalizeFeaturedPrices === "function") {
-        var root = document.querySelector(featuredRoot);
-        if (!root) return;
-        var host = root.querySelector("[data-featured-products-host]") || root;
-        window.TLKVFeaturedProductsSection.finalizeFeaturedPrices(host);
-      }
+      finalizeHomeFeaturedPrices();
     });
 
     window.addEventListener("tlkv:products-changed", function () {
