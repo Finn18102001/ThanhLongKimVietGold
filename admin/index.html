@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png?v=20261114e" />
   <link rel="icon" type="image/png" href="/assets/favicon-48.png?v=20261114e" />
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png?v=20261114e" />
-  <link href="/admin/admin.css" rel="stylesheet" />
+  <link href="/admin/admin.css?v=20261116a" rel="stylesheet" />
 </head>
 
 <body class="admin-body" data-auth-state="pending">
@@ -117,6 +117,7 @@
               <table class="admin-table admin-table--gold-rows">
                 <thead>
                   <tr>
+                    <th class="admin-th-drag" scope="col" title="Kéo thả trong cùng thương hiệu">⋮⋮</th>
                     <th>ID</th>
                     <th>Thương hiệu</th>
                     <th>Sản phẩm</th>
@@ -131,7 +132,7 @@
                 <tbody id="admin-rows"></tbody>
                 <tfoot>
                   <tr id="admin-gold-total-row" class="admin-gold-total-row">
-                    <td colspan="7">
+                    <td colspan="8">
                       <div class="admin-gold-footer-stack">
                         <span class="admin-gold-footer-market-label">Tổng giá trị tồn (thị trường)</span>
                         <span class="admin-gold-footer-share" id="admin-gold-total-share">
@@ -185,6 +186,10 @@
             / Hàm lượng / Mua / Bán</strong>, rồi bấm <strong>Thay đổi</strong> (góc phải bảng) để lưu tất cả — giờ hiển
           thị và ghi chú chân bảng đồng bộ theo thời điểm lưu. Bấm <strong>Sửa</strong> lần nữa trên dòng đang sửa để
           thoát chế độ sửa dòng đó.
+          <br />
+          <strong>Thứ tự bảng giá:</strong> THĂNG LONG KIM VIỆT → BẢO TÍN MINH CHÂU → BẢO TÍN MẠNH HẢI → VÀNG THỊ TRƯỜNG
+          → thương hiệu khác; <strong>bạc luôn cuối</strong>. Trong cùng thương hiệu: kéo <strong>⋮⋮</strong> để đổi vị
+          trí dòng (không kéo sang thương hiệu khác).
           <br />
           <strong>Nhiều hàm lượng cho một tên SP:</strong> dòng phụ để trống “Sản phẩm” trong DB (hiển thị tên từ dòng
           trên). Thương hiệu trùng → gộp khối; thương hiệu mới (vàng) → chèn trước bạc.
@@ -634,7 +639,7 @@
   </script>
   <script src="/js/vendor/supabase.js"></script>
   <script src="/js/utils/image-optimizer.js"></script>
-  <script src="/js/gold-data.js?v=20261115e"></script>
+  <script src="/js/gold-data.js?v=20261116a"></script>
   <script src="/js/admin/gold-inventory-capital.js"></script>
   <script src="/js/products/product-price-engine.js?v=20261115e"></script>
   <script src="/js/products/constants.js"></script>
@@ -645,7 +650,7 @@
   <script src="/js/admin-audit.js"></script>
   <script src="/js/admin/admin-access.js"></script>
   <script src="/js/admin/product-storage.js"></script>
-  <script src="/js/admin-app.js"></script>
+  <script src="/js/admin-app.js?v=20261116a"></script>
   <script src="/js/admin/product-form-admin.js?v=20261115e"></script>
   <script src="/js/admin/taxonomy-data.js?v=20261115e"></script>
   <script src="/js/admin/catalog-admin.js?v=20261115e"></script>

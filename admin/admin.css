@@ -202,6 +202,38 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   color: #52525b;
   white-space: nowrap;
 }
+.admin-th-drag,
+.admin-gold-drag-cell {
+  width: 36px;
+  text-align: center;
+  color: #a1a1aa;
+  user-select: none;
+}
+.admin-gold-drag-handle {
+  display: inline-block;
+  letter-spacing: -2px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: grab;
+  color: #71717a;
+}
+.admin-gold-row--draggable {
+  cursor: grab;
+}
+.admin-gold-row--draggable:active,
+.admin-gold-row--dragging {
+  cursor: grabbing;
+}
+.admin-table--gold-rows tbody tr.admin-gold-row--dragging td {
+  opacity: 0.55;
+}
+.admin-table--gold-rows tbody tr.admin-gold-row--drag-over td {
+  box-shadow: inset 0 2px 0 #18181b;
+}
+.admin-table--gold-rows tbody tr.admin-gold-row--drag-over-invalid td {
+  box-shadow: inset 0 2px 0 #dc2626;
+  background: rgb(220 38 38 / 0.06);
+}
 .admin-gold-brand-cell {
   font-weight: 700;
   text-transform: uppercase;
@@ -258,8 +290,8 @@ html { color-scheme: only light !important; -webkit-filter: none !important; fil
   border-radius: 6px;
   font-size: 13px;
 }
-.admin-table--gold-rows td:nth-child(5) .admin-gold-inline-input,
-.admin-table--gold-rows td:nth-child(6) .admin-gold-inline-input {
+.admin-table--gold-rows td:nth-child(6) .admin-gold-inline-input,
+.admin-table--gold-rows td:nth-child(7) .admin-gold-inline-input {
   max-width: 120px;
 }
 .admin-gold-table-host {

@@ -1336,20 +1336,137 @@
   }
 
   /**
-   * Thứ tự bảng giá = `sort_order` đã lưu từ admin (nguồn sự thật).
-   * Thiếu sort_order: giữ ổn định tương đối; bạc xếp sau vàng khi hòa.
+   * Thứ tự thương hiệu vàng cố định trên bảng giá website/TV/admin.
+   * Bạc (metal=silver) luôn nằm sau toàn bộ vàng — không phụ thuộc tên TH.
+   */
+  const GOLD_BOARD_BRAND_PRIORITY = [
+    "THĂNG LONG KIM VIỆT",
+    "BẢO TÍN MINH CHÂU",
+    "BẢO TÍN MẠNH HẢI",
+    "VÀNG THỊ TRƯỜNG",
+  ];
+
+  function goldBoardBrandPriority(brand) {
+    for (let i = 0; i < GOLD_BOARD_BRAND_PRIORITY.length; i++) {
+      if (brandsMatch(brand, GOLD_BOARD_BRAND_PRIORITY[i])) return i;
+    }
+    return GOLD_BOARD_BRAND_PRIORITY.length;
+  }
+
+  function assignSequentialSortOrder(rows) {
+    const out = (rows || []).slice();
+    for (let i = 0; i < out.length; i++) {
+      const r = out[i];
+      if (!r || typeof r !== "object") continue;
+      r.sortOrder = i + 1;
+      r.sort_order = i + 1;
+    }
+    return out;
+  }
+
+  /**
+   * Rule render bảng giá:
+   * 1) Toàn bộ vàng trước, bạc luôn cuối.
+   * 2) Trong vàng: TLKV → BTMC → BTMH → Vàng thị trường → thương hiệu khác.
+   * 3) Trong cùng thương hiệu: theo sort_order (kéo-thả admin).
    */
   function orderRowsForTable(rows) {
     const list = (rows || []).slice();
-    list.sort(function (a, b) {
-      const sa = goldRowSortOrderNum(a);
-      const sb = goldRowSortOrderNum(b);
+    const gold = [];
+    const silver = [];
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      const item = { row: r, idx: i };
+      if (r && r.metal === "silver") silver.push(item);
+      else gold.push(item);
+    }
+
+    function cmpBoardRows(a, b) {
+      const pa = goldBoardBrandPriority(a.row && a.row.brand);
+      const pb = goldBoardBrandPriority(b.row && b.row.brand);
+      if (pa !== pb) return pa - pb;
+      if (pa >= GOLD_BOARD_BRAND_PRIORITY.length) {
+        const ba = String((a.row && a.row.brand) || "")
+          .trim()
+          .toLowerCase();
+        const bb = String((b.row && b.row.brand) || "")
+          .trim()
+          .toLowerCase();
+        if (ba !== bb) return ba < bb ? -1 : 1;
+      }
+      const sa = goldRowSortOrderNum(a.row);
+      const sb = goldRowSortOrderNum(b.row);
       if (sa !== sb) return sa - sb;
-      const ma = a && a.metal === "silver" ? 1 : 0;
-      const mb = b && b.metal === "silver" ? 1 : 0;
-      return ma - mb;
+      return a.idx - b.idx;
+    }
+
+    gold.sort(cmpBoardRows);
+    silver.sort(cmpBoardRows);
+    return gold
+      .map(function (x) {
+        return x.row;
+      })
+      .concat(
+        silver.map(function (x) {
+          return x.row;
+        })
+      );
+  }
+
+  /**
+   * Đổi thứ tự dòng trong cùng một thương hiệu (không cho trộn brand).
+   * `orderedIds` = id theo thứ tự mới trong khối TH đó.
+   */
+  function reorderRowsWithinBrand(rows, brand, orderedIds) {
+    const full = orderRowsForTable((rows || []).slice());
+    const ids = (orderedIds || []).map(String).filter(Boolean);
+    if (!ids.length) return assignSequentialSortOrder(full);
+
+    const byId = new Map();
+    full.forEach(function (r) {
+      if (r && r.id != null) byId.set(String(r.id), r);
     });
-    return list;
+
+    for (let i = 0; i < ids.length; i++) {
+      const row = byId.get(ids[i]);
+      if (!row || !brandsMatch(row.brand, brand)) {
+        throw new Error("Chỉ được sắp xếp dòng trong cùng một thương hiệu.");
+      }
+    }
+
+    const used = Object.create(null);
+    const newBrandRows = [];
+    ids.forEach(function (id) {
+      const row = byId.get(id);
+      if (!row || used[id]) return;
+      newBrandRows.push(row);
+      used[id] = true;
+    });
+    full.forEach(function (r) {
+      if (!r || !brandsMatch(r.brand, brand)) return;
+      const id = String(r.id);
+      if (used[id]) return;
+      newBrandRows.push(r);
+      used[id] = true;
+    });
+
+    const out = [];
+    let brandEmitted = false;
+    for (let i = 0; i < full.length; i++) {
+      const r = full[i];
+      if (brandsMatch(r.brand, brand)) {
+        if (!brandEmitted) {
+          for (let j = 0; j < newBrandRows.length; j++) out.push(newBrandRows[j]);
+          brandEmitted = true;
+        }
+        continue;
+      }
+      out.push(r);
+    }
+    if (!brandEmitted) {
+      for (let j = 0; j < newBrandRows.length; j++) out.push(newBrandRows[j]);
+    }
+    return assignSequentialSortOrder(out);
   }
 
   const META_DEFAULTS = {
@@ -2049,6 +2166,10 @@ function applyMetaToDom(meta) {
     clampGoldRowsForDisplay,
     normalizeRow,
     orderRowsForTable,
+    reorderRowsWithinBrand,
+    goldBoardBrandPriority,
+    GOLD_BOARD_BRAND_PRIORITY,
+    assignSequentialSortOrder,
     applyMetaToDom,
     renderRowsIntoTbody,
     tryPatchGoldTbodyPricesOnly,

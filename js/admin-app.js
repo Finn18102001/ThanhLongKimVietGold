@@ -1019,8 +1019,25 @@ function showToast(message, type = 'success') {
         (originalIndex >= 0 ? window.TLKVGold.variantParentProduct(allRows, originalIndex) : "");
       var tr = document.createElement("tr");
       tr.setAttribute("data-row-id", r.id);
+      tr.setAttribute("data-brand", String(r.brand || ""));
       if (r.metal === "silver") tr.classList.add("row-silver");
       if (r.highlight === true) tr.classList.add("row-highlight");
+      if (!isEditing) {
+        tr.draggable = true;
+        tr.classList.add("admin-gold-row--draggable");
+      }
+
+      var tdDrag = document.createElement("td");
+      tdDrag.className = "admin-gold-drag-cell";
+      tdDrag.title = isEditing
+        ? "Thoát chế độ sửa để kéo thả"
+        : "Kéo thả để đổi vị trí trong cùng thương hiệu";
+      var dragHandle = document.createElement("span");
+      dragHandle.className = "admin-gold-drag-handle";
+      dragHandle.setAttribute("aria-hidden", "true");
+      dragHandle.textContent = "⋮⋮";
+      tdDrag.appendChild(dragHandle);
+      tr.appendChild(tdDrag);
 
       var tdId = document.createElement("td");
       tdId.className = "admin-gold-id-cell";
@@ -1147,8 +1164,151 @@ function showToast(message, type = 'success') {
       tb.appendChild(tr);
     }
 
+    bindGoldRowDragReorder(tb);
     applyGoldCapitalToTable(data);
     setGoldThayDoiVisible(goldInlineEditHasAny());
+  }
+
+  var goldDragState = {
+    rowId: null,
+    brand: null,
+    saving: false,
+  };
+
+  function clearGoldDragOverUi(tb) {
+    if (!tb) return;
+    tb.querySelectorAll("tr.admin-gold-row--drag-over, tr.admin-gold-row--drag-over-invalid").forEach(function (tr) {
+      tr.classList.remove("admin-gold-row--drag-over", "admin-gold-row--drag-over-invalid");
+    });
+  }
+
+  function clearGoldDragUi(tb) {
+    if (!tb) return;
+    clearGoldDragOverUi(tb);
+    tb.querySelectorAll("tr.admin-gold-row--dragging").forEach(function (tr) {
+      tr.classList.remove("admin-gold-row--dragging");
+    });
+  }
+
+  function collectBrandRowIdsInDom(tb, brand) {
+    var ids = [];
+    if (!tb || !window.TLKVGold) return ids;
+    tb.querySelectorAll("tr[data-row-id]").forEach(function (tr) {
+      if (!window.TLKVGold.brandsMatch(tr.getAttribute("data-brand"), brand)) return;
+      ids.push(String(tr.getAttribute("data-row-id")));
+    });
+    return ids;
+  }
+
+  function persistGoldBrandReorder(brand, orderedIds) {
+    if (!window.TLKVGold || typeof window.TLKVGold.reorderRowsWithinBrand !== "function") {
+      return Promise.reject(new Error("Thiếu TLKVGold.reorderRowsWithinBrand"));
+    }
+    if (goldDragState.saving) return Promise.resolve();
+    goldDragState.saving = true;
+    return window.TLKVGold
+      .getGoldTable()
+      .then(function (d) {
+        d.rows = window.TLKVGold.reorderRowsWithinBrand(d.rows, brand, orderedIds);
+        stampMetaOnPayload(d);
+        console.log("[TLKV gold-push] admin: drag-reorder within brand → saveToStorage", brand, orderedIds);
+        return window.TLKVGold.saveToStorage(d);
+      })
+      .then(function () {
+        showAdminToast("Đã cập nhật thứ tự trong thương hiệu.");
+        return refreshGoldAdminUi({ forceRefresh: true });
+      })
+      .catch(function (err) {
+        console.error(err);
+        alert("Không lưu được thứ tự dòng: " + (err && err.message ? err.message : String(err)));
+        return refreshGoldAdminUi({ forceRefresh: true });
+      })
+      .then(function () {
+        goldDragState.saving = false;
+      });
+  }
+
+  function bindGoldRowDragReorder(tb) {
+    if (!tb || tb.getAttribute("data-gold-dnd-bound") === "1") return;
+    tb.setAttribute("data-gold-dnd-bound", "1");
+
+    tb.addEventListener("dragstart", function (ev) {
+      var tr = ev.target && ev.target.closest ? ev.target.closest("tr[data-row-id]") : null;
+      if (!tr || !tb.contains(tr) || !tr.draggable) {
+        ev.preventDefault();
+        return;
+      }
+      if (goldInlineEditHasAny() || goldDragState.saving) {
+        ev.preventDefault();
+        return;
+      }
+      goldDragState.rowId = String(tr.getAttribute("data-row-id") || "");
+      goldDragState.brand = String(tr.getAttribute("data-brand") || "");
+      tr.classList.add("admin-gold-row--dragging");
+      try {
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", goldDragState.rowId);
+      } catch (_) {}
+    });
+
+    tb.addEventListener("dragend", function () {
+      clearGoldDragUi(tb);
+      goldDragState.rowId = null;
+      goldDragState.brand = null;
+    });
+
+    tb.addEventListener("dragover", function (ev) {
+      if (!goldDragState.rowId) return;
+      var tr = ev.target && ev.target.closest ? ev.target.closest("tr[data-row-id]") : null;
+      if (!tr || !tb.contains(tr)) return;
+      clearGoldDragOverUi(tb);
+      var sameBrand =
+        window.TLKVGold &&
+        window.TLKVGold.brandsMatch(tr.getAttribute("data-brand"), goldDragState.brand);
+      if (!sameBrand) {
+        tr.classList.add("admin-gold-row--drag-over-invalid");
+        try {
+          ev.dataTransfer.dropEffect = "none";
+        } catch (_) {}
+        return;
+      }
+      ev.preventDefault();
+      tr.classList.add("admin-gold-row--drag-over");
+      try {
+        ev.dataTransfer.dropEffect = "move";
+      } catch (_) {}
+      var dragging = null;
+      tb.querySelectorAll("tr[data-row-id]").forEach(function (node) {
+        if (String(node.getAttribute("data-row-id")) === goldDragState.rowId) dragging = node;
+      });
+      if (!dragging || dragging === tr) return;
+      var rect = tr.getBoundingClientRect();
+      var before = ev.clientY < rect.top + rect.height / 2;
+      if (before) tb.insertBefore(dragging, tr);
+      else tb.insertBefore(dragging, tr.nextSibling);
+    });
+
+    tb.addEventListener("drop", function (ev) {
+      if (!goldDragState.rowId || !goldDragState.brand) return;
+      var tr = ev.target && ev.target.closest ? ev.target.closest("tr[data-row-id]") : null;
+      if (!tr || !tb.contains(tr)) return;
+      var sameBrand =
+        window.TLKVGold &&
+        window.TLKVGold.brandsMatch(tr.getAttribute("data-brand"), goldDragState.brand);
+      if (!sameBrand) {
+        ev.preventDefault();
+        clearGoldDragUi(tb);
+        showToast("Chỉ kéo thả trong cùng một thương hiệu.", "error");
+        return;
+      }
+      ev.preventDefault();
+      var brand = goldDragState.brand;
+      var orderedIds = collectBrandRowIdsInDom(tb, brand);
+      clearGoldDragUi(tb);
+      goldDragState.rowId = null;
+      goldDragState.brand = null;
+      persistGoldBrandReorder(brand, orderedIds);
+    });
   }
 
   async function refreshGoldAdminUi(options) {
@@ -1169,7 +1329,7 @@ function showToast(message, type = 'success') {
         var tbErr = $("admin-rows");
         if (tbErr) {
           tbErr.innerHTML =
-            "<tr><td colspan=\"9\">Không tải bảng giá từ Supabase: " +
+            "<tr><td colspan=\"10\">Không tải bảng giá từ Supabase: " +
             escapeHtml(err && err.message ? err.message : String(err)) +
             "</td></tr>";
         }
@@ -1251,6 +1411,7 @@ function showToast(message, type = 'success') {
             productVal = "";
           }
           var base = d.rows[idx];
+          var keepSort = base.sortOrder != null ? base.sortOrder : base.sort_order;
           var row = {
             id: base.id,
             brand: base.brand,
@@ -1262,6 +1423,10 @@ function showToast(message, type = 'success') {
             highlight: base.highlight === true,
             isVisibleOnWebsite: v.hideWebsite ? false : true,
           };
+          if (Number.isFinite(Number(keepSort))) {
+            row.sortOrder = Number(keepSort);
+            row.sort_order = Number(keepSort);
+          }
           d.rows[idx] = row;
         }
 
@@ -1896,6 +2061,14 @@ function showToast(message, type = 'success') {
             highlight: $("f-highlight") ? $("f-highlight").checked : false,
             isVisibleOnWebsite: !($("f-hide-on-website") && $("f-hide-on-website").checked),
           };
+          if (wasEdit && d.rows[idx]) {
+            var keepSortForm =
+              d.rows[idx].sortOrder != null ? d.rows[idx].sortOrder : d.rows[idx].sort_order;
+            if (Number.isFinite(Number(keepSortForm))) {
+              row.sortOrder = Number(keepSortForm);
+              row.sort_order = Number(keepSortForm);
+            }
+          }
           savedRow = row;
           if (idx >= 0) {
             d.rows[idx] = row;
