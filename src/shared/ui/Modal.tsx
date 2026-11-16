@@ -11,20 +11,20 @@ export function Modal({
   onClose,
 }: {
   title: string;
-  wide?: boolean;
+  /** true = 4xl; "xl" = 6xl for form + side guide layouts */
+  wide?: boolean | "xl";
   children: ReactNode;
   footer?: ReactNode;
   onClose: () => void;
 }) {
+  const widthClass = wide === "xl" ? "max-w-6xl" : wide ? "max-w-4xl" : "max-w-[560px]";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 print:hidden">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[12px] bg-white shadow-[0_24px_60px_rgb(31_41_55/0.18)] ${
-          wide ? "max-w-4xl" : "max-w-[560px]"
-        }`}
+        className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[12px] bg-white shadow-[0_24px_60px_rgb(31_41_55/0.18)] ${widthClass}`}
       >
         <div className="flex items-center justify-between border-b border-[var(--tlkv-line)] px-5 py-3.5">
           <h2 className="text-[16px] font-semibold">{title}</h2>
