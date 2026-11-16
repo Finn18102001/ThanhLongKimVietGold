@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { receivePurchase } from "../actions";
+import type { SellPriceMode } from "../priceLink";
 import type {
   BrandCategoryLink,
   BrandOption,
@@ -11,6 +12,7 @@ import type {
   ProductTypeOption,
   StockRow,
 } from "../types";
+import { PriceLinkControls } from "./PriceLinkControls";
 
 type LineMode = "catalog" | "order";
 
@@ -62,6 +64,10 @@ export function ReceiveForm({
   const [orderSkuPrefix, setOrderSkuPrefix] = useState("TLKVTS");
   const [orderVisible, setOrderVisible] = useState(false);
   const [orderWeightChi, setOrderWeightChi] = useState(1);
+  const [costPriceDong, setCostPriceDong] = useState("");
+  const [sellPriceDong, setSellPriceDong] = useState("");
+  const [sellMode, setSellMode] = useState<SellPriceMode>("link");
+  const [heso, setHeso] = useState("");
 
   function resetOrderDraft() {
     setOrderName("");
@@ -73,6 +79,10 @@ export function ReceiveForm({
     setOrderSkuPrefix("TLKVTS");
     setOrderVisible(false);
     setOrderWeightChi(1);
+    setCostPriceDong("");
+    setSellPriceDong("");
+    setSellMode("link");
+    setHeso("");
   }
 
   async function onSubmit(formData: FormData) {
@@ -103,8 +113,8 @@ export function ReceiveForm({
 
       const received = Number(formData.get("received_qty") ?? 0);
       const expected = Number(formData.get("expected_qty") ?? received);
-      const costPriceDong = Number(formData.get("cost_price_dong") ?? "");
-      if (!Number.isInteger(costPriceDong) || costPriceDong < 0) {
+      const cost = Number(costPriceDong);
+      if (!Number.isInteger(cost) || cost < 0) {
         setAlert({
           tone: "error",
           title: "Giá vốn không hợp lệ",
@@ -121,6 +131,7 @@ export function ReceiveForm({
         return;
       }
 
+      formData.set("cost_price_dong", String(cost));
       formData.set("goods_status", "RECEIVED");
       formData.set(
         "items",
@@ -129,7 +140,7 @@ export function ReceiveForm({
             sku_id: null,
             expected_qty: expected,
             received_qty: received,
-            cost_price_dong: costPriceDong,
+            cost_price_dong: cost,
             weight_chi: orderWeightChi,
             order_product: {
               name,
@@ -305,21 +316,30 @@ export function ReceiveForm({
               </select>
             </label>
             <label className="text-sm sm:col-span-2">
-              Dòng bảng giá
-              <select
-                value={orderPriceRowId}
-                onChange={(e) => setOrderPriceRowId(e.target.value)}
+              Định lượng (chỉ)
+              <input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={orderWeightChi}
+                onChange={(e) => setOrderWeightChi(Number(e.target.value))}
                 className={FIELD}
-              >
-                <option value="">Không gắn dòng giá</option>
-                {priceRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.brand} · {row.product}
-                    {row.purity ? ` · ${row.purity}` : ""}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
+            <PriceLinkControls
+              priceRows={priceRows}
+              priceRowId={orderPriceRowId}
+              onPriceRowIdChange={setOrderPriceRowId}
+              weightChi={orderWeightChi}
+              costPriceDong={costPriceDong}
+              onCostPriceDongChange={setCostPriceDong}
+              sellPriceDong={sellPriceDong}
+              onSellPriceDongChange={setSellPriceDong}
+              sellMode={sellMode}
+              onSellModeChange={setSellMode}
+              heso={heso}
+              onHesoChange={setHeso}
+            />
             <label className="text-sm sm:col-span-2">
               Giá / ghi chú
               <input
@@ -345,17 +365,6 @@ export function ReceiveForm({
               <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
                 Hệ thống gán khi lưu phiếu. Không sửa số này.
               </span>
-            </label>
-            <label className="text-sm sm:col-span-2">
-              Định lượng (chỉ)
-              <input
-                type="number"
-                min={0}
-                step="0.0001"
-                value={orderWeightChi}
-                onChange={(e) => setOrderWeightChi(Number(e.target.value))}
-                className={FIELD}
-              />
             </label>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input
@@ -391,31 +400,35 @@ export function ReceiveForm({
             className={FIELD}
           />
         </label>
-        <label className="text-sm sm:col-span-2">
-          Giá vốn / chiếc (VND, số nguyên)
-          <input
-            name="cost_price_dong"
-            type="number"
-            min={0}
-            step={1}
-            required
-            className={FIELD}
-          />
-        </label>
-        <label className="text-sm sm:col-span-2">
-          Giá bán / chiếc (VND, số nguyên)
-          <input
-            name="sell_price_dong"
-            type="number"
-            min={0}
-            step={1}
-            className={FIELD}
-          />
-          <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-            P7: đối chiếu với giá trên tem/draft. Chỉ ghi vào nguồn giá bán chính thức của SKU sau khi
-            chốt S1/S2/S3 (xem docs/pos-big-update/P7-00-PRERECEIPT-LABELING.md §2.2).
-          </span>
-        </label>
+        {lineMode === "catalog" ? (
+          <>
+            <label className="text-sm sm:col-span-2">
+              Giá vốn / chiếc (VND, số nguyên)
+              <input
+                name="cost_price_dong"
+                type="number"
+                min={0}
+                step={1}
+                required
+                value={costPriceDong}
+                onChange={(e) => setCostPriceDong(e.target.value)}
+                className={FIELD}
+              />
+            </label>
+            <label className="text-sm sm:col-span-2">
+              Giá bán / chiếc (VND, số nguyên)
+              <input
+                name="sell_price_dong"
+                type="number"
+                min={0}
+                step={1}
+                value={sellPriceDong}
+                onChange={(e) => setSellPriceDong(e.target.value)}
+                className={FIELD}
+              />
+            </label>
+          </>
+        ) : null}
         <label className="text-sm sm:col-span-2">
           Nhà cung cấp
           <input name="supplier_name" required className={FIELD} />

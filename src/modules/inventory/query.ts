@@ -165,9 +165,11 @@ export async function listProductTypes(): Promise<ProductTypeOption[]> {
 
 export async function listPriceRows(): Promise<PriceRowOption[]> {
   const supabase = await createServerSupabase();
+  // P8: only rows currently shown on the public gold board.
   const { data, error } = await supabase
     .from("gold_price_rows")
-    .select("id, product, brand, purity")
+    .select("id, product, brand, purity, buy, sell")
+    .eq("is_visible_on_website", true)
     .order("sort_order");
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({
@@ -175,5 +177,7 @@ export async function listPriceRows(): Promise<PriceRowOption[]> {
     product: String(row.product ?? ""),
     brand: String(row.brand ?? ""),
     purity: String(row.purity ?? ""),
+    buyDong: Math.round(Number(row.buy) || 0),
+    sellDong: Math.round(Number(row.sell) || 0),
   }));
 }

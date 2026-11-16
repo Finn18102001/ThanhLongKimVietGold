@@ -188,7 +188,11 @@ export async function listLabelReceiveOptions(): Promise<LabelReceiveOptions> {
   const [brands, categories, priceRows, productTypes, links] = await Promise.all([
     supabase.rpc("pos_list_brands"),
     supabase.from("categories").select("id, name").eq("is_active", true).order("sort_order"),
-    supabase.from("gold_price_rows").select("id, product, brand, purity").order("sort_order"),
+    supabase
+      .from("gold_price_rows")
+      .select("id, product, brand, purity, buy, sell")
+      .eq("is_visible_on_website", true)
+      .order("sort_order"),
     listLabelProductTypes(),
     supabase.from("brand_categories").select("brand_id, category_id"),
   ]);
@@ -216,6 +220,8 @@ export async function listLabelReceiveOptions(): Promise<LabelReceiveOptions> {
       brand: String(row.brand ?? ""),
       product: String(row.product ?? ""),
       purity: String(row.purity ?? ""),
+      buyDong: Math.round(Number(row.buy) || 0),
+      sellDong: Math.round(Number(row.sell) || 0),
     })),
   };
 }

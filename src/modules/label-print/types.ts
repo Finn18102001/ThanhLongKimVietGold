@@ -133,7 +133,14 @@ export const DEFAULT_LABEL_HISTORY_PAGE_SIZE = 20;
 
 export type LabelReceiveBrand = { id: string; name: string };
 export type LabelReceiveCategory = { id: string; name: string };
-export type LabelReceivePriceRow = { id: string; brand: string; product: string; purity: string };
+export type LabelReceivePriceRow = {
+  id: string;
+  brand: string;
+  product: string;
+  purity: string;
+  buyDong: number;
+  sellDong: number;
+};
 export type LabelProductType = { id: string; name: string };
 /** One row of `brand_categories`: the category may be used with that brand. */
 export type LabelBrandCategoryLink = { brandId: string; categoryId: string };

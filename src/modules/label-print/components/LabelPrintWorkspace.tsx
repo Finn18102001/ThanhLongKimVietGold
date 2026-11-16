@@ -22,6 +22,7 @@ import {
   formatGoldAge,
 } from "../labels";
 import { printLabelNodes } from "../print";
+import { CombinedReceivePrintPanel } from "./CombinedReceivePrintPanel";
 import { DraftLabelPanel } from "./DraftLabelPanel";
 import { FontSizeEditor, OffsetZoneEditor } from "./LabelLayoutEditors";
 import { LabelPreview, LabelTag } from "./LabelPreview";
@@ -54,6 +55,8 @@ import type {
   LabelPrintPayload,
   LabelPrefill,
   LabelProductType,
+  LabelReceiveOptions,
+  LabelReceiveResult,
   LabelSkuOption,
   LabelStockSize,
 } from "../types";
@@ -65,7 +68,7 @@ import {
   LABEL_HISTORY_PAGE_SIZES,
 } from "../types";
 
-type Tab = "print" | "draft" | "history";
+type Tab = "print" | "draft" | "combined" | "history";
 
 const EMPTY_HISTORY_FILTER: LabelHistoryFilter = {
   dateFrom: "",
@@ -95,10 +98,13 @@ function historyCacheKey(filter: LabelHistoryFilter, pageSize: number): string {
 export function LabelPrintWorkspace({
   skus: initialSkus,
   productTypes = [],
+  receiveOptions = null,
   prefill = null,
 }: {
   skus: LabelSkuOption[];
   productTypes?: LabelProductType[];
+  /** ADMIN: options for tab In tem kiêm nhập kho. */
+  receiveOptions?: LabelReceiveOptions | null;
   /** Opened from a buy invoice: preselect the SKU and fill purity / weights / stone. */
   prefill?: LabelPrefill | null;
 }) {
@@ -106,7 +112,7 @@ export function LabelPrintWorkspace({
     const sku = prefill ? initialSkus.find((s) => s.skuId === prefill.skuId) : undefined;
     return prefill && sku ? { skuId: sku.skuId, ...prefillFormDefaults(sku, prefill) } : null;
   });
-  const skus = initialSkus;
+  const [skus, setSkus] = useState(initialSkus);
   const [skuTypeFilter, setSkuTypeFilter] = useState("");
   const [tab, setTab] = useState<Tab>("print");
   const [pending, startTransition] = useTransition();
@@ -679,38 +685,80 @@ export function LabelPrintWorkspace({
   const historyFromRow = historyTotal === 0 ? 0 : (historyPage - 1) * historyPageSize + 1;
   const historyToRow = Math.min(historyPage * historyPageSize, historyTotal);
 
+  type WorkMode = Exclude<Tab, "history">;
+  const onWorkTab = tab !== "history";
+  const workModes: { id: WorkMode; label: string }[] = [
+    { id: "print", label: "In tem" },
+    ...(receiveOptions ? [{ id: "combined" as const, label: "In tem kiêm nhập kho" }] : []),
+    { id: "draft", label: "In tem trước nhập kho" },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-[18px] font-semibold">In tem sản phẩm</h1>
+        <h1 className="text-[18px] font-semibold">In tem</h1>
         <p className="text-[12px] text-[var(--tlkv-muted)]">
-          MSP + mã vạch định danh từng sản phẩm vật lý. In/in lại chỉ ghi lịch sử tem, không đổi tồn
-          kho hay hóa đơn.
+          In/in lại chỉ ghi lịch sử tem, không đổi tồn kho hay hóa đơn (trừ khi chọn In tem kiêm
+          nhập kho).
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            { id: "print" as const, label: "In tem (SKU)" },
-            { id: "draft" as const, label: "Tem trước nhập kho" },
-            { id: "history" as const, label: "Lịch sử" },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => (item.id === "history" ? openHistoryTab() : setTab(item.id))}
-            className={`h-9 rounded-full px-3 text-[13px] font-medium ${
-              tab === item.id
-                ? "bg-[var(--tlkv-red)] text-white"
-                : "bg-white shadow-[var(--tlkv-shadow)] hover:bg-[var(--tlkv-red-soft)]"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="In tem">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={onWorkTab}
+          onClick={() => setTab(tab === "history" ? "print" : tab)}
+          className={`h-9 rounded-full px-3 text-[13px] font-medium ${
+            onWorkTab
+              ? "bg-[var(--tlkv-red)] text-white"
+              : "bg-white shadow-[var(--tlkv-shadow)] hover:bg-[var(--tlkv-red-soft)]"
+          }`}
+        >
+          In tem
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "history"}
+          onClick={openHistoryTab}
+          className={`h-9 rounded-full px-3 text-[13px] font-medium ${
+            tab === "history"
+              ? "bg-[var(--tlkv-red)] text-white"
+              : "bg-white shadow-[var(--tlkv-shadow)] hover:bg-[var(--tlkv-red-soft)]"
+          }`}
+        >
+          Lịch sử in
+        </button>
       </div>
+
+      {onWorkTab ? (
+        <div
+          role="tablist"
+          aria-label="Nghiệp vụ in tem"
+          className="inline-flex w-fit max-w-full flex-wrap gap-0.5 rounded-[10px] border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] p-0.5"
+        >
+          {workModes.map((item) => {
+            const active = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(item.id)}
+                className={`h-9 rounded-[8px] px-3 text-[13px] font-medium transition-colors ${
+                  active
+                    ? "bg-white text-[var(--tlkv-text)] shadow-sm"
+                    : "text-[var(--tlkv-muted)] hover:bg-white/70 hover:text-[var(--tlkv-text)]"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
@@ -725,10 +773,50 @@ export function LabelPrintWorkspace({
 
       {tab === "draft" ? <DraftLabelPanel /> : null}
 
-      {tab === "print" ? (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {tab === "combined" && receiveOptions ? (
+        <CombinedReceivePrintPanel
+          options={receiveOptions}
+          onReceived={(result: LabelReceiveResult) => {
+            if (result.sku) {
+              const nextList = (() => {
+                if (skus.some((s) => s.skuId === result.skuId)) return skus;
+                return [result.sku!, ...skus];
+              })();
+              setSkus(nextList);
+              selectSku(result.skuId, nextList);
+              setMessage(
+                `Đã nhập ${result.skuCode} (phiếu ${result.receiptNo}). SKU đã chọn sẵn ở khung In tem bên dưới - tạo/chọn MSP rồi In tem. In lỗi: giữ phiếu, chỉ in lại.`,
+              );
+            } else {
+              setMessage(
+                `Đã nhập phiếu ${result.receiptNo} · mã ${result.skuCode}. Chọn SKU ở khung In tem bên dưới (không nhập lại).`,
+              );
+            }
+            requestAnimationFrame(() => {
+              document.getElementById("label-print-workbench")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            });
+          }}
+        />
+      ) : null}
+
+      {tab === "print" || tab === "combined" ? (
+        <div
+          id="label-print-workbench"
+          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
+        >
           <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
-            <h2 className="text-[15px] font-semibold">Thông tin in</h2>
+            <h2 className="text-[15px] font-semibold">
+              {tab === "combined" ? "2. In tem" : "Thông tin in"}
+            </h2>
+            {tab === "combined" ? (
+              <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+                Cùng layout và tính năng tab In tem. Sau nhập kho, SKU vừa tạo được chọn sẵn -
+                điền MSP / số lượng / layout rồi in ngay.
+              </p>
+            ) : null}
             {initial && prefill ? (
               <div className="mt-3 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
                 <p className="font-medium">

@@ -54,6 +54,10 @@ export type PriceRowOption = {
   product: string;
   brand: string;
   purity: string;
+  /** Integer VND from gold_price_rows.buy (receive/purchase context). */
+  buyDong: number;
+  /** Integer VND from gold_price_rows.sell (sell / link preview). */
+  sellDong: number;
 };
 
 export type BrandOption = {

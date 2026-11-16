@@ -284,7 +284,7 @@ export function DraftLabelPanel() {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
-        <h2 className="text-[15px] font-semibold">Tem trước nhập kho (draft)</h2>
+        <h2 className="text-[15px] font-semibold">In tem trước nhập kho</h2>
         <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
           Không chọn SKU · không tăng tồn · không bán được. Cùng offset / cỡ chữ / khổ tem với tab
           In tem (SKU). Khi nhập kho phải chọn lại Brand/Category hợp lệ.

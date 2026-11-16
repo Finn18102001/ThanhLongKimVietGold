@@ -20,6 +20,7 @@ Contract chung: [`../SYSTEM_DEVELOPMENT_RULES.md`](../SYSTEM_DEVELOPMENT_RULES.m
 | P6 | [`P6-00-EXPORT-FILTER-MSP.md`](./P6-00-EXPORT-FILTER-MSP.md) | Audit Export / Filter / Nhập kho / MSP / Prefix; quyết định sequence A, mint-limit, U1 | `reporting`, `invoice`, `inventory`, `label-print` | Audit + quyết định U1 2026-11-14 |
 | P6 | [`P6-01-UNIT-MSP-U1.md`](./P6-01-UNIT-MSP-U1.md) | U1 quyết định + draft SQL/RPC checklist | `label-print`, `inventory`, `pos`, migration | §0–§7 khóa; chưa chạy prod |
 | P6 | [`P6-02-U1-ARCHITECTURE-SPEC.md`](./P6-02-U1-ARCHITECTURE-SPEC.md) | Decision & Implementation Spec Unit–MSP (canonical) | `label-print`, `inventory`, `pos`, migration | Draft chờ duyệt; chưa chạy prod |
+| P8 | [`P8-00-ORDER-LABEL-RECEIVE.md`](./P8-00-ORDER-LABEL-RECEIVE.md) | Order: lọc dòng giá bảng hiện tại; giá vốn = buy×TL; giá bán link / hệ số; tab In tem kiêm nhập kho | `inventory`, `label-print` | Chốt 2026-11-16; đang triển khai |
 | 2 | `02-MASTER-DATA.md` | Danh mục cây, thương hiệu, loại vàng, hàm lượng, hệ số, tách vàng/bạc, trọng lượng 3 số | `category`, catalog website | Chưa có |
 | 3 | `03-PRICING.md` | Giá vàng/bạc, liên kết theo hàm lượng, % giá gốc, ẩn giá web | `pricing`, `pos` (đọc giá), `js/gold-data.js` | Chưa có |
 | 4 | `04-PRODUCT.md` | UI danh mục cây, dropdown loại vàng, hàm lượng, số chỉ, số lượng, phân trang, chế độ giá | `product`, `category` | Chưa có |

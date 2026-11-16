@@ -9,7 +9,9 @@ import {
 } from "@/modules/label-print/draft-actions";
 import type { LabelDraftDetail, LabelDraftSummary } from "@/modules/label-print/draft-types";
 import { receiveLabelDraftAction } from "../draft-receive-actions";
+import type { SellPriceMode } from "../priceLink";
 import type { BrandCategoryLink, BrandOption, CategoryOption, PriceRowOption, ProductTypeOption } from "../types";
+import { PriceLinkControls } from "./PriceLinkControls";
 
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
@@ -54,6 +56,8 @@ export function DraftReceivePanel({
   const [weightChi, setWeightChi] = useState(1);
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
+  const [sellMode, setSellMode] = useState<SellPriceMode>("link");
+  const [heso, setHeso] = useState("");
   const [supplierName, setSupplierName] = useState("");
   const [reason, setReason] = useState("Nhập hàng từ draft tem");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
@@ -338,44 +342,7 @@ export function DraftReceivePanel({
                 ))}
               </select>
             </label>
-            <label className="text-sm">
-              Dòng bảng giá
-              <select
-                value={priceRowId}
-                onChange={(e) => setPriceRowId(e.target.value)}
-                className={FIELD}
-              >
-                <option value="">— Không chọn —</option>
-                {priceRows.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {[r.product, r.brand, r.purity].filter(Boolean).join(" · ") || r.id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Giá vốn / chiếc *
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={costPriceDong}
-                onChange={(e) => setCostPriceDong(e.target.value)}
-                className={FIELD}
-              />
-            </label>
-            <label className="text-sm">
-              Giá bán / chiếc (3a)
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={sellPriceDong}
-                onChange={(e) => setSellPriceDong(e.target.value)}
-                className={FIELD}
-              />
-            </label>
-            <label className="text-sm">
+            <label className="text-sm sm:col-span-2">
               Định lượng (chỉ)
               <input
                 type="number"
@@ -386,6 +353,20 @@ export function DraftReceivePanel({
                 className={FIELD}
               />
             </label>
+            <PriceLinkControls
+              priceRows={priceRows}
+              priceRowId={priceRowId}
+              onPriceRowIdChange={setPriceRowId}
+              weightChi={weightChi}
+              costPriceDong={costPriceDong}
+              onCostPriceDongChange={setCostPriceDong}
+              sellPriceDong={sellPriceDong}
+              onSellPriceDongChange={setSellPriceDong}
+              sellMode={sellMode}
+              onSellModeChange={setSellMode}
+              heso={heso}
+              onHesoChange={setHeso}
+            />
             <label className="text-sm">
               Mã đầu SKU
               <input
