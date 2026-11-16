@@ -55,6 +55,13 @@ module.exports = function registerRoutes(app, ROOT) {
 
   app.get("/js/gold-data.js", sendPricingJs("js/gold-data.js"));
   app.get("/js/tv-gold-board.js", sendPricingJs("js/tv-gold-board.js"));
+  app.get("/js/admin-app.js", sendPricingJs("js/admin-app.js"));
+  app.get("/js/admin/taxonomy-data.js", sendPricingJs("js/admin/taxonomy-data.js"));
+  app.get("/js/admin/catalog-admin.js", sendPricingJs("js/admin/catalog-admin.js"));
+  app.get("/js/admin/product-form-admin.js", sendPricingJs("js/admin/product-form-admin.js"));
+  app.get("/js/admin/gold-inventory-capital.js", sendPricingJs("js/admin/gold-inventory-capital.js"));
+  app.get("/js/admin/admin-access.js", sendPricingJs("js/admin/admin-access.js"));
+  app.get("/js/admin/product-storage.js", sendPricingJs("js/admin/product-storage.js"));
   app.get("/js/products/product-price-engine.js", sendPricingJs("js/products/product-price-engine.js"));
   app.get("/js/products/featured-products-section.js", sendPricingJs("js/products/featured-products-section.js"));
   app.get("/js/products/vang-tich-luy-page.js", sendPricingJs("js/products/vang-tich-luy-page.js"));
@@ -117,14 +124,15 @@ module.exports = function registerRoutes(app, ROOT) {
           res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
           return;
         }
-        // CSS: short cache + revalidate. JS: max-age=0 so formula/price engine
-        // updates reach users without Ctrl+F5 (query ?v= alone is not enough if HTML is stale).
+        // CSS: short cache + revalidate.
+        // JS: no-store — Cloudflare was still caching max-age=0 as ~4h on custom domain.
         if (ext === ".css") {
           res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
           return;
         }
         if (ext === ".js") {
-          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+          res.setHeader("CDN-Cache-Control", "no-store");
           return;
         }
         // Ảnh/icon dưới /assets → disk cache lâu (Chrome hiển thị "disk cache" lần tải sau).

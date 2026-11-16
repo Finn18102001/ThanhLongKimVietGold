@@ -166,7 +166,11 @@
   async function loadTaxonomies() {
     // Admin needs ALL rows (including inactive). Public catalog APIs filter is_active.
     var tx = window.TLKVTaxonomy;
-    if (!tx) throw new Error("Thiếu js/admin/taxonomy-data.js.");
+    if (!tx) {
+      throw new Error(
+        "Thiếu window.TLKVTaxonomy (js/admin/taxonomy-data.js chưa chạy). Hard refresh /admin (Ctrl+F5) hoặc kiểm tra Network xem /js/admin/taxonomy-data.js có 200 không."
+      );
+    }
     var loaded = await Promise.all([
       tx.listAll("brand"),
       tx.listAll("category"),
