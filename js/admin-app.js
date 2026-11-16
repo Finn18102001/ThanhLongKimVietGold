@@ -1924,18 +1924,64 @@ function showToast(message, type = 'success') {
     $("product-hist-date-from")?.addEventListener("change", refreshProductHistory);
     $("product-hist-date-to")?.addEventListener("change", refreshProductHistory);
 
+    function setLoginError(message) {
+      var errEl = $("login-error");
+      if (!errEl) {
+        if (message) alert(message);
+        return;
+      }
+      if (!message) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+        return;
+      }
+      errEl.hidden = false;
+      errEl.textContent = message;
+    }
+
+    $("login-toggle-pass")?.addEventListener("click", function () {
+      var input = $("login-pass");
+      var btn = $("login-toggle-pass");
+      if (!input || !btn) return;
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      btn.setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+      btn.textContent = show ? "Ẩn" : "Hiện";
+    });
+
     $("login-form")?.addEventListener("submit", function (e) {
       e.preventDefault();
+      setLoginError("");
       var email = $("login-user").value.trim();
       var password = $("login-pass").value;
-      if (!sb) {
-        alert("Chưa có client Supabase. Kiểm tra .env.local và chạy npm start.");
+      var submitBtn = $("login-submit");
+      if (!email || !password) {
+        setLoginError("Nhập email và mật khẩu để tiếp tục.");
         return;
+      }
+      if (!sb) {
+        setLoginError("Chưa có client Supabase. Kiểm tra .env.local và chạy npm start.");
+        return;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Đang đăng nhập…";
       }
       sb.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
         if (res.error) {
-          alert(res.error.message);
+          setLoginError(res.error.message || "Đăng nhập không thành công.");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Đăng nhập";
+          }
           return;
+        }
+      }).catch(function (err) {
+        setLoginError((err && err.message) || "Đăng nhập không thành công.");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Đăng nhập";
         }
       });
     });
@@ -1999,7 +2045,7 @@ function showToast(message, type = 'success') {
       $("f-metal").value = "gold";
       if ($("f-highlight")) $("f-highlight").checked = false;
       if ($("f-hide-on-website")) $("f-hide-on-website").checked = false;
-      $("form-title").textContent = "Thêm dòng";
+      $("form-title").textContent = "Thêm dòng bảng giá";
     }
 
     $("btn-new")?.addEventListener("click", function () {

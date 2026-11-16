@@ -4,30 +4,85 @@
 <head>
   <meta charset="utf-8" />
   <meta name="color-scheme" content="light only" />
-  <meta name="theme-color" content="#fdfcf8" />
-  <style id="tlkv-force-light">html{color-scheme:only light!important;background-color:#fdfcf8!important;-webkit-filter:none!important;filter:none!important}</style>
+  <meta name="theme-color" content="#8a1c1d" />
+  <style id="tlkv-force-light">html{color-scheme:only light!important;background-color:#f7f4f0!important;-webkit-filter:none!important;filter:none!important}</style>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin - Thăng Long Kim Việt</title>
   <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png?v=20261114e" />
   <link rel="icon" type="image/png" href="/assets/favicon-48.png?v=20261114e" />
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png?v=20261114e" />
-  <link href="/admin/admin.css?v=20261116b" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="/admin/admin.css?v=20261116d" rel="stylesheet" />
 </head>
 
 <body class="admin-body" data-auth-state="pending">
   <div class="admin-wrap">
-    <div id="login-panel" class="admin-card login-form">
-      <h1>Đăng nhập quản trị</h1>
-      <form id="login-form">
-        <label for="login-user">Email (Supabase Auth)</label>
-        <input id="login-user" name="email" type="email" autocomplete="username" required
-          placeholder="you@example.com" />
-        <label for="login-pass">Mật khẩu</label>
-        <input id="login-pass" name="pass" type="password" autocomplete="current-password" required />
-        <button type="submit" class="btn-primary"
-          style="width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer">Đăng nhập</button>
-      </form>
-      <p class="hint"><a href="/">← Về trang chủ</a></p>
+    <div id="login-panel" class="admin-login">
+      <div class="admin-login__shell">
+        <aside class="admin-login__brand" aria-hidden="true">
+          <div class="admin-login__brand-glow"></div>
+          <img
+            class="admin-login__mark"
+            src="/assets/tlkv-logo-mark.png?v=20261114e"
+            alt=""
+            width="88"
+            height="88"
+            decoding="async"
+          />
+          <p class="admin-login__brand-line">Hệ thống quản trị nội bộ</p>
+        </aside>
+        <div class="admin-login__panel">
+          <header class="admin-login__header">
+            <img
+              class="admin-login__wordmark"
+              src="/assets/tlkv-logo-wordmark.png?v=20261114e"
+              alt="Thăng Long Kim Việt"
+              width="220"
+              height="36"
+              decoding="async"
+            />
+            <h1 class="admin-login__title">Đăng nhập quản trị</h1>
+            <p class="admin-login__subtitle">Dành cho nhân sự được cấp quyền truy cập bảng giá và catalog.</p>
+          </header>
+          <form id="login-form" class="admin-login__form" novalidate>
+            <div class="admin-login__field">
+              <label for="login-user">Email</label>
+              <input
+                id="login-user"
+                name="email"
+                type="email"
+                autocomplete="username"
+                required
+                placeholder="email@thanglongkimviet.vn"
+                inputmode="email"
+              />
+            </div>
+            <div class="admin-login__field">
+              <label for="login-pass">Mật khẩu</label>
+              <div class="admin-login__pass-row">
+                <input
+                  id="login-pass"
+                  name="pass"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  placeholder="Nhập mật khẩu"
+                />
+                <button type="button" class="admin-login__toggle-pass" id="login-toggle-pass" aria-pressed="false" aria-label="Hiện mật khẩu">
+                  Hiện
+                </button>
+              </div>
+            </div>
+            <p id="login-error" class="admin-login__error" role="alert" hidden></p>
+            <button type="submit" class="admin-login__submit" id="login-submit">Đăng nhập</button>
+          </form>
+          <p class="admin-login__footer">
+            <a href="/">Về trang chủ</a>
+          </p>
+        </div>
+      </div>
     </div>
 
     <div id="admin-panel" class="admin-card" hidden>
@@ -49,54 +104,91 @@
       </div>
 
       <section id="admin-tab-gold" class="admin-tab-panel" role="tabpanel" aria-labelledby="tab-btn-gold">
-        <div class="admin-actions" style="margin-bottom: 16px">
-          <button type="button" id="btn-reset-json" class="btn-secondary">Xóa cache local bảng giá (nếu có)</button>
+        <div class="admin-toolbar">
+          <button type="button" id="btn-reset-json" class="btn-secondary">Xóa cache local bảng giá</button>
         </div>
 
-        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-          <h2>Thời gian &amp; đơn vị (dòng trên / chân bảng)</h2>
-          <form id="meta-form">
-            <div class="admin-form-grid">
-              <label> Giờ hiển thị (sau “Cập nhật lúc:”) <input type="text" id="meta-header-time" placeholder="10h00" />
+        <div class="admin-section">
+          <header class="admin-section__head">
+            <h2 class="admin-section__title">Thời gian và đơn vị</h2>
+            <p class="admin-section__desc">Hiển thị trên dòng đầu và chân bảng giá website / TV.</p>
+          </header>
+          <form id="meta-form" class="admin-section__body">
+            <div class="admin-form-grid admin-form-grid--meta">
+              <label class="admin-field">
+                <span class="admin-field__label">Giờ hiển thị</span>
+                <span class="admin-field__hint">Sau chữ “Cập nhật lúc:”</span>
+                <input type="text" id="meta-header-time" placeholder="10h00" />
               </label>
-              <label> Ghi chú ngày (dòng chân bảng) <input type="text" id="meta-footer-note"
-                  placeholder="Cập nhật lúc 10:00 09/04/2026" /> </label>
-              <label> Đơn vị (đ/chỉ) <input type="text" id="meta-unit-line" placeholder="ĐVT =  Nghìn đồng/chỉ" /> </label>
-              <label> Tên thương hiệu (in nghiêng, dòng trên) <input type="text" id="meta-brand-italic" /> </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Ghi chú ngày</span>
+                <span class="admin-field__hint">Dòng chân bảng</span>
+                <input type="text" id="meta-footer-note" placeholder="Cập nhật lúc 10:00 09/04/2026" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Đơn vị</span>
+                <span class="admin-field__hint">đ/chỉ</span>
+                <input type="text" id="meta-unit-line" placeholder="ĐVT = VNĐ/Chỉ" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Tên thương hiệu</span>
+                <span class="admin-field__hint">In nghiêng, dòng trên</span>
+                <input type="text" id="meta-brand-italic" placeholder="THĂNG LONG KIM VIỆT" />
+              </label>
             </div>
-            <div class="admin-actions">
+            <div class="admin-actions admin-actions--form">
               <button type="submit" class="btn-primary">Lưu meta</button>
             </div>
           </form>
         </div>
 
-        <div class="admin-card" style="box-shadow: none; border: 1px solid #e4e4e7; padding: 16px">
-          <h2 id="form-title">Thêm dòng (bảng giá)</h2>
-          <form id="row-form">
+        <div class="admin-section">
+          <header class="admin-section__head">
+            <h2 class="admin-section__title" id="form-title">Thêm dòng bảng giá</h2>
+            <p class="admin-section__desc">Thương hiệu cố định theo rule hiển thị; trong cùng thương hiệu có thể kéo thả ở danh sách bên dưới.</p>
+          </header>
+          <form id="row-form" class="admin-section__body">
             <input type="hidden" id="f-id" />
-            <div class="admin-form-grid">
-              <label> Thương hiệu <input type="text" id="f-brand" required /> </label>
-              <label> Sản phẩm <input type="text" id="f-product" /> </label>
-              <label> Hàm lượng <input type="text" id="f-purity" required /> </label>
-              <label> Mua vào <input type="text" id="f-buy" required /> </label>
-              <label> Bán ra <input type="text" id="f-sell" /> </label>
-              <label>
-                Loại
+            <div class="admin-form-grid admin-form-grid--row">
+              <label class="admin-field">
+                <span class="admin-field__label">Thương hiệu</span>
+                <input type="text" id="f-brand" required placeholder="VD: THĂNG LONG KIM VIỆT" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Sản phẩm</span>
+                <input type="text" id="f-product" placeholder="VD: BST Vàng Chúc Phúc" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Hàm lượng</span>
+                <input type="text" id="f-purity" required placeholder="999,9" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Mua vào</span>
+                <input type="text" id="f-buy" required placeholder="0" inputmode="decimal" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Bán ra</span>
+                <input type="text" id="f-sell" placeholder="0" inputmode="decimal" />
+              </label>
+              <label class="admin-field">
+                <span class="admin-field__label">Loại</span>
                 <select id="f-metal">
                   <option value="gold">Vàng</option>
                   <option value="silver">Bạc</option>
                 </select>
               </label>
-              <label class="admin-checkbox-label">
+            </div>
+            <div class="admin-option-row">
+              <label class="admin-check">
                 <input type="checkbox" id="f-highlight" />
-                Nền xanh (vàng — tùy chọn; bạc luôn xanh)
+                <span>Nền xanh (vàng tùy chọn; bạc luôn xanh)</span>
               </label>
-              <label class="admin-checkbox-label admin-label-full">
+              <label class="admin-check">
                 <input type="checkbox" id="f-hide-on-website" />
-                Không hiển thị trên bảng giá website
+                <span>Không hiển thị trên bảng giá website</span>
               </label>
             </div>
-            <div class="admin-actions">
+            <div class="admin-actions admin-actions--form">
               <button type="submit" class="btn-primary">Lưu</button>
               <button type="button" id="btn-new" class="btn-secondary">Dòng mới</button>
             </div>
@@ -650,7 +742,7 @@
   <script src="/js/admin-audit.js?v=20261116b"></script>
   <script src="/js/admin/admin-access.js?v=20261116b"></script>
   <script src="/js/admin/product-storage.js?v=20261116b"></script>
-  <script src="/js/admin-app.js?v=20261116b"></script>
+  <script src="/js/admin-app.js?v=20261116d"></script>
   <script src="/js/admin/taxonomy-data.js?v=20261116b"></script>
   <script src="/js/admin/product-form-admin.js?v=20261116b"></script>
   <script src="/js/admin/catalog-admin.js?v=20261116b"></script>
