@@ -669,6 +669,8 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Ngày hẹn trả vàng",
     "Thời gian trả vàng",
     "Ngày trả vàng",
+    "Tiền công",
+    "Phụ thu thêm",
   ];
   const lines = rows.map((row) =>
     [
@@ -698,6 +700,8 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.goldReturnDueAt ? formatViDate(formatVnIsoDate(row.goldReturnDueAt)) : "",
       row.goldReturnedAt ? formatViDateTime(row.goldReturnedAt) : "",
       row.goldReturnedAt ? formatViDate(formatVnIsoDate(row.goldReturnedAt)) : "",
+      row.laborFinalDong,
+      row.extraChargesDong,
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
       .join(","),

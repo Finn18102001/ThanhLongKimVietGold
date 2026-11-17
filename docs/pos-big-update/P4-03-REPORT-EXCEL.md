@@ -54,7 +54,7 @@ Mọi nút "Xuất Excel" của TLKV tạo file **CSV** (UTF-8 có BOM), không 
 
 Cột hiện có (giữ nguyên, ghi để đối chiếu):
 
-- `tlkv-giao-dich-*.csv` (26 cột): Loại, Mã phiếu, Số hóa đơn, Khách hàng, SĐT, CCCD khách hàng, Mã hàng, Thương hiệu, Tên sản phẩm, Hàm lượng, Đơn giá, SL bán, Số chỉ, Tổng tiền, Đã thanh toán, Còn lại, Trạng thái thanh toán, Hình thức thanh toán, Hạn thanh toán, Người bán, Hoàn tất lúc, Ghi chú, Trạng thái trả vàng, Ngày hẹn trả vàng, Thời gian trả vàng, Ngày trả vàng.
+- `tlkv-giao-dich-*.csv` (28 cột): Loại, Mã phiếu, Số hóa đơn, Khách hàng, SĐT, CCCD khách hàng, Mã hàng, Thương hiệu, Tên sản phẩm, Hàm lượng, Đơn giá, SL bán, Số chỉ, Tổng tiền, Đã thanh toán, Còn lại, Trạng thái thanh toán, Hình thức thanh toán, Hạn thanh toán, Người bán, Hoàn tất lúc, Ghi chú, Trạng thái trả vàng, Ngày hẹn trả vàng, Thời gian trả vàng, Ngày trả vàng, **Tiền công**, **Phụ thu thêm** (thêm cuối file 2026-11-18; bán: `labor_final×SL` + tổng `pos_sale_charges`; mua: 0).
 - `chung-tu.csv` (23 cột): Loại, Số chứng từ, Đối tác, SĐT, Tên sản phẩm, Thương hiệu, Hàm lượng, Đơn giá, Số lượng, Số chỉ, Tổng, Đã trả, Còn lại, Trạng thái TT, Hình thức, Thời gian, Trạng thái trả vàng, Ngày hẹn trả vàng, Ngày xuất vàng, Thu lần 1 (đặt cọc), Thu lần 2 (còn lại), Tham chiếu, Ghi chú.
 - `phieu-02.csv` (14 cột): STT, Ngày tháng năm mua hàng, Tên người bán, Địa chỉ, Số căn cước, Số điện thoại, Tên hàng hóa/dịch vụ, Hàm lượng, Số lượng/Trọng lượng, Đơn giá, Tổng giá thanh toán, Số hóa đơn, Mã giao dịch, Nhân viên mua.
 

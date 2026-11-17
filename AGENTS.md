@@ -12,6 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Development contract (mandatory): `docs/SYSTEM_DEVELOPMENT_RULES.md`
 
+Hard-test / build port: `docs/pos-big-update/POS-DEV-BUILD.md` (account `tuananh18101@gmail.com` / `1234567`, port 3000).
+
 - New work is a **separate module** with its **own router**. Do not edit unrelated modules.
 - Inventory never updates without a ledger transaction.
 - Backend decides stock, price, status, revenue. Frontend only sends commands.

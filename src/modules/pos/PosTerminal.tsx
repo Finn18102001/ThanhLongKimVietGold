@@ -190,6 +190,7 @@ export function PosTerminal({
   const [query, setQuery] = useState("");
   const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
   const [brandId, setBrandId] = useState("all");
+  const [categoryName, setCategoryName] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
@@ -376,17 +377,70 @@ export function PosTerminal({
     addItem(item);
   }
 
+  const brandScopedCatalog = useMemo(() => {
+    return gridCatalog.filter((item) => {
+      if (brandId === "all") return true;
+      if (brandId === "none") return !item.brandId;
+      return item.brandId === brandId;
+    });
+  }, [brandId, gridCatalog]);
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        brandScopedCatalog
+          .map((item) => item.category?.trim())
+          .filter((name): name is string => Boolean(name)),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [brandScopedCatalog]);
+
+  const productTypeOptions = useMemo(() => {
+    const ids = new Set(
+      brandScopedCatalog
+        .map((item) => item.productTypeId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const hasNone = brandScopedCatalog.some((item) => !item.productTypeId);
+    return {
+      types: productTypes.filter((type) => ids.has(type.id)),
+      hasNone,
+    };
+  }, [brandScopedCatalog, productTypes]);
+
   const groups = useMemo(() => {
-    const unique = Array.from(new Set(gridCatalog.map((item) => item.browseGroup)));
+    const unique = Array.from(new Set(brandScopedCatalog.map((item) => item.browseGroup)));
     return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
-  }, [gridCatalog]);
+  }, [brandScopedCatalog]);
+
+  useEffect(() => {
+    if (categoryName !== "all" && !categoryOptions.includes(categoryName)) {
+      setCategoryName("all");
+    }
+  }, [categoryName, categoryOptions]);
+
+  useEffect(() => {
+    if (productTypeId === "all") return;
+    if (productTypeId === "none") {
+      if (!productTypeOptions.hasNone) setProductTypeId("all");
+      return;
+    }
+    if (!productTypeOptions.types.some((type) => type.id === productTypeId)) {
+      setProductTypeId("all");
+    }
+  }, [productTypeId, productTypeOptions]);
+
+  useEffect(() => {
+    if (group !== "Tất cả" && !groups.includes(group)) {
+      setGroup("Tất cả");
+    }
+  }, [group, groups]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = gridCatalog.filter((item) => {
-      const matchesBrand =
-        brandId === "all" ||
-        (brandId === "none" ? !item.brandId : item.brandId === brandId);
+    const rows = brandScopedCatalog.filter((item) => {
+      const matchesCategory =
+        categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =
         productTypeId === "all" ||
         (productTypeId === "none" ? !item.productTypeId : item.productTypeId === productTypeId);
@@ -398,10 +452,10 @@ export function PosTerminal({
         item.category.toLowerCase().includes(q) ||
         (item.brandName || "").toLowerCase().includes(q) ||
         mspSkuIds.includes(item.skuId);
-      return matchesBrand && matchesType && matchesGroup && matchesQuery;
+      return matchesCategory && matchesType && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandId, gridCatalog, group, productTypeId, query, mspSkuIds]);
+  }, [brandScopedCatalog, categoryName, group, productTypeId, query, mspSkuIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -1170,6 +1224,9 @@ export function PosTerminal({
               value={brandId}
               onChange={(event) => {
                 setBrandId(event.target.value);
+                setCategoryName("all");
+                setProductTypeId("all");
+                setGroup("Tất cả");
                 setPageIndex(0);
               }}
               className="max-w-[200px] bg-transparent text-[13px] font-medium outline-none"
@@ -1184,6 +1241,24 @@ export function PosTerminal({
             </select>
           </label>
           <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-white px-3 text-[13px]">
+            <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Danh mục</span>
+            <select
+              value={categoryName}
+              onChange={(event) => {
+                setCategoryName(event.target.value);
+                setPageIndex(0);
+              }}
+              className="max-w-[180px] bg-transparent text-[13px] font-medium outline-none"
+            >
+              <option value="all">Tất cả danh mục</option>
+              {categoryOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-white px-3 text-[13px]">
             <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Loại sản phẩm</span>
             <select
               value={productTypeId}
@@ -1194,12 +1269,12 @@ export function PosTerminal({
               className="max-w-[160px] bg-transparent text-[13px] font-medium outline-none"
             >
               <option value="all">Tất cả loại</option>
-              {productTypes.map((type) => (
+              {productTypeOptions.types.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>
               ))}
-              <option value="none">Chưa phân loại</option>
+              {productTypeOptions.hasNone ? <option value="none">Chưa phân loại</option> : null}
             </select>
           </label>
           <button

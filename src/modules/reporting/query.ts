@@ -161,6 +161,8 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
       raw.goldReturnedAt == null || raw.goldReturnedAt === ""
         ? null
         : String(raw.goldReturnedAt),
+    laborFinalDong: Number(raw.laborFinalDong ?? 0),
+    extraChargesDong: Number(raw.extraChargesDong ?? 0),
   };
 }
 

@@ -62,6 +62,10 @@ export type TransactionExportRow = {
   goldReturnDueAt: string | null;
   /** Actual gold handover timestamp. Null until the gold is handed over. */
   goldReturnedAt: string | null;
+  /** Line labor total (labor_final_dong × quantity). 0 for buy rows. */
+  laborFinalDong: number;
+  /** Sale-level phụ thu thêm (sum of pos_sale_charges), repeated on each line. 0 for buy. */
+  extraChargesDong: number;
 };
 
 export type PurchaseReportFilters = {

@@ -36,20 +36,10 @@ export function PurchaseCatalogPanel({
 }) {
   const [group, setGroup] = useState("Tất cả");
   const [brandName, setBrandName] = useState("all");
+  const [categoryName, setCategoryName] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
-
-  const groups = useMemo(() => {
-    const unique = Array.from(new Set([MARKET_GOLD_GROUP, ...catalog.map((item) => item.browseGroup)]));
-    return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
-  }, [catalog]);
-  const showMarketCards =
-    (group === "Tất cả" || group === MARKET_GOLD_GROUP) &&
-    (brandName === "all" || brandName === MARKET_GOLD_GROUP) &&
-    productTypeId === "all" &&
-    (!query.trim() || MARKET_GOLD_GROUP.toLowerCase().includes(query.trim().toLowerCase()) ||
-      "bạc thị trường".includes(query.trim().toLowerCase()));
 
   const brandOptions = useMemo(() => {
     const names = Array.from(
@@ -58,14 +48,84 @@ export function PurchaseCatalogPanel({
     return names;
   }, [catalog]);
 
+  const brandScopedCatalog = useMemo(() => {
+    return catalog.filter((item) => {
+      if (brandName === "all") return true;
+      if (brandName === "none") return !item.brandName;
+      return (item.brandName || "").trim() === brandName;
+    });
+  }, [brandName, catalog]);
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        brandScopedCatalog
+          .map((item) => item.category?.trim())
+          .filter((name): name is string => Boolean(name)),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [brandScopedCatalog]);
+
+  const productTypeOptions = useMemo(() => {
+    const ids = new Set(
+      brandScopedCatalog
+        .map((item) => item.productTypeId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const hasNone = brandScopedCatalog.some((item) => !item.productTypeId);
+    return {
+      types: productTypes.filter((type) => ids.has(type.id)),
+      hasNone,
+    };
+  }, [brandScopedCatalog, productTypes]);
+
+  const groups = useMemo(() => {
+    const unique = Array.from(
+      new Set([
+        ...(brandName === "all" || brandName === MARKET_GOLD_GROUP ? [MARKET_GOLD_GROUP] : []),
+        ...brandScopedCatalog.map((item) => item.browseGroup),
+      ]),
+    );
+    return prioritizeGoldGroupLabels(["Tất cả", ...unique]);
+  }, [brandName, brandScopedCatalog]);
+
+  const showMarketCards =
+    (group === "Tất cả" || group === MARKET_GOLD_GROUP) &&
+    (brandName === "all" || brandName === MARKET_GOLD_GROUP) &&
+    categoryName === "all" &&
+    productTypeId === "all" &&
+    (!query.trim() ||
+      MARKET_GOLD_GROUP.toLowerCase().includes(query.trim().toLowerCase()) ||
+      "bạc thị trường".includes(query.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (categoryName !== "all" && !categoryOptions.includes(categoryName)) {
+      setCategoryName("all");
+    }
+  }, [categoryName, categoryOptions]);
+
+  useEffect(() => {
+    if (productTypeId === "all") return;
+    if (productTypeId === "none") {
+      if (!productTypeOptions.hasNone) setProductTypeId("all");
+      return;
+    }
+    if (!productTypeOptions.types.some((type) => type.id === productTypeId)) {
+      setProductTypeId("all");
+    }
+  }, [productTypeId, productTypeOptions]);
+
+  useEffect(() => {
+    if (group !== "Tất cả" && !groups.includes(group)) {
+      setGroup("Tất cả");
+    }
+  }, [group, groups]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = catalog.filter((item) => {
-      const matchesBrand =
-        brandName === "all" ||
-        (brandName === "none"
-          ? !item.brandName
-          : (item.brandName || "").trim() === brandName);
+    const rows = brandScopedCatalog.filter((item) => {
+      const matchesCategory =
+        categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =
         productTypeId === "all" ||
         (productTypeId === "none" ? !item.productTypeId : item.productTypeId === productTypeId);
@@ -76,14 +136,14 @@ export function PurchaseCatalogPanel({
         item.sku.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
         (item.brandName || "").toLowerCase().includes(q);
-      return matchesBrand && matchesType && matchesGroup && matchesQuery;
+      return matchesCategory && matchesType && matchesGroup && matchesQuery;
     });
     return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandName, catalog, group, productTypeId, query]);
+  }, [brandScopedCatalog, categoryName, group, productTypeId, query]);
 
   useEffect(() => {
     setPageIndex(0);
-  }, [brandName, group, productTypeId, query]);
+  }, [brandName, categoryName, group, productTypeId, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(pageIndex, pageCount - 1);
@@ -112,7 +172,12 @@ export function PurchaseCatalogPanel({
           <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Thương hiệu</span>
           <select
             value={brandName}
-            onChange={(e) => setBrandName(e.target.value)}
+            onChange={(e) => {
+              setBrandName(e.target.value);
+              setCategoryName("all");
+              setProductTypeId("all");
+              setGroup("Tất cả");
+            }}
             className="max-w-[200px] bg-transparent text-[13px] font-medium outline-none"
           >
             <option value="all">Tất cả thương hiệu</option>
@@ -125,6 +190,21 @@ export function PurchaseCatalogPanel({
           </select>
         </label>
         <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px]">
+          <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Danh mục</span>
+          <select
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            className="max-w-[180px] bg-transparent text-[13px] font-medium outline-none"
+          >
+            <option value="all">Tất cả danh mục</option>
+            {categoryOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px]">
           <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Loại sản phẩm</span>
           <select
             value={productTypeId}
@@ -132,12 +212,12 @@ export function PurchaseCatalogPanel({
             className="max-w-[160px] bg-transparent text-[13px] font-medium outline-none"
           >
             <option value="all">Tất cả loại</option>
-            {productTypes.map((type) => (
+            {productTypeOptions.types.map((type) => (
               <option key={type.id} value={type.id}>
                 {type.name}
               </option>
             ))}
-            <option value="none">Chưa phân loại</option>
+            {productTypeOptions.hasNone ? <option value="none">Chưa phân loại</option> : null}
           </select>
         </label>
       </div>

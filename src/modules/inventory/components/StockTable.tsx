@@ -57,11 +57,6 @@ export function StockTable({
     };
   }, [query]);
 
-  const categories = useMemo(
-    () => Array.from(new Set(rows.map((row) => row.category).filter(Boolean))),
-    [rows],
-  );
-
   const brands = useMemo(
     () =>
       (Array.from(new Set(rows.map((row) => row.brandName).filter(Boolean))) as string[]).sort(
@@ -76,18 +71,61 @@ export function StockTable({
     ...(hasNoBrand ? [{ id: "__none__", label: "Không brand" }] : []),
   ];
 
+  const brandScopedRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (!brand) return true;
+      if (brand === "__none__") return !row.brandName;
+      return row.brandName === brand;
+    });
+  }, [brand, rows]);
+
+  const categories = useMemo(
+    () =>
+      Array.from(new Set(brandScopedRows.map((row) => row.category).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, "vi"),
+      ),
+    [brandScopedRows],
+  );
+
+  const productTypeOptions = useMemo(() => {
+    const ids = new Set(
+      brandScopedRows
+        .map((row) => row.productTypeId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const hasNone = brandScopedRows.some((row) => !row.productTypeId);
+    return {
+      types: productTypes.filter((type) => ids.has(type.id)),
+      hasNone,
+    };
+  }, [brandScopedRows, productTypes]);
+
+  useEffect(() => {
+    if (category && !categories.includes(category)) {
+      setCategory("");
+    }
+  }, [category, categories]);
+
+  useEffect(() => {
+    if (!productTypeId) return;
+    if (productTypeId === "__none__") {
+      if (!productTypeOptions.hasNone) setProductTypeId("");
+      return;
+    }
+    if (!productTypeOptions.types.some((type) => type.id === productTypeId)) {
+      setProductTypeId("");
+    }
+  }, [productTypeId, productTypeOptions]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rows.filter((row) => {
+    return brandScopedRows.filter((row) => {
       const status = stockStatus(row.quantity);
       const matchesTab = tab === "ALL" || status === tab;
       const matchesCategory = !category || row.category === category;
       const matchesType =
         !productTypeId ||
         (productTypeId === "__none__" ? !row.productTypeId : row.productTypeId === productTypeId);
-      const matchesBrand =
-        !brand ||
-        (brand === "__none__" ? !row.brandName : row.brandName === brand);
       const matchesQuery =
         !q ||
         row.name.toLowerCase().includes(q) ||
@@ -95,9 +133,9 @@ export function StockTable({
         row.category.toLowerCase().includes(q) ||
         (row.brandName ?? "").toLowerCase().includes(q) ||
         mspSkuIds.includes(row.skuId);
-      return matchesTab && matchesCategory && matchesType && matchesBrand && matchesQuery;
+      return matchesTab && matchesCategory && matchesType && matchesQuery;
     });
-  }, [rows, query, tab, category, productTypeId, brand, mspSkuIds]);
+  }, [brandScopedRows, query, tab, category, productTypeId, mspSkuIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -161,6 +199,8 @@ export function StockTable({
             type="button"
             onClick={() => {
               setBrand(item.id);
+              setCategory("");
+              setProductTypeId("");
               setPage(0);
             }}
             className={`h-9 shrink-0 rounded-full px-3 text-[13px] font-medium whitespace-nowrap ${
@@ -214,12 +254,12 @@ export function StockTable({
           className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
         >
           <option value="">Tất cả loại sản phẩm</option>
-          {productTypes.map((type) => (
+          {productTypeOptions.types.map((type) => (
             <option key={type.id} value={type.id}>
               {type.name}
             </option>
           ))}
-          <option value="__none__">Chưa phân loại</option>
+          {productTypeOptions.hasNone ? <option value="__none__">Chưa phân loại</option> : null}
         </select>
         <select
           value={tab}
