@@ -46,7 +46,7 @@ export async function listStock(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id), brands!pos_skus_brand_id_fkey(name)",
+      "id, sku, name, brand_id, weight_chi, board_unit_chi, labor_fee_dong, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell), pos_inventory_stock(quantity, last_cost_dong, updated_at), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id), brands!pos_skus_brand_id_fkey(name)",
     )
     .order("name");
   request = options?.includeMarketGold
@@ -77,6 +77,10 @@ export async function listStock(options?: {
       Number(row.board_unit_chi),
       Number(row.labor_fee_dong),
     );
+    const stockUpdatedAt =
+      stock && "updated_at" in stock && stock.updated_at != null
+        ? String(stock.updated_at)
+        : null;
     return {
       skuId: row.id,
       sku: row.sku,
@@ -90,6 +94,7 @@ export async function listStock(options?: {
       brandId: (row as { brand_id?: string | null }).brand_id ?? null,
       brandName: brand?.name ?? null,
       productTypeId: product?.product_type_id ?? null,
+      stockUpdatedAt,
       ...(purityBySku ? { purity: purityBySku[row.id] ?? null } : {}),
     };
   });

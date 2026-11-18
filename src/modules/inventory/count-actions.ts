@@ -60,21 +60,39 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
   const supabase = await createServerSupabase();
   const skuIds = session.items.map((item) => item.skuId);
   const [{ data, error }, purityBySku] = await Promise.all([
-    supabase.from("pos_skus").select("id, weight_chi, brands(name)").in("id", skuIds),
+    supabase
+      .from("pos_skus")
+      .select(
+        "id, weight_chi, brands(name), products!pos_skus_catalog_product_id_fkey(category, product_type_id)",
+      )
+      .in("id", skuIds),
     fetchSkuPurityMap(skuIds),
   ]);
   if (error || !data) return withDayMovements(session);
 
-  const metaBySku = new Map<string, { brandName: string | null; weightChi: number }>();
+  type ProductEmbed = { category: string | null; product_type_id: string | null };
+  const metaBySku = new Map<
+    string,
+    {
+      brandName: string | null;
+      weightChi: number;
+      category: string | null;
+      productTypeId: string | null;
+    }
+  >();
   for (const row of data as Array<{
     id: string;
     weight_chi: number | string | null;
     brands?: { name: string } | { name: string }[] | null;
+    products?: ProductEmbed | ProductEmbed[] | null;
   }>) {
     const brand = Array.isArray(row.brands) ? row.brands[0] : row.brands;
+    const product = Array.isArray(row.products) ? row.products[0] : row.products;
     metaBySku.set(row.id, {
       brandName: brand?.name ?? null,
       weightChi: Number(row.weight_chi ?? 0),
+      category: product?.category ?? null,
+      productTypeId: product?.product_type_id ?? null,
     });
   }
 
@@ -86,6 +104,8 @@ async function withSkuMeta(session: StockCountSession): Promise<StockCountSessio
         ...item,
         brandName: meta?.brandName ?? item.brandName ?? null,
         weightChi: meta?.weightChi ?? item.weightChi,
+        category: meta?.category ?? item.category ?? null,
+        productTypeId: meta?.productTypeId ?? item.productTypeId ?? null,
         purity: purityBySku[item.skuId] ?? null,
       };
     }),

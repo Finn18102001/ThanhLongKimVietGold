@@ -14,6 +14,8 @@ export type StockRow = {
   productTypeId: string | null;
   /** Hàm lượng as recorded (only loaded with `withPurity`). */
   purity?: string | null;
+  /** `pos_inventory_stock.updated_at` when present — display only. */
+  stockUpdatedAt?: string | null;
 };
 
 export type ProductTypeOption = { id: string; name: string };

@@ -14,6 +14,10 @@ export type StockCountLine = {
   sku: string;
   name: string;
   brandName: string | null;
+  /** Danh mục catalog (text) — enrich từ products, chỉ để lọc UI. */
+  category?: string | null;
+  /** Loại sản phẩm — enrich từ products.product_type_id. */
+  productTypeId?: string | null;
   /** Định lượng vàng (chỉ) của SKU — nguồn pos_skus.weight_chi. */
   weightChi: number;
   /** Hàm lượng hiện tại của SKU (RPC pos_list_sku_purity). */
