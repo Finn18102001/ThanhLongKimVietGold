@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { receivePurchase } from "../actions";
-import type { SellPriceMode } from "../priceLink";
+import type { ReceiveMetalKind, SellPriceMode } from "../priceLink";
 import type {
   BrandCategoryLink,
   BrandOption,
@@ -13,6 +13,7 @@ import type {
   StockRow,
 } from "../types";
 import { PriceLinkControls } from "./PriceLinkControls";
+import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
 
 type LineMode = "catalog" | "order";
 
@@ -64,6 +65,10 @@ export function ReceiveForm({
   const [orderSkuPrefix, setOrderSkuPrefix] = useState("TLKVTS");
   const [orderVisible, setOrderVisible] = useState(false);
   const [orderWeightChi, setOrderWeightChi] = useState(1);
+  const [metalKind, setMetalKind] = useState<ReceiveMetalKind>("gold");
+  const [purityText, setPurityText] = useState("");
+  const [spotBuyDong, setSpotBuyDong] = useState("");
+  const [receiveLaborDong, setReceiveLaborDong] = useState("0");
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [sellMode, setSellMode] = useState<SellPriceMode>("link");
@@ -79,6 +84,10 @@ export function ReceiveForm({
     setOrderSkuPrefix("TLKVTS");
     setOrderVisible(false);
     setOrderWeightChi(1);
+    setMetalKind("gold");
+    setPurityText("");
+    setSpotBuyDong("");
+    setReceiveLaborDong("0");
     setCostPriceDong("");
     setSellPriceDong("");
     setSellMode("link");
@@ -152,6 +161,7 @@ export function ReceiveForm({
               sku_prefix: prefix,
               visible: orderVisible,
               weight_chi: orderWeightChi,
+              gold_age: metalKind === "gold" && purityText.trim() ? purityText.trim() : null,
             },
           },
         ]),
@@ -237,6 +247,24 @@ export function ReceiveForm({
           </button>
         ))}
       </div>
+
+      {lineMode === "order" ? (
+        <div className="mt-3">
+          <ReceiveMetalTabs
+            value={metalKind}
+            onChange={(next) => {
+              setMetalKind(next);
+              setOrderPriceRowId("");
+              setSpotBuyDong("");
+              setReceiveLaborDong("0");
+              setCostPriceDong("");
+              setSellPriceDong("");
+              setHeso("");
+              if (next === "silver") setPurityText("");
+            }}
+          />
+        </div>
+      ) : null}
 
       <form action={onSubmit} className="mt-4 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
         <input type="hidden" name="idempotency_key" value={idempotencyKey} />
@@ -327,10 +355,17 @@ export function ReceiveForm({
               />
             </label>
             <PriceLinkControls
+              metalKind={metalKind}
               priceRows={priceRows}
               priceRowId={orderPriceRowId}
               onPriceRowIdChange={setOrderPriceRowId}
               weightChi={orderWeightChi}
+              purityText={purityText}
+              onPurityTextChange={setPurityText}
+              spotBuyDong={spotBuyDong}
+              onSpotBuyDongChange={setSpotBuyDong}
+              receiveLaborDong={receiveLaborDong}
+              onReceiveLaborDongChange={setReceiveLaborDong}
               costPriceDong={costPriceDong}
               onCostPriceDongChange={setCostPriceDong}
               sellPriceDong={sellPriceDong}
@@ -341,7 +376,7 @@ export function ReceiveForm({
               onHesoChange={setHeso}
             />
             <label className="text-sm sm:col-span-2">
-              Giá / ghi chú
+              Ghi chú
               <input
                 value={orderPriceNote}
                 onChange={(e) => setOrderPriceNote(e.target.value)}

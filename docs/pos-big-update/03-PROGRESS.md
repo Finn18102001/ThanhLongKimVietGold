@@ -2,6 +2,7 @@
 
 > Cập nhật: 2026-11-12 (UTC+7), thêm Phase 4 vàng kèm đá ([`P4-00-GOLD-STONE.md`](./P4-00-GOLD-STONE.md)). Chi tiết Phase 1: [`P1-00-OVERVIEW.md`](./P1-00-OVERVIEW.md).  
 > 2026-11-13: audit Phase 4, không đổi code nên **không đổi %**. Hiện trạng và khoảng trống theo flow: mua [`P4-01-BUY-FLOW.md`](./P4-01-BUY-FLOW.md), bán [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md), báo cáo / Excel [`P4-03-REPORT-EXCEL.md`](./P4-03-REPORT-EXCEL.md). Yêu cầu mới chưa tính vào %: chiết khấu khi bán (P4-02 §9), cột thành phần trong file xuất (P4-03).  
+> 2026-11-18: ghi sổ **P9** công thức giá vàng/bạc + tab Nhập vàng/Nhập bạc + tách công nhập/bán — [`P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md`](./P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md); cập nhật SYSTEM_DEVELOPMENT_RULES §13 / §21.2. **Chưa code.** Mục P9 §5 (sửa giá bán độc lập CRUD) **hoãn**. Không đổi % plan 7 GĐ vì chưa triển khai.  
 > % = ước lượng theo số hạng mục con đã xong (đã code + kiểm chứng), không phải theo giờ công.
 
 ## 1. Tổng

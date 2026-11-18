@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Printer } from "@phosphor-icons/react";
 import { PriceLinkControls } from "@/modules/inventory/components/PriceLinkControls";
-import type { SellPriceMode } from "@/modules/inventory/priceLink";
+import { ReceiveMetalTabs } from "@/modules/inventory/components/ReceiveMetalTabs";
+import type { ReceiveMetalKind, SellPriceMode } from "@/modules/inventory/priceLink";
 import type { PriceRowOption } from "@/modules/inventory/types";
 import { formatDong } from "../labels";
 import { receiveLabelOrderPurchase } from "../receive-actions";
@@ -20,6 +21,7 @@ const FIELD =
 const LABEL = "text-[12px] text-[var(--tlkv-muted)]";
 
 type Draft = {
+  metalKind: ReceiveMetalKind;
   name: string;
   brandId: string;
   categoryId: string;
@@ -28,6 +30,8 @@ type Draft = {
   skuPrefix: string;
   weightChi: string;
   goldAge: string;
+  spotBuyDong: string;
+  receiveLaborDong: string;
   visible: boolean;
   expectedQty: string;
   receivedQty: string;
@@ -42,6 +46,7 @@ type Draft = {
 
 function emptyDraft(defaultBrandId: string): Draft {
   return {
+    metalKind: "gold",
     name: "",
     brandId: defaultBrandId,
     categoryId: "",
@@ -50,6 +55,8 @@ function emptyDraft(defaultBrandId: string): Draft {
     skuPrefix: "TLKVTS",
     weightChi: "1",
     goldAge: "",
+    spotBuyDong: "",
+    receiveLaborDong: "0",
     visible: false,
     expectedQty: "0",
     receivedQty: "1",
@@ -126,8 +133,9 @@ export function CombinedReceivePrintPanel({
     if (draft.weightChi.trim() === "" || !Number.isFinite(weightChi) || weightChi < 0) {
       return "Định lượng (chỉ) không hợp lệ.";
     }
-    const goldAge = draft.goldAge.trim();
-    if (goldAge) {
+    if (draft.metalKind === "gold") {
+      const goldAge = draft.goldAge.trim();
+      if (!goldAge) return "Nhập vàng cần hàm lượng / tuổi vàng.";
       if (!GOLD_AGE_PATTERN.test(goldAge)) return "Tuổi vàng là số, tối đa 3 chữ số thập phân.";
       const value = Number(goldAge);
       if (!(value > 0 && value <= 1000)) return "Tuổi vàng phải lớn hơn 0 và không quá 1000.";
@@ -169,7 +177,7 @@ export function CombinedReceivePrintPanel({
         priceNote: "",
         skuPrefix: draft.skuPrefix,
         weightChi,
-        goldAge: draft.goldAge,
+        goldAge: draft.metalKind === "gold" ? draft.goldAge : "",
         visible: draft.visible,
         expectedQty: Number(draft.expectedQty),
         receivedQty,
@@ -222,6 +230,24 @@ export function CombinedReceivePrintPanel({
           lỗi in.
         </div>
       ) : null}
+
+      <div className="mt-4">
+        <ReceiveMetalTabs
+          value={draft.metalKind}
+          onChange={(metalKind) =>
+            patch({
+              metalKind,
+              priceRowId: "",
+              spotBuyDong: "",
+              receiveLaborDong: "0",
+              costPriceDong: "",
+              sellPriceDong: "",
+              heso: "",
+              goldAge: metalKind === "silver" ? "" : draft.goldAge,
+            })
+          }
+        />
+      </div>
 
       <form onSubmit={openConfirm} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className={`${LABEL} sm:col-span-2`}>
@@ -294,28 +320,38 @@ export function CombinedReceivePrintPanel({
             className={FIELD}
           />
         </label>
-        <label className={LABEL}>
-          Tuổi vàng / hàm lượng
-          <input
-            inputMode="decimal"
-            list="combined-receive-gold-age"
-            placeholder="VD: 999.9, 750, 610.5"
-            value={draft.goldAge}
-            onChange={(e) => patch({ goldAge: e.target.value.replace(",", ".").trim() })}
-            className={FIELD}
-          />
-          <datalist id="combined-receive-gold-age">
-            {GOLD_AGE_SUGGESTIONS.map((value) => (
-              <option key={value} value={value} />
-            ))}
-          </datalist>
-        </label>
+        {draft.metalKind === "gold" ? (
+          <label className={`${LABEL} sm:col-span-2`}>
+            Tuổi vàng / hàm lượng
+            <input
+              inputMode="decimal"
+              list="combined-receive-gold-age"
+              placeholder="VD: 999.9, 750, 610.5"
+              value={draft.goldAge}
+              onChange={(e) => patch({ goldAge: e.target.value.replace(",", ".").trim() })}
+              className={FIELD}
+            />
+            <datalist id="combined-receive-gold-age">
+              {GOLD_AGE_SUGGESTIONS.map((value) => (
+                <option key={value} value={value} />
+              ))}
+            </datalist>
+          </label>
+        ) : null}
 
         <PriceLinkControls
+          metalKind={draft.metalKind}
           priceRows={priceRows}
           priceRowId={draft.priceRowId}
           onPriceRowIdChange={(id) => patch({ priceRowId: id })}
           weightChi={Number.isFinite(weightChi) ? weightChi : 0}
+          purityText={draft.goldAge}
+          onPurityTextChange={(value) => patch({ goldAge: value })}
+          showPurityField={false}
+          spotBuyDong={draft.spotBuyDong}
+          onSpotBuyDongChange={(value) => patch({ spotBuyDong: value })}
+          receiveLaborDong={draft.receiveLaborDong}
+          onReceiveLaborDongChange={(value) => patch({ receiveLaborDong: value })}
           costPriceDong={draft.costPriceDong}
           onCostPriceDongChange={(value) => patch({ costPriceDong: value })}
           sellPriceDong={draft.sellPriceDong}

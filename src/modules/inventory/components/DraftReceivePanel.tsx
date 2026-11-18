@@ -9,9 +9,10 @@ import {
 } from "@/modules/label-print/draft-actions";
 import type { LabelDraftDetail, LabelDraftSummary } from "@/modules/label-print/draft-types";
 import { receiveLabelDraftAction } from "../draft-receive-actions";
-import type { SellPriceMode } from "../priceLink";
+import type { ReceiveMetalKind, SellPriceMode } from "../priceLink";
 import type { BrandCategoryLink, BrandOption, CategoryOption, PriceRowOption, ProductTypeOption } from "../types";
 import { PriceLinkControls } from "./PriceLinkControls";
+import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
 
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
@@ -54,6 +55,10 @@ export function DraftReceivePanel({
   const [skuPrefix, setSkuPrefix] = useState("TLKVTS");
   const [visible, setVisible] = useState(false);
   const [weightChi, setWeightChi] = useState(1);
+  const [metalKind, setMetalKind] = useState<ReceiveMetalKind>("gold");
+  const [purityText, setPurityText] = useState("");
+  const [spotBuyDong, setSpotBuyDong] = useState("");
+  const [receiveLaborDong, setReceiveLaborDong] = useState("0");
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [sellMode, setSellMode] = useState<SellPriceMode>("link");
@@ -104,6 +109,9 @@ export function DraftReceivePanel({
     setDraft(d);
     setName(d.productName);
     setWeightChi(d.weightChi ?? 1);
+    setPurityText(d.goldAgeText ?? "");
+    setSpotBuyDong("");
+    setReceiveLaborDong("0");
     setCostPriceDong(d.costPriceDong == null ? "" : String(d.costPriceDong));
     setSellPriceDong(d.sellPriceDong == null ? "" : String(d.sellPriceDong));
     setPriceRowId(d.priceRowId ?? "");
@@ -118,6 +126,8 @@ export function DraftReceivePanel({
     if (!draft) return;
     setName(draft.productName);
     setWeightChi(draft.weightChi ?? 1);
+    setPurityText(draft.goldAgeText ?? "");
+    setReceiveLaborDong("0");
     setCostPriceDong(draft.costPriceDong == null ? "" : String(draft.costPriceDong));
     setSellPriceDong(draft.sellPriceDong == null ? "" : String(draft.sellPriceDong));
     setPriceRowId(draft.priceRowId ?? "");
@@ -224,7 +234,7 @@ export function DraftReceivePanel({
           skuPrefix: skuPrefix.trim().toUpperCase(),
           visible,
           productTypeId: productTypeId || null,
-          goldAge: draft.goldAgeText,
+          goldAge: metalKind === "gold" ? purityText.trim() || draft.goldAgeText : null,
         },
       });
       if (!result.ok) {
@@ -238,7 +248,7 @@ export function DraftReceivePanel({
           (result.data.skuCode ? ` · SKU ${result.data.skuCode}` : "") +
           (result.data.unitId ? ` · Unit ${result.data.unitId.slice(0, 8)}…` : "") +
           (result.data.replayed ? " (replay idempotent)" : "") +
-          `. Giá bán chưa ghi vào labor_fee/unit_price (sell_price_applied_to_sku=false).`,
+          `. Giá bán gợi ý không ghi labor_fee (công bán chỉ trên HĐ; công nhập chỉ trong giá vốn).`,
       );
       setSelectedId("");
       setDraft(null);
@@ -256,6 +266,19 @@ export function DraftReceivePanel({
         Chỉ chọn <strong>một</strong> draft đã in, chưa nhập. received_qty = 1. Brand/Category phải
         chọn lại từ danh mục hệ thống. Snapshot gốc không bị ghi đè.
       </p>
+
+      <div className="mt-3">
+        <ReceiveMetalTabs
+          value={metalKind}
+          onChange={(next) => {
+            setMetalKind(next);
+            setPriceRowId("");
+            setSpotBuyDong("");
+            setReceiveLaborDong("0");
+            if (next === "silver") setPurityText("");
+          }}
+        />
+      </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="text-sm sm:col-span-2">
@@ -354,10 +377,17 @@ export function DraftReceivePanel({
               />
             </label>
             <PriceLinkControls
+              metalKind={metalKind}
               priceRows={priceRows}
               priceRowId={priceRowId}
               onPriceRowIdChange={setPriceRowId}
               weightChi={weightChi}
+              purityText={purityText}
+              onPurityTextChange={setPurityText}
+              spotBuyDong={spotBuyDong}
+              onSpotBuyDongChange={setSpotBuyDong}
+              receiveLaborDong={receiveLaborDong}
+              onReceiveLaborDongChange={setReceiveLaborDong}
               costPriceDong={costPriceDong}
               onCostPriceDongChange={setCostPriceDong}
               sellPriceDong={sellPriceDong}

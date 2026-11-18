@@ -8,7 +8,7 @@ Contract chung: [`../SYSTEM_DEVELOPMENT_RULES.md`](../SYSTEM_DEVELOPMENT_RULES.m
 |----|------|---------|--------------|------------|
 | 0 | [`00-BACKUP-ROLLBACK.md`](./00-BACKUP-ROLLBACK.md) | Backup code + DB, cách rollback | — | Xong 2026-11-10 |
 | 1 | [`01-DB-AUDIT.md`](./01-DB-AUDIT.md) | Rà soát schema, dữ liệu, FK, mapping | — | Rà soát xong, chờ chốt §4 |
-| — | [`03-PROGRESS.md`](./03-PROGRESS.md) | Tiến độ % so với plan 7 giai đoạn, theo module / nhánh | — | Cập nhật 2026-11-11 |
+| — | [`03-PROGRESS.md`](./03-PROGRESS.md) | Tiến độ % so với plan 7 giai đoạn, theo module / nhánh | — | Cập nhật 2026-11-18 (ghi sổ P9) |
 | — | [`02-IMPACT-ASSESSMENT.md`](./02-IMPACT-ASSESSMENT.md) | Impact cây yêu cầu ADMIN (mức Thấp/Vừa/Cao) | — | Xong 2026-11-10 |
 | P1 | [`P1-00-OVERVIEW.md`](./P1-00-OVERVIEW.md) (bảng tiến độ %) | Phase 1 ít phụ thuộc: nhập hàng kiêm in tem, tem, sản phẩm, export hàm lượng, note website | `label-print`, `product`, `reporting`, `invoice`, `inventory` | Section 1, 2, 4, 6, 7 xong; Section 3, 5 chờ nhánh `main` |
 | P4 | [`P4-00-GOLD-STONE.md`](./P4-00-GOLD-STONE.md) | Mua / bán vàng trang sức kèm đá, tiền công, in tem từ hóa đơn mua. Sổ quyết định C1–C11 + nhật ký hard-test | `purchase`, `form02`, `label-print`, `pos`, `invoice` | Xong 4.1–4.5 + hard-test thật (đã hủy chứng từ test) |
@@ -20,7 +20,8 @@ Contract chung: [`../SYSTEM_DEVELOPMENT_RULES.md`](../SYSTEM_DEVELOPMENT_RULES.m
 | P6 | [`P6-00-EXPORT-FILTER-MSP.md`](./P6-00-EXPORT-FILTER-MSP.md) | Audit Export / Filter / Nhập kho / MSP / Prefix; quyết định sequence A, mint-limit, U1 | `reporting`, `invoice`, `inventory`, `label-print` | Audit + quyết định U1 2026-11-14 |
 | P6 | [`P6-01-UNIT-MSP-U1.md`](./P6-01-UNIT-MSP-U1.md) | U1 quyết định + draft SQL/RPC checklist | `label-print`, `inventory`, `pos`, migration | §0–§7 khóa; chưa chạy prod |
 | P6 | [`P6-02-U1-ARCHITECTURE-SPEC.md`](./P6-02-U1-ARCHITECTURE-SPEC.md) | Decision & Implementation Spec Unit–MSP (canonical) | `label-print`, `inventory`, `pos`, migration | Draft chờ duyệt; chưa chạy prod |
-| P8 | [`P8-00-ORDER-LABEL-RECEIVE.md`](./P8-00-ORDER-LABEL-RECEIVE.md) | Order: lọc dòng giá bảng hiện tại; giá vốn = buy×TL; giá bán link / hệ số; tab In tem kiêm nhập kho | `inventory`, `label-print` | Chốt 2026-11-16; đang triển khai |
+| P8 | [`P8-00-ORDER-LABEL-RECEIVE.md`](./P8-00-ORDER-LABEL-RECEIVE.md) | Order: lọc dòng giá bảng hiện tại; giá vốn gợi ý buy×TL (P8); giá bán link / hệ số; tab In tem kiêm nhập kho | `inventory`, `label-print` | Chốt 2026-11-16; UI/link đã có. **Nhập vàng:** công thức giá vốn P9 thắng P8 |
+| P9 | [`P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md`](./P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md) | Công thức nhập vàng (TL×HL×giá NL + công nhập); tab Nhập vàng/Nhập bạc × 3 khu vực; bán vàng/bạc; tách công nhập ≠ công bán; giữ link giá tùy chọn. **§5 sửa giá bán ngoài CRUD: hoãn** | `inventory`, `label-print`, `pos` (công thức bán) | UI nhập kho đã code + hard-test Order 2026-11-18 (`PN000128` đã void). §5 hoãn |
 | — | [`POS-DEV-BUILD.md`](./POS-DEV-BUILD.md) | Build port POS + tài khoản hard-test mặc định | — | Dùng khi nói "build port cho POS" |
 | 2 | `02-MASTER-DATA.md` | Danh mục cây, thương hiệu, loại vàng, hàm lượng, hệ số, tách vàng/bạc, trọng lượng 3 số | `category`, catalog website | Chưa có |
 | 3 | `03-PRICING.md` | Giá vàng/bạc, liên kết theo hàm lượng, % giá gốc, ẩn giá web | `pricing`, `pos` (đọc giá), `js/gold-data.js` | Chưa có |

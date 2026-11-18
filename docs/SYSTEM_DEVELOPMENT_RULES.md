@@ -538,17 +538,59 @@ UI Stock
 
 # 13. PRICE — GIÁ BÁN
 
-POS lấy giá từ bảng giá hiện tại.
+POS lấy giá từ bảng giá hiện tại **khi có liên kết** (tùy chọn — không bắt buộc liên kết để bán/nhập). Chi tiết công thức vàng/bạc và tách tiền công: [`docs/pos-big-update/P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md`](./pos-big-update/P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md). Link bảng giá UI: [`P8-00-ORDER-LABEL-RECEIVE.md`](./pos-big-update/P8-00-ORDER-LABEL-RECEIVE.md).
 
 ```text
-Current Price Table
+Current Price Table (optional link)
         ↓
-Calculate Product Price
+Calculate Product Price (P9 formulas when applicable)
         ↓
-POS
+POS / Invoice
 ```
 
 Không tạo hệ thống tính giá riêng nếu không cần thiết.
+
+## 13.1. Công thức bán đã chốt (P9)
+
+**Vàng 9999 / 999 / 24K**
+
+```text
+Tổng tiền bán = Trọng lượng vàng × Giá vàng hiện tại + Tiền công bán
+```
+
+**Vàng theo hàm lượng + hệ số**
+
+```text
+Tổng tiền bán = (Giá vàng nguyên liệu 24K/9999 × Trọng lượng vàng cố định × Hàm lượng vàng + Tiền công bán) × Hệ số
+```
+
+- Hàm lượng ≠ hệ số kinh doanh.
+- Trọng lượng vàng = vàng thực tế (không đá / ngọc trai / phụ kiện).
+- Tiền công bán nhập trên **hóa đơn bán**, không trên form nhập kho.
+
+**Bạc bán trực tiếp:** giá nhập nhập tay; không TL × hàm lượng; giá bán mặc định = giá nhập.
+
+**Bạc theo trọng lượng**
+
+```text
+Tổng tiền bán = Trọng lượng bạc × Giá bạc + Tiền công bán
+```
+
+Có hệ số: `(Trọng lượng bạc × Giá bạc + Tiền công bán) × Hệ số`.
+
+## 13.2. Tiền công bán vs tiền công nhập
+
+- **Tiền công bán:** chỉ trên hóa đơn bán; cộng vào tổng tiền bán.
+- **Tiền công nhập:** chỉ trên form nhập kho; cộng vào tổng tiền nhập (xem §21.2).
+- Cấm tự map công nhập → công bán / hiện công bán trên form nhập kho.
+
+## 13.3. Sửa giá bán độc lập CRUD sản phẩm
+
+Yêu cầu đã ghi nhận tại P9 §5: xem/sửa giá bán thủ công mọi SP, không bắt buộc CRUD sản phẩm hay liên kết bảng giá; không đổi giá vốn nhập.
+
+**Trạng thái:** **chưa làm** (round P9 docs 2026-11-18). Không triển khai UI/RPC mục này cho đến khi mở round riêng và cập nhật mục này.
+
+## 13.4. Snapshot hóa đơn
 
 Khi giao dịch hoàn tất phải lưu snapshot:
 
@@ -556,6 +598,7 @@ Khi giao dịch hoàn tất phải lưu snapshot:
 Unit Price
 Quantity
 Total Price
+(+ thành phần vàng / đá / công nếu P4 đã áp)
 ```
 
 Hóa đơn cũ không được tính lại theo giá mới.
@@ -838,6 +881,44 @@ Khi xác nhận bước này:
 - **Không** trừ/cộng kho ở các bước trước bước 7.
 - In hóa đơn mua / Phiếu 02 vẫn dùng được sau khi hoàn thành.
 - Chi tiết giá / thị trường / ±300k: `docs/SRS_PURCHASE_Mua_Hang_Tu_Khach.md`.
+
+---
+
+# 21.2. NHẬP KHO ORDER / TEM — VÀNG & BẠC (P9)
+
+Sổ chi tiết: [`docs/pos-big-update/P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md`](./pos-big-update/P9-00-GOLD-SILVER-RECEIVE-SELL-PRICE.md). UI/link giá: P8. Nhận từ tem: P7.
+
+## Ba khu vực — mỗi khu vực có tab Nhập vàng | Nhập bạc
+
+1. Nhập kho Order  
+2. In tem kiêm nhập kho  
+3. Nhập từ tem đã in  
+
+Không tạo module nhập kho mới; sub-tab trong khu vực hiện có. Giữ xác nhận nhập, mint SKU/Unit/MSP, in tem.
+
+## Nhập vàng — công thức giá vốn
+
+Trường: TL vàng thực tế (không đá/phụ kiện), hàm lượng (% → thập phân), giá vàng nguyên liệu 24K/9999 / chỉ, **tiền công nhập**.
+
+```text
+Tiền vàng nhập = Trọng lượng vàng × Hàm lượng vàng × Giá vàng nguyên liệu 24K/9999
+Tổng tiền nhập = Tiền vàng nhập + Tiền công nhập
+```
+
+- Integer VND. Đơn vị TL theo dữ liệu SP (chỉ/phân).
+- Công thức này **thắng** gợi ý P8 `buy × TL` khi nhập vàng theo P9.
+- **Không** hiện / lưu tiền công bán trên form nhập.
+- **Không** copy tiền công nhập sang tiền công bán của SP/SKU.
+
+## Nhập bạc
+
+- Tab riêng; giá từ link bảng giá **hoặc** nhập tay.
+- **Không** áp công thức bán bạc vào giá vốn nhập.
+- Công thức giá vốn nhập bạc: **chưa chốt đầy đủ** → không bịa; giữ hành vi hiện tại / nhập tay đến khi khách xác nhận thêm.
+
+## Liên kết bảng giá
+
+Tùy chọn, không bắt buộc hoàn tất nhập. Giữ liên kết hiện có; không đổi hành vi link ngoài phần P9 đã mô tả.
 
 ---
 
