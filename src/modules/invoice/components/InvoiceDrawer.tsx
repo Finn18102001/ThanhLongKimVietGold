@@ -5,6 +5,7 @@ import { Printer, X } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { invoiceDetailPath } from "@/shared/navigation/routes";
+import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
@@ -133,7 +134,7 @@ export function InvoiceDrawer({
   }
 
   async function onCollect() {
-    const amount = Number(amountText.replace(/[^\d]/g, ""));
+    const amount = amountText ? Number(amountText) : 0;
     if (!Number.isInteger(amount) || amount <= 0) {
       setError("Nhập số tiền thu hợp lệ (VND nguyên).");
       return;
@@ -424,12 +425,7 @@ export function InvoiceDrawer({
               <p className="text-[12px] font-semibold text-[var(--tlkv-amber)]">Thu tiền còn lại</p>
               <label className="mt-2 block text-[13px]">
                 Số tiền thu (VND)
-                <input
-                  value={amountText}
-                  onChange={(e) => setAmountText(e.target.value.replace(/[^\d]/g, ""))}
-                  inputMode="numeric"
-                  className={FIELD}
-                />
+                <DongInput value={amountText} onValueChange={setAmountText} className={FIELD} />
               </label>
               <label className="mt-2 block text-[13px]">
                 Hình thức

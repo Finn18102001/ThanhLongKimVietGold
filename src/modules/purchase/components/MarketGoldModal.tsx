@@ -6,6 +6,7 @@ import { formatDong } from "@/shared/lib/money";
 import { Modal } from "@/shared/ui/Modal";
 import { MARKET_GOLD_CLASS_LABEL, type MarketGoldClass, type MarketGoldClassPrice } from "@/modules/pos/types";
 import { lineGoldDong, lineStonePieceDong, type MarketBuyLine, type MarketGoldRef } from "../types";
+import { DongInput } from "@/shared/ui/DongInput";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 
 const GOLD_AGE_SUGGESTIONS = ["999.9", "99.9", "980", "750", "610", "585", "418"] as const;
@@ -273,15 +274,9 @@ export function MarketGoldModal({
         </label>
         <label className="block text-[12px] sm:col-span-2">
           <span className="text-[var(--tlkv-muted)]">Giá mua / chỉ (VND)</span>
-          <input
+          <DongInput
             value={form.unitPriceDong}
-            onChange={(e) =>
-              setForm((p) => ({
-                ...p,
-                unitPriceDong: e.target.value.replace(/[^\d]/g, ""),
-              }))
-            }
-            inputMode="numeric"
+            onValueChange={(digits) => setForm((p) => ({ ...p, unitPriceDong: digits }))}
             className={`${purchaseInputClass} mt-1`}
             placeholder="Nhập thủ công"
           />
@@ -310,10 +305,9 @@ export function MarketGoldModal({
         </label>
         <label className="block text-[12px]">
           <span className="text-[var(--tlkv-muted)]">Đơn giá đá (VND / viên)</span>
-          <input
+          <DongInput
             value={form.stoneUnitPriceDong}
-            onChange={(e) => setForm((p) => ({ ...p, stoneUnitPriceDong: e.target.value.replace(/[^\d]/g, "") }))}
-            inputMode="numeric"
+            onValueChange={(digits) => setForm((p) => ({ ...p, stoneUnitPriceDong: digits }))}
             className={`${purchaseInputClass} mt-1`}
             placeholder="Nhập thủ công"
           />

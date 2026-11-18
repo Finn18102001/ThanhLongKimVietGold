@@ -2,8 +2,9 @@
 
 import { Warning } from "@phosphor-icons/react";
 import { formatDong, formatDongInWords } from "@/shared/lib/money";
+import { DongInput } from "@/shared/ui/DongInput";
 import type { BuyPayMode, PaymentMethod } from "../types";
-import { parseDongInput, purchaseInputClass } from "./purchaseFormUtils";
+import { purchaseInputClass } from "./purchaseFormUtils";
 
 export function PurchasePaymentPanel({
   totalDong,
@@ -102,11 +103,9 @@ export function PurchasePaymentPanel({
       {payMode === "PARTIAL" ? (
         <label className="mt-3 block text-[13px]">
           Số tiền trả (VND)
-          <input
-            type="text"
-            inputMode="numeric"
+          <DongInput
             value={paidDong > 0 ? String(paidDong) : ""}
-            onChange={(e) => onPaidDong(parseDongInput(e.target.value))}
+            onValueChange={(digits) => onPaidDong(digits ? Number(digits) : 0)}
             className={`${purchaseInputClass} mt-1`}
           />
         </label>

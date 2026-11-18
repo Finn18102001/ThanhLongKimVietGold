@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { X } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
@@ -78,7 +79,7 @@ export function StockReceiptDrawer({
   const [voidPending, setVoidPending] = useState(false);
 
   async function onCollect() {
-    const amount = Number(amountText.replace(/[^\d]/g, ""));
+    const amount = amountText ? Number(amountText) : 0;
     if (!Number.isInteger(amount) || amount <= 0) {
       setError("Nhập số tiền hợp lệ (VND nguyên).");
       return;
@@ -348,12 +349,7 @@ export function StockReceiptDrawer({
               <p className="text-[13px] font-semibold">Thanh toán thêm cho nguồn hàng</p>
               <label className="mt-2 block text-[12px]">
                 Số tiền (VND)
-                <input
-                  value={amountText}
-                  onChange={(e) => setAmountText(e.target.value)}
-                  className={FIELD}
-                  inputMode="numeric"
-                />
+                <DongInput value={amountText} onValueChange={setAmountText} className={FIELD} />
               </label>
               <label className="mt-2 block text-[12px]">
                 Hình thức

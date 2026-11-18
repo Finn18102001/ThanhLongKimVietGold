@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatDong } from "@/shared/lib/money";
+import { DongNumberInput } from "@/shared/ui/DongInput";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { receivePurchase } from "../actions";
 import type { StockRow } from "../types";
@@ -341,14 +342,11 @@ export function WarehouseOrderForm({
                 </label>
                 <label className="text-sm">
                   Đơn giá nhập (VND/chỉ)
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={item.line.unitCostPerChi || ""}
-                    onChange={(e) =>
+                  <DongNumberInput
+                    value={item.line.unitCostPerChi > 0 ? item.line.unitCostPerChi : null}
+                    onValueChange={(raw) =>
                       patchLine(item.line.localId, {
-                        unitCostPerChi: Number(e.target.value),
+                        unitCostPerChi: raw ?? 0,
                       })
                     }
                     className={FIELD}
@@ -440,12 +438,9 @@ export function WarehouseOrderForm({
             <div className="grid gap-2 sm:col-span-2 sm:grid-cols-2">
               <label className="text-sm">
                 Đã trả (VND)
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={paidDong || ""}
-                  onChange={(e) => setPaidDong(Number(e.target.value))}
+                <DongNumberInput
+                  value={paidDong > 0 ? paidDong : null}
+                  onValueChange={(raw) => setPaidDong(raw ?? 0)}
                   className={FIELD}
                 />
               </label>

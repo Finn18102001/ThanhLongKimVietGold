@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { DongInput } from "@/shared/ui/DongInput";
 import type { PriceRowOption } from "../types";
 import {
   boardUnitChiFromProductName,
@@ -219,23 +220,17 @@ export function PriceLinkControls({
           ) : null}
           <label className="text-sm sm:col-span-2">
             Giá vàng nguyên liệu 24K/9999 (VND / chỉ)
-            <input
-              type="number"
-              min={0}
-              step={1}
+            <DongInput
               value={spotBuyDong}
-              onChange={(e) => onSpotBuyDongChange(e.target.value)}
+              onValueChange={onSpotBuyDongChange}
               className={FIELD}
             />
           </label>
           <label className="text-sm sm:col-span-2">
             Tiền công nhập (VND)
-            <input
-              type="number"
-              min={0}
-              step={1}
+            <DongInput
               value={receiveLaborDong}
-              onChange={(e) => onReceiveLaborDongChange(e.target.value)}
+              onValueChange={onReceiveLaborDongChange}
               className={FIELD}
             />
             <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
@@ -266,14 +261,11 @@ export function PriceLinkControls({
 
       <label className="text-sm sm:col-span-2">
         Giá vốn / chiếc (VND, số nguyên)
-        <input
+        <DongInput
           name="cost_price_dong"
-          type="number"
-          min={0}
-          step={1}
           required
           value={costPriceDong}
-          onChange={(e) => onCostPriceDongChange(e.target.value)}
+          onValueChange={onCostPriceDongChange}
           className={FIELD}
         />
       </label>
@@ -332,13 +324,10 @@ export function PriceLinkControls({
 
       <label className="text-sm sm:col-span-2">
         Giá bán gợi ý / chiếc (VND, số nguyên)
-        <input
+        <DongInput
           name="sell_price_dong"
-          type="number"
-          min={0}
-          step={1}
           value={sellPriceDong}
-          onChange={(e) => onSellPriceDongChange(e.target.value)}
+          onValueChange={onSellPriceDongChange}
           className={FIELD}
         />
         <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">

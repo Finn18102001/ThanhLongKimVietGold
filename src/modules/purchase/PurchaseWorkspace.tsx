@@ -16,6 +16,7 @@ import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
 import { formatDong } from "@/shared/lib/money";
 import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
 import { ROUTES } from "@/shared/navigation/routes";
+import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
@@ -1095,11 +1096,11 @@ export function PurchaseWorkspace({
                       <h3 className="text-[13px] font-semibold">Trả thêm cho khách</h3>
                       <div className="mt-2 grid gap-2 sm:grid-cols-3">
                         <Field label="Số tiền (VND)">
-                          <input
-                            type="text"
-                            inputMode="numeric"
+                          <DongInput
                             value={collectAmount > 0 ? String(collectAmount) : ""}
-                            onChange={(e) => setCollectAmount(parseDongInput(e.target.value))}
+                            onValueChange={(digits) =>
+                              setCollectAmount(digits ? Number(digits) : 0)
+                            }
                             className={purchaseInputClass}
                           />
                         </Field>

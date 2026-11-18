@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowClockwise, Printer } from "@phosphor-icons/react";
 import { formatActionError } from "@/shared/lib/action-result";
+import { DongInput } from "@/shared/ui/DongInput";
 import {
   createLabelDraftAction,
   recordLabelDraftPrintAction,
@@ -384,36 +385,15 @@ export function DraftLabelPanel() {
           </label>
           <label className="text-[12px] text-[var(--tlkv-muted)]">
             Giá nhập (VND) — không in trên tem
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={costPriceDong}
-              onChange={(e) => setCostPriceDong(e.target.value)}
-              className={FIELD}
-            />
+            <DongInput value={costPriceDong} onValueChange={setCostPriceDong} className={FIELD} />
           </label>
           <label className="text-[12px] text-[var(--tlkv-muted)]">
             G / Giá bán trên tem (VND)
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={sellPriceDong}
-              onChange={(e) => setSellPriceDong(e.target.value)}
-              className={FIELD}
-            />
+            <DongInput value={sellPriceDong} onValueChange={setSellPriceDong} className={FIELD} />
           </label>
           <label className="text-[12px] text-[var(--tlkv-muted)]">
             C / Tiền công (VND)
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={laborFeeDong}
-              onChange={(e) => setLaborFeeDong(e.target.value)}
-              className={FIELD}
-            />
+            <DongInput value={laborFeeDong} onValueChange={setLaborFeeDong} className={FIELD} />
           </label>
           <label className="text-[12px] text-[var(--tlkv-muted)]">
             Định lượng mặc định (chỉ)

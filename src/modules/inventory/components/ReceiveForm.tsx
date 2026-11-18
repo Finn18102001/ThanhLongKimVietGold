@@ -12,6 +12,7 @@ import type {
   ProductTypeOption,
   StockRow,
 } from "../types";
+import { DongInput } from "@/shared/ui/DongInput";
 import { PriceLinkControls } from "./PriceLinkControls";
 import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
 
@@ -71,6 +72,7 @@ export function ReceiveForm({
   const [receiveLaborDong, setReceiveLaborDong] = useState("0");
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
+  const [paidDongText, setPaidDongText] = useState("");
   const [sellMode, setSellMode] = useState<SellPriceMode>("link");
   const [heso, setHeso] = useState("");
 
@@ -90,6 +92,7 @@ export function ReceiveForm({
     setReceiveLaborDong("0");
     setCostPriceDong("");
     setSellPriceDong("");
+    setPaidDongText("");
     setSellMode("link");
     setHeso("");
   }
@@ -439,26 +442,20 @@ export function ReceiveForm({
           <>
             <label className="text-sm sm:col-span-2">
               Giá vốn / chiếc (VND, số nguyên)
-              <input
+              <DongInput
                 name="cost_price_dong"
-                type="number"
-                min={0}
-                step={1}
                 required
                 value={costPriceDong}
-                onChange={(e) => setCostPriceDong(e.target.value)}
+                onValueChange={setCostPriceDong}
                 className={FIELD}
               />
             </label>
             <label className="text-sm sm:col-span-2">
               Giá bán / chiếc (VND, số nguyên)
-              <input
+              <DongInput
                 name="sell_price_dong"
-                type="number"
-                min={0}
-                step={1}
                 value={sellPriceDong}
-                onChange={(e) => setSellPriceDong(e.target.value)}
+                onValueChange={setSellPriceDong}
                 className={FIELD}
               />
             </label>
@@ -496,14 +493,7 @@ export function ReceiveForm({
         {payMode === "PARTIAL" ? (
           <label className="text-sm sm:col-span-2">
             Số đã trả (VND)
-            <input
-              name="paid_dong"
-              type="number"
-              min={0}
-              step={1}
-              required
-              className={FIELD}
-            />
+            <DongInput name="paid_dong" required value={paidDongText} onValueChange={setPaidDongText} className={FIELD} />
           </label>
         ) : null}
         <label className="text-sm sm:col-span-2">

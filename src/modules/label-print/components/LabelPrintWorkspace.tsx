@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Printer, Plus, ArrowClockwise } from "@phosphor-icons/react";
 import { formatViDateTime } from "@/shared/lib/datetime";
+import { formatDongCompact } from "@/shared/lib/money";
+import { DongNumberInput } from "@/shared/ui/DongInput";
 import {
   mintLabelPiece,
   ensurePreassignedLabelPiece,
@@ -1063,13 +1065,11 @@ export function LabelPrintWorkspace({
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 Đơn giá đá (đ / viên), lưu vào SKU, không in
-                <input
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={selectedSku ? stoneUnitPriceDong : ""}
+                <DongNumberInput
+                  emptyAsNull={false}
+                  value={selectedSku ? stoneUnitPriceDong : null}
                   disabled={!selectedSku}
-                  onChange={(e) => setStoneUnitPriceDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  onValueChange={(raw) => setStoneUnitPriceDong(Math.max(0, raw ?? 0))}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
                 />
               </label>
@@ -1078,7 +1078,7 @@ export function LabelPrintWorkspace({
                 <input
                   readOnly
                   tabIndex={-1}
-                  value={selectedSku ? stoneAmountDong.toLocaleString("vi-VN") : ""}
+                  value={selectedSku ? formatDongCompact(stoneAmountDong) : ""}
                   disabled={!selectedSku}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px] tabular-nums text-[var(--tlkv-text)] outline-none"
                 />
@@ -1102,23 +1102,19 @@ export function LabelPrintWorkspace({
 
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 C (Công) — đ
-                <input
-                  type="number"
-                  min={0}
-                  step={1000}
+                <DongNumberInput
+                  emptyAsNull={false}
                   value={laborFeeDong}
-                  onChange={(e) => setLaborFeeDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  onValueChange={(raw) => setLaborFeeDong(Math.max(0, raw ?? 0))}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
                 />
               </label>
               <label className="text-[12px] text-[var(--tlkv-muted)]">
                 G (Giá) — đ
-                <input
-                  type="number"
-                  min={0}
-                  step={1000}
+                <DongNumberInput
+                  emptyAsNull={false}
                   value={priceDong}
-                  onChange={(e) => setPriceDong(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  onValueChange={(raw) => setPriceDong(Math.max(0, raw ?? 0))}
                   className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
                 />
               </label>

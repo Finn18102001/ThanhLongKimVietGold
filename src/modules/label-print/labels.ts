@@ -1,3 +1,4 @@
+import { formatDong as formatDongShared } from "@/shared/lib/money";
 import type { LabelPrintAction, LabelStockSize } from "./types";
 
 export const ACTION_LABEL: Record<LabelPrintAction, string> = {
@@ -21,5 +22,5 @@ export function formatGoldAge(value: number | null): string {
 }
 
 export function formatDong(value: number): string {
-  return `${value.toLocaleString("vi-VN")} đ`;
+  return formatDongShared(Math.trunc(value));
 }

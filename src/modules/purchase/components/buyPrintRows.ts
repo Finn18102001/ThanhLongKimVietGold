@@ -1,3 +1,4 @@
+import { formatDong } from "@/shared/lib/money";
 import { formatStoneDetail, purchaseLineWeightChi } from "../labels";
 import { buyItemHasStone, type BuyDetailItem } from "../types";
 
@@ -25,7 +26,7 @@ function stoneNote(item: BuyDetailItem): string | null {
   if (!buyItemHasStone(item)) return null;
   // Stone detail is stored per piece; the amount printed is for the whole line so it adds up to the row total.
   const detail = formatStoneDetail(item);
-  const amount = `${(item.stonePriceDong * item.quantity).toLocaleString("vi-VN")} đ`;
+  const amount = formatDong(item.stonePriceDong * item.quantity);
   const head = item.quantity > 1 ? "Đá kèm mỗi chiếc" : "Đá kèm";
   const amountLabel = item.quantity > 1 ? `tiền đá ${item.quantity} chiếc ${amount}` : `tiền đá ${amount}`;
   return `${head}: ${detail ? `${detail} · ` : ""}${amountLabel}`;

@@ -4,6 +4,8 @@
  * P9: gold receive = TL × HL × spot24K + tiền công nhập; sell labor stays on invoice only.
  */
 
+import { formatDongDigits } from "@/shared/lib/money";
+
 export type SellPriceMode = "link" | "heso";
 
 /** Receive metal tab — UI only; does not invent silver cost formula beyond manual / buy×TL. */
@@ -106,5 +108,5 @@ export function looksLikeSilverLabel(...parts: Array<string | null | undefined>)
 
 export function formatDongPreview(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "—";
-  return `${Math.round(n).toLocaleString("vi-VN")}đ`;
+  return `${formatDongDigits(Math.round(n))}đ`;
 }

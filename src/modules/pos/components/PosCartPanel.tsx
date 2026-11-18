@@ -1,7 +1,8 @@
 "use client";
 
 import { Minus, Plus, Trash, Warning } from "@phosphor-icons/react";
-import { formatDong, formatDongInWords } from "@/shared/lib/money";
+import { formatDong, formatDongDigits, formatDongInWords } from "@/shared/lib/money";
+import { DongInput, DongNumberInput } from "@/shared/ui/DongInput";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import {
@@ -273,7 +274,7 @@ export function PosCartPanel({
                         <p className="text-[12px] font-semibold">{formatDong(lineTotal)}</p>
                       </div>
                       <label className="mt-1.5 block text-[11px] text-[var(--tlkv-muted)]">
-                        Giá GD / SP (±{PRICE_ADJ_LIMIT_PER_CHI.toLocaleString("vi-VN")}đ/chỉ)
+                        Giá GD / SP (±{formatDongDigits(PRICE_ADJ_LIMIT_PER_CHI)}đ/chỉ)
                         <div className="mt-0.5 flex items-center gap-0.5">
                           <button
                             type="button"
@@ -292,17 +293,14 @@ export function PosCartPanel({
                           >
                             <Minus size={11} />
                           </button>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            step={PRICE_UNIT_STEP_DONG}
+                          <DongNumberInput
+                            emptyAsNull={false}
                             value={gdPerChi}
-                            onChange={(event) => {
-                              const raw = Number(event.target.value) || 0;
+                            onValueChange={(raw) => {
                               onAdj(
                                 line.skuId,
                                 pricePerChiToAdjustment(
-                                  raw,
+                                  raw ?? 0,
                                   line.referenceUnitPriceDong,
                                   line.weightChi,
                                   { clamp: false },
@@ -361,13 +359,10 @@ export function PosCartPanel({
                             </label>
                             <label className="block text-[11px] text-[var(--tlkv-muted)]">
                               Đơn giá đá / viên
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                step={PRICE_UNIT_STEP_DONG}
+                              <DongNumberInput
+                                emptyAsNull={false}
                                 value={line.stoneUnitPriceDong}
-                                onChange={(event) => onStoneUnitPrice(line.skuId, Number(event.target.value) || 0)}
+                                onValueChange={(raw) => onStoneUnitPrice(line.skuId, raw ?? 0)}
                                 className="mt-0.5 h-7 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
                               />
                             </label>
@@ -382,14 +377,11 @@ export function PosCartPanel({
                         ) : null}
                         <label className="block text-[11px] text-[var(--tlkv-muted)]">
                           Tiền công / chiếc
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min={0}
-                            step={PRICE_UNIT_STEP_DONG}
+                          <DongNumberInput
+                            emptyAsNull={false}
                             value={laborFinal}
-                            onChange={(event) =>
-                              onLaborAdj(line.skuId, (Number(event.target.value) || 0) - line.laborFeeDong)
+                            onValueChange={(raw) =>
+                              onLaborAdj(line.skuId, (raw ?? 0) - line.laborFeeDong)
                             }
                             className={`mt-0.5 h-7 w-full rounded-md border px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] ${
                               line.laborAdjustDong !== 0
@@ -457,13 +449,11 @@ export function PosCartPanel({
                   </label>
                   <label className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
                     Số tiền (VND)
-                    <input
-                      inputMode="numeric"
+                    <DongInput
                       value={row.amountDong > 0 ? String(row.amountDong) : ""}
-                      onChange={(event) => {
-                        const digits = event.target.value.replace(/[^\d]/g, "");
-                        patchCharge(row.clientKey, { amountDong: digits ? Number(digits) : 0 });
-                      }}
+                      onValueChange={(digits) =>
+                        patchCharge(row.clientKey, { amountDong: digits ? Number(digits) : 0 })
+                      }
                       className="mt-0.5 h-8 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
                     />
                   </label>
@@ -570,14 +560,9 @@ export function PosCartPanel({
               />
               <span className="flex-1">Tiền mặt</span>
               {useCash && effectivePaid > 0 ? (
-                <input
-                  type="text"
-                  inputMode="numeric"
+                <DongInput
                   value={cashDong > 0 ? String(cashDong) : ""}
-                  onChange={(event) => {
-                    const digits = event.target.value.replace(/[^\d]/g, "");
-                    onCashDongChange(digits ? Number(digits) : 0);
-                  }}
+                  onValueChange={(digits) => onCashDongChange(digits ? Number(digits) : 0)}
                   disabled={!useTransfer}
                   placeholder="Số tiền"
                   className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
@@ -597,14 +582,9 @@ export function PosCartPanel({
               />
               <span className="flex-1">Chuyển khoản / Tài khoản</span>
               {useTransfer && effectivePaid > 0 ? (
-                <input
-                  type="text"
-                  inputMode="numeric"
+                <DongInput
                   value={transferDong > 0 ? String(transferDong) : ""}
-                  onChange={(event) => {
-                    const digits = event.target.value.replace(/[^\d]/g, "");
-                    onTransferDongChange(digits ? Number(digits) : 0);
-                  }}
+                  onValueChange={(digits) => onTransferDongChange(digits ? Number(digits) : 0)}
                   disabled={!useCash}
                   placeholder="Số tiền"
                   className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
@@ -651,19 +631,14 @@ export function PosCartPanel({
         {payMode === "PARTIAL" ? (
           <label className="mt-3 block text-[13px]">
             Số tiền thu (VND)
-            <input
-              type="text"
-              inputMode="numeric"
+            <DongInput
               value={paidDong > 0 ? String(paidDong) : ""}
-              onChange={(event) => {
-                const digits = event.target.value.replace(/[^\d]/g, "");
-                onPaidDongChange(digits ? Number(digits) : 0);
-              }}
-                  placeholder="Nhập số đã thu (0 đ hoặc một phần / đủ tổng)"
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-                />
-              </label>
-            ) : null}
+              onValueChange={(digits) => onPaidDongChange(digits ? Number(digits) : 0)}
+              placeholder="Nhập số đã thu (0 đ hoặc một phần / đủ tổng)"
+              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+            />
+          </label>
+        ) : null}
 
         {payMode !== "FULL" && remainingDong > 0 ? (
           <>

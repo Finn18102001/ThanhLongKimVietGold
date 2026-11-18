@@ -1,7 +1,8 @@
 "use client";
 
 import { Minus, Plus, Trash, Warning } from "@phosphor-icons/react";
-import { formatDong, formatDongInWords } from "@/shared/lib/money";
+import { formatDong, formatDongDigits, formatDongInWords } from "@/shared/lib/money";
+import { DongInput } from "@/shared/ui/DongInput";
 import { customerInitials, formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatChi, formatStoneDetail } from "../labels";
@@ -18,7 +19,7 @@ import {
   type BuyPayMode,
   type PaymentMethod,
 } from "../types";
-import { parseDongInput, purchaseInputClass } from "./purchaseFormUtils";
+import { purchaseInputClass } from "./purchaseFormUtils";
 import { PurchaseProductThumb } from "./PurchaseCatalogCard";
 
 const PRICE_STEP = 10_000;
@@ -224,7 +225,7 @@ export function PurchaseCartPanel({
                       <label className="mt-1.5 block text-[11px] text-[var(--tlkv-muted)]">
                         Giá mua / chỉ
                         {!line.isMarketGold
-                          ? ` (±${PRICE_EXCEPTION_THRESHOLD_DONG.toLocaleString("vi-VN")}đ)`
+                          ? ` (±${formatDongDigits(PRICE_EXCEPTION_THRESHOLD_DONG)}đ)`
                           : " (tự do)"}
                         <div className="mt-0.5 flex items-center gap-0.5">
                           {!line.isMarketGold ? (
@@ -237,13 +238,13 @@ export function PurchaseCartPanel({
                               <Minus size={11} />
                             </button>
                           ) : null}
-                          <input
-                            inputMode="numeric"
+                          <DongInput
                             value={String(line.unitPriceDong)}
-                            onChange={(e) => {
-                              const raw = parseDongInput(e.target.value);
-                              onChangeLine(line.localId, { unitPriceDong: raw });
-                            }}
+                            onValueChange={(digits) =>
+                              onChangeLine(line.localId, {
+                                unitPriceDong: digits ? Number(digits) : 0,
+                              })
+                            }
                             className={`h-7 min-w-0 flex-1 rounded-md border px-2 text-[12px] outline-none focus:border-[var(--tlkv-red)] ${
                               exception
                                 ? "border-[var(--tlkv-red)] text-[var(--tlkv-red)]"
@@ -392,10 +393,9 @@ export function PurchaseCartPanel({
         {payMode === "PARTIAL" ? (
           <label className="mt-3 block text-[13px]">
             Số tiền trả (VND)
-            <input
-              inputMode="numeric"
+            <DongInput
               value={paidDong > 0 ? String(paidDong) : ""}
-              onChange={(e) => onPaidDong(parseDongInput(e.target.value))}
+              onValueChange={(digits) => onPaidDong(digits ? Number(digits) : 0)}
               className={`${purchaseInputClass} mt-1`}
             />
           </label>

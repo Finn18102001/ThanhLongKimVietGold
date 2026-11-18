@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Package } from "@phosphor-icons/react";
+import { DongInput } from "@/shared/ui/DongInput";
 import { formatDong } from "../labels";
 import { receiveLabelOrderPurchase } from "../receive-actions";
 import {
@@ -346,12 +347,9 @@ export function LabelReceiveSection({
         </label>
         <label className={`${LABEL} sm:col-span-2`}>
           Giá vốn / chiếc (VND, số nguyên)
-          <input
-            type="number"
-            min={0}
-            step={1}
+          <DongInput
             value={draft.costPriceDong}
-            onChange={(e) => patch({ costPriceDong: e.target.value })}
+            onValueChange={(digits) => patch({ costPriceDong: digits })}
             className={FIELD}
           />
         </label>

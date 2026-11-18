@@ -10,6 +10,7 @@ import {
   lineTotalDong,
   type BuyLine,
 } from "../types";
+import { DongInput } from "@/shared/ui/DongInput";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 import { PurchaseProductThumb } from "./PurchaseCatalogCard";
 
@@ -140,13 +141,13 @@ export function PurchaseLinesTable({
                           <Minus size={11} />
                         </button>
                       ) : null}
-                      <input
+                      <DongInput
                         value={String(line.unitPriceDong)}
-                        onChange={(e) => {
-                          const raw = parseDongInput(e.target.value);
-                          onChangeLine(line.localId, { unitPriceDong: raw });
-                        }}
-                        inputMode="numeric"
+                        onValueChange={(digits) =>
+                          onChangeLine(line.localId, {
+                            unitPriceDong: digits ? Number(digits) : 0,
+                          })
+                        }
                         className={`${purchaseInputClass} h-8 w-[100px] ${exception ? "border-[var(--tlkv-red)]" : ""}`}
                       />
                       {!line.isMarketGold ? (

@@ -1,3 +1,4 @@
+import { formatDongDigits } from "@/shared/lib/money";
 import type { PaymentMethod, PaymentStatus } from "./types";
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
@@ -57,7 +58,7 @@ export function formatStoneDetail(stone: {
   const unitPriceDong = stone.stoneUnitPriceDong ?? 0;
   if (quantity > 0) parts.push(`${quantity.toLocaleString("vi-VN")} viên`);
   if (weightChi > 0) parts.push(formatChi(weightChi));
-  if (unitPriceDong > 0) parts.push(`${unitPriceDong.toLocaleString("vi-VN")} đ/viên`);
+  if (unitPriceDong > 0) parts.push(`${formatDongDigits(Math.trunc(unitPriceDong))} đ/viên`);
   return parts.join(" · ");
 }
 

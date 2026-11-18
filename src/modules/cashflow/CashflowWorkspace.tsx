@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { downloadCsv } from "@/shared/lib/csv";
 import { formatDong } from "@/shared/lib/money";
+import { DongInput } from "@/shared/ui/DongInput";
 import {
   depositCash,
   exportCashLedger,
@@ -657,7 +658,7 @@ function CashActionModal({
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const amountDong = Number(amountText.replace(/\D/g, "")) || 0;
+  const amountDong = amountText ? Number(amountText) : 0;
   const title =
     kind === "deposit" ? "Nạp tiền" : kind === "withdraw" ? "Rút tiền" : "Chuyển tiền";
 
@@ -752,10 +753,9 @@ function CashActionModal({
             </Field>
           )}
           <Field label="Số tiền (đ)">
-            <input
+            <DongInput
               value={amountText}
-              onChange={(e) => setAmountText(e.target.value)}
-              inputMode="numeric"
+              onValueChange={setAmountText}
               placeholder="0"
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
             />

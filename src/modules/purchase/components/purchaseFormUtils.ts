@@ -1,7 +1,4 @@
-export function parseDongInput(raw: string): number {
-  const digits = raw.replace(/[^\d]/g, "");
-  return digits ? Number(digits) : 0;
-}
+export { parseDongInput, extractDongDigits, formatDongDigits } from "@/shared/lib/money";
 
 export function parseWeightInput(raw: string): number {
   const normalized = raw.replace(",", ".").replace(/[^\d.]/g, "");

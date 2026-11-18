@@ -12,6 +12,7 @@ import {
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
 import { formatActionError } from "@/shared/lib/action-result";
+import { formatDongDigits } from "@/shared/lib/money";
 import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
@@ -909,7 +910,7 @@ export function PosTerminal({
         return "Khi chọn cả hai hình thức, mỗi khoản phải lớn hơn 0.";
       }
       if (cashPart + transferPart !== targetPaid) {
-        return `Tổng tiền mặt + chuyển khoản phải bằng số tiền thu (${targetPaid.toLocaleString("vi-VN")}đ).`;
+        return `Tổng tiền mặt + chuyển khoản phải bằng số tiền thu (${formatDongDigits(targetPaid)}đ).`;
       }
     }
     return null;

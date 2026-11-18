@@ -12,6 +12,7 @@ import {
   type CatalogBuyLine,
   type PurchaseCatalogItem,
 } from "../types";
+import { DongInput } from "@/shared/ui/DongInput";
 import { parseDongInput, parseWeightInput, purchaseInputClass } from "./purchaseFormUtils";
 import { PurchaseProductThumb } from "./PurchaseCatalogCard";
 
@@ -157,14 +158,13 @@ export function CatalogBuyModal({
             >
               <Minus size={14} />
             </button>
-            <input
+            <DongInput
               value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value.replace(/[^\d]/g, ""))}
+              onValueChange={setUnitPrice}
               onBlur={() => {
                 if (unitPrice === "") return;
                 setClampedUnit(unit);
               }}
-              inputMode="numeric"
               className={`${purchaseInputClass} flex-1`}
             />
             <button
