@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatActionError } from "@/shared/lib/action-result";
 import { formatDong } from "@/shared/lib/money";
-import { DongInput } from "@/shared/ui/DongInput";
 import {
   getLabelDraftAction,
   listPendingLabelDraftsAction,
@@ -653,31 +652,6 @@ export function DraftReceivePanel({
               className={FIELD}
             />
           </label>
-          {metalKind === "silver" ? (
-            <>
-              <label className="text-sm sm:col-span-2">
-                Tuổi bạc / HL (từ tem)
-                <input
-                  value={purityText}
-                  onChange={(e) => setPurityText(e.target.value)}
-                  placeholder="VD: 999 · để trống nếu tem không in"
-                  maxLength={16}
-                  className={FIELD}
-                />
-              </label>
-              <label className="text-sm sm:col-span-2">
-                Tiền công từ tem (VND)
-                <DongInput
-                  value={receiveLaborDong}
-                  onValueChange={setReceiveLaborDong}
-                  className={FIELD}
-                />
-                <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-                  Đối chiếu với tem. Nhập bạc không dùng công này để tính giá vốn.
-                </span>
-              </label>
-            </>
-          ) : null}
           <PriceLinkControls
             metalKind={metalKind}
             priceRows={priceRows}
