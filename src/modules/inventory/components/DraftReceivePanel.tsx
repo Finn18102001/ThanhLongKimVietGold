@@ -44,6 +44,20 @@ function tablePrice(row: LabelDraftSummary) {
   return "—";
 }
 
+/** Bug 1: reject sku_prefix that looks like MSP/serial jammed (→ SKU …000001). */
+function looksLikeMspAsSkuPrefix(prefix: string, printableCode?: string | null): boolean {
+  const p = prefix.trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,12}$/.test(p)) return false;
+  const flatPrintable = String(printableCode ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/-/g, "");
+  if (flatPrintable && p === flatPrintable) return true;
+  // type+6-digit serial without hyphen, e.g. V610DC000914
+  if (p.length >= 10 && /[0-9]{6}$/.test(p)) return true;
+  return false;
+}
+
 export function DraftReceivePanel({
   brands,
   categories,
@@ -130,7 +144,8 @@ export function DraftReceivePanel({
 
   function applyDraftFields(d: LabelDraftDetail) {
     const weight = d.weightChi ?? d.klvChi ?? d.kltChi ?? 1;
-    const type = (d.typeCode ?? "").trim().toUpperCase();
+    // type_code only — never printable MSP (Bug 1: avoid "lost suffix" confusion).
+    const type = (d.typeCode ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 
     setName(d.productName);
     setWeightChi(weight);
@@ -144,9 +159,8 @@ export function DraftReceivePanel({
     setPriceRowId(d.priceRowId ?? "");
     setPriceNote(d.priceNote ?? "");
     setTypeCode(type);
-    if (/^[A-Za-z0-9]{2,12}$/.test(type)) {
-      setSkuPrefix(type);
-    }
+    // SKU prefix is Order warehouse code — default TLKVTS; do NOT copy MSP/type+serial.
+    setSkuPrefix("TLKVTS");
     // Brand/Category must be re-selected from system lists (PRE-19/20) — unchanged.
     setBrandId(brands[0]?.id ?? "");
     setCategoryId("");
@@ -183,6 +197,8 @@ export function DraftReceivePanel({
     setDiffRows(null);
     setError(null);
     setSuccess(null);
+    setTypeCode("");
+    setSkuPrefix("TLKVTS");
   }
 
   async function selectDraftForReceive(id: string) {
@@ -337,6 +353,12 @@ export function DraftReceivePanel({
     }
     if (!/^[A-Za-z0-9]{2,12}$/.test(skuPrefix.trim())) {
       setError("Mã đầu SKU gồm 2–12 ký tự chữ hoặc số.");
+      return;
+    }
+    if (looksLikeMspAsSkuPrefix(skuPrefix, draft.printableCode)) {
+      setError(
+        "Mã đầu SKU không được trùng MSP/tem (vd dán V610DC-000915 → V610DC000915). Dùng TLKVTS hoặc mã đầu kho ngắn; MSP trên tem giữ nguyên khi nhập.",
+      );
       return;
     }
 
@@ -565,15 +587,8 @@ export function DraftReceivePanel({
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
             <p>
-              Draft <strong>{draft.printableCode}</strong> ({draft.codeMode}) · brand text:{" "}
-              <em>{draft.brandText || "(trống)"}</em> · category text:{" "}
-              <em>{draft.categoryText || "(trống)"}</em>
-              {typeCode ? (
-                <>
-                  {" "}
-                  · type_code: <em>{typeCode}</em>
-                </>
-              ) : null}
+              Draft ({draft.codeMode}) · brand text: <em>{draft.brandText || "(trống)"}</em> ·
+              category text: <em>{draft.categoryText || "(trống)"}</em>
             </p>
             <button
               type="button"
@@ -584,6 +599,28 @@ export function DraftReceivePanel({
               Hủy chọn
             </button>
           </div>
+          <label className="text-sm">
+            MSP trên tem (giữ nguyên khi nhập)
+            <input
+              value={draft.printableCode}
+              readOnly
+              className={`${FIELD} bg-[var(--tlkv-bg)] text-[var(--tlkv-muted)]`}
+            />
+            <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+              Đây là mã in trên tem — không phải mã đầu SKU kho. Không cắt / không nối thêm đuôi.
+            </span>
+          </label>
+          <label className="text-sm">
+            Mã loại (type_code)
+            <input
+              value={typeCode}
+              readOnly
+              className={`${FIELD} bg-[var(--tlkv-bg)] text-[var(--tlkv-muted)]`}
+            />
+            <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+              Chỉ phần loại của MSP (vd V610DC). Không dán full MSP vào đây.
+            </span>
+          </label>
           <label className="text-sm sm:col-span-2">
             Tên sản phẩm
             <input value={name} onChange={(e) => setName(e.target.value)} className={FIELD} />
@@ -634,15 +671,6 @@ export function DraftReceivePanel({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="text-sm">
-            Mã loại (type_code)
-            <input
-              value={typeCode}
-              onChange={(e) => setTypeCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-              maxLength={24}
-              className={FIELD}
-            />
           </label>
           <label className="text-sm">
             Định lượng (chỉ)
@@ -699,12 +727,19 @@ export function DraftReceivePanel({
             onHesoChange={setHeso}
           />
           <label className="text-sm">
-            Mã đầu SKU
+            Mã đầu SKU (mã kho Order)
             <input
               value={skuPrefix}
-              onChange={(e) => setSkuPrefix(e.target.value)}
+              onChange={(e) =>
+                setSkuPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))
+              }
+              maxLength={12}
               className={FIELD}
             />
+            <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+              Mặc định TLKVTS → SKU dạng TLKVTS000123. Không dán MSP/tem vào ô này (tránh …
+              000001).
+            </span>
           </label>
           <label className="text-sm sm:col-span-2">
             Ghi chú giá

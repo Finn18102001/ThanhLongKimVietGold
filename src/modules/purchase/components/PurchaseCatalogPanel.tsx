@@ -39,7 +39,28 @@ export function PurchaseCatalogPanel({
   const [categoryName, setCategoryName] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [query, setQuery] = useState("");
+  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (q.length < 2) {
+      setMspSkuIds([]);
+      return;
+    }
+    void import("@/modules/label-print/msp-search")
+      .then(({ findSkuIdsByMspQuery }) => findSkuIdsByMspQuery(q))
+      .then((ids) => {
+        if (!cancelled) setMspSkuIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setMspSkuIds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
 
   const brandOptions = useMemo(() => {
     const names = Array.from(
@@ -123,7 +144,11 @@ export function PurchaseCatalogPanel({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const mspSet = new Set(mspSkuIds);
+    // MSP hit: show from full catalog, ignore brand/category/type/group filters.
+    const mspHits = q.length >= 2 ? catalog.filter((item) => mspSet.has(item.skuId)) : [];
     const rows = brandScopedCatalog.filter((item) => {
+      if (mspSet.has(item.skuId)) return false;
       const matchesCategory =
         categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =
@@ -138,8 +163,10 @@ export function PurchaseCatalogPanel({
         (item.brandName || "").toLowerCase().includes(q);
       return matchesCategory && matchesType && matchesGroup && matchesQuery;
     });
-    return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandScopedCatalog, categoryName, group, productTypeId, query]);
+    const seen = new Set(mspHits.map((item) => item.skuId));
+    const merged = [...mspHits, ...rows.filter((item) => !seen.has(item.skuId))];
+    return prioritizeGoldFirst(merged, isGoldCatalogItem);
+  }, [brandScopedCatalog, catalog, categoryName, group, mspSkuIds, productTypeId, query]);
 
   useEffect(() => {
     setPageIndex(0);

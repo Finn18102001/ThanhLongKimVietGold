@@ -439,7 +439,11 @@ export function PosTerminal({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const mspSet = new Set(mspSkuIds);
+    // MSP hit: show from full catalog, ignore brand/category/type/group filters.
+    const mspHits = q.length >= 2 ? gridCatalog.filter((item) => mspSet.has(item.skuId)) : [];
     const rows = brandScopedCatalog.filter((item) => {
+      if (mspSet.has(item.skuId)) return false; // added via mspHits
       const matchesCategory =
         categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =
@@ -451,12 +455,13 @@ export function PosTerminal({
         item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
-        (item.brandName || "").toLowerCase().includes(q) ||
-        mspSkuIds.includes(item.skuId);
+        (item.brandName || "").toLowerCase().includes(q);
       return matchesCategory && matchesType && matchesGroup && matchesQuery;
     });
-    return prioritizeGoldFirst(rows, isGoldCatalogItem);
-  }, [brandScopedCatalog, categoryName, group, productTypeId, query, mspSkuIds]);
+    const seen = new Set(mspHits.map((item) => item.skuId));
+    const merged = [...mspHits, ...rows.filter((item) => !seen.has(item.skuId))];
+    return prioritizeGoldFirst(merged, isGoldCatalogItem);
+  }, [brandScopedCatalog, categoryName, gridCatalog, group, productTypeId, query, mspSkuIds]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);

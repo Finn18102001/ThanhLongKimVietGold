@@ -96,8 +96,8 @@
 - [x] UI: tab «Tem trước nhập kho» + `DraftReceivePanel` (picker 1 draft, autofill, diff alert, giá bán 3a)
 - [x] UI UPDATE 2026-11-19: picker Dropdown → Table + phân trang; nút **Nhập kho** chỉ chọn+điền form; Search RPC giữ nguyên; prefill đủ giá/công/định lượng/KLT/KLV/HL/`type_code` (KLT/KLV từ print payload + snapshot)
 - [ ] Lọc list draft theo tab Nhập vàng/Nhập bạc — **chưa chốt** (draft không có `metal_kind`; heuristic text chưa đủ tin cậy) → tab P9 trên `DraftReceivePanel` **tạm ẩn**, form cố định luồng vàng
-- [ ] Search MSP 5 tab
-- [ ] Hard-test + cleanup
+- [x] Search MSP bán/mua: hyphen-insensitive RPC + bypass filter khi hit MSP (2026-11-19); còn checklist cột MSP UI 5 tab
+- [x] Hard-test + cleanup (Bug1 MSP/type_code 2026-11-19: HTBBOFU-001006 → TLKVTS000028 / PN000137 voided; draft/piece/unit deleted; sku+product+supplier deactivated)
 
 ## 7. UI UPDATE — Nhập từ tem draft (2026-11-19)
 
@@ -118,7 +118,10 @@
 
 Lấy từ draft + bản in gần nhất (`pos_label_draft_print_log.payload_json`) / `snapshot_json`:
 
-- Giá nhập / giá bán, tiền công, định lượng, KLT, KLV, HL (`gold_age_text`), `type_code` (+ `skuPrefix` nếu type_code hợp lệ 2–12).
+- Giá nhập / giá bán, tiền công, định lượng, KLT, KLV, HL (`gold_age_text`).
+- **MSP** (`printable_code`) hiển thị read-only — giữ nguyên khi nhập (Bug 1, 2026-11-19).
+- **type_code** read-only từ draft (không dán full MSP; không strip rồi nhầm thành mã đầu SKU).
+- **Mã đầu SKU** mặc định `TLKVTS` (mã kho Order). Cấm prefix trùng MSP/tem (tránh SKU `…000001`).
 - Brand/Category vẫn chọn lại từ danh mục hệ thống (PRE-19/20).
 - Diff alert cũ/mới + Đồng ý / Reset snapshot: giữ nguyên.
 
