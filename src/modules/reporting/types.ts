@@ -30,8 +30,12 @@ export type TransactionExportRow = {
   invoiceNo: string | null;
   customerName: string;
   customerPhone: string;
+  /** Tổng tiền chứng từ đã lưu (Σ dòng + phụ thu). Dùng đối chiếu Đã thanh toán. */
   totalDong: number;
+  /** Thành tiền dòng đã lưu (không gồm phụ thu chứng từ). */
+  lineTotalDong: number;
   paidDong: number;
+  /** Tổng tiền − Đã thanh toán (âm = thanh toán thừa). */
   remainingDong: number;
   paymentStatus: string;
   paymentMethod: string | null;

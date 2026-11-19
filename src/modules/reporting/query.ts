@@ -133,8 +133,14 @@ function mapTransactionExportRow(raw: Record<string, unknown>): TransactionExpor
     customerName: String(raw.customerName ?? ""),
     customerPhone: String(raw.customerPhone ?? ""),
     totalDong: Number(raw.totalDong ?? 0),
+    lineTotalDong: Number(
+      raw.lineTotalDong ?? raw.totalDong ?? 0,
+    ),
     paidDong: Number(raw.paidDong ?? 0),
-    remainingDong: Number(raw.remainingDong ?? 0),
+    remainingDong: Number(
+      raw.remainingDong ??
+        Number(raw.totalDong ?? 0) - Number(raw.paidDong ?? 0),
+    ),
     paymentStatus: String(raw.paymentStatus ?? ""),
     paymentMethod:
       raw.paymentMethod == null || raw.paymentMethod === ""

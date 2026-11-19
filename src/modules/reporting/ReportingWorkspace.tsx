@@ -560,6 +560,12 @@ export function ReportingWorkspace({
   );
 }
 
+function paymentBalanceLabel(remainingDong: number): string {
+  if (remainingDong > 0) return formatDong(remainingDong);
+  if (remainingDong < 0) return `Thừa ${formatDong(Math.abs(remainingDong))}`;
+  return formatDong(0);
+}
+
 function TransactionTable({
   rows,
   pending,
@@ -572,16 +578,23 @@ function TransactionTable({
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
       <h2 className="text-[15px] font-semibold">Giao dịch trong khoảng lọc</h2>
       <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
-        {rows.length} dòng sản phẩm. File Excel xuất toàn bộ, đúng khoảng ngày đang lọc.
+        {rows.length} dòng sản phẩm. Tổng tiền = tổng chứng từ đã lưu (gồm công/phụ thu). File Excel xuất toàn bộ.
       </p>
       <div className={`mt-3 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
-        <table className="w-full min-w-[980px] text-left text-[13px]">
+        <table className="w-full min-w-[1280px] text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Mã phiếu</th>
               <th className="py-2 pr-3 font-medium">Khách hàng</th>
               <th className="py-2 pr-3 font-medium">Sản phẩm</th>
+              <th className="py-2 pr-3 text-right font-medium">Đơn giá</th>
+              <th className="py-2 pr-3 text-right font-medium">Số cái</th>
+              <th className="py-2 pr-3 text-right font-medium">Số chỉ</th>
+              <th className="py-2 pr-3 text-right font-medium">Công</th>
+              <th className="py-2 pr-3 text-right font-medium">Phụ thu thêm</th>
               <th className="py-2 pr-3 text-right font-medium">Tổng tiền</th>
+              <th className="py-2 pr-3 text-right font-medium">Đã thanh toán</th>
+              <th className="py-2 pr-3 text-right font-medium">Còn phải thanh toán</th>
               <th className="py-2 pr-3 font-medium">Trạng thái thanh toán</th>
               <th className="py-2 pr-3 font-medium">Hình thức thanh toán</th>
               <th className="py-2 font-medium">Trạng thái trả vàng</th>
@@ -590,7 +603,7 @@ function TransactionTable({
           <tbody>
             {shown.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-6 text-[var(--tlkv-muted)]">
+                <td colSpan={14} className="py-6 text-[var(--tlkv-muted)]">
                   Chưa có giao dịch trong khoảng này.
                 </td>
               </tr>
@@ -603,7 +616,18 @@ function TransactionTable({
                   </td>
                   <td className="py-2.5 pr-3 max-w-[160px] truncate">{row.customerName}</td>
                   <td className="py-2.5 pr-3 max-w-[200px] truncate">{row.productName}</td>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.totalDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.unitPriceDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{row.quantitySold}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">
+                    {Number(row.weightChiSold.toFixed(4)).toLocaleString("vi-VN")}
+                  </td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.laborFinalDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.extraChargesDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums font-medium">{formatDong(row.totalDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatDong(row.paidDong)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">
+                    {paymentBalanceLabel(row.remainingDong)}
+                  </td>
                   <td className="py-2.5 pr-3 whitespace-nowrap">
                     {PAYMENT_STATUS_LABEL[row.paymentStatus as PaymentStatus] ?? row.paymentStatus}
                   </td>
@@ -654,11 +678,14 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Tên sản phẩm",
     "Hàm lượng",
     "Đơn giá",
-    "SL bán",
+    "Số cái",
     "Số chỉ",
+    "Công",
+    "Phụ thu thêm",
     "Tổng tiền",
     "Đã thanh toán",
-    "Còn lại",
+    "Còn phải thanh toán",
+    "Ghi chú còn phải",
     "Trạng thái thanh toán",
     "Hình thức thanh toán",
     "Hạn thanh toán",
@@ -669,8 +696,6 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
     "Ngày hẹn trả vàng",
     "Thời gian trả vàng",
     "Ngày trả vàng",
-    "Tiền công",
-    "Phụ thu thêm",
   ];
   const lines = rows.map((row) =>
     [
@@ -687,9 +712,16 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.unitPriceDong,
       row.quantitySold,
       Number(row.weightChiSold.toFixed(4)),
+      row.laborFinalDong,
+      row.extraChargesDong,
       row.totalDong,
       row.paidDong,
       row.remainingDong,
+      row.remainingDong < 0
+        ? `Thừa ${Math.abs(row.remainingDong)}`
+        : row.remainingDong > 0
+          ? "Còn thiếu"
+          : "Đủ",
       PAYMENT_STATUS_LABEL[row.paymentStatus as PaymentStatus] ?? row.paymentStatus,
       row.paymentMethod ? (PAYMENT_LABEL[row.paymentMethod] ?? row.paymentMethod) : "",
       row.dueDate ?? "",
@@ -700,8 +732,6 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
       row.goldReturnDueAt ? formatViDate(formatVnIsoDate(row.goldReturnDueAt)) : "",
       row.goldReturnedAt ? formatViDateTime(row.goldReturnedAt) : "",
       row.goldReturnedAt ? formatViDate(formatVnIsoDate(row.goldReturnedAt)) : "",
-      row.laborFinalDong,
-      row.extraChargesDong,
     ]
       .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
       .join(","),
@@ -711,9 +741,7 @@ function downloadTransactionsCsv(rows: TransactionExportRow[], from: string, to:
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  const fromStamp = from.replaceAll("-", "");
-  const toStamp = to.replaceAll("-", "");
-  anchor.download = withExportTime(`tlkv-giao-dich-${fromStamp}-${toStamp}.csv`);
+  anchor.download = withExportTime("tlkv-giao-dich.csv");
   anchor.click();
   URL.revokeObjectURL(url);
 }
