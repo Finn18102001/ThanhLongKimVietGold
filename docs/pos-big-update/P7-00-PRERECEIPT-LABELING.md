@@ -94,5 +94,37 @@
 - [x] RPC: `pos_create_label_draft`, `pos_record_label_draft_print`, `pos_list_pending_label_drafts`
 - [x] RPC `pos_receive_label_draft` (qty=1, Unit + MSP AUTO / shared PRE, anti-dup, sell_price not written to labor_fee)
 - [x] UI: tab «Tem trước nhập kho» + `DraftReceivePanel` (picker 1 draft, autofill, diff alert, giá bán 3a)
+- [x] UI UPDATE 2026-11-19: picker Dropdown → Table + phân trang; nút **Nhập kho** chỉ chọn+điền form; Search RPC giữ nguyên; prefill đủ giá/công/định lượng/KLT/KLV/HL/`type_code` (KLT/KLV từ print payload + snapshot)
+- [ ] Lọc list draft theo tab Nhập vàng/Nhập bạc — **chưa chốt** (draft không có `metal_kind`; heuristic text chưa đủ tin cậy) → tab P9 trên `DraftReceivePanel` **tạm ẩn**, form cố định luồng vàng
 - [ ] Search MSP 5 tab
 - [ ] Hard-test + cleanup
+
+## 7. UI UPDATE — Nhập từ tem draft (2026-11-19)
+
+> Chỉ đổi cách chọn tem + mapping điền form. Không đổi schema, RPC nhận kho, tạo/in tem, MSP/Unit.
+
+### 7.1. Picker
+
+| Trước | Sau |
+|-------|-----|
+| `<select>` dropdown | Table phân trang (5/10/20/50), nút **Nhập kho** từng dòng |
+| Giới hạn thực tế khó duyệt | `pos_list_pending_label_drafts` cùng predicate Search; `p_limit` 200 |
+
+- Search: giữ `listPendingLabelDraftsAction(query)` — không đổi điều kiện tìm; kết quả hiện trên Table.
+- Nút **Nhập kho** trên bảng = chọn 1 draft + điền form; **không** gọi `pos_receive_label_draft`. Xác nhận vẫn là nút form riêng.
+- Cột Table: STT, MSP (`printable_code`), SKU (`—` vì chưa tạo), tên (+ brand/category text), HL (`—` trên list vì summary RPC chưa có), trọng lượng, giá, trạng thái «Chưa nhập kho», thao tác.
+
+### 7.2. Prefill form khi chọn
+
+Lấy từ draft + bản in gần nhất (`pos_label_draft_print_log.payload_json`) / `snapshot_json`:
+
+- Giá nhập / giá bán, tiền công, định lượng, KLT, KLV, HL (`gold_age_text`), `type_code` (+ `skuPrefix` nếu type_code hợp lệ 2–12).
+- Brand/Category vẫn chọn lại từ danh mục hệ thống (PRE-19/20).
+- Diff alert cũ/mới + Đồng ý / Reset snapshot: giữ nguyên.
+
+### 7.3. Tab Nhập vàng / Nhập bạc (P9) trên panel này
+
+- **Tạm ẩn** UI tab trên `DraftReceivePanel` (2026-11-19).
+- Lý do: list draft chưa có cột kim loại; lọc theo heuristic tên/`bạc|bac` dễ lệch; chưa chốt với chủ SP.
+- ReceiveForm / Combined (In tem kiêm nhập) **vẫn** giữ tab P9.
+- Khi chốt rule lọc (cột `metal_kind` hoặc heuristic được duyệt) → bật lại tab + lọc Table theo tab.

@@ -29,6 +29,10 @@ export type LabelDraftDetail = LabelDraftSummary & {
   priceNote: string | null;
   laborFeeDong: number | null;
   goldAgeText: string | null;
+  /** Từ print payload / snapshot lúc in — không có cột riêng trên draft. */
+  kltChi: number | null;
+  klvChi: number | null;
+  kldChi: number | null;
   stoneWeightChi: number | null;
   stoneQuantity: number | null;
   stoneUnitPriceDong: number | null;

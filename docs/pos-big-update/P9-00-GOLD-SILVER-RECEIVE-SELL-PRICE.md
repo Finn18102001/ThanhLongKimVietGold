@@ -166,3 +166,4 @@ Link bảng giá vẫn dùng để gợi ý / điền giá nguyên liệu hoặc
 
 - 2026-11-18: tạo sổ từ BIG CHANGE; §5 đánh dấu hoãn; chưa code.
 - 2026-11-18: code tab Nhập vàng/Nhập bạc + công thức nhập vàng + tiền công nhập trên ReceiveForm / Combined / DraftReceive; gợi ý bán P9 (không map công nhập → labor_fee). Hard-test Order: `PN000128` / `TLKVTS000025` (cost 10.499.000 = 1×0,9999×10.000.000+500.000; labor_fee=0) → đã void + ẩn SKU.
+- 2026-11-19: trên **Nhập từ tem draft (P7)** — tạm **ẩn** tab Nhập vàng/Nhập bạc (chưa chốt rule lọc draft theo kim loại; xem [`P7-00-PRERECEIPT-LABELING.md`](./P7-00-PRERECEIPT-LABELING.md) §7.3). ReceiveForm + Combined vẫn giữ tab.

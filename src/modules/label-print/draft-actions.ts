@@ -34,6 +34,20 @@ function mapSummary(row: Record<string, unknown>): LabelDraftSummary {
   };
 }
 
+function numOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function pickChi(
+  printPayload: Record<string, unknown>,
+  snap: Record<string, unknown>,
+  key: string,
+): number | null {
+  return numOrNull(printPayload[key]) ?? numOrNull(snap[key]);
+}
+
 export async function createLabelDraftAction(
   input: CreateLabelDraftInput,
 ): Promise<ActionResult<{ id: string; printableCode: string; reservedMsp: string | null }>> {
@@ -112,9 +126,10 @@ export async function listPendingLabelDraftsAction(
   return runAction(async () => {
     await assertStaffMutate();
     const supabase = await createServerSupabase();
+    // Same RPC + search predicate; raise limit so Table can page beyond old dropdown UX.
     const { data, error } = await supabase.rpc("pos_list_pending_label_drafts", {
       p_query: query || null,
-      p_limit: 50,
+      p_limit: 200,
     });
     if (error) throw new Error(error.message);
     const rows = ((data as { rows?: Record<string, unknown>[] } | null)?.rows ?? []).map(
@@ -139,6 +154,26 @@ export async function getLabelDraftAction(
     if (!data) throw new Error("Draft không tồn tại.");
     const row = data as Record<string, unknown>;
     const summary = mapSummary(row);
+    const snap = (row.snapshot_json as Record<string, unknown>) ?? {};
+
+    const { data: printRows, error: printError } = await supabase
+      .from("pos_label_draft_print_log")
+      .select("payload_json")
+      .eq("draft_id", draftId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (printError) throw new Error(printError.message);
+    const printPayload =
+      ((printRows?.[0] as { payload_json?: Record<string, unknown> } | undefined)
+        ?.payload_json as Record<string, unknown> | undefined) ?? {};
+
+    const laborFromPrint = numOrNull(printPayload.labor_fee_dong);
+    const sellFromPrint = numOrNull(printPayload.price_dong);
+    const goldAgeFromPrint =
+      printPayload.gold_age_text == null || String(printPayload.gold_age_text).trim() === ""
+        ? null
+        : String(printPayload.gold_age_text);
+
     return {
       ...summary,
       typeCode: String(row.type_code ?? ""),
@@ -148,14 +183,20 @@ export async function getLabelDraftAction(
       productTypeText: row.product_type_text == null ? null : String(row.product_type_text),
       priceRowId: row.price_row_id == null ? null : String(row.price_row_id),
       priceNote: row.price_note == null ? null : String(row.price_note),
-      laborFeeDong: row.labor_fee_dong == null ? null : Number(row.labor_fee_dong),
-      goldAgeText: row.gold_age_text == null ? null : String(row.gold_age_text),
+      laborFeeDong:
+        laborFromPrint ?? (row.labor_fee_dong == null ? null : Number(row.labor_fee_dong)),
+      sellPriceDong: summary.sellPriceDong ?? sellFromPrint,
+      goldAgeText:
+        goldAgeFromPrint ?? (row.gold_age_text == null ? null : String(row.gold_age_text)),
+      kltChi: pickChi(printPayload, snap, "klt_chi"),
+      klvChi: pickChi(printPayload, snap, "klv_chi"),
+      kldChi: pickChi(printPayload, snap, "kld_chi"),
       stoneWeightChi: row.stone_weight_chi == null ? null : Number(row.stone_weight_chi),
       stoneQuantity: row.stone_quantity == null ? null : Number(row.stone_quantity),
       stoneUnitPriceDong:
         row.stone_unit_price_dong == null ? null : Number(row.stone_unit_price_dong),
       note: row.note == null ? null : String(row.note),
-      snapshotJson: (row.snapshot_json as Record<string, unknown>) ?? {},
+      snapshotJson: snap,
     };
   }, "Không tải được draft.");
 }
