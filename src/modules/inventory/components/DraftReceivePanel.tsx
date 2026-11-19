@@ -176,7 +176,20 @@ export function DraftReceivePanel({
     metalKind,
   ]);
 
+  function clearDraftSelection() {
+    setSelectedId("");
+    setDraft(null);
+    setLockPrefill(false);
+    setDiffRows(null);
+    setError(null);
+    setSuccess(null);
+  }
+
   async function selectDraftForReceive(id: string) {
+    if (id && id === selectedId) {
+      clearDraftSelection();
+      return;
+    }
     setSelectedId(id);
     setError(null);
     setSuccess(null);
@@ -188,6 +201,8 @@ export function DraftReceivePanel({
     const result = await getLabelDraftAction(id);
     if (!result.ok) {
       setError(result.message);
+      setSelectedId("");
+      setDraft(null);
       return;
     }
     const d = result.data;
@@ -487,11 +502,11 @@ export function DraftReceivePanel({
                             onClick={() => void selectDraftForReceive(row.id)}
                             className={`h-8 rounded-lg px-2.5 text-[11px] font-semibold disabled:opacity-40 ${
                               selected
-                                ? "bg-[var(--tlkv-red)] text-white"
+                                ? "border border-[var(--tlkv-red)] bg-white text-[var(--tlkv-red)]"
                                 : "border border-[var(--tlkv-line)] bg-white hover:border-[var(--tlkv-red)]"
                             }`}
                           >
-                            {selected ? "Đã chọn" : "Nhập kho"}
+                            {selected ? "Hủy chọn" : "Nhập kho"}
                           </button>
                         </td>
                       </tr>
@@ -548,17 +563,27 @@ export function DraftReceivePanel({
 
       {draft ? (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <p className="sm:col-span-2 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
-            Draft <strong>{draft.printableCode}</strong> ({draft.codeMode}) · brand text:{" "}
-            <em>{draft.brandText || "(trống)"}</em> · category text:{" "}
-            <em>{draft.categoryText || "(trống)"}</em>
-            {typeCode ? (
-              <>
-                {" "}
-                · type_code: <em>{typeCode}</em>
-              </>
-            ) : null}
-          </p>
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
+            <p>
+              Draft <strong>{draft.printableCode}</strong> ({draft.codeMode}) · brand text:{" "}
+              <em>{draft.brandText || "(trống)"}</em> · category text:{" "}
+              <em>{draft.categoryText || "(trống)"}</em>
+              {typeCode ? (
+                <>
+                  {" "}
+                  · type_code: <em>{typeCode}</em>
+                </>
+              ) : null}
+            </p>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={clearDraftSelection}
+              className="h-8 shrink-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[11px] font-semibold disabled:opacity-40"
+            >
+              Hủy chọn
+            </button>
+          </div>
           <label className="text-sm sm:col-span-2">
             Tên sản phẩm
             <input value={name} onChange={(e) => setName(e.target.value)} className={FIELD} />

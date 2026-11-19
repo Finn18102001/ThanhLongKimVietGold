@@ -160,7 +160,7 @@ export async function getLabelDraftAction(
       .from("pos_label_draft_print_log")
       .select("payload_json")
       .eq("draft_id", draftId)
-      .order("created_at", { ascending: false })
+      .order("printed_at", { ascending: false })
       .limit(1);
     if (printError) throw new Error(printError.message);
     const printPayload =
