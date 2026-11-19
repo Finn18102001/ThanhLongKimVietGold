@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
-import { receivePurchase } from "../actions";
+import { applySkuSellLaborByCode, applySkuSellLaborDong, receivePurchase } from "../actions";
 import type { ReceiveMetalKind, SellPriceMode } from "../priceLink";
 import type {
   BrandCategoryLink,
@@ -70,6 +70,7 @@ export function ReceiveForm({
   const [purityText, setPurityText] = useState("");
   const [spotBuyDong, setSpotBuyDong] = useState("");
   const [receiveLaborDong, setReceiveLaborDong] = useState("0");
+  const [sellLaborDong, setSellLaborDong] = useState("0");
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [paidDongText, setPaidDongText] = useState("");
@@ -90,6 +91,7 @@ export function ReceiveForm({
     setPurityText("");
     setSpotBuyDong("");
     setReceiveLaborDong("0");
+    setSellLaborDong("0");
     setCostPriceDong("");
     setSellPriceDong("");
     setPaidDongText("");
@@ -172,7 +174,13 @@ export function ReceiveForm({
 
       setPending(true);
       try {
+        const sellLabor = Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong);
         const result = await receivePurchase(formData);
+        if (Number.isInteger(sellLabor) && sellLabor >= 0) {
+          for (const code of result.orderSkus ?? []) {
+            await applySkuSellLaborByCode(code, sellLabor);
+          }
+        }
         setIdempotencyKey(crypto.randomUUID());
         resetOrderDraft();
         setAlert({
@@ -201,7 +209,11 @@ export function ReceiveForm({
     const received = Number(formData.get("received_qty") ?? 0);
     setPending(true);
     try {
+      const sellLabor = Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong);
       const result = await receivePurchase(formData);
+      if (skuId && Number.isInteger(sellLabor) && sellLabor >= 0) {
+        await applySkuSellLaborDong(skuId, sellLabor);
+      }
       setIdempotencyKey(crypto.randomUUID());
       setAlert({
         tone: "success",
@@ -260,9 +272,11 @@ export function ReceiveForm({
               setOrderPriceRowId("");
               setSpotBuyDong("");
               setReceiveLaborDong("0");
+              setSellLaborDong("0");
               setCostPriceDong("");
               setSellPriceDong("");
               setHeso("");
+              setSellMode("link");
               if (next === "silver") setPurityText("");
             }}
           />
@@ -369,6 +383,8 @@ export function ReceiveForm({
               onSpotBuyDongChange={setSpotBuyDong}
               receiveLaborDong={receiveLaborDong}
               onReceiveLaborDongChange={setReceiveLaborDong}
+              sellLaborDong={sellLaborDong}
+              onSellLaborDongChange={setSellLaborDong}
               costPriceDong={costPriceDong}
               onCostPriceDongChange={setCostPriceDong}
               sellPriceDong={sellPriceDong}
@@ -449,6 +465,18 @@ export function ReceiveForm({
                 onValueChange={setCostPriceDong}
                 className={FIELD}
               />
+            </label>
+            <label className="text-sm sm:col-span-2">
+              Tiền công bán (VND)
+              <DongInput
+                name="sell_labor_dong"
+                value={sellLaborDong}
+                onValueChange={setSellLaborDong}
+                className={FIELD}
+              />
+              <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+                Lưu vào mã hàng, tự điền công trên hóa đơn bán (vẫn sửa được).
+              </span>
             </label>
             <label className="text-sm sm:col-span-2">
               Giá bán / chiếc (VND, số nguyên)

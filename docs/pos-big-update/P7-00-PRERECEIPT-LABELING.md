@@ -95,7 +95,8 @@
 - [x] RPC `pos_receive_label_draft` (qty=1, Unit + MSP AUTO / shared PRE, anti-dup, sell_price not written to labor_fee)
 - [x] UI: tab «Tem trước nhập kho» + `DraftReceivePanel` (picker 1 draft, autofill, diff alert, giá bán 3a)
 - [x] UI UPDATE 2026-11-19: picker Dropdown → Table + phân trang; nút **Nhập kho** chỉ chọn+điền form; Search RPC giữ nguyên; prefill đủ giá/công/định lượng/KLT/KLV/HL/`type_code` (KLT/KLV từ print payload + snapshot)
-- [ ] Lọc list draft theo tab Nhập vàng/Nhập bạc — **chưa chốt** (draft không có `metal_kind`; heuristic text chưa đủ tin cậy) → tab P9 trên `DraftReceivePanel` **tạm ẩn**, form cố định luồng vàng
+- [x] Tab Nhập vàng/Nhập bạc trên `DraftReceivePanel` **bật lại** (2026-11-20, SYSTEM §21.2) — user chọn kim loại khi nhập; **không** lọc list draft; **không** suy luận từ Brand/Category/tên
+- [ ] Lọc list draft theo tab Nhập vàng/Nhập bạc — **chưa chốt** (draft không có `metal_kind`) — tách khỏi việc bật tab
 - [x] Search MSP bán/mua: hyphen-insensitive RPC + bypass filter khi hit MSP (2026-11-19); còn checklist cột MSP UI 5 tab
 - [x] Hard-test + cleanup (Bug1 MSP/type_code 2026-11-19: HTBBOFU-001006 → TLKVTS000028 / PN000137 voided; draft/piece/unit deleted; sku+product+supplier deactivated)
 
@@ -127,7 +128,8 @@ Lấy từ draft + bản in gần nhất (`pos_label_draft_print_log.payload_jso
 
 ### 7.3. Tab Nhập vàng / Nhập bạc (P9) trên panel này
 
-- **Tạm ẩn** UI tab trên `DraftReceivePanel` (2026-11-19).
-- Lý do: list draft chưa có cột kim loại; lọc theo heuristic tên/`bạc|bac` dễ lệch; chưa chốt với chủ SP.
-- ReceiveForm / Combined (In tem kiêm nhập) **vẫn** giữ tab P9.
-- Khi chốt rule lọc (cột `metal_kind` hoặc heuristic được duyệt) → bật lại tab + lọc Table theo tab.
+- **Bật lại** UI tab trên `DraftReceivePanel` (2026-11-20) theo SYSTEM §21.2 / P9.
+- User chọn Nhập vàng / Nhập bạc khi nhập; **không** lọc Table draft theo tab; **không** suy luận kim loại từ dữ liệu draft.
+- Prefill draft: `labor_fee_dong` snapshot → **tiền công bán** (không map sang công nhập).
+- Luồng Draft giữ nguyên: chọn → autofill → diff → xác nhận nhập; snapshot gốc không bị ghi đè.
+- Lọc list theo kim loại: vẫn **chưa chốt** (cần `metal_kind` hoặc heuristic được duyệt) — tách khỏi việc bật tab.

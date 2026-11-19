@@ -2,6 +2,10 @@ export type PosCatalogItem = {
   skuId: string;
   sku: string;
   name: string;
+  /**
+   * MSP in trên tem (piece.msp / unit.shared_product_code). Rỗng nếu chưa có — không tự sinh.
+   */
+  msp?: string;
   quantity: number;
   weightChi: number;
   unitPriceDong: number | null;
@@ -12,6 +16,13 @@ export type PosCatalogItem = {
   brandName: string | null;
   /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
   productTypeId?: string | null;
+  /**
+   * Giá bán thủ công từ `products.price_numeric` khi không có/không dùng được board sell.
+   * Chỉ dùng hiển thị card / gợi ý — không thay compute_unit_price khi đã có price_row.
+   */
+  manualSellDong?: number | null;
+  /** Giá vốn/chiếc gần nhất (`pos_inventory_stock.last_cost_dong`) — gợi ý mua khi không có board buy. */
+  lastCostDong?: number | null;
   /** Vàng/bạc thị trường — sold from stock; soft-inactive by design. */
   isMarketGold?: boolean;
   /** Real MG SKU only: group from RPC `pos_list_market_gold_stock`. */

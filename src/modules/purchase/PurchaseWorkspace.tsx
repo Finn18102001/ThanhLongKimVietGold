@@ -204,17 +204,23 @@ export function PurchaseWorkspace({
 
   /** Click catalog → add/bump line on cart (POS-like; edit qty/price on invoice). */
   function addCatalogItem(item: PurchaseCatalogItem) {
-    const buyPrice = item.suggestedBuyDongPerChi;
+    const weight = item.weightChi > 0 ? item.weightChi : 1;
+    // Board buy / chỉ trước; không link → quy đổi last_cost / chiếc sang / chỉ (SRS §6).
+    const buyPrice =
+      item.suggestedBuyDongPerChi > 0
+        ? item.suggestedBuyDongPerChi
+        : item.suggestedBuyDongPerPiece > 0
+          ? Math.round(item.suggestedBuyDongPerPiece / weight)
+          : 0;
     if (buyPrice <= 0) {
       setAlert({
         tone: "error",
         title: "Chưa có giá mua",
-        reason: "Sản phẩm chưa có giá mua vào / chỉ trên bảng giá.",
+        reason: "Sản phẩm chưa có giá mua bảng giá và cũng chưa có giá vốn/giá mua đã lưu.",
       });
       return;
     }
     const unit = buyPrice;
-    const weight = item.weightChi > 0 ? item.weightChi : 1;
 
     setLines((prev) => {
       const existing = prev.find(

@@ -34,6 +34,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
     return {
       skuId: item.skuId,
       sku: item.sku,
+      msp: item.msp ?? "",
       name: item.name,
       quantity: item.quantity,
       unitPriceDong: item.unitPriceDong,
@@ -45,6 +46,7 @@ export async function listPurchaseCatalog(): Promise<PurchaseCatalogItem[]> {
       weightChi: item.weightChi,
       referenceSellDongPerChi: item.referenceSellDongPerChi,
       suggestedBuyDongPerChi: item.suggestedBuyDongPerChi,
+      suggestedBuyDongPerPiece: item.suggestedBuyDongPerPiece ?? 0,
       priceRowId: item.priceRowId,
       goldTypeHint: item.goldTypeHint,
       goldAgeHint: item.goldAgeHint,

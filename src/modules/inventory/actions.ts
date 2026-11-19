@@ -278,3 +278,69 @@ export async function adjustStock(formData: FormData) {
   revalidateInventory();
   return data as { ok: boolean; adjustment_id: string };
 }
+
+/**
+ * Lưu tiền công bán vào SKU (`labor_fee_dong`) — prefill HĐ bán.
+ * Giữ nguyên đá hiện có; không đụng giá vốn / công nhập.
+ */
+export async function applySkuSellLaborDong(
+  skuId: string,
+  sellLaborDong: number,
+): Promise<void> {
+  if (!skuId) return;
+  if (!Number.isInteger(sellLaborDong) || sellLaborDong < 0) {
+    throw new Error("Tiền công bán phải là số nguyên VND không âm.");
+  }
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { data: sku, error: loadError } = await supabase
+    .from("pos_skus")
+    .select("stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong")
+    .eq("id", skuId)
+    .maybeSingle();
+  if (loadError) throw new Error(loadError.message);
+  if (!sku) throw new Error("Không tìm thấy mã hàng để ghi tiền công bán.");
+
+  const stoneQuantity = Math.max(0, Math.trunc(Number(sku.stone_quantity ?? 0)));
+  const stoneUnitPriceDong = Math.max(0, Math.round(Number(sku.stone_unit_price_dong ?? 0)));
+  const legacyStone = Math.max(0, Math.round(Number(sku.stone_price_dong ?? 0)));
+  const keepLegacy = stoneQuantity === 0 && stoneUnitPriceDong === 0 && legacyStone > 0;
+
+  const { error } = keepLegacy
+    ? await supabase.rpc("pos_set_sku_sale_components", {
+        p_sku_id: skuId,
+        p_labor_fee_dong: sellLaborDong,
+        p_stone_weight_chi: Math.max(0, Number(sku.stone_weight_chi ?? 0)),
+        p_stone_price_dong: legacyStone,
+      })
+    : await supabase.rpc("pos_set_sku_sale_components_v2", {
+        p_sku_id: skuId,
+        p_labor_fee_dong: sellLaborDong,
+        p_stone_weight_chi: Math.max(0, Number(sku.stone_weight_chi ?? 0)),
+        p_stone_quantity: stoneQuantity,
+        p_stone_unit_price_dong: stoneUnitPriceDong,
+      });
+  if (error) throw new Error(error.message);
+  revalidatePath("/pos");
+  revalidatePath("/inventory");
+}
+
+/** Resolve SKU id by code then apply sell labor (Order / draft receive returns sku code). */
+export async function applySkuSellLaborByCode(
+  skuCode: string | null | undefined,
+  sellLaborDong: number,
+): Promise<void> {
+  const code = String(skuCode ?? "").trim();
+  if (!code) return;
+  if (!Number.isInteger(sellLaborDong) || sellLaborDong < 0) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_skus")
+    .select("id")
+    .eq("sku", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return;
+  await applySkuSellLaborDong(String(data.id), sellLaborDong);
+}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Printer } from "@phosphor-icons/react";
+import { applySkuSellLaborByCode } from "@/modules/inventory/actions";
 import { PriceLinkControls } from "@/modules/inventory/components/PriceLinkControls";
 import { ReceiveMetalTabs } from "@/modules/inventory/components/ReceiveMetalTabs";
 import type { ReceiveMetalKind, SellPriceMode } from "@/modules/inventory/priceLink";
@@ -32,6 +33,7 @@ type Draft = {
   goldAge: string;
   spotBuyDong: string;
   receiveLaborDong: string;
+  sellLaborDong: string;
   visible: boolean;
   expectedQty: string;
   receivedQty: string;
@@ -57,6 +59,7 @@ function emptyDraft(defaultBrandId: string): Draft {
     goldAge: "",
     spotBuyDong: "",
     receiveLaborDong: "0",
+    sellLaborDong: "0",
     visible: false,
     expectedQty: "0",
     receivedQty: "1",
@@ -190,6 +193,18 @@ export function CombinedReceivePrintPanel({
         setError(result.message);
         return;
       }
+      const sellLabor = Math.trunc(Number(draft.sellLaborDong.replace(/\D/g, "")) || 0);
+      if (sellLabor > 0 && result.data.skuCode) {
+        try {
+          await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+        } catch (laborErr) {
+          setError(
+            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu tiền công bán: ${
+              laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
+            }`,
+          );
+        }
+      }
       // Keep same key until success so retry after print failure does not double-receive
       // when user re-submits; rotate only after successful receive.
       setIdempotencyKey(crypto.randomUUID());
@@ -240,6 +255,7 @@ export function CombinedReceivePrintPanel({
               priceRowId: "",
               spotBuyDong: "",
               receiveLaborDong: "0",
+              sellLaborDong: "0",
               costPriceDong: "",
               sellPriceDong: "",
               heso: "",
@@ -352,6 +368,8 @@ export function CombinedReceivePrintPanel({
           onSpotBuyDongChange={(value) => patch({ spotBuyDong: value })}
           receiveLaborDong={draft.receiveLaborDong}
           onReceiveLaborDongChange={(value) => patch({ receiveLaborDong: value })}
+          sellLaborDong={draft.sellLaborDong}
+          onSellLaborDongChange={(value) => patch({ sellLaborDong: value })}
           costPriceDong={draft.costPriceDong}
           onCostPriceDongChange={(value) => patch({ costPriceDong: value })}
           sellPriceDong={draft.sellPriceDong}
