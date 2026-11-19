@@ -5,6 +5,8 @@ import type { StaffRole } from "@/shared/auth/permissions";
 import { AdminShell } from "@/shared/layout/AdminShell";
 import { formatViDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
+import { canOpenEmployeeCashModule } from "@/modules/fund-cash/query";
+import { canOpenEmployeeGoldModule } from "@/modules/fund-gold/query";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -47,12 +49,29 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const role = session.role as StaffRole;
 
+  let showFundCash = false;
+  let showFundGold = false;
+  try {
+    const gate = await canOpenEmployeeCashModule();
+    showFundCash = gate.allowed;
+  } catch {
+    showFundCash = false;
+  }
+  try {
+    const gate = await canOpenEmployeeGoldModule();
+    showFundGold = gate.allowed;
+  } catch {
+    showFundGold = false;
+  }
+
   return (
     <AdminShell
       businessDateLabel={formatViDate(session.businessDate)}
       userEmail={session.email}
       userName={session.fullName}
       role={role}
+      showFundCash={showFundCash}
+      showFundGold={showFundGold}
     >
       <PermissionGate role={role}>{children}</PermissionGate>
     </AdminShell>

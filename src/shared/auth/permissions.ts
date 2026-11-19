@@ -17,12 +17,16 @@ export const STAFF_ALLOWED_HREFS = new Set<string>([
   ROUTES.labelPrint,
   ROUTES.customers,
   ROUTES.invoices,
+  ROUTES.fundCash,
+  ROUTES.fundGold,
 ]);
 
 /** Spec §26 — ADMIN sees all main + quản trị items. */
 export const ADMIN_ONLY_HREFS = new Set<string>([
   ROUTES.dashboard,
   ROUTES.cashflow,
+  ROUTES.fundCash,
+  ROUTES.fundGold,
   ROUTES.reports,
   ROUTES.reportsRevenue,
   ROUTES.products,

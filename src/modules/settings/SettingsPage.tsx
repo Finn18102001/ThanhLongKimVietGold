@@ -1,11 +1,41 @@
-import { ModulePlaceholder } from "@/shared/ui/ModulePlaceholder";
+import { redirect } from "next/navigation";
+import { getPosSession } from "@/shared/auth/session";
+import { canAdminRead, canMutateAdminData, roleHomePath } from "@/shared/auth/permissions";
+import {
+  EMPLOYEE_FUND_FLAG_KEY,
+  type EmployeeFundFlagState,
+} from "@/shared/lib/feature-flags";
+import { getEmployeeFundFlagState } from "./query";
+import { SettingsWorkspace } from "./SettingsWorkspace";
 
-export function SettingsPage() {
+const FALLBACK_FLAG: EmployeeFundFlagState = {
+  enabled: false,
+  dbEnabled: false,
+  forceOff: false,
+  updatedAt: null,
+  updatedBy: null,
+};
+
+export async function SettingsPage() {
+  const session = await getPosSession();
+  if (!session || !canAdminRead(session.role)) {
+    redirect(roleHomePath(session?.role ?? "STAFF"));
+  }
+
+  let initialFlag = FALLBACK_FLAG;
+  try {
+    initialFlag = await getEmployeeFundFlagState();
+  } catch {
+    initialFlag = {
+      ...FALLBACK_FLAG,
+      updatedBy: `fallback:${EMPLOYEE_FUND_FLAG_KEY}`,
+    };
+  }
+
   return (
-    <ModulePlaceholder
-      moduleId="settings"
-      title="Cài đặt"
-      summary="Cấu hình hệ thống chỉ dành cho quản trị viên. Mọi thay đổi quan trọng đều được ghi vào nhật ký hệ thống."
+    <SettingsWorkspace
+      initialFlag={initialFlag}
+      canMutate={canMutateAdminData(session.role)}
     />
   );
 }

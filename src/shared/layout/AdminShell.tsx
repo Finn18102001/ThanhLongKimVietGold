@@ -16,16 +16,20 @@ export function AdminShell({
   userEmail,
   userName,
   role,
+  showFundCash = false,
+  showFundGold = false,
 }: {
   children: ReactNode;
   businessDateLabel: string;
   userEmail: string;
   userName: string;
   role: StaffRole;
+  showFundCash?: boolean;
+  showFundGold?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { main, admin } = navForRole(role);
+  const { main, admin } = navForRole(role, { showFundCash, showFundGold });
   const showAdminSection = admin.length > 0;
 
   return (

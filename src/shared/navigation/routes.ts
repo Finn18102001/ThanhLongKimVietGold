@@ -23,6 +23,8 @@ export const ROUTES = {
   invoiceCreate: "/invoices?action=create",
   returns: "/returns",
   cashflow: "/cashflow",
+  fundCash: "/fund-cash",
+  fundGold: "/fund-gold",
   reports: "/reports",
   reportsRevenue: "/reports?view=revenue",
   products: "/products",

@@ -16,6 +16,7 @@ import {
   Truck,
   Users,
   Wallet,
+  Coins,
   type Icon,
 } from "@phosphor-icons/react";
 import { canAccessPath, type StaffRole } from "@/shared/auth/permissions";
@@ -35,6 +36,8 @@ export const MAIN_NAV: NavItem[] = [
   { href: ROUTES.labelPrint, label: "In tem", icon: Printer },
   { href: ROUTES.customers, label: "Khách hàng", icon: Users },
   { href: ROUTES.invoices, label: "Hóa đơn", icon: Receipt },
+  { href: ROUTES.fundCash, label: "Quỹ tiền", icon: Coins },
+  { href: ROUTES.fundGold, label: "Quỹ vàng", icon: Scales },
   { href: ROUTES.reports, label: "Báo cáo", icon: ChartBar },
 ];
 
@@ -44,19 +47,41 @@ export const ADMIN_NAV: NavItem[] = [
   { href: ROUTES.employees, label: "Nhân viên", icon: IdentificationBadge },
   { href: ROUTES.suppliers, label: "Nhà cung cấp", icon: Truck },
   { href: ROUTES.cashflow, label: "Quản lý dòng tiền", icon: Wallet },
+  { href: ROUTES.fundCash, label: "Quỹ tiền NV", icon: Coins },
+  { href: ROUTES.fundGold, label: "Quỹ vàng NV", icon: Scales },
   { href: ROUTES.form02, label: "Quản lý Phiếu 02", icon: Files },
   { href: ROUTES.goldManagement, label: "Quản lý vàng", icon: Scales },
   { href: ROUTES.settings, label: "Cài đặt", icon: GearSix },
   { href: ROUTES.audit, label: "Nhật ký hệ thống", icon: Scroll },
 ];
 
-export function navForRole(role: StaffRole): { main: NavItem[]; admin: NavItem[] } {
+export function navForRole(
+  role: StaffRole,
+  opts?: { showFundCash?: boolean; showFundGold?: boolean },
+): { main: NavItem[]; admin: NavItem[] } {
+  const showFundCash = opts?.showFundCash === true;
+  const showFundGold = opts?.showFundGold === true;
+
+  const fundVisible = (href: string) => {
+    if (href === ROUTES.fundCash) return showFundCash;
+    if (href === ROUTES.fundGold) return showFundGold;
+    return true;
+  };
+
   if (role === "ADMIN" || role === "ADMIN_VIEWER") {
-    return { main: MAIN_NAV, admin: ADMIN_NAV };
+    return {
+      // Admin dùng mục quỹ NV trong QUẢN TRỊ — tránh trùng menu chính.
+      main: MAIN_NAV.filter(
+        (item) => item.href !== ROUTES.fundCash && item.href !== ROUTES.fundGold,
+      ),
+      admin: ADMIN_NAV.filter((item) => fundVisible(item.href)),
+    };
   }
 
   return {
-    main: MAIN_NAV.filter((item) => canAccessPath("STAFF", item.href)),
+    main: MAIN_NAV.filter(
+      (item) => canAccessPath("STAFF", item.href) && fundVisible(item.href),
+    ),
     admin: [],
   };
 }
