@@ -12,8 +12,12 @@ import {
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
 import { formatActionError } from "@/shared/lib/action-result";
+import { subscribeBarcodeWedge } from "@/shared/lib/barcode-wedge";
 import { formatDongDigits } from "@/shared/lib/money";
-import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
+import {
+  findSkuIdsByMspQuery,
+  resolveUniqueSkuIdByLabelCode,
+} from "@/modules/label-print/msp-search";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { Modal } from "@/shared/ui/Modal";
@@ -184,6 +188,16 @@ export function PosTerminal({
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
+  const catalogRef = useRef(initialCatalog);
+  const scanBusyRef = useRef(false);
+  const lastScanRef = useRef({ code: "", at: 0 });
+  const scanGateRef = useRef({
+    paid: false,
+    reviewing: false,
+    pickingCustomer: false,
+    hasPicker: false,
+  });
+  const tryAddFromLabelCodeRef = useRef<(raw: string) => Promise<void>>(async () => {});
   const router = useRouter();
   const searchParams = useSearchParams();
   const [catalog, setCatalog] = useState(initialCatalog);
@@ -555,6 +569,90 @@ export function PosTerminal({
     }));
     setRecentIds((current) => [item.skuId, ...current.filter((id) => id !== item.skuId)].slice(0, 8));
   }
+
+  async function tryAddFromLabelCode(raw: string) {
+    const code = raw.trim();
+    if (code.length < 2) return;
+
+    const now = Date.now();
+    if (code === lastScanRef.current.code && now - lastScanRef.current.at < 600) return;
+    lastScanRef.current = { code, at: now };
+
+    const gate = scanGateRef.current;
+    if (gate.paid || gate.reviewing || gate.pickingCustomer || gate.hasPicker) return;
+    if (scanBusyRef.current) return;
+
+    scanBusyRef.current = true;
+    setQuery(code);
+    setPageIndex(0);
+    try {
+      const resolved = await resolveUniqueSkuIdByLabelCode(code);
+      if (resolved.status === "empty") return;
+      if (resolved.status === "not_found") {
+        setAlert({
+          tone: "error",
+          title: "Không tìm thấy tem",
+          reason: `Không có sản phẩm khớp mã «${code}».`,
+        });
+        return;
+      }
+      if (resolved.status === "ambiguous") {
+        setAlert({
+          tone: "error",
+          title: "Nhiều sản phẩm khớp",
+          reason: `Mã «${code}» khớp ${resolved.count} SKU. Quét đủ mã tem hoặc chọn tay trên lưới.`,
+        });
+        return;
+      }
+
+      const item = catalogRef.current.find((row) => row.skuId === resolved.skuId);
+      if (!item) {
+        setAlert({
+          tone: "error",
+          title: "Sản phẩm không có trên quầy",
+          reason: `Đã nhận mã «${code}» nhưng SKU không nằm trong danh mục bán hiện tại.`,
+        });
+        return;
+      }
+      if (item.marketGroupClass) {
+        setPickerClass(item.marketGroupClass);
+        return;
+      }
+
+      addItem(item);
+      setQuery("");
+      searchRef.current?.focus();
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không quét được tem",
+        reason: formatActionError(err instanceof Error ? err.message : "Lỗi không xác định."),
+      });
+    } finally {
+      scanBusyRef.current = false;
+    }
+  }
+
+  catalogRef.current = catalog;
+  scanGateRef.current = {
+    paid: Boolean(paid),
+    reviewing,
+    pickingCustomer,
+    hasPicker: Boolean(pickerClass),
+  };
+  tryAddFromLabelCodeRef.current = tryAddFromLabelCode;
+
+  useEffect(() => {
+    return subscribeBarcodeWedge({
+      onScan: (code) => {
+        void tryAddFromLabelCodeRef.current(code);
+      },
+      shouldIgnore: () => {
+        const gate = scanGateRef.current;
+        return gate.paid || gate.reviewing || gate.pickingCustomer || gate.hasPicker;
+      },
+    });
+  }, []);
 
   function setQty(skuId: string, quantity: number) {
     const item = catalog.find((row) => row.skuId === skuId);
@@ -1217,7 +1315,12 @@ export function PosTerminal({
                 setQuery(event.target.value);
                 setPageIndex(0);
               }}
-              placeholder="Tìm kiếm: nhập tên sản phẩm hoặc mã hàng..."
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                void tryAddFromLabelCode(query);
+              }}
+              placeholder="Tìm MSP / barcode / mã hàng rồi Enter — hoặc quét tem"
               className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-white pr-14 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
             />
             <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded bg-[var(--tlkv-bg)] px-1.5 text-[10px] text-[var(--tlkv-muted)]">

@@ -13,8 +13,10 @@ import type {
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
+import { subscribeBarcodeWedge } from "@/shared/lib/barcode-wedge";
 import { formatDong } from "@/shared/lib/money";
 import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
+import { resolveUniqueSkuIdByLabelCode } from "@/modules/label-print/msp-search";
 import { ROUTES } from "@/shared/navigation/routes";
 import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
@@ -135,6 +137,13 @@ export function PurchaseWorkspace({
   const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
   const [detailTab, setDetailTab] = useState<"overview" | "docs">("overview");
   const workflowKey = useRef<string | null>(null);
+  const catalogRef = useRef(catalog);
+  const scanBusyRef = useRef(false);
+  const lastScanRef = useRef({ code: "", at: 0 });
+  const scanGateRef = useRef({
+    blocked: false,
+  });
+  const tryAddFromLabelCodeRef = useRef<(raw: string) => Promise<void>>(async () => {});
 
   const totalDong = useMemo(
     () => lines.reduce((sum, line) => sum + lineTotalDong(line), 0),
@@ -256,6 +265,73 @@ export function PurchaseWorkspace({
     });
   }
 
+  async function tryAddFromLabelCode(raw: string) {
+    const code = raw.trim();
+    if (code.length < 2) return;
+
+    const now = Date.now();
+    if (code === lastScanRef.current.code && now - lastScanRef.current.at < 600) return;
+    lastScanRef.current = { code, at: now };
+
+    if (scanGateRef.current.blocked) return;
+    if (scanBusyRef.current) return;
+
+    scanBusyRef.current = true;
+    try {
+      const resolved = await resolveUniqueSkuIdByLabelCode(code);
+      if (resolved.status === "empty") return;
+      if (resolved.status === "not_found") {
+        setAlert({
+          tone: "error",
+          title: "Không tìm thấy tem",
+          reason: `Không có sản phẩm khớp mã «${code}».`,
+        });
+        return;
+      }
+      if (resolved.status === "ambiguous") {
+        setAlert({
+          tone: "error",
+          title: "Nhiều sản phẩm khớp",
+          reason: `Mã «${code}» khớp ${resolved.count} SKU. Quét đủ mã tem hoặc chọn tay trên lưới.`,
+        });
+        return;
+      }
+
+      const item = catalogRef.current.find((row) => row.skuId === resolved.skuId);
+      if (!item) {
+        setAlert({
+          tone: "error",
+          title: "Sản phẩm không có trên danh mục mua",
+          reason: `Đã nhận mã «${code}» nhưng SKU không nằm trong danh mục mua hiện tại.`,
+        });
+        return;
+      }
+
+      addCatalogItem(item);
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không quét được tem",
+        reason: formatActionError(err instanceof Error ? err.message : "Lỗi không xác định."),
+      });
+    } finally {
+      scanBusyRef.current = false;
+    }
+  }
+
+  catalogRef.current = catalog;
+  scanGateRef.current = {
+    blocked:
+      reviewing ||
+      pickingCustomer ||
+      showMarket ||
+      showRecent ||
+      meltChoiceOpen ||
+      Boolean(detail) ||
+      detailLoading,
+  };
+  tryAddFromLabelCodeRef.current = tryAddFromLabelCode;
+
   function resetDraft() {
     setLines([]);
     setNote("");
@@ -319,6 +395,15 @@ export function PurchaseWorkspace({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    return subscribeBarcodeWedge({
+      onScan: (code) => {
+        void tryAddFromLabelCodeRef.current(code);
+      },
+      shouldIgnore: () => scanGateRef.current.blocked,
+    });
   }, []);
 
   /** Popup Có/Không nấu: mọi SP thương hiệu/catalog. Vàng/bạc thị trường → bắt buộc flow nấu. */
@@ -667,6 +752,9 @@ export function PurchaseWorkspace({
               catalog={catalog}
               productTypes={productTypes}
               onPickCatalog={addCatalogItem}
+              onLabelCodeSubmit={(code) => {
+                void tryAddFromLabelCode(code);
+              }}
               marketPrices={marketPrices}
               onOpenMarket={(cls) => {
                 setMarketClass(cls);

@@ -774,7 +774,9 @@ Nếu browser/device không hỗ trợ format hoặc scanner:
 Hiển thị fallback manual input.
 ```
 
-Không hard-code giả định về format QR nếu chưa có test thực tế.
+Format pipe đã xác nhận từ máy DP8280 (USB-KBW), mẫu:
+`CCCD|CMND_cũ|Họ tên|DDMMYYYY|Giới tính|Địa chỉ|Ngày cấp|…`
+— giữ phần tử rỗng; không `filter(Boolean)`; không gán CCCD vào SĐT; không auto-save (xem `src/modules/customer/cccdQr.ts`).
 
 ---
 
