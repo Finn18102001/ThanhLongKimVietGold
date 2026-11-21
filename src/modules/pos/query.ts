@@ -12,7 +12,12 @@ import {
   type PosProductTypeOption,
 } from "./types";
 
-type ProductRow = { image: string | null; category: string | null; product_type_id: string | null };
+type ProductRow = {
+  image: string | null;
+  category: string | null;
+  product_type_id: string | null;
+  price_numeric: number | string | null;
+};
 type ProductEmbed = ProductRow | ProductRow[] | null;
 
 type PriceEmbed = {
@@ -28,9 +33,11 @@ type CatalogMeta = PosCatalogItem & {
   priceRowId: string | null;
   referenceSellDongPerChi: number;
   suggestedBuyDongPerChi: number;
+  suggestedBuyDongPerPiece: number;
   goldTypeHint: string | null;
   goldAgeHint: string | null;
   allowDirectBuy: boolean;
+  manualSellDong: number | null;
 };
 
 export type PosCatalogPricingItem = PosCatalogItem & Pick<
@@ -38,14 +45,52 @@ export type PosCatalogPricingItem = PosCatalogItem & Pick<
   | "priceRowId"
   | "referenceSellDongPerChi"
   | "suggestedBuyDongPerChi"
+  | "suggestedBuyDongPerPiece"
   | "goldTypeHint"
   | "goldAgeHint"
   | "allowDirectBuy"
+  | "lastCostDong"
+  | "manualSellDong"
+  | "msp"
 >;
 
 function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+/** MSP in tem: piece.msp ưu tiên, không thì unit.shared_product_code. Không tự sinh. */
+async function loadMspBySkuIds(skuIds: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (skuIds.length === 0) return out;
+  const supabase = await createServerSupabase();
+  const [piecesRes, unitsRes] = await Promise.all([
+    supabase
+      .from("pos_label_pieces")
+      .select("sku_id, msp, created_at")
+      .in("sku_id", skuIds)
+      .not("msp", "is", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("pos_inventory_units")
+      .select("sku_id, shared_product_code, created_at")
+      .in("sku_id", skuIds)
+      .not("shared_product_code", "is", null)
+      .order("created_at", { ascending: false }),
+  ]);
+  for (const row of piecesRes.data ?? []) {
+    const id = String(row.sku_id ?? "");
+    const msp = String(row.msp ?? "").trim();
+    if (!id || !msp || out.has(id)) continue;
+    out.set(id, msp);
+  }
+  for (const row of unitsRes.data ?? []) {
+    const id = String(row.sku_id ?? "");
+    const code = String(row.shared_product_code ?? "").trim();
+    if (!id || !code || out.has(id)) continue;
+    out.set(id, code);
+  }
+  return out;
 }
 
 /**
@@ -67,7 +112,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id, price_numeric), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -76,7 +121,10 @@ async function fetchPosCatalogMeta(options?: {
   const { data, error } = await request;
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map((row) => {
+  const rows = data ?? [];
+  const mspBySku = await loadMspBySkuIds(rows.map((row) => String(row.id)));
+
+  return rows.map((row) => {
     const price = firstEmbed(row.gold_price_rows as PriceEmbed | PriceEmbed[] | null);
     const product = firstEmbed(row.products as ProductEmbed);
     const stock = firstEmbed(
@@ -98,9 +146,19 @@ async function fetchPosCatalogMeta(options?: {
       stock?.last_cost_dong != null && stock.last_cost_dong !== ""
         ? Number(stock.last_cost_dong)
         : null;
+    const manualSellRaw =
+      product?.price_numeric != null && product.price_numeric !== ""
+        ? Number(product.price_numeric)
+        : null;
+    const manualSellDong =
+      manualSellRaw != null && Number.isFinite(manualSellRaw) && manualSellRaw > 0
+        ? Math.round(manualSellRaw)
+        : null;
     const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
-    // Purchase catalog price. Never fall back to the sell column.
+    // Purchase: board buy / chỉ; never use sell column.
     const suggestedBuyDongPerChi = buy > 0 ? Math.round(buy / perChiDivisor) : 0;
+    const suggestedBuyDongPerPiece =
+      lastCost != null && Number.isFinite(lastCost) && lastCost > 0 ? Math.round(lastCost) : 0;
     const laborFeeDong = Number(row.labor_fee_dong ?? 0);
     const stonePriceDong = Number((row as { stone_price_dong?: number | string | null }).stone_price_dong ?? 0);
     const stoneWeightChi = Number((row as { stone_weight_chi?: number | string | null }).stone_weight_chi ?? 0);
@@ -111,13 +169,21 @@ async function fetchPosCatalogMeta(options?: {
     // Market SKUs get their gold price from the group price row in listPosCatalog (P4 C5).
     const goldUnitDong =
       !isMarketGold && sell > 0 ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) : null;
-    const unitPriceDong = goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong;
+    // Board path first; unlinked → manual product sell (SRS §6) for card display.
+    const unitPriceDong =
+      goldUnitDong !== null
+        ? goldUnitDong + laborFeeDong + stonePriceDong
+        : !isMarketGold && manualSellDong != null
+          ? manualSellDong
+          : null;
     const category = isMarketGold
       ? product?.category ?? "Vàng thị trường"
       : product?.category ?? "Khác";
+    const msp = mspBySku.get(String(row.id)) ?? "";
     return {
       skuId: row.id,
       sku: row.sku,
+      msp,
       name: row.name,
       weightChi: Number(row.weight_chi ?? 0),
       unitPriceDong,
@@ -139,6 +205,7 @@ async function fetchPosCatalogMeta(options?: {
       stoneUnitPriceDong,
       stonePriceDong,
       lastCostDong: lastCost,
+      manualSellDong,
       priceRowId: row.price_row_id != null ? String(row.price_row_id) : null,
       referenceSellDongPerChi:
         referenceSellDongPerChi > 0
@@ -147,6 +214,7 @@ async function fetchPosCatalogMeta(options?: {
             ? Math.round(lastCost / Number(row.weight_chi))
             : 0,
       suggestedBuyDongPerChi,
+      suggestedBuyDongPerPiece,
       goldTypeHint: price?.product ? String(price.product) : null,
       goldAgeHint: price?.purity != null ? String(price.purity) : null,
       allowDirectBuy: Boolean(row.allow_direct_buy),
@@ -265,12 +333,24 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       : (item.goldUnitDong ?? null);
     const laborFeeDong = item.laborFeeDong ?? 0;
     const stonePriceDong = item.stonePriceDong ?? 0;
+    const boardUnit =
+      goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong;
+    // Unlinked catalog: keep manual sell from meta when board path empty (SRS §6).
+    const unitPriceDong =
+      boardUnit !== null
+        ? boardUnit
+        : item.isMarketGold
+          ? null
+          : item.manualSellDong != null && item.manualSellDong > 0
+            ? item.manualSellDong
+            : null;
     return {
       skuId: item.skuId,
       sku: item.sku,
+      msp: item.msp ?? "",
       name: item.name,
       weightChi: item.weightChi,
-      unitPriceDong: goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong,
+      unitPriceDong,
       goldUnitDong,
       laborFeeDong,
       stoneWeightChi: item.stoneWeightChi ?? 0,
@@ -285,6 +365,8 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       productTypeId: item.productTypeId ?? null,
       quantity: item.quantity,
       isMarketGold: item.isMarketGold,
+      lastCostDong: item.lastCostDong ?? null,
+      manualSellDong: item.manualSellDong ?? null,
       ...marketFields(market),
     };
   });

@@ -58,6 +58,8 @@ export type PurchaseCatalogItem = {
   skuId: string;
   sku: string;
   name: string;
+  /** MSP in trên tem; rỗng nếu chưa có. */
+  msp?: string;
   quantity: number;
   /** Total sell price for the piece (POS board). */
   unitPriceDong: number | null;
@@ -72,6 +74,11 @@ export type PurchaseCatalogItem = {
   referenceSellDongPerChi: number;
   /** Giá mua vào website / chỉ (gold_price_rows.buy). 0 nếu dòng giá không có cột mua. */
   suggestedBuyDongPerChi: number;
+  /**
+   * Giá mua gợi ý / chiếc khi không có board buy (last_cost hoặc nhập tay đã lưu).
+   * Card ưu tiên board /chỉ; nếu không có thì hiện field này theo chiếc.
+   */
+  suggestedBuyDongPerPiece: number;
   priceRowId: string | null;
   goldTypeHint: string | null;
   goldAgeHint: string | null;

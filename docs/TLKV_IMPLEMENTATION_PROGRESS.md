@@ -37,7 +37,7 @@ Các đầu mục **ít rủi ro regression** lên POS/kho/tiền, phù hợp l�
 | L1 | Business customer (loại KH doanh nghiệp) | G | 0% | Chủ yếu master data KH; không đổi tồn/tiền | Field + UI form; không cần atomic sale |
 | L2 | CCCD text fields (số, ngày cấp, nơi cấp) | G | 0% | Metadata KH; chưa ảnh/QR | Schema + form; RLS read theo role |
 | L3 | CCCD images (upload/storage) | G | 0% | Storage + ACL; không đụng POS | Public URL cấm; chỉ signed/private |
-| L4 | QR CCCD POC / fallback | G | 0% | Có thể stub/fallback; không block bán | Spec cho phép fallback nếu POC chậm |
+| L4 | QR CCCD POC / fallback | G | ~90% | 2026-11-21: parse `|` giữ empty + autofill form (DP8280 KBW, ô quét riêng, không auto-save) | Còn hard-test máy thật / staff verify |
 | L5 | Excel export KH đầy đủ cột spec | G/H | ~30% | Đọc-only export; đã có export một phần | Mở rộng cột; không đổi ledger |
 | L6 | UI polish filter/search (KH, HĐ đã làm một phần) | A | — | Chỉ layout | Không tính vào epic mới |
 | L7 | Acceptance checklist Staff (§55) viết test | B/I | — | Verify quyền đã có | Không đổi schema |
@@ -209,7 +209,7 @@ ONGOING — Cluster 4 tests sau mỗi milestone
 - [x] CCCD text (số, ngày cấp, nơi cấp, quốc tịch)
 - [x] Business customer (MST, tên DN, đại diện)
 - [x] CCCD images (bucket private + signed URL + upload UI)
-- [x] QR CCCD fallback (dán QR → preview → áp dụng form, không auto-save)
+- [x] QR CCCD: ô quét DP8280 USB-KBW trên form thêm KH · parse `|` giữ empty · autofill 7 field · không auto-save · không map CCCD→SĐT (2026-11-21)
 - [x] Excel export danh sách KH đủ cột identity
 - [ ] Excel export lịch sử giao dịch KH (§20)
 

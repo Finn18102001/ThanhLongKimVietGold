@@ -27,9 +27,14 @@ export function CatalogBuyModal({
   onClose: () => void;
   onAdd: (line: CatalogBuyLine) => void;
 }) {
-  const [unitPrice, setUnitPrice] = useState(
-    item.suggestedBuyDongPerChi > 0 ? String(item.suggestedBuyDongPerChi) : "",
-  );
+  const weightSeed = item.weightChi > 0 ? item.weightChi : 1;
+  const buyPerChiSeed =
+    item.suggestedBuyDongPerChi > 0
+      ? item.suggestedBuyDongPerChi
+      : item.suggestedBuyDongPerPiece > 0
+        ? Math.round(item.suggestedBuyDongPerPiece / weightSeed)
+        : 0;
+  const [unitPrice, setUnitPrice] = useState(buyPerChiSeed > 0 ? String(buyPerChiSeed) : "");
   const [weightChi, setWeightChi] = useState(
     item.weightChi > 0 ? String(item.weightChi) : "1",
   );
@@ -38,7 +43,7 @@ export function CatalogBuyModal({
   const [goldAge, setGoldAge] = useState(item.goldAgeHint || "");
   const [error, setError] = useState<string | null>(null);
 
-  const reference = item.suggestedBuyDongPerChi;
+  const reference = buyPerChiSeed;
   const bounds = buyUnitPriceBounds(reference);
   const unit = parseDongInput(unitPrice);
   const outOfRange = unitPrice !== "" && isPriceException(unit, reference, false);
@@ -53,12 +58,8 @@ export function CatalogBuyModal({
   function submit() {
     const w = parseWeightInput(weightChi);
     const qty = Math.floor(parseDongInput(quantity)) || 0;
-    if (item.suggestedBuyDongPerChi <= 0) {
-      setError("Sản phẩm chưa có giá mua vào / chỉ trên bảng giá.");
-      return;
-    }
     if (reference <= 0) {
-      setError("Sản phẩm chưa có giá tham chiếu / chỉ.");
+      setError("Sản phẩm chưa có giá mua bảng giá và cũng chưa có giá vốn/giá mua đã lưu.");
       return;
     }
     if (w <= 0) {

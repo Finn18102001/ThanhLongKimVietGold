@@ -17,8 +17,9 @@ import type {
   PriceRowOption,
   ProductTypeOption,
 } from "../types";
+import { applySkuSellLaborByCode } from "../actions";
 import { PriceLinkControls } from "./PriceLinkControls";
-// ReceiveMetalTabs tạm ẩn trên P7 draft receive — chưa chốt rule lọc vàng/bạc theo draft.
+import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
 
 const FIELD =
   "mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]";
@@ -96,11 +97,13 @@ export function DraftReceivePanel({
   const [weightChi, setWeightChi] = useState(1);
   const [kltChi, setKltChi] = useState("");
   const [klvChi, setKlvChi] = useState("");
-  /** Tạm cố định vàng khi ẩn tab P9; bật lại ReceiveMetalTabs khi chốt rule lọc. */
-  const metalKind: ReceiveMetalKind = "gold";
+  /** User chọn Nhập vàng / Nhập bạc (SYSTEM §21.2) — không suy luận từ draft. */
+  const [metalKind, setMetalKind] = useState<ReceiveMetalKind>("gold");
   const [purityText, setPurityText] = useState("");
   const [spotBuyDong, setSpotBuyDong] = useState("");
   const [receiveLaborDong, setReceiveLaborDong] = useState("0");
+  /** Draft labor_fee = tiền công bán (tem); không map sang công nhập. */
+  const [sellLaborDong, setSellLaborDong] = useState("0");
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [sellMode, setSellMode] = useState<SellPriceMode>("link");
@@ -153,7 +156,8 @@ export function DraftReceivePanel({
     setKlvChi(chiText(d.klvChi ?? (d.weightChi != null ? d.weightChi : null)));
     setPurityText(d.goldAgeText ?? "");
     setSpotBuyDong("");
-    setReceiveLaborDong(d.laborFeeDong == null ? "0" : String(Math.round(d.laborFeeDong)));
+    setReceiveLaborDong("0");
+    setSellLaborDong(d.laborFeeDong == null ? "0" : String(Math.round(d.laborFeeDong)));
     setCostPriceDong(d.costPriceDong == null ? "" : String(d.costPriceDong));
     setSellPriceDong(d.sellPriceDong == null ? "" : String(d.sellPriceDong));
     setPriceRowId(d.priceRowId ?? "");
@@ -173,7 +177,7 @@ export function DraftReceivePanel({
     if (draft.costPriceDong != null) setCostPriceDong(String(draft.costPriceDong));
     if (draft.sellPriceDong != null) setSellPriceDong(String(draft.sellPriceDong));
     if (draft.laborFeeDong != null) {
-      setReceiveLaborDong(String(Math.round(draft.laborFeeDong)));
+      setSellLaborDong(String(Math.round(draft.laborFeeDong)));
     }
     if (draft.goldAgeText != null) setPurityText(draft.goldAgeText);
     if (draft.weightChi != null) setWeightChi(draft.weightChi);
@@ -185,6 +189,7 @@ export function DraftReceivePanel({
     priceRowId,
     spotBuyDong,
     receiveLaborDong,
+    sellLaborDong,
     purityText,
     weightChi,
     metalKind,
@@ -199,6 +204,12 @@ export function DraftReceivePanel({
     setSuccess(null);
     setTypeCode("");
     setSkuPrefix("TLKVTS");
+    setMetalKind("gold");
+    setReceiveLaborDong("0");
+    setSellLaborDong("0");
+    setSpotBuyDong("");
+    setHeso("");
+    setSellMode("link");
   }
 
   async function selectDraftForReceive(id: string) {
@@ -279,14 +290,14 @@ export function DraftReceivePanel({
         form: moneyText(formSell),
       });
     }
-    const formLabor = receiveLaborDong.trim() === "" ? 0 : Number(receiveLaborDong);
-    const expectedLabor =
+    const formSellLabor = sellLaborDong.trim() === "" ? 0 : Number(sellLaborDong);
+    const expectedSellLabor =
       draftLabor == null || Number.isNaN(Number(draftLabor)) ? 0 : Number(draftLabor);
-    if (formLabor !== expectedLabor) {
+    if (formSellLabor !== expectedSellLabor) {
       rows.push({
-        field: "Tiền công",
-        draft: moneyText(expectedLabor),
-        form: moneyText(formLabor),
+        field: "Tiền công bán",
+        draft: moneyText(expectedSellLabor),
+        form: moneyText(formSellLabor),
       });
     }
     if (Number(weightChi) !== Number(draftWeight ?? 1)) {
@@ -395,6 +406,18 @@ export function DraftReceivePanel({
         setError(result.message);
         return;
       }
+      const sellLabor = Math.trunc(Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong) || 0);
+      if (sellLabor >= 0 && result.data.skuCode) {
+        try {
+          await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+        } catch (laborErr) {
+          setError(
+            `Đã nhập draft nhưng chưa lưu tiền công bán: ${
+              laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
+            }`,
+          );
+        }
+      }
       setIdempotencyKey(crypto.randomUUID());
       setDiffRows(null);
       setSuccess(
@@ -402,7 +425,7 @@ export function DraftReceivePanel({
           (result.data.skuCode ? ` · SKU ${result.data.skuCode}` : "") +
           (result.data.unitId ? ` · Unit ${result.data.unitId.slice(0, 8)}…` : "") +
           (result.data.replayed ? " (replay idempotent)" : "") +
-          `. Giá bán gợi ý không ghi labor_fee (công bán chỉ trên HĐ; công nhập chỉ trong giá vốn).`,
+          `. Tiền công bán đã lưu vào mã hàng (prefill HĐ); công nhập chỉ trong giá vốn.`,
       );
       setSelectedId("");
       setDraft(null);
@@ -422,7 +445,25 @@ export function DraftReceivePanel({
         Category chọn lại từ danh mục hệ thống. Snapshot gốc không bị ghi đè.
       </p>
 
-      {/* P9 tabs Nhập vàng/Nhập bạc: tạm ẩn — list draft chưa có metal_kind chốt được. */}
+      <div className="mt-4">
+        <ReceiveMetalTabs
+          value={metalKind}
+          onChange={(next) => {
+            setMetalKind(next);
+            setPriceRowId("");
+            setSpotBuyDong("");
+            setReceiveLaborDong("0");
+            setCostPriceDong(draft?.costPriceDong == null ? "" : String(draft.costPriceDong));
+            setSellPriceDong(draft?.sellPriceDong == null ? "" : String(draft.sellPriceDong));
+            setHeso("");
+            if (next === "silver") setPurityText("");
+            else if (draft?.goldAgeText) setPurityText(draft.goldAgeText);
+          }}
+        />
+        <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+          Chọn Nhập vàng / Nhập bạc theo loại hàng — không lọc list draft; snapshot draft giữ nguyên.
+        </p>
+      </div>
 
       <div className="mt-4 space-y-3">
         <div className="flex flex-wrap items-end gap-2">
@@ -717,6 +758,8 @@ export function DraftReceivePanel({
             onSpotBuyDongChange={setSpotBuyDong}
             receiveLaborDong={receiveLaborDong}
             onReceiveLaborDongChange={setReceiveLaborDong}
+            sellLaborDong={sellLaborDong}
+            onSellLaborDongChange={setSellLaborDong}
             costPriceDong={costPriceDong}
             onCostPriceDongChange={setCostPriceDong}
             sellPriceDong={sellPriceDong}

@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Barcode } from "@phosphor-icons/react";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { IMAGE_PRESET_CCCD, optimizeImageFile } from "@/shared/lib/image-optimize";
 import { createCustomer, updateCustomer, uploadCustomerCccd } from "../actions";
+import { parseCccdQrPayload } from "../cccdQr";
 import {
   formatCustomerSaveError,
   GENDER_LABEL,
@@ -48,6 +50,11 @@ export function CustomerFormModal({
     initial?.customerType ?? "INDIVIDUAL",
   );
   const [photos, setPhotos] = useState<CccdPendingPhotos>({});
+  const [cccdScanValue, setCccdScanValue] = useState("");
+  const [cccdScanMessage, setCccdScanMessage] = useState<string | null>(null);
+  const [cccdScanError, setCccdScanError] = useState<string | null>(null);
+  const cccdScanRef = useRef<HTMLInputElement>(null);
+  const lastCccdScanRef = useRef({ raw: "", at: 0 });
 
   const [form, setForm] = useState({
     name: initial?.name ?? "",
@@ -82,6 +89,47 @@ export function CustomerFormModal({
 
   function onPickPhoto(type: CccdDocumentType, file: File | null) {
     setPhotos((prev) => ({ ...prev, [type]: file }));
+  }
+
+  /**
+   * DP8280 USB-KBW → dedicated scan field only (no global keyboard listener).
+   * Autofill mapped CCCD fields; never phone; never auto-save.
+   */
+  function applyCccdQrScan(raw: string) {
+    const payload = raw.trim();
+    if (!payload) return;
+    const now = Date.now();
+    if (
+      payload === lastCccdScanRef.current.raw &&
+      now - lastCccdScanRef.current.at < 800
+    ) {
+      return;
+    }
+    lastCccdScanRef.current = { raw: payload, at: now };
+
+    const parsed = parseCccdQrPayload(payload);
+    if (!parsed.ok) {
+      setCccdScanError(parsed.message);
+      setCccdScanMessage(null);
+      // Keep staff-entered form data on parse failure.
+      return;
+    }
+
+    patchForm({
+      citizenId: parsed.citizenId,
+      name: parsed.fullName,
+      dateOfBirth: parsed.dateOfBirthIso,
+      address: parsed.address,
+      citizenIdIssueDate: parsed.issueDateIso,
+      // Explicitly do not touch: phone, email, note, nationality, issue place, expiry.
+    });
+    setGender(parsed.gender);
+    setCccdScanError(null);
+    setCccdScanMessage(
+      "Đã điền từ QR CCCD. Kiểm tra / sửa nếu cần, rồi bấm Lưu khách hàng (không tự lưu).",
+    );
+    setCccdScanValue("");
+    cccdScanRef.current?.focus();
   }
 
   function buildPayload(): CustomerInput {
@@ -275,6 +323,57 @@ export function CustomerFormModal({
               </>
             ) : (
               <>
+                <div className="sm:col-span-2 rounded-lg border border-dashed border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[13px] font-medium text-[var(--tlkv-text)]">
+                      Quét QR căn cước (CCCD)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => cccdScanRef.current?.focus()}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-2.5 text-[12px] font-medium"
+                    >
+                      <Barcode size={14} />
+                      Focus ô quét
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+                    Máy DP8280 · USB-KBW · focus ô bên dưới rồi quét QR trên CCCD. Không gán số
+                    CCCD vào SĐT. Không tự lưu sau khi quét.
+                  </p>
+                  <label className="mt-2 block text-[13px]">
+                    Ô nhận QR từ máy quét
+                    <input
+                      ref={cccdScanRef}
+                      value={cccdScanValue}
+                      onChange={(e) => setCccdScanValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        applyCccdQrScan(e.currentTarget.value || cccdScanValue);
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="text"
+                      placeholder="Quét QR CCCD vào đây (Enter kết thúc chuỗi)"
+                      className={FIELD}
+                      aria-label="Ô quét QR CCCD"
+                    />
+                  </label>
+                  {cccdScanError ? (
+                    <p className="mt-2 text-[12px] font-medium text-[var(--tlkv-red)]" role="alert">
+                      {cccdScanError}
+                    </p>
+                  ) : null}
+                  {cccdScanMessage ? (
+                    <p className="mt-2 text-[12px] font-medium text-[var(--tlkv-green)]">
+                      {cccdScanMessage}
+                    </p>
+                  ) : null}
+                </div>
+
                 <label className="text-[13px] sm:col-span-2">
                   Họ và tên <span className="text-[var(--tlkv-red)]">*</span>
                   <input
@@ -294,7 +393,7 @@ export function CustomerFormModal({
                     inputMode="numeric"
                     autoComplete="off"
                     maxLength={12}
-                    placeholder="Chỉ nhập số, 9–12 chữ số"
+                    placeholder="Chỉ nhập số, 12 chữ số"
                     className={FIELD}
                   />
                 </label>

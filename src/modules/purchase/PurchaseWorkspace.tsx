@@ -13,8 +13,10 @@ import type {
 import { formatPhoneDisplay } from "@/modules/customer/labels";
 import type { CustomerRecord } from "@/modules/customer/types";
 import { formatViDate, formatViDateTime } from "@/shared/lib/datetime";
+import { subscribeBarcodeWedge } from "@/shared/lib/barcode-wedge";
 import { formatDong } from "@/shared/lib/money";
 import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
+import { resolveUniqueSkuIdByLabelCode } from "@/modules/label-print/msp-search";
 import { ROUTES } from "@/shared/navigation/routes";
 import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
@@ -135,6 +137,13 @@ export function PurchaseWorkspace({
   const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
   const [detailTab, setDetailTab] = useState<"overview" | "docs">("overview");
   const workflowKey = useRef<string | null>(null);
+  const catalogRef = useRef(catalog);
+  const scanBusyRef = useRef(false);
+  const lastScanRef = useRef({ code: "", at: 0 });
+  const scanGateRef = useRef({
+    blocked: false,
+  });
+  const tryAddFromLabelCodeRef = useRef<(raw: string) => Promise<void>>(async () => {});
 
   const totalDong = useMemo(
     () => lines.reduce((sum, line) => sum + lineTotalDong(line), 0),
@@ -204,17 +213,23 @@ export function PurchaseWorkspace({
 
   /** Click catalog → add/bump line on cart (POS-like; edit qty/price on invoice). */
   function addCatalogItem(item: PurchaseCatalogItem) {
-    const buyPrice = item.suggestedBuyDongPerChi;
+    const weight = item.weightChi > 0 ? item.weightChi : 1;
+    // Board buy / chỉ trước; không link → quy đổi last_cost / chiếc sang / chỉ (SRS §6).
+    const buyPrice =
+      item.suggestedBuyDongPerChi > 0
+        ? item.suggestedBuyDongPerChi
+        : item.suggestedBuyDongPerPiece > 0
+          ? Math.round(item.suggestedBuyDongPerPiece / weight)
+          : 0;
     if (buyPrice <= 0) {
       setAlert({
         tone: "error",
         title: "Chưa có giá mua",
-        reason: "Sản phẩm chưa có giá mua vào / chỉ trên bảng giá.",
+        reason: "Sản phẩm chưa có giá mua bảng giá và cũng chưa có giá vốn/giá mua đã lưu.",
       });
       return;
     }
     const unit = buyPrice;
-    const weight = item.weightChi > 0 ? item.weightChi : 1;
 
     setLines((prev) => {
       const existing = prev.find(
@@ -249,6 +264,73 @@ export function PurchaseWorkspace({
       return [...prev, next];
     });
   }
+
+  async function tryAddFromLabelCode(raw: string) {
+    const code = raw.trim();
+    if (code.length < 2) return;
+
+    const now = Date.now();
+    if (code === lastScanRef.current.code && now - lastScanRef.current.at < 600) return;
+    lastScanRef.current = { code, at: now };
+
+    if (scanGateRef.current.blocked) return;
+    if (scanBusyRef.current) return;
+
+    scanBusyRef.current = true;
+    try {
+      const resolved = await resolveUniqueSkuIdByLabelCode(code);
+      if (resolved.status === "empty") return;
+      if (resolved.status === "not_found") {
+        setAlert({
+          tone: "error",
+          title: "Không tìm thấy tem",
+          reason: `Không có sản phẩm khớp mã «${code}».`,
+        });
+        return;
+      }
+      if (resolved.status === "ambiguous") {
+        setAlert({
+          tone: "error",
+          title: "Nhiều sản phẩm khớp",
+          reason: `Mã «${code}» khớp ${resolved.count} SKU. Quét đủ mã tem hoặc chọn tay trên lưới.`,
+        });
+        return;
+      }
+
+      const item = catalogRef.current.find((row) => row.skuId === resolved.skuId);
+      if (!item) {
+        setAlert({
+          tone: "error",
+          title: "Sản phẩm không có trên danh mục mua",
+          reason: `Đã nhận mã «${code}» nhưng SKU không nằm trong danh mục mua hiện tại.`,
+        });
+        return;
+      }
+
+      addCatalogItem(item);
+    } catch (err) {
+      setAlert({
+        tone: "error",
+        title: "Không quét được tem",
+        reason: formatActionError(err instanceof Error ? err.message : "Lỗi không xác định."),
+      });
+    } finally {
+      scanBusyRef.current = false;
+    }
+  }
+
+  catalogRef.current = catalog;
+  scanGateRef.current = {
+    blocked:
+      reviewing ||
+      pickingCustomer ||
+      showMarket ||
+      showRecent ||
+      meltChoiceOpen ||
+      Boolean(detail) ||
+      detailLoading,
+  };
+  tryAddFromLabelCodeRef.current = tryAddFromLabelCode;
 
   function resetDraft() {
     setLines([]);
@@ -313,6 +395,15 @@ export function PurchaseWorkspace({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    return subscribeBarcodeWedge({
+      onScan: (code) => {
+        void tryAddFromLabelCodeRef.current(code);
+      },
+      shouldIgnore: () => scanGateRef.current.blocked,
+    });
   }, []);
 
   /** Popup Có/Không nấu: mọi SP thương hiệu/catalog. Vàng/bạc thị trường → bắt buộc flow nấu. */
@@ -661,6 +752,9 @@ export function PurchaseWorkspace({
               catalog={catalog}
               productTypes={productTypes}
               onPickCatalog={addCatalogItem}
+              onLabelCodeSubmit={(code) => {
+                void tryAddFromLabelCode(code);
+              }}
               marketPrices={marketPrices}
               onOpenMarket={(cls) => {
                 setMarketClass(cls);

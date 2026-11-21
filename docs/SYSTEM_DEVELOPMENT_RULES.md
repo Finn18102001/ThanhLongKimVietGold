@@ -558,31 +558,33 @@ Không tạo hệ thống tính giá riêng nếu không cần thiết.
 Tổng tiền bán = Trọng lượng vàng × Giá vàng hiện tại + Tiền công bán
 ```
 
-**Vàng theo hàm lượng + hệ số**
+**Vàng ta — theo giá link không hệ số (gợi ý nhập kho / board)**
 
 ```text
-Tổng tiền bán = (Giá vàng nguyên liệu 24K/9999 × Trọng lượng vàng cố định × Hàm lượng vàng + Tiền công bán) × Hệ số
+Giá bán gợi ý = board_sell (quy đổi / chỉ × TL) + Tiền công bán
+```
+
+**Vàng tây — theo giá link có hệ số**
+
+```text
+Giá bán gợi ý = (Trọng lượng vàng × Hàm lượng vàng × board_sell_per_chi + Tiền công bán) × Hệ số
 ```
 
 - Hàm lượng ≠ hệ số kinh doanh.
 - Trọng lượng vàng = vàng thực tế (không đá / ngọc trai / phụ kiện).
-- Tiền công bán nhập trên **hóa đơn bán**, không trên form nhập kho.
+- Dùng **`board_sell`** của dòng bảng giá liên kết — **không** thay bằng spot 24K.
+- Tiền công bán cộng **trước** khi nhân hệ số.
+- Phân biệt ta/tây = lựa chọn cách tính giá trên form nhập (link / heso); không tự nhận diện Brand/Category/tên/HL; không thêm field phân loại.
+- Trên HĐ bán: giữ công thức tính tiền hiện tại; TextField công prefill từ `pos_skus.labor_fee_dong` (vẫn sửa được).
 
-**Bạc bán trực tiếp:** giá nhập nhập tay; không TL × hàm lượng; giá bán mặc định = giá nhập.
-
-**Bạc theo trọng lượng**
-
-```text
-Tổng tiền bán = Trọng lượng bạc × Giá bạc + Tiền công bán
-```
-
-Có hệ số: `(Trọng lượng bạc × Giá bạc + Tiền công bán) × Hệ số`.
+**Bạc:** giá mua / giá bán nhập tay; không autofill từ bảng giá; liên kết cũ giữ trong DB nhưng không tham gia tính giá.
 
 ## 13.2. Tiền công bán vs tiền công nhập
 
-- **Tiền công bán:** chỉ trên hóa đơn bán; cộng vào tổng tiền bán.
-- **Tiền công nhập:** chỉ trên form nhập kho; cộng vào tổng tiền nhập (xem §21.2).
-- Cấm tự map công nhập → công bán / hiện công bán trên form nhập kho.
+- **Tiền công nhập:** chỉ trên form nhập kho; cộng vào tổng tiền nhập / giá vốn (xem §21.2).
+- **Tiền công bán:** nhập tại form nhập kho → lưu `pos_skus.labor_fee_dong` → prefill TextField công trên HĐ bán (vẫn sửa được). Cộng vào tổng tiền bán theo công thức HĐ hiện tại.
+- Hai khoản độc lập — cấm map công nhập → công bán; cấm dùng `last_cost` làm giá bán.
+- Nếu SKU chưa có công bán lưu → HĐ xử lý theo logic mặc định hiện tại.
 
 ## 13.3. Sửa giá bán độc lập CRUD sản phẩm
 
@@ -898,7 +900,7 @@ Không tạo module nhập kho mới; sub-tab trong khu vực hiện có. Giữ 
 
 ## Nhập vàng — công thức giá vốn
 
-Trường: TL vàng thực tế (không đá/phụ kiện), hàm lượng (% → thập phân), giá vàng nguyên liệu 24K/9999 / chỉ, **tiền công nhập**.
+Trường: TL vàng thực tế (không đá/phụ kiện), hàm lượng (% → thập phân), giá vàng nguyên liệu 24K/9999 / chỉ, **tiền công nhập**, **tiền công bán** (lưu SKU).
 
 ```text
 Tiền vàng nhập = Trọng lượng vàng × Hàm lượng vàng × Giá vàng nguyên liệu 24K/9999
@@ -907,18 +909,23 @@ Tổng tiền nhập = Tiền vàng nhập + Tiền công nhập
 
 - Integer VND. Đơn vị TL theo dữ liệu SP (chỉ/phân).
 - Công thức này **thắng** gợi ý P8 `buy × TL` khi nhập vàng theo P9.
-- **Không** hiện / lưu tiền công bán trên form nhập.
-- **Không** copy tiền công nhập sang tiền công bán của SP/SKU.
+- Tiền công bán nhập tại kho → `labor_fee_dong` (prefill HĐ); **không** copy từ tiền công nhập.
+- Cách tính giá bán gợi ý: link (vàng ta) / heso + `board_sell` (vàng tây) — user chọn tay.
 
 ## Nhập bạc
 
-- Tab riêng; giá từ link bảng giá **hoặc** nhập tay.
-- **Không** áp công thức bán bạc vào giá vốn nhập.
-- Công thức giá vốn nhập bạc: **chưa chốt đầy đủ** → không bịa; giữ hành vi hiện tại / nhập tay đến khi khách xác nhận thêm.
+- Tab riêng; giá mua / giá bán **nhập tay**.
+- Tắt autofill bảng giá kể cả khi có liên kết; liên kết cũ giữ DB nhưng không tính giá.
+- **Không** lấy giá vàng để tính bạc.
+- Công thức giá vốn nhập bạc: giữ nhập tay đến khi khách chốt thêm.
 
 ## Liên kết bảng giá
 
-Tùy chọn, không bắt buộc hoàn tất nhập. Giữ liên kết hiện có; không đổi hành vi link ngoài phần P9 đã mô tả.
+Tùy chọn, không bắt buộc hoàn tất nhập. Giữ liên kết hiện có. Vàng: gợi ý từ board khi phù hợp. Bạc: liên kết không autofill / ghi đè.
+
+## Draft P7
+
+Tab Nhập vàng / Nhập bạc **bật** trên `DraftReceivePanel`. Không lọc list draft theo tab; không viết lại luồng Draft (chọn → autofill → diff → nhập). Snapshot draft giữ nguyên.
 
 ---
 

@@ -5,10 +5,8 @@ import { DongInput } from "@/shared/ui/DongInput";
 import type { PriceRowOption } from "../types";
 import {
   boardUnitChiFromProductName,
-  calcCostDongFromBuy,
   calcGoldReceiveCostDong,
-  calcGoldSellDongFromHeso,
-  calcSellDongFromHeso,
+  calcGoldSellDongFromHesoBoard,
   calcSellDongFromLink,
   formatDongPreview,
   looksLikeSilverLabel,
@@ -37,6 +35,9 @@ export type PriceLinkControlsProps = {
   /** Tiền công nhập (gold) — integer VND; cộng vào giá vốn, không ghi labor_fee bán. */
   receiveLaborDong: string;
   onReceiveLaborDongChange: (value: string) => void;
+  /** Tiền công bán — lưu vào pos_skus.labor_fee_dong; prefill HĐ bán. */
+  sellLaborDong: string;
+  onSellLaborDongChange: (value: string) => void;
   costPriceDong: string;
   onCostPriceDongChange: (value: string) => void;
   sellPriceDong: string;
@@ -66,6 +67,8 @@ export function PriceLinkControls({
   onSpotBuyDongChange,
   receiveLaborDong,
   onReceiveLaborDongChange,
+  sellLaborDong,
+  onSellLaborDongChange,
   costPriceDong,
   onCostPriceDongChange,
   sellPriceDong,
@@ -96,48 +99,46 @@ export function PriceLinkControls({
   const purityDec = purityToDecimal(purityText);
   const spotNum = spotBuyDong.trim() === "" ? NaN : Number(spotBuyDong);
   const laborNum = receiveLaborDong.trim() === "" ? 0 : Number(receiveLaborDong);
+  const sellLaborNum = sellLaborDong.trim() === "" ? 0 : Number(sellLaborDong);
 
+  // Gold only: spot gợi ý từ buy của dòng giá (vẫn sửa tay). Bạc: không autofill.
   useEffect(() => {
-    if (selected) {
-      onSpotBuyDongChange(String(selected.buyDong));
-    }
-    // Intentionally omit onSpotBuyDongChange from deps.
+    if (metalKind !== "gold") return;
+    if (selected) onSpotBuyDongChange(String(selected.buyDong));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id, selected?.buyDong]);
+  }, [metalKind, selected?.id, selected?.buyDong]);
 
   useEffect(() => {
-    if (metalKind === "gold") {
-      if (purityDec == null || !Number.isFinite(spotNum) || spotNum < 0) return;
-      if (!Number.isFinite(laborNum) || laborNum < 0 || !Number.isInteger(laborNum)) return;
-      const cost = calcGoldReceiveCostDong(weightChi, purityDec, spotNum, laborNum);
-      if (cost != null) onCostPriceDongChange(String(cost));
+    if (metalKind !== "gold") return;
+    if (purityDec == null || !Number.isFinite(spotNum) || spotNum < 0) return;
+    if (!Number.isFinite(laborNum) || laborNum < 0 || !Number.isInteger(laborNum)) return;
+    const cost = calcGoldReceiveCostDong(weightChi, purityDec, spotNum, laborNum);
+    if (cost != null) onCostPriceDongChange(String(cost));
 
-      if (sellMode === "link" && selected) {
-        const sell = calcSellDongFromLink(selected.sellDong, weightChi, boardUnit);
-        if (sell != null) onSellPriceDongChange(String(sell));
-        return;
-      }
-      if (sellMode === "heso" && Number.isFinite(hesoNum) && hesoNum > 0) {
-        const sell = calcGoldSellDongFromHeso(spotNum, weightChi, purityDec, hesoNum);
-        if (sell != null) onSellPriceDongChange(String(sell));
-      }
+    if (!Number.isFinite(sellLaborNum) || sellLaborNum < 0 || !Number.isInteger(sellLaborNum)) {
       return;
     }
 
-    // Silver: keep buy×TL suggestion; sell default = cost when no heso; never apply gold formula.
-    if (selected) {
-      const cost = calcCostDongFromBuy(selected.buyDong, weightChi);
-      if (cost != null) onCostPriceDongChange(String(cost));
-      if (sellMode === "link") {
-        const sell = calcSellDongFromLink(selected.sellDong, weightChi, boardUnit);
-        if (sell != null) onSellPriceDongChange(String(sell));
-        else if (cost != null) onSellPriceDongChange(String(cost));
-        return;
-      }
-      if (Number.isFinite(hesoNum) && hesoNum > 0) {
-        const sell = calcSellDongFromHeso(selected.sellDong, weightChi, hesoNum);
-        if (sell != null) onSellPriceDongChange(String(sell));
-      }
+    if (sellMode === "link" && selected) {
+      const sell = calcSellDongFromLink(
+        selected.sellDong,
+        weightChi,
+        boardUnit,
+        sellLaborNum,
+      );
+      if (sell != null) onSellPriceDongChange(String(sell));
+      return;
+    }
+    if (sellMode === "heso" && selected && Number.isFinite(hesoNum) && hesoNum > 0) {
+      const sell = calcGoldSellDongFromHesoBoard(
+        selected.sellDong,
+        boardUnit,
+        weightChi,
+        purityDec,
+        sellLaborNum,
+        hesoNum,
+      );
+      if (sell != null) onSellPriceDongChange(String(sell));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -150,6 +151,7 @@ export function PriceLinkControls({
     purityDec,
     spotNum,
     laborNum,
+    sellLaborNum,
   ]);
 
   return (
@@ -171,12 +173,14 @@ export function PriceLinkControls({
             ))}
           </select>
           <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-            Liên kết không bắt buộc. Nhập hàng lấy giá mua (`buy`) làm gợi ý; vẫn sửa tay được.
+            {metalKind === "silver"
+              ? "Bạc: liên kết tùy chọn — không autofill / ghi đè giá mua-bán thủ công."
+              : "Liên kết không bắt buộc. Vàng: buy gợi ý giá NL; sell dùng cho giá bán gợi ý."}
           </span>
         </label>
       ) : null}
 
-      {selected ? (
+      {selected && metalKind === "gold" ? (
         <div className="sm:col-span-2 rounded-lg border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 py-2 text-[12px]">
           <p className="font-medium text-[var(--tlkv-text)]">Giá liên kết</p>
           <p className="mt-1 text-[var(--tlkv-muted)]">
@@ -185,7 +189,7 @@ export function PriceLinkControls({
               {formatDongPreview(selected.buyDong)}
             </span>
             {" · "}
-            Bán (sell):{" "}
+            Bán (sell / board_sell):{" "}
             <span className="tabular-nums text-[var(--tlkv-text)]">
               {formatDongPreview(selected.sellDong)}
             </span>
@@ -208,13 +212,13 @@ export function PriceLinkControls({
               Hàm lượng vàng / tuổi vàng
               <input
                 inputMode="decimal"
-                placeholder="VD: 999.9, 750, 61"
+                placeholder="VD: 999.9, 750, 610"
                 value={purityText}
                 onChange={(e) => onPurityTextChange(e.target.value.replace(",", ".").trim())}
                 className={FIELD}
               />
               <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-                Quy đổi: 75 → 0,75 · 750 → 0,75 · 999,9 → 0,9999. Khác hệ số kinh doanh.
+                Quy đổi: 610 → 0,61 · 999 → 0,999 · 9999 → 0,9999. Khác hệ số kinh doanh.
               </span>
             </label>
           ) : null}
@@ -234,7 +238,7 @@ export function PriceLinkControls({
               className={FIELD}
             />
             <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-              Cộng vào tổng tiền nhập / giá vốn. Không phải tiền công bán (công bán chỉ trên hóa đơn).
+              Cộng vào tổng tiền nhập / giá vốn. Độc lập với tiền công bán.
             </span>
           </label>
           <p className="sm:col-span-2 text-[11px] text-[var(--tlkv-muted)]">
@@ -254,8 +258,7 @@ export function PriceLinkControls({
         </>
       ) : (
         <p className="sm:col-span-2 text-[11px] text-[var(--tlkv-muted)]">
-          Nhập bạc: giá vốn nhập tay hoặc gợi ý buy × TL. Không áp công thức bán bạc vào giá vốn.
-          Không có tiền công bán trên form nhập.
+          Nhập bạc: giá vốn và giá bán nhập tay. Không lấy giá vàng / không autofill từ bảng giá.
         </p>
       )}
 
@@ -270,57 +273,73 @@ export function PriceLinkControls({
         />
       </label>
 
-      <fieldset className="sm:col-span-2">
-        <legend className="text-sm">Cách tính giá bán gợi ý</legend>
-        <div className="mt-1 grid grid-cols-2 gap-1.5">
-          {(
-            [
-              { value: "link" as const, label: "Theo giá link" },
-              { value: "heso" as const, label: "Theo hệ số" },
-            ] as const
-          ).map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onSellModeChange(option.value)}
-              className={`h-9 rounded-lg text-[12px] font-semibold ${
-                sellMode === option.value
-                  ? "bg-[var(--tlkv-red)] text-white"
-                  : "border border-[var(--tlkv-line)]"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <label className="text-sm sm:col-span-2">
+        Tiền công bán (VND)
+        <DongInput
+          name="sell_labor_dong"
+          value={sellLaborDong}
+          onValueChange={onSellLaborDongChange}
+          className={FIELD}
+        />
+        <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+          Lưu vào mã hàng (`labor_fee_dong`), tự điền TextField công trên hóa đơn bán (vẫn sửa được).
+          Không cộng vào giá vốn nhập.
+        </span>
+      </label>
 
-      {sellMode === "heso" ? (
-        <label className="text-sm sm:col-span-2">
-          Hệ số (nhập tay, không mặc định)
-          <input
-            type="number"
-            min={0}
-            step="0.0001"
-            value={heso}
-            onChange={(e) => onHesoChange(e.target.value)}
-            placeholder="VD: 1.3"
-            className={FIELD}
-          />
-          <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-            {metalKind === "gold"
-              ? "Gợi ý bán = (giá NL × TL × HL) × hệ số. Chưa cộng công bán (công bán trên HĐ)."
-              : "Gợi ý bán = sell × TL × hệ số. Chưa cộng công bán."}{" "}
-            Hệ số ≠ hàm lượng.
-          </span>
-        </label>
-      ) : (
-        <p className="sm:col-span-2 text-[11px] text-[var(--tlkv-muted)]">
-          {metalKind === "silver"
-            ? "Bạc bán trực tiếp: giá bán mặc định ≈ giá nhập khi không có link. Mode link: sell × TL / board."
-            : "Mode link: giá bán gợi ý = sell × TL / board_unit. Tiền công bán nhập trên hóa đơn bán."}
-        </p>
-      )}
+      {metalKind === "gold" ? (
+        <>
+          <fieldset className="sm:col-span-2">
+            <legend className="text-sm">Cách tính giá bán gợi ý</legend>
+            <div className="mt-1 grid grid-cols-2 gap-1.5">
+              {(
+                [
+                  { value: "link" as const, label: "Theo giá link không hệ số" },
+                  { value: "heso" as const, label: "Theo giá link có hệ số" },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onSellModeChange(option.value)}
+                  className={`h-9 rounded-lg text-[12px] font-semibold ${
+                    sellMode === option.value
+                      ? "bg-[var(--tlkv-red)] text-white"
+                      : "border border-[var(--tlkv-line)]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+              Không hệ số = vàng ta · Có hệ số = vàng tây. Người dùng chọn tay; không tự nhận diện.
+            </p>
+          </fieldset>
+
+          {sellMode === "heso" ? (
+            <label className="text-sm sm:col-span-2">
+              Hệ số (nhập tay, không mặc định)
+              <input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={heso}
+                onChange={(e) => onHesoChange(e.target.value)}
+                placeholder="VD: 1.3"
+                className={FIELD}
+              />
+              <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
+                Gợi ý = (TL × HL × board_sell + tiền công bán) × hệ số. Không dùng spot 24K.
+              </span>
+            </label>
+          ) : (
+            <p className="sm:col-span-2 text-[11px] text-[var(--tlkv-muted)]">
+              Mode không hệ số: gợi ý = board_sell × TL (+ quy đổi board) + tiền công bán.
+            </p>
+          )}
+        </>
+      ) : null}
 
       <label className="text-sm sm:col-span-2">
         Giá bán gợi ý / chiếc (VND, số nguyên)
@@ -331,7 +350,9 @@ export function PriceLinkControls({
           className={FIELD}
         />
         <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
-          Không ghi vào tiền công bán của SKU. Không tự lấy tiền công nhập làm công bán.
+          {metalKind === "silver"
+            ? "Bạc: nhập tay. Không autofill từ bảng giá."
+            : "Gợi ý theo chế độ đã chọn + tiền công bán. Vẫn sửa tay được."}
         </span>
       </label>
     </div>

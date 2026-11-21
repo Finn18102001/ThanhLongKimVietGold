@@ -1,8 +1,8 @@
 /** Browser CSV download. Values are escaped; does not change money precision. */
 
 /**
- * Filename-safe Asia/Ho_Chi_Minh export clock for `hh:mm dd/mm/yyyy`.
- * Uses `hh-mm_dd-mm-yyyy` because `:` and `/` are invalid in Windows filenames.
+ * Filename-safe Asia/Ho_Chi_Minh export clock for `dd/mm/yyyy hh:mm`.
+ * Uses `dd-mm-yyyy_hh-mm` because `:` and `/` are invalid in Windows filenames.
  * Display-only stamp for downloads — not a business event time.
  */
 export function exportFileTimeStamp(now = new Date()): string {
@@ -17,11 +17,18 @@ export function exportFileTimeStamp(now = new Date()): string {
   }).formatToParts(now);
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
-  // hh:mm dd/mm/yyyy → hh-mm_dd-mm-yyyy
-  return `${get("hour")}-${get("minute")}_${get("day")}-${get("month")}-${get("year")}`;
+  // dd/mm/yyyy hh:mm → dd-mm-yyyy_hh-mm
+  return `${get("day")}-${get("month")}-${get("year")}_${get("hour")}-${get("minute")}`;
 }
 
-/** Insert `-hh-mm_dd-mm-yyyy` before the file extension to avoid download name collisions. */
+/** `yyyy-mm-dd` → `dd-mm-yyyy` for export filenames (Windows-safe). */
+export function isoDateToFileStamp(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
+  return `${day}-${month}-${year}`;
+}
+
+/** Insert `-dd-mm-yyyy_hh-mm` before the file extension to avoid download name collisions. */
 export function withExportTime(filename: string, now = new Date()): string {
   const stamp = exportFileTimeStamp(now);
   const dot = filename.lastIndexOf(".");

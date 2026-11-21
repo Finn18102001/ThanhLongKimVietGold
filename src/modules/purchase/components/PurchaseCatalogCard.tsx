@@ -33,12 +33,22 @@ export function PurchaseCatalogCard({
   item: PurchaseCatalogItem;
   onPick: (item: PurchaseCatalogItem) => void;
 }) {
-  const buyPrice = item.suggestedBuyDongPerChi;
-  const disabled = buyPrice <= 0;
+  const boardBuyPerChi = item.suggestedBuyDongPerChi;
+  const pieceBuy = item.suggestedBuyDongPerPiece;
+  const hasBoardBuy = boardBuyPerChi > 0;
+  const hasPieceBuy = pieceBuy > 0;
+  const disabled = !hasBoardBuy && !hasPieceBuy;
+  const msp = (item.msp ?? "").trim();
+  const measureLabel = item.weightChi > 0 ? "KL" : "SL";
   const weightLabel =
     item.weightChi > 0
       ? `${item.weightChi.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} chỉ`
-      : "—";
+      : "1 cái";
+  const priceLabel = hasBoardBuy
+    ? `${formatDong(boardBuyPerChi)}/chỉ`
+    : hasPieceBuy
+      ? formatDong(pieceBuy)
+      : "Chưa có giá mua";
 
   return (
     <button
@@ -47,17 +57,24 @@ export function PurchaseCatalogCard({
       onClick={() => onPick(item)}
       className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-3 text-left shadow-[var(--tlkv-shadow)] transition-transform disabled:opacity-50 enabled:hover:-translate-y-0.5 enabled:hover:border-[var(--tlkv-red)]"
     >
-      <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
-        {item.sku}
-      </p>
+      <div className="min-w-0">
+        <p className="font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
+          SKU: {item.sku}
+        </p>
+        {msp ? (
+          <p className="mt-0.5 font-mono text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
+            MSP: {msp}
+          </p>
+        ) : null}
+      </div>
       <p className="mt-1.5 line-clamp-2 min-h-[40px] text-[13.5px] font-semibold">{item.name}</p>
       <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
         {item.brandName || "Không thương hiệu"}
       </p>
-      <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">KL: {weightLabel}</p>
-      <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">
-        {buyPrice > 0 ? `${formatDong(buyPrice)}/chỉ` : "Chưa có giá mua"}
+      <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+        {measureLabel}: {weightLabel}
       </p>
+      <p className="mt-2 text-[14px] font-bold text-[var(--tlkv-red)]">{priceLabel}</p>
     </button>
   );
 }

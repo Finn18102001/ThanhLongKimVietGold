@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Barcode, MagnifyingGlass } from "@phosphor-icons/react";
 import {
   isGoldCatalogItem,
   prioritizeGoldFirst,
@@ -27,13 +27,17 @@ export function PurchaseCatalogPanel({
   marketPrices = {},
   onPickCatalog,
   onOpenMarket,
+  onLabelCodeSubmit,
 }: {
   catalog: PurchaseCatalogItem[];
   productTypes?: PosProductTypeOption[];
   marketPrices?: MarketGoldClassPrices;
   onPickCatalog: (item: PurchaseCatalogItem) => void;
   onOpenMarket: (marketClass: MarketGoldClass) => void;
+  /** Enter trên ô tìm / sau khi focus quét — parent resolve MSP/barcode → add giỏ. */
+  onLabelCodeSubmit?: (code: string) => void;
 }) {
+  const searchRef = useRef<HTMLInputElement>(null);
   const [group, setGroup] = useState("Tất cả");
   const [brandName, setBrandName] = useState("all");
   const [categoryName, setCategoryName] = useState("all");
@@ -189,12 +193,29 @@ export function PurchaseCatalogPanel({
             className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--tlkv-faint)]"
           />
           <input
+            ref={searchRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm kiếm: nhập tên sản phẩm hoặc mã hàng..."
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPageIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              onLabelCodeSubmit?.(query.trim());
+            }}
+            placeholder="Tìm MSP / barcode / mã hàng rồi Enter — hoặc quét tem"
             className="h-10 w-full rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] pr-3 pl-9 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
           />
         </label>
+        <button
+          type="button"
+          onClick={() => searchRef.current?.focus()}
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] font-medium"
+        >
+          <Barcode size={16} />
+          Quét mã vạch
+        </button>
         <label className="flex h-10 items-center gap-2 rounded-full border border-[var(--tlkv-line)] bg-[var(--tlkv-bg)] px-3 text-[13px]">
           <span className="whitespace-nowrap text-[var(--tlkv-muted)]">Thương hiệu</span>
           <select
