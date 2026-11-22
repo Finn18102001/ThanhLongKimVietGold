@@ -13,11 +13,13 @@ import {
 } from "./actions";
 import { CashRequestPanel } from "./CashRequestPanel";
 import { CashTransferPanel } from "./CashTransferPanel";
+import { formatMoneyKind } from "./money-kind";
 import type {
   CashRequestListPage,
   CashTransferListPage,
   EmployeeCashAccount,
   EmployeeCashLedgerPage,
+  EmployeeCashMoneyKind,
 } from "./types";
 
 type StaffOption = { id: string; fullName: string; email: string };
@@ -68,8 +70,10 @@ export function FundCashWorkspace({
   const [accountName, setAccountName] = useState("");
   const [capitalDong, setCapitalDong] = useState<number | null>(null);
   const [capitalDir, setCapitalDir] = useState<"IN" | "OUT">("IN");
+  const [capitalKind, setCapitalKind] = useState<EmployeeCashMoneyKind>("CASH");
   const [allocDong, setAllocDong] = useState<number | null>(null);
   const [allocDir, setAllocDir] = useState<"IN" | "OUT">("IN");
+  const [allocKind, setAllocKind] = useState<EmployeeCashMoneyKind>("CASH");
   const [allocAccountId, setAllocAccountId] = useState("");
   const [reason, setReason] = useState("");
 
@@ -145,12 +149,13 @@ export function FundCashWorkspace({
         amountDong: capitalDong,
         content: capitalDir === "IN" ? "Nạp vốn Quỹ Admin" : "Rút vốn Quỹ Admin",
         reason,
+        moneyKind: capitalKind,
       });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
-      setNotice("Đã cập nhật vốn Quỹ Admin.");
+      setNotice(`Đã cập nhật vốn Quỹ Admin (${formatMoneyKind(capitalKind)}).`);
       setCapitalDong(null);
       reload(pool?.id ?? null);
     });
@@ -170,12 +175,13 @@ export function FundCashWorkspace({
             ? "Admin phân bổ tiền cho nhân viên"
             : "Admin thu hồi tiền từ nhân viên",
         reason,
+        moneyKind: allocKind,
       });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
-      setNotice("Đã ghi phân bổ đối ứng hai tài khoản.");
+      setNotice(`Đã ghi phân bổ đối ứng (${formatMoneyKind(allocKind)}).`);
       setAllocDong(null);
       reload(allocAccountId);
     });
@@ -189,13 +195,18 @@ export function FundCashWorkspace({
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Tài khoản Quỹ tiền nhân viên</h1>
         <p className="mt-2 max-w-[70ch] text-[13px] leading-6 text-[var(--tlkv-muted)]">
-          Số dư chỉ đổi qua nạp vốn Admin, phân bổ/thu hồi đối ứng, và (module sau) thu/chi hóa đơn /
-          chuyển quỹ. Nhân viên không tự cộng/trừ.
+          Mỗi quỹ quản lý riêng tiền mặt và chuyển khoản. Xác nhận YC thu/chi ± đúng loại theo hình
+          thức thanh toán trên hóa đơn. Nhân viên không tự cộng/trừ.
         </p>
         {pool ? (
-          <p className="mt-3 text-[14px] font-semibold">
-            Quỹ Admin ({pool.code}): {formatDong(pool.balanceDong)}
-          </p>
+          <div className="mt-3 space-y-1 text-[14px]">
+            <p className="font-semibold">
+              Quỹ Admin ({pool.code}): {formatDong(pool.balanceDong)}
+            </p>
+            <p className="text-[12px] text-[var(--tlkv-muted)]">
+              TM {formatDong(pool.cashBalanceDong)} · CK {formatDong(pool.bankBalanceDong)}
+            </p>
+          </div>
         ) : null}
       </section>
 
@@ -269,6 +280,14 @@ export function FundCashWorkspace({
                 Rút
               </button>
             </div>
+            <select
+              className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+              value={capitalKind}
+              onChange={(e) => setCapitalKind(e.target.value === "BANK" ? "BANK" : "CASH")}
+            >
+              <option value="CASH">Tiền mặt</option>
+              <option value="BANK">Chuyển khoản</option>
+            </select>
             <div className="mt-3">
               <DongNumberInput
                 value={capitalDong}
@@ -324,6 +343,14 @@ export function FundCashWorkspace({
                 Trừ NV
               </button>
             </div>
+            <select
+              className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+              value={allocKind}
+              onChange={(e) => setAllocKind(e.target.value === "BANK" ? "BANK" : "CASH")}
+            >
+              <option value="CASH">Tiền mặt</option>
+              <option value="BANK">Chuyển khoản</option>
+            </select>
             <div className="mt-3">
               <DongNumberInput
                 value={allocDong}
@@ -371,6 +398,9 @@ export function FundCashWorkspace({
                       {a.kind === "ADMIN_POOL" ? "Quỹ Admin" : a.name}
                     </p>
                     <p className="mt-0.5 text-[13px] font-semibold">{formatDong(a.balanceDong)}</p>
+                    <p className="text-[11px] text-[var(--tlkv-faint)]">
+                      TM {formatDong(a.cashBalanceDong)} · CK {formatDong(a.bankBalanceDong)}
+                    </p>
                   </button>
                 </li>
               );
@@ -399,6 +429,7 @@ export function FundCashWorkspace({
                   <th className="py-2 pr-3 font-medium">Thời gian</th>
                   <th className="py-2 pr-3 font-medium">Loại</th>
                   <th className="py-2 pr-3 font-medium">Chiều</th>
+                  <th className="py-2 pr-3 font-medium">TM/CK</th>
                   <th className="py-2 pr-3 font-medium">Số tiền</th>
                   <th className="py-2 pr-3 font-medium">Sau</th>
                   <th className="py-2 pr-3 font-medium">Nội dung</th>
@@ -411,6 +442,7 @@ export function FundCashWorkspace({
                     <td className="py-2.5 pr-3 whitespace-nowrap">{formatWhen(row.occurredAt)}</td>
                     <td className="py-2.5 pr-3">{TXN_LABEL[row.txnType] || row.txnType}</td>
                     <td className="py-2.5 pr-3">{row.direction === "IN" ? "Thu" : "Chi"}</td>
+                    <td className="py-2.5 pr-3">{formatMoneyKind(row.moneyKind)}</td>
                     <td className="py-2.5 pr-3 font-medium">{formatDong(row.amountDong)}</td>
                     <td className="py-2.5 pr-3">{formatDong(row.balanceAfterDong)}</td>
                     <td className="py-2.5 pr-3">{row.content}</td>
@@ -419,7 +451,7 @@ export function FundCashWorkspace({
                 ))}
                 {ledger.items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-[var(--tlkv-muted)]">
+                    <td colSpan={8} className="py-10 text-center text-[var(--tlkv-muted)]">
                       Chưa có biến động
                     </td>
                   </tr>

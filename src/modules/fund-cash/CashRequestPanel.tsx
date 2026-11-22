@@ -9,6 +9,7 @@ import {
   refreshCashRequests,
   rejectCashRequest,
 } from "./actions";
+import { formatMoneyKind, formatPaymentMethod, moneyKindFromPaymentMethod } from "./money-kind";
 import { YcPrintPreviewOverlay } from "./YcPrintPreviewOverlay";
 import type { CashRequestListPage, CashRequestRow } from "./types";
 
@@ -87,7 +88,7 @@ export function CashRequestPanel({
       setNotice(
         res.data.alreadyConfirmed
           ? `${res.data.code} đã xác nhận trước đó.`
-          : `Đã xác nhận ${res.data.code} → ${res.data.cashAccountCode}.`,
+          : `Đã xác nhận ${res.data.code} → ${res.data.cashAccountCode} (${formatMoneyKind(res.data.moneyKind)}).`,
       );
       reload();
       onBalancesChanged();
@@ -135,8 +136,8 @@ export function CashRequestPanel({
         </button>
       </div>
       <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-        Số dư Quỹ tiền chỉ đổi khi xác nhận. Người xác nhận ghi nhận vào quỹ của mình (Admin không có quỹ
-        NV → QT-ADMIN).
+        Số dư chỉ đổi khi xác nhận — tiền mặt hoặc chuyển khoản theo hình thức trên YC. Người xác nhận
+        ghi vào quỹ của mình (Admin không có quỹ NV → QT-ADMIN).
       </p>
 
       {canAdminSeed ? (
@@ -176,6 +177,7 @@ export function CashRequestPanel({
               <th className="py-2 pr-3 font-medium">Loại</th>
               <th className="py-2 pr-3 font-medium">Trạng thái</th>
               <th className="py-2 pr-3 font-medium">HĐ / phiếu</th>
+              <th className="py-2 pr-3 font-medium">TM/CK</th>
               <th className="py-2 pr-3 font-medium">Số tiền</th>
               <th className="py-2 pr-3 font-medium">Tạo lúc</th>
               <th className="py-2 font-medium">Thao tác</th>
@@ -188,6 +190,9 @@ export function CashRequestPanel({
                 <td className="py-2.5 pr-3">{row.kind === "CHI" ? "Chi" : "Thu"}</td>
                 <td className="py-2.5 pr-3">{STATUS_LABEL[row.status] || row.status}</td>
                 <td className="py-2.5 pr-3">{row.sourceCode || "—"}</td>
+                <td className="py-2.5 pr-3" title={formatPaymentMethod(row.paymentMethod)}>
+                  {formatMoneyKind(moneyKindFromPaymentMethod(row.paymentMethod))}
+                </td>
                 <td className="py-2.5 pr-3 font-medium">{formatDong(row.amountDong)}</td>
                 <td className="py-2.5 pr-3 whitespace-nowrap">{formatWhen(row.createdAt)}</td>
                 <td className="py-2.5">
@@ -223,7 +228,7 @@ export function CashRequestPanel({
             ))}
             {requests.items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-[var(--tlkv-muted)]">
+                <td colSpan={8} className="py-10 text-center text-[var(--tlkv-muted)]">
                   Chưa có yêu cầu thu/chi
                 </td>
               </tr>

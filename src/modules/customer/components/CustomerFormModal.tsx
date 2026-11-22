@@ -11,7 +11,9 @@ import {
   formatCustomerSaveError,
   GENDER_LABEL,
   GROUP_LABEL,
+  isValidCustomerPhone,
   normalizeCitizenIdInput,
+  normalizePhoneInput,
   TYPE_LABEL,
 } from "../labels";
 import type {
@@ -120,23 +122,28 @@ export function CustomerFormModal({
       name: parsed.fullName,
       dateOfBirth: parsed.dateOfBirthIso,
       address: parsed.address,
-      citizenIdIssueDate: parsed.issueDateIso,
+      ...(parsed.issueDateIso ? { citizenIdIssueDate: parsed.issueDateIso } : {}),
       // Explicitly do not touch: phone, email, note, nationality, issue place, expiry.
     });
     setGender(parsed.gender);
     setCccdScanError(null);
     setCccdScanMessage(
-      "Đã điền từ QR CCCD. Kiểm tra / sửa nếu cần, rồi bấm Lưu khách hàng (không tự lưu).",
+      "Đã điền từ QR CCCD. Nhập SĐT (bắt buộc) rồi kiểm tra và bấm Lưu — không tự lưu.",
     );
     setCccdScanValue("");
-    cccdScanRef.current?.focus();
+    // Keep focus on form: SĐT is required and never filled from QR.
+    window.setTimeout(() => {
+      const phoneInput = document.getElementById("customer-phone-input");
+      if (phoneInput instanceof HTMLInputElement) phoneInput.focus();
+      else cccdScanRef.current?.focus();
+    }, 0);
   }
 
   function buildPayload(): CustomerInput {
     const citizenId = normalizeCitizenIdInput(form.citizenId);
     return {
       name: form.name,
-      phone: form.phone,
+      phone: normalizePhoneInput(form.phone),
       email: form.email || null,
       address: form.address || null,
       note: form.note || null,
@@ -186,6 +193,16 @@ export function CustomerFormModal({
           ? "Cần tên doanh nghiệp hoặc tên hiển thị."
           : "Cần họ và tên khách hàng.",
       });
+      return;
+    }
+    if (!isValidCustomerPhone(form.phone)) {
+      setAlert({
+        tone: "error",
+        title: "Thiếu hoặc sai số điện thoại",
+        reason:
+          "SĐT bắt buộc 9–11 chữ số. Quét QR CCCD không điền SĐT — nhập tay rồi Lưu.",
+      });
+      document.getElementById("customer-phone-input")?.focus();
       return;
     }
 
@@ -347,6 +364,11 @@ export function CustomerFormModal({
                       ref={cccdScanRef}
                       value={cccdScanValue}
                       onChange={(e) => setCccdScanValue(e.target.value)}
+                      onBlur={(e) => {
+                        // Máy không gửi Enter: áp dụng khi rời ô quét (tránh mất chuỗi trước khi Lưu).
+                        const raw = (e.currentTarget.value || cccdScanValue).trim();
+                        if (raw.includes("|")) applyCccdQrScan(raw);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key !== "Enter") return;
                         e.preventDefault();
@@ -429,9 +451,13 @@ export function CustomerFormModal({
             <label className="text-[13px]">
               Số điện thoại <span className="text-[var(--tlkv-red)]">*</span>
               <input
+                id="customer-phone-input"
                 required
+                inputMode="tel"
+                autoComplete="tel"
                 value={form.phone}
-                onChange={(e) => patchForm({ phone: e.target.value })}
+                onChange={(e) => patchForm({ phone: e.target.value.replace(/[^\d\s+()-]/g, "") })}
+                placeholder="9–11 chữ số (QR không điền SĐT)"
                 className={FIELD}
               />
             </label>

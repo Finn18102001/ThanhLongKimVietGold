@@ -109,10 +109,30 @@ export function formatCustomerSaveError(message: string): { title: string; reaso
         "Khách hàng với số căn cước công dân này đã có trong hệ thống. Vui lòng chọn khách đó hoặc nhập số CCCD khác.",
     };
   }
-  if (/điện thoại|phone/i.test(text)) {
+  if (/Số điện thoại không hợp lệ|phone.*invalid|SĐT không hợp lệ/i.test(text)) {
+    return {
+      title: "Số điện thoại không hợp lệ",
+      reason:
+        "Cần SĐT 9–11 chữ số (chỉ nhập số). Quét QR CCCD không điền SĐT — hãy nhập tay trước khi Lưu.",
+    };
+  }
+  if (/điện thoại đã tồn tại|phone.*exist|Số điện thoại đã tồn tại/i.test(text)) {
     return { title: "Số điện thoại đã tồn tại", reason: text };
   }
+  if (/điện thoại|phone/i.test(text)) {
+    return { title: "Lỗi số điện thoại", reason: text };
+  }
   return { title: "Không lưu được khách hàng", reason: text || "Vui lòng thử lại." };
+}
+
+/** Chuẩn hóa SĐT giống BE: chỉ giữ chữ số. */
+export function normalizePhoneInput(raw: string | null | undefined): string {
+  return String(raw ?? "").replace(/\D/g, "");
+}
+
+export function isValidCustomerPhone(raw: string | null | undefined): boolean {
+  const digits = normalizePhoneInput(raw);
+  return /^[0-9]{9,11}$/.test(digits) && digits !== "WALKIN";
 }
 
 export function customerInitials(name: string): string {

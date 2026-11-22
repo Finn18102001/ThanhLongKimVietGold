@@ -252,6 +252,7 @@ export function StockCountWorkspace({
         "Tồn đầu",
         "Nhập trong ngày",
         "Xuất trong ngày",
+        "Ngày nhập",
         "Tồn hệ thống",
         "Tổng số chỉ",
         "Thực tế",
@@ -269,6 +270,7 @@ export function StockCountWorkspace({
         line.openingQty,
         line.qtyIn,
         line.qtyOut,
+        line.lastReceivedAt ? formatViDate(line.lastReceivedAt) : "",
         line.systemQty,
         systemTotalChi(line.systemQty, line.weightChi),
         line.actualQty ?? "",
@@ -788,6 +790,7 @@ export function StockCountWorkspace({
                   <th className="py-2 font-medium">Tồn đầu</th>
                   <th className="py-2 font-medium">Nhập trong ngày</th>
                   <th className="py-2 font-medium">Xuất trong ngày</th>
+                  <th className="py-2 font-medium">Ngày nhập</th>
                   <th className="py-2 font-medium">Tồn hệ thống</th>
                   <th className="py-2 font-medium">Tổng số chỉ</th>
                   <th className="py-2 font-medium">Thực tế</th>
@@ -798,7 +801,7 @@ export function StockCountWorkspace({
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-6 text-[var(--tlkv-muted)]">
+                    <td colSpan={13} className="py-6 text-[var(--tlkv-muted)]">
                       Không có dòng khớp bộ lọc.
                     </td>
                   </tr>
@@ -827,6 +830,9 @@ export function StockCountWorkspace({
                       <td className="py-2.5 tabular-nums">{line.openingQty}</td>
                       <td className="py-2.5 tabular-nums">{line.qtyIn}</td>
                       <td className="py-2.5 tabular-nums">{line.qtyOut}</td>
+                      <td className="py-2.5 whitespace-nowrap tabular-nums text-[var(--tlkv-muted)]">
+                        {line.lastReceivedAt ? formatViDate(line.lastReceivedAt) : "—"}
+                      </td>
                       <td className="py-2.5 tabular-nums">{line.systemQty}</td>
                       <td className="py-2.5 tabular-nums font-medium">
                         {formatSystemTotalChi(line.systemQty, line.weightChi)}

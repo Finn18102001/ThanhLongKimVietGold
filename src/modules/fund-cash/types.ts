@@ -1,4 +1,5 @@
 export type EmployeeCashAccountKind = "STAFF" | "ADMIN_POOL";
+export type EmployeeCashMoneyKind = "CASH" | "BANK";
 
 export type EmployeeCashAccount = {
   id: string;
@@ -9,6 +10,8 @@ export type EmployeeCashAccount = {
   staffName: string | null;
   staffEmail: string | null;
   balanceDong: number;
+  cashBalanceDong: number;
+  bankBalanceDong: number;
   isActive: boolean;
   updatedAt: string | null;
 };
@@ -21,6 +24,7 @@ export type EmployeeCashLedgerRow = {
   txnType: string;
   direction: "IN" | "OUT";
   amountDong: number;
+  moneyKind: EmployeeCashMoneyKind;
   balanceBeforeDong: number;
   balanceAfterDong: number;
   content: string;
@@ -51,6 +55,7 @@ export type CashTransferRow = {
   code: string;
   status: CashTransferStatus;
   amountDong: number;
+  moneyKind: EmployeeCashMoneyKind;
   content: string;
   fromAccountId: string;
   fromAccountCode: string;

@@ -147,7 +147,15 @@ export function YcRequestDocument({ request }: { request: CashRequestRow }) {
           </tr>
           <tr>
             <td style={{ padding: "1.5mm 0" }}>Hình thức TT</td>
-            <td style={{ padding: "1.5mm 0" }}>{request.paymentMethod}</td>
+            <td style={{ padding: "1.5mm 0" }}>
+              {request.paymentMethod === "TRANSFER"
+                ? "Chuyển khoản (ghi quỹ CK)"
+                : request.paymentMethod === "CARD"
+                  ? "Thẻ (ghi quỹ CK)"
+                  : request.paymentMethod === "MIXED"
+                    ? "Hỗn hợp"
+                    : "Tiền mặt (ghi quỹ TM)"}
+            </td>
           </tr>
         </tbody>
       </table>

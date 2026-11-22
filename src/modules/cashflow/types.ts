@@ -60,6 +60,31 @@ export type CashLedgerPage = {
   netDong: number;
 };
 
+/** KPI khoảng lọc: tồn đầu / thu / chi / tồn cuối — theo sổ CASH-001 / BANK-001. */
+export type CashPeriodAccountKpi = {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: CashAccountType;
+  openingDong: number;
+  inDong: number;
+  outDong: number;
+  closingDong: number;
+};
+
+export type CashPeriodSummary = {
+  from: string;
+  to: string;
+  cash: CashPeriodAccountKpi | null;
+  bank: CashPeriodAccountKpi | null;
+  total: {
+    openingDong: number;
+    inDong: number;
+    outDong: number;
+    closingDong: number;
+  };
+};
+
 export type CashLedgerFilters = {
   from: string;
   to: string;

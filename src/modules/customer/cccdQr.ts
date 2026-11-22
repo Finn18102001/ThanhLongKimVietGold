@@ -18,7 +18,7 @@ export type CccdQrParseSuccess = {
   dateOfBirthIso: string;
   gender: CccdQrGender;
   address: string;
-  /** ISO yyyy-mm-dd — Ngày cấp CCCD (fields[6]). */
+  /** ISO yyyy-mm-dd — Ngày cấp CCCD (fields[6]). Rỗng nếu QR không có ngày cấp. */
   issueDateIso: string;
   raw: string;
 };
@@ -137,13 +137,18 @@ export function parseCccdQrPayload(rawInput: string): CccdQrParseResult {
     };
   }
 
-  const issueDateIso = parseCccdCompactDate(issueRaw);
-  if (!issueDateIso) {
-    return {
-      ok: false,
-      message: `Ngày cấp CCCD trên QR không hợp lệ («${issueRaw}»). Không autofill lệch vị trí.`,
-      raw,
-    };
+  // Ngày cấp: trống → bỏ qua (vẫn autofill các trường khác). Có giá trị sai → từ chối cả chuỗi.
+  let issueDateIso = "";
+  if (issueRaw) {
+    const parsedIssue = parseCccdCompactDate(issueRaw);
+    if (!parsedIssue) {
+      return {
+        ok: false,
+        message: `Ngày cấp CCCD trên QR không hợp lệ («${issueRaw}»). Không autofill lệch vị trí.`,
+        raw,
+      };
+    }
+    issueDateIso = parsedIssue;
   }
 
   return {

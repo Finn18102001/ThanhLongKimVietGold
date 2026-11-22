@@ -88,6 +88,7 @@ export async function adminCapitalCash(input: {
   amountDong: number;
   content: string;
   reason?: string;
+  moneyKind?: "CASH" | "BANK";
 }): Promise<ActionResult<{ ledgerId: string }>> {
   try {
     await assertAdminWrite();
@@ -104,6 +105,7 @@ export async function adminCapitalCash(input: {
       p_amount_dong: amount,
       p_content: input.content,
       p_reason: input.reason?.trim() || null,
+      p_money_kind: input.moneyKind === "BANK" ? "BANK" : "CASH",
     });
     if (error) return actionFail(error.message || "Không ghi nhận vốn Quỹ Admin.");
 
@@ -120,6 +122,7 @@ export async function adminAllocateCash(input: {
   amountDong: number;
   content: string;
   reason?: string;
+  moneyKind?: "CASH" | "BANK";
 }): Promise<ActionResult<{ transferGroupId: string }>> {
   try {
     await assertAdminWrite();
@@ -138,6 +141,7 @@ export async function adminAllocateCash(input: {
       p_amount_dong: amount,
       p_content: input.content,
       p_reason: input.reason?.trim() || null,
+      p_money_kind: input.moneyKind === "BANK" ? "BANK" : "CASH",
     });
     if (error) return actionFail(error.message || "Không phân bổ được.");
 
@@ -166,6 +170,7 @@ export async function createCashTransfer(input: {
   toAccountId: string;
   amountDong: number;
   content: string;
+  moneyKind?: "CASH" | "BANK";
 }): Promise<ActionResult<{ id: string; code: string; transfer: CashTransferRow | null }>> {
   try {
     await assertStaffMutate();
@@ -185,6 +190,7 @@ export async function createCashTransfer(input: {
       p_to_account_id: input.toAccountId,
       p_amount_dong: amount,
       p_content: input.content.trim(),
+      p_money_kind: input.moneyKind === "BANK" ? "BANK" : "CASH",
     });
     if (error) return actionFail(error.message || "Không tạo được chứng từ CTCT.");
 
@@ -292,7 +298,14 @@ export async function createCashRequestFromSale(input: {
 
 export async function confirmCashRequest(
   requestId: string,
-): Promise<ActionResult<{ code: string; alreadyConfirmed: boolean; cashAccountCode: string }>> {
+): Promise<
+  ActionResult<{
+    code: string;
+    alreadyConfirmed: boolean;
+    cashAccountCode: string;
+    moneyKind: "CASH" | "BANK";
+  }>
+> {
   try {
     await assertStaffMutate();
     await requireFlagOn();
@@ -309,11 +322,13 @@ export async function confirmCashRequest(
       code?: string;
       alreadyConfirmed?: boolean;
       cashAccountCode?: string;
+      moneyKind?: string;
     };
     return actionOk({
       code: String(row.code ?? ""),
       alreadyConfirmed: Boolean(row.alreadyConfirmed),
       cashAccountCode: String(row.cashAccountCode ?? ""),
+      moneyKind: String(row.moneyKind ?? "CASH").toUpperCase() === "BANK" ? "BANK" : "CASH",
     });
   } catch (err) {
     return actionFail(formatActionError(err, "Không xác nhận được YC."));

@@ -11,7 +11,13 @@ import {
   refreshCashTransfers,
 } from "./actions";
 import { CtctPrintPreviewOverlay } from "./CtctPrintPreviewOverlay";
-import type { CashTransferListPage, CashTransferRow, EmployeeCashAccount } from "./types";
+import { formatMoneyKind } from "./money-kind";
+import type {
+  CashTransferListPage,
+  CashTransferRow,
+  EmployeeCashAccount,
+  EmployeeCashMoneyKind,
+} from "./types";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -41,6 +47,7 @@ export function CashTransferPanel({
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
   const [amountDong, setAmountDong] = useState<number | null>(null);
+  const [moneyKind, setMoneyKind] = useState<EmployeeCashMoneyKind>("CASH");
   const [content, setContent] = useState("Chuyển tiền giữa quỹ nhân viên");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -68,12 +75,15 @@ export function CashTransferPanel({
         toAccountId: toId,
         amountDong,
         content,
+        moneyKind,
       });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
-      setNotice(`Đã tạo ${res.data.code}. Số dư chưa đổi — chờ bên nhận xác nhận. Mở chứng từ để in A4.`);
+      setNotice(
+        `Đã tạo ${res.data.code} (${formatMoneyKind(moneyKind)}). Số dư chưa đổi — chờ bên nhận xác nhận.`,
+      );
       setAmountDong(null);
       if (res.data.transfer) setPrintRow(res.data.transfer);
       reload();
@@ -158,11 +168,19 @@ export function CashTransferPanel({
               onValueChange={setAmountDong}
               className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
             />
+            <select
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+              value={moneyKind}
+              onChange={(e) => setMoneyKind(e.target.value === "BANK" ? "BANK" : "CASH")}
+            >
+              <option value="CASH">Tiền mặt</option>
+              <option value="BANK">Chuyển khoản</option>
+            </select>
             <button
               type="button"
               disabled={!fromId || !toId || !amountDong || amountDong <= 0 || pending}
               onClick={onCreate}
-              className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+              className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40 md:col-span-2 lg:col-span-1"
             >
               Tạo CTCT
             </button>
@@ -202,6 +220,7 @@ export function CashTransferPanel({
                 <th className="py-2 pr-3 font-medium">Trạng thái</th>
                 <th className="py-2 pr-3 font-medium">Từ</th>
                 <th className="py-2 pr-3 font-medium">Đến</th>
+                <th className="py-2 pr-3 font-medium">TM/CK</th>
                 <th className="py-2 pr-3 font-medium">Số tiền</th>
                 <th className="py-2 pr-3 font-medium">Tạo lúc</th>
                 <th className="py-2 font-medium">Thao tác</th>
@@ -224,6 +243,7 @@ export function CashTransferPanel({
                       {row.toStaffName}
                     </span>
                   </td>
+                  <td className="py-2.5 pr-3">{formatMoneyKind(row.moneyKind)}</td>
                   <td className="py-2.5 pr-3 font-medium">{formatDong(row.amountDong)}</td>
                   <td className="py-2.5 pr-3 whitespace-nowrap">{formatWhen(row.createdAt)}</td>
                   <td className="py-2.5">

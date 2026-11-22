@@ -4,6 +4,7 @@ import {
   getCashflowOverview,
   getCashLedger,
   getCashObligations,
+  getCashPeriodSummary,
 } from "./query";
 import { CashflowWorkspace } from "./CashflowWorkspace";
 import type {
@@ -11,6 +12,7 @@ import type {
   CashflowOverview,
   CashLedgerPage,
   CashObligationRow,
+  CashPeriodSummary,
 } from "./types";
 import { getPosSession } from "@/shared/auth/session";
 import { canAdminRead, canMutateAdminData, roleHomePath } from "@/shared/auth/permissions";
@@ -42,10 +44,18 @@ export async function CashflowPage() {
     netDong: 0,
   };
   const emptyCapital: CapitalSnapshot = { totalDong: 0, groups: [] };
+  const emptyPeriod = (fromIso: string, toIso: string): CashPeriodSummary => ({
+    from: fromIso,
+    to: toIso,
+    cash: null,
+    bank: null,
+    total: { openingDong: 0, inDong: 0, outDong: 0, closingDong: 0 },
+  });
 
   let overview = emptyOverview;
   let ledger = emptyLedger;
   let capital = emptyCapital;
+  let period = emptyPeriod(defaultCashflowRange().from, defaultCashflowRange().to);
   let obligations: CashObligationRow[] = [];
   let from = defaultCashflowRange().from;
   let to = defaultCashflowRange().to;
@@ -72,6 +82,12 @@ export async function CashflowPage() {
   }
 
   try {
+    period = await getCashPeriodSummary(from, to);
+  } catch {
+    period = emptyPeriod(from, to);
+  }
+
+  try {
     obligations = await getCashObligations();
   } catch {
     // Công nợ chưa sẵn sàng
@@ -82,6 +98,7 @@ export async function CashflowPage() {
       initialOverview={overview}
       initialLedger={ledger}
       initialCapital={capital}
+      initialPeriod={period}
       initialObligations={obligations}
       initialFrom={from}
       initialTo={to}

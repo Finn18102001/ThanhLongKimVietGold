@@ -10,6 +10,7 @@ import {
   refreshCashRequests,
   rejectCashRequest,
 } from "./actions";
+import { formatMoneyKind, formatPaymentMethod, moneyKindFromPaymentMethod } from "./money-kind";
 import { YcPrintPreviewOverlay } from "./YcPrintPreviewOverlay";
 import type { CashRequestKind, CashRequestListPage, CashRequestRow } from "./types";
 
@@ -102,7 +103,7 @@ export function CashRequestCards({
       setNotice(
         res.data.alreadyConfirmed
           ? `${res.data.code} đã xác nhận trước.`
-          : `Đã xác nhận ${res.data.code}.`,
+          : `Đã xác nhận ${res.data.code} (${formatMoneyKind(res.data.moneyKind)}).`,
       );
       setSelected(null);
       reload();
@@ -223,6 +224,10 @@ export function CashRequestCards({
                 <p className="mt-3 text-[16px] font-semibold tabular-nums">
                   {formatDong(row.amountDong)}
                 </p>
+                <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
+                  {formatPaymentMethod(row.paymentMethod)} →{" "}
+                  {formatMoneyKind(moneyKindFromPaymentMethod(row.paymentMethod))}
+                </p>
                 <p className="mt-1 text-[11px] text-[var(--tlkv-faint)]">{formatWhen(row.createdAt)}</p>
               </button>
             ))}
@@ -289,6 +294,13 @@ export function CashRequestCards({
             <div>
               <dt className="text-[var(--tlkv-muted)]">Số tiền</dt>
               <dd className="font-semibold tabular-nums">{formatDong(selected.amountDong)}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--tlkv-muted)]">Hình thức / ghi quỹ</dt>
+              <dd className="font-semibold">
+                {formatPaymentMethod(selected.paymentMethod)} →{" "}
+                {formatMoneyKind(moneyKindFromPaymentMethod(selected.paymentMethod))}
+              </dd>
             </div>
             <div>
               <dt className="text-[var(--tlkv-muted)]">Khách</dt>

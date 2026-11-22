@@ -18,6 +18,17 @@ npm run dev
 | Email | `tuananh18101@gmail.com` |
 | Password | `1234567` |
 
+### P10 — tài khoản test Quỹ (chuyển A↔B)
+
+| Vai trò | Email | Pass | Quỹ |
+|---------|-------|------|-----|
+| Quỹ tiền 1 | `testquytien@gmail.com` | `1234567` | `QT-000005` |
+| Quỹ tiền 2 | `testquytien2@gmail.com` | `1234567` | `QT-000006` |
+| Quỹ vàng 1 | `testquyvang@gmail.com` | `1234567` | `QV-000005` |
+| Quỹ vàng 2 | `testquyvang2@gmail.com` | `1234567` | `QV-000006` |
+
+Cần **bật** Flag `pos_employee_fund_enabled` tại Cài đặt trước khi vào `/fund-cash` / `/fund-gold`.
+
 Luồng DevTools / browser MCP:
 
 1. Boot `npm run dev` trên port 3000 (hoặc 3001 nếu bận).

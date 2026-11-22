@@ -28,6 +28,11 @@ export type StockCountLine = {
   qtyIn: number;
   /** Tổng số lượng xuất kho trong ngày kiểm kê (delta âm trên ledger, lấy dương). */
   qtyOut: number;
+  /**
+   * Ngày nhập gần nhất (ISO date yyyy-mm-dd) — max(created_at) giao dịch nhập
+   * PURCHASE_RECEIVED / STOCK_ADJUSTMENT_IN / PREORDER_FULFILL; fallback unit IN_STOCK.
+   */
+  lastReceivedAt: string | null;
   systemQty: number;
   actualQty: number | null;
   difference: number | null;

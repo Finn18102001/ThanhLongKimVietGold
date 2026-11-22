@@ -625,6 +625,8 @@ Ví dụ mẫu trên ảnh: `YC-CHI-000001`, CHI TIỀN, Chờ xác nhận, Qu�
 
 **Module 6 (2026-11-22) — Hủy HĐ đảo quỹ:** `void_sale_invoice` / `void_buy` gọi `employee_cash_reverse_requests_for_source` (YC CONFIRMED → `REVERSED` + `VOID_REVERSAL` đúng TK; PENDING → REJECTED) và `employee_gold_reverse_sale_custody` (bán đã trả vàng). Migration `20261122060000_p10_void_reverse_employee_fund`.
 
+**Module 2c (2026-11-22) — TM/CK trong Quỹ tiền NV:** mỗi TK có `cash_balance_dong` + `bank_balance_dong` (tổng = `balance_dong`); ledger/CTCT có `money_kind`. YC confirm map `payment_method` CASH→TM, TRANSFER/CARD→CK; void đảo đúng bucket. Nạp vốn / phân bổ / CTCT chọn TM hoặc CK. Migration `20261122070000_p10_employee_cash_money_kind`. Không đụng CASH-001/BANK-001.
+
 > **Lệch P10-03 (2026-11-21):** Module 4b đang trừ custody / coi HĐ hoàn tất giao vàng ngay F9 — **sai** so với Câu 4/5 mới. Cần tách «lưu đơn + YC» khỏi «QV xác nhận trả vàng»; chỉ QT/Admin confirm tiền. Xem [`P10-03`](./P10-03-TWO-STEP-CONFIRM-FLOW.md).
 
 **Rollback hard-test P10 (2026-11-19):** Đảo số dư Quỹ NV bằng `VOID_REVERSAL` (giữ sổ gốc): tiền CTCT/phân bổ/nạp vốn/`YC-THU-000001`; vàng CTCV/phân bổ/nạp vốn `bac-brtl1-1`. Số dư QT/QV về **0**. Feature Flag `pos_employee_fund_enabled` = **OFF** (AS-IS CASH-001/BANK-001). Không sửa CASH-001/BANK-001 vì hard-test Quỹ NV không trừ quỹ cửa hàng; tồn cửa hàng `bac-brtl1-1` không đổi.

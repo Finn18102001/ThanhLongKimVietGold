@@ -14,6 +14,9 @@ import type {
 } from "./types";
 
 function mapAccount(raw: Record<string, unknown>): EmployeeCashAccount {
+  const balanceDong = Number(raw.balanceDong ?? 0);
+  const cashBalanceDong = Number(raw.cashBalanceDong ?? balanceDong);
+  const bankBalanceDong = Number(raw.bankBalanceDong ?? 0);
   return {
     id: String(raw.id),
     code: String(raw.code ?? ""),
@@ -22,7 +25,9 @@ function mapAccount(raw: Record<string, unknown>): EmployeeCashAccount {
     staffId: raw.staffId ? String(raw.staffId) : null,
     staffName: raw.staffName ? String(raw.staffName) : null,
     staffEmail: raw.staffEmail ? String(raw.staffEmail) : null,
-    balanceDong: Number(raw.balanceDong ?? 0),
+    balanceDong,
+    cashBalanceDong,
+    bankBalanceDong,
     isActive: Boolean(raw.isActive),
     updatedAt: raw.updatedAt ? String(raw.updatedAt) : null,
   };
@@ -72,6 +77,7 @@ export async function listEmployeeCashLedger(input?: {
     txnType: String(r.txnType ?? ""),
     direction: r.direction === "OUT" ? ("OUT" as const) : ("IN" as const),
     amountDong: Number(r.amountDong ?? 0),
+    moneyKind: String(r.moneyKind ?? "CASH").toUpperCase() === "BANK" ? ("BANK" as const) : ("CASH" as const),
     balanceBeforeDong: Number(r.balanceBeforeDong ?? 0),
     balanceAfterDong: Number(r.balanceAfterDong ?? 0),
     content: String(r.content ?? ""),
@@ -116,6 +122,7 @@ function mapTransfer(raw: Record<string, unknown>): CashTransferRow {
     code: String(raw.code ?? ""),
     status,
     amountDong: Number(raw.amountDong ?? 0),
+    moneyKind: String(raw.moneyKind ?? "CASH").toUpperCase() === "BANK" ? "BANK" : "CASH",
     content: String(raw.content ?? ""),
     fromAccountId: String(raw.fromAccountId ?? ""),
     fromAccountCode: String(raw.fromAccountCode ?? ""),

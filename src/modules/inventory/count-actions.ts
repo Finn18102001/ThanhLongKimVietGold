@@ -47,6 +47,7 @@ function mapSession(raw: Record<string, unknown>): StockCountSession {
       openingQty: Number(item.opening_qty ?? item.openingQty ?? 0),
       qtyIn: Number(item.qty_in ?? item.qtyIn ?? 0),
       qtyOut: Number(item.qty_out ?? item.qtyOut ?? 0),
+      lastReceivedAt: null,
       systemQty: Number(item.system_qty),
       actualQty: item.actual_qty === null ? null : Number(item.actual_qty),
       difference: item.difference === null ? null : Number(item.difference),
@@ -119,6 +120,57 @@ type DayMovementRow = {
   qtyOut: number;
 };
 
+async function withLastReceivedDates(
+  session: StockCountSession,
+): Promise<StockCountSession> {
+  if (session.items.length === 0) return session;
+  const supabase = await createServerSupabase();
+  const skuIds = session.items.map((item) => item.skuId);
+  const receivedBySku = new Map<string, string>();
+
+  const { data: txRows, error: txErr } = await supabase
+    .from("pos_inventory_transactions")
+    .select("sku_id, created_at")
+    .in("sku_id", skuIds)
+    .in("type", ["PURCHASE_RECEIVED", "STOCK_ADJUSTMENT_IN", "PREORDER_FULFILL"])
+    .order("created_at", { ascending: false })
+    .limit(Math.min(skuIds.length * 20, 5000));
+  if (txErr) throw new Error(txErr.message);
+  for (const row of txRows ?? []) {
+    const skuId = String((row as { sku_id: string }).sku_id);
+    if (!skuId || receivedBySku.has(skuId)) continue;
+    receivedBySku.set(skuId, formatVnIsoDate(String((row as { created_at: string }).created_at)));
+  }
+
+  const missing = skuIds.filter((id) => !receivedBySku.has(id));
+  if (missing.length > 0) {
+    const { data: unitRows, error: unitErr } = await supabase
+      .from("pos_inventory_units")
+      .select("sku_id, created_at")
+      .in("sku_id", missing)
+      .is("voided_at", null)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(missing.length * 20, 5000));
+    if (unitErr) throw new Error(unitErr.message);
+    for (const row of unitRows ?? []) {
+      const skuId = String((row as { sku_id: string }).sku_id);
+      if (!skuId || receivedBySku.has(skuId)) continue;
+      receivedBySku.set(
+        skuId,
+        formatVnIsoDate(String((row as { created_at: string }).created_at)),
+      );
+    }
+  }
+
+  return {
+    ...session,
+    items: session.items.map((item) => ({
+      ...item,
+      lastReceivedAt: receivedBySku.get(item.skuId) ?? item.lastReceivedAt ?? null,
+    })),
+  };
+}
+
 async function withDayMovements(session: StockCountSession): Promise<StockCountSession> {
   if (session.items.length === 0) return session;
   const supabase = await createServerSupabase();
@@ -144,7 +196,7 @@ async function withDayMovements(session: StockCountSession): Promise<StockCountS
     });
   }
 
-  return {
+  const moved: StockCountSession = {
     ...session,
     items: session.items.map((item) => {
       const movement = bySku.get(item.skuId);
@@ -156,6 +208,7 @@ async function withDayMovements(session: StockCountSession): Promise<StockCountS
       };
     }),
   };
+  return withLastReceivedDates(moved);
 }
 
 export async function listStockCounts(limit = 10, offset = 0) {

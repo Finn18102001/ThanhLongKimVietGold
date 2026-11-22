@@ -85,6 +85,8 @@ Local = DB production → chỉ tạo object có chữ **test** khi có thể.
 |-----------|--------|-----|---------|
 | ~23:10 | STAFF + QT | `testquytien@gmail.com` · `QT-000005` · Tài khoản test quỹ tiền | Pass `1234567`; shell Quỹ tiền |
 | ~23:12 | STAFF + QV | `testquyvang@gmail.com` · `QV-000005` · Tài khoản test quỹ vàng | Pass `1234567`; shell Quỹ vàng + catalog |
+| 2026-11-22 | STAFF + QT | `testquytien2@gmail.com` · `NV-0018` · `QT-000006` · Tài khoản test quỹ tiền 2 | Pass `1234567` — cặp chuyển tiền với QT-000005 |
+| 2026-11-22 | STAFF + QV | `testquyvang2@gmail.com` · `NV-0019` · `QV-000006` · Tài khoản test quỹ vàng 2 | Pass `1234567` — cặp chuyển vàng với QV-000005 |
 | ~23:12 | UI | Password NV min **7**; banner cashflow/gold → «Quản lý Quỹ … NV» | OK |
 | ~23:12 | Port | Stop + rebuild `npm run dev` :3000 | Hard-test DevTools |
 | ~23:18 | F9 bán (quyvang) | `HD004139` · TLKVTS000020 · 148.700 · KH002868 | ISSUED; không ghi CASH-001 |

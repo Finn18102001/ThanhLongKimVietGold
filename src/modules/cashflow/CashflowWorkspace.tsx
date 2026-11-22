@@ -21,6 +21,7 @@ import {
   fetchCapitalSnapshot,
   fetchCashflowOverview,
   fetchCashLedger,
+  fetchCashPeriodSummary,
   transferCash,
   withdrawCash,
 } from "./actions";
@@ -31,6 +32,7 @@ import type {
   CashflowOverview,
   CashLedgerPage,
   CashObligationRow,
+  CashPeriodSummary,
   CashTxnType,
 } from "./types";
 import { TXN_TYPE_LABEL } from "./types";
@@ -78,6 +80,7 @@ export function CashflowWorkspace({
   initialOverview,
   initialLedger,
   initialCapital,
+  initialPeriod,
   initialObligations,
   initialFrom,
   initialTo,
@@ -86,6 +89,7 @@ export function CashflowWorkspace({
   initialOverview: CashflowOverview;
   initialLedger: CashLedgerPage;
   initialCapital: CapitalSnapshot;
+  initialPeriod: CashPeriodSummary;
   initialObligations: CashObligationRow[];
   initialFrom: string;
   initialTo: string;
@@ -94,6 +98,7 @@ export function CashflowWorkspace({
   const [overview, setOverview] = useState(initialOverview);
   const [ledger, setLedger] = useState(initialLedger);
   const [capital, setCapital] = useState(initialCapital);
+  const [period, setPeriod] = useState(initialPeriod);
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
   const [accountId, setAccountId] = useState("");
@@ -131,7 +136,7 @@ export function CashflowWorkspace({
   function refreshAll(nextFrom = from, nextTo = to, nextOffset = 0) {
     startTransition(async () => {
       try {
-        const [nextOverview, nextLedger, nextCapital] = await Promise.all([
+        const [nextOverview, nextLedger, nextCapital, nextPeriod] = await Promise.all([
           fetchCashflowOverview(),
           fetchCashLedger({
             ...ledgerFilters(nextOffset, pageSize),
@@ -139,10 +144,12 @@ export function CashflowWorkspace({
             to: nextTo,
           }),
           fetchCapitalSnapshot(),
+          fetchCashPeriodSummary(nextFrom, nextTo),
         ]);
         setOverview(nextOverview);
         setLedger(nextLedger);
         setCapital(nextCapital);
+        setPeriod(nextPeriod);
         setOffset(nextOffset);
         setError(null);
       } catch (err) {
@@ -168,14 +175,69 @@ export function CashflowWorkspace({
   function exportExcel() {
     startTransition(async () => {
       try {
-        const exported = await exportCashLedger({
-          from,
-          to,
-          accountId: accountId || null,
-          txnType: txnType || null,
-          direction: direction || null,
-          q: q || null,
-        });
+        const [exported, periodExport] = await Promise.all([
+          exportCashLedger({
+            from,
+            to,
+            accountId: accountId || null,
+            txnType: txnType || null,
+            direction: direction || null,
+            q: q || null,
+          }),
+          fetchCashPeriodSummary(from, to),
+        ]);
+
+        const blank = ["", "", "", "", "", "", "", "", "", "", "", ""];
+        const summaryBlock: Array<Array<string | number>> = [
+          [`Tóm tắt ${from} → ${to}`, "", "", "", "", "", "", "", "", "", "", ""],
+          [
+            "Tài khoản",
+            "Loại",
+            "Tồn đầu ngày",
+            "Tổng thu",
+            "Tổng chi",
+            "Tồn cuối ngày",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ],
+        ];
+        for (const row of [periodExport.cash, periodExport.bank]) {
+          if (!row) continue;
+          summaryBlock.push([
+            `${row.accountName} (${row.accountCode})`,
+            row.accountType === "CASH" ? "Tiền mặt" : "Chuyển khoản",
+            row.openingDong,
+            row.inDong,
+            row.outDong,
+            row.closingDong,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ]);
+        }
+        summaryBlock.push([
+          "Tổng hợp",
+          "Tiền mặt + CK",
+          periodExport.total.openingDong,
+          periodExport.total.inDong,
+          periodExport.total.outDong,
+          periodExport.total.closingDong,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ]);
+        summaryBlock.push(blank);
+
         downloadCsv(
           `dong-tien-${from}_${to}.csv`,
           [
@@ -192,21 +254,25 @@ export function CashflowWorkspace({
             "Tên khách hàng",
             "CCCD",
           ],
-          exported.items.map((row) => [
-            formatDateTime(row.occurredAt),
-            TXN_TYPE_LABEL[row.txnType] ?? row.txnType,
-            row.direction === "IN" ? "Thu" : "Chi",
-            row.amountDong,
-            row.balanceAfterDong,
-            row.content,
-            row.accountName,
-            row.accountCode,
-            row.referenceCode ?? "",
-            row.actorEmail,
-            row.customerName ?? "",
-            row.customerCitizenId ?? "",
-          ]),
+          [
+            ...summaryBlock,
+            ...exported.items.map((row) => [
+              formatDateTime(row.occurredAt),
+              TXN_TYPE_LABEL[row.txnType] ?? row.txnType,
+              row.direction === "IN" ? "Thu" : "Chi",
+              row.amountDong,
+              row.balanceAfterDong,
+              row.content,
+              row.accountName,
+              row.accountCode,
+              row.referenceCode ?? "",
+              row.actorEmail,
+              row.customerName ?? "",
+              row.customerCitizenId ?? "",
+            ]),
+          ],
         );
+        setPeriod(periodExport);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không xuất được Excel");
@@ -302,28 +368,42 @@ export function CashflowWorkspace({
       {tab === "ledger" ? (
       <>
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {overview.cash ? <AccountCard account={overview.cash} icon="cash" /> : null}
-        {overview.bank ? <AccountCard account={overview.bank} icon="bank" /> : null}
+        {overview.cash ? (
+          <AccountCard
+            account={overview.cash}
+            icon="cash"
+            period={period.cash}
+            periodLabel={`${period.from} → ${period.to}`}
+          />
+        ) : null}
+        {overview.bank ? (
+          <AccountCard
+            account={overview.bank}
+            icon="bank"
+            period={period.bank}
+            periodLabel={`${period.from} → ${period.to}`}
+          />
+        ) : null}
         <article className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[13px] text-[var(--tlkv-muted)]">Tổng tiền hiện có</p>
+              <p className="text-[13px] text-[var(--tlkv-muted)]">Tổng hợp (TM + CK)</p>
               <p className="mt-2 text-[26px] font-bold tracking-tight text-[var(--tlkv-red)]">
-                {formatDong(overview.availableDong)}
+                {formatDong(period.total.closingDong || overview.availableDong)}
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+                Tồn cuối khoảng {period.from} → {period.to}
               </p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]">
               <Wallet size={20} weight="bold" />
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-[12px]">
-            <Stat label="Tổng thu (7 ngày)" value={formatDong(overview.sevenDay.inDong)} tone="in" />
-            <Stat label="Tổng chi (7 ngày)" value={formatDong(overview.sevenDay.outDong)} tone="out" />
-            <Stat
-              label="Dòng tiền ròng"
-              value={formatDong(overview.sevenDay.netDong)}
-              tone={overview.sevenDay.netDong >= 0 ? "in" : "out"}
-            />
+          <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-4">
+            <Stat label="Tồn đầu" value={formatDong(period.total.openingDong)} />
+            <Stat label="Tổng thu" value={formatDong(period.total.inDong)} tone="in" />
+            <Stat label="Tổng chi" value={formatDong(period.total.outDong)} tone="out" />
+            <Stat label="Tồn cuối" value={formatDong(period.total.closingDong)} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--tlkv-line)] pt-3 text-[12px]">
             <Stat label="Phải thu" value={formatDong(overview.receivableDong)} />
@@ -412,10 +492,23 @@ export function CashflowWorkspace({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniKpi label="Tồn đầu (theo lọc TK)" value={formatDong(
+            accountId === period.cash?.accountId
+              ? (period.cash?.openingDong ?? 0)
+              : accountId === period.bank?.accountId
+                ? (period.bank?.openingDong ?? 0)
+                : period.total.openingDong,
+          )} />
           <MiniKpi label="Tổng thu" value={formatDong(ledger.sumInDong)} />
           <MiniKpi label="Tổng chi" value={formatDong(ledger.sumOutDong)} />
-          <MiniKpi label="Dòng tiền ròng" value={formatDong(ledger.netDong)} />
+          <MiniKpi label="Tồn cuối (theo lọc TK)" value={formatDong(
+            accountId === period.cash?.accountId
+              ? (period.cash?.closingDong ?? 0)
+              : accountId === period.bank?.accountId
+                ? (period.bank?.closingDong ?? 0)
+                : period.total.closingDong,
+          )} />
         </div>
 
         <div className={`mt-4 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
@@ -574,32 +667,51 @@ export function CashflowWorkspace({
 function AccountCard({
   account,
   icon,
+  period,
+  periodLabel,
 }: {
   account: CashAccountCard;
   icon: "cash" | "bank";
+  period?: import("./types").CashPeriodAccountKpi | null;
+  periodLabel?: string;
 }) {
   const Icon = icon === "cash" ? Money : Bank;
+  const kindLabel = account.accountType === "CASH" ? "Tiền mặt" : "Chuyển khoản";
   return (
     <article className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-[var(--tlkv-bg)] px-2 py-0.5 text-[11px] font-semibold tracking-wide text-[var(--tlkv-muted)]">
-              {account.accountType}
+              {kindLabel}
             </span>
             <span className="font-mono text-[11px] text-[var(--tlkv-faint)]">{account.code}</span>
           </div>
           <p className="mt-2 text-[15px] font-semibold">{account.name}</p>
-          <p className="mt-2 text-[26px] font-bold tracking-tight">{formatDong(account.balanceDong)}</p>
+          <p className="mt-2 text-[26px] font-bold tracking-tight">
+            {formatDong(period?.closingDong ?? account.balanceDong)}
+          </p>
+          {periodLabel ? (
+            <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">Tồn cuối · {periodLabel}</p>
+          ) : null}
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]">
           <Icon size={20} weight="bold" />
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2 text-[12px]">
-        <Stat label="Thu hôm nay" value={`+${formatDong(account.inTodayDong)}`} tone="in" />
-        <Stat label="Chi hôm nay" value={`-${formatDong(account.outTodayDong)}`} tone="out" />
-        <Stat label="GD hôm nay" value={String(account.txnToday)} />
+      <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-4">
+        <Stat label="Tồn đầu" value={formatDong(period?.openingDong ?? 0)} />
+        <Stat
+          label="Tổng thu"
+          value={`+${formatDong(period?.inDong ?? account.inTodayDong)}`}
+          tone="in"
+        />
+        <Stat
+          label="Tổng chi"
+          value={`-${formatDong(period?.outDong ?? account.outTodayDong)}`}
+          tone="out"
+        />
+        <Stat label="Tồn cuối" value={formatDong(period?.closingDong ?? account.balanceDong)} />
       </div>
     </article>
   );

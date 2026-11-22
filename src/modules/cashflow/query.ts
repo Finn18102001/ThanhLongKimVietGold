@@ -8,6 +8,8 @@ import type {
   CashLedgerPage,
   CashLedgerRow,
   CashObligationRow,
+  CashPeriodAccountKpi,
+  CashPeriodSummary,
   CashTxnType,
 } from "./types";
 
@@ -99,6 +101,61 @@ export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLed
     sumInDong: Number(raw.sumInDong ?? 0),
     sumOutDong: Number(raw.sumOutDong ?? 0),
     netDong: Number(raw.netDong ?? 0),
+  };
+}
+
+/**
+ * Tồn đầu / thu / chi / tồn cuối theo khoảng ngày — tái dùng pos_cashflow_list (không migration).
+ * Tồn đầu = số dư sau GD cuối trước `from`; tồn cuối = số dư sau GD cuối trong [from,to].
+ */
+export async function getCashPeriodSummary(
+  from: string,
+  to: string,
+): Promise<CashPeriodSummary> {
+  const overview = await getCashflowOverview();
+  const dayBefore = addVnCalendarDays(from, -1);
+
+  async function kpiFor(account: CashAccountCard): Promise<CashPeriodAccountKpi> {
+    const [period, before] = await Promise.all([
+      getCashLedger({ from, to, accountId: account.id, limit: 1, offset: 0 }),
+      getCashLedger({
+        from: "2020-01-01",
+        to: dayBefore,
+        accountId: account.id,
+        limit: 1,
+        offset: 0,
+      }),
+    ]);
+    const openingDong = before.items[0]?.balanceAfterDong ?? 0;
+    const closingDong =
+      period.items.length > 0 ? period.items[0].balanceAfterDong : openingDong;
+
+    return {
+      accountId: account.id,
+      accountCode: account.code,
+      accountName: account.name,
+      accountType: account.accountType,
+      openingDong,
+      inDong: period.sumInDong,
+      outDong: period.sumOutDong,
+      closingDong,
+    };
+  }
+
+  const cash = overview.cash ? await kpiFor(overview.cash) : null;
+  const bank = overview.bank ? await kpiFor(overview.bank) : null;
+
+  return {
+    from,
+    to,
+    cash,
+    bank,
+    total: {
+      openingDong: (cash?.openingDong ?? 0) + (bank?.openingDong ?? 0),
+      inDong: (cash?.inDong ?? 0) + (bank?.inDong ?? 0),
+      outDong: (cash?.outDong ?? 0) + (bank?.outDong ?? 0),
+      closingDong: (cash?.closingDong ?? 0) + (bank?.closingDong ?? 0),
+    },
   };
 }
 

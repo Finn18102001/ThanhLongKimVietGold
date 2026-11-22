@@ -10,6 +10,7 @@ import {
   getCashflowOverview,
   getCashLedger,
   getCashObligations,
+  getCashPeriodSummary,
 } from "./query";
 import type { CashLedgerFilters } from "./types";
 
@@ -29,6 +30,11 @@ export async function fetchCashflowOverview() {
 export async function fetchCashLedger(filters: CashLedgerFilters) {
   await assertCashflowRead();
   return getCashLedger(filters);
+}
+
+export async function fetchCashPeriodSummary(from: string, to: string) {
+  await assertCashflowRead();
+  return getCashPeriodSummary(from, to);
 }
 
 export async function fetchCapitalSnapshot() {
