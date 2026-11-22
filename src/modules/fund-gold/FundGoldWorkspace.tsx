@@ -23,7 +23,7 @@ import type {
 } from "./types";
 
 type StaffOption = { id: string; fullName: string; email: string };
-type TabId = "stock" | "count" | "ledger" | "transfer";
+type TabId = "stock" | "count" | "ledger" | "transfer" | "shift";
 
 const TXN_LABEL: Record<string, string> = {
   ADMIN_CAPITAL_IN: "Nạp vàng Admin",
@@ -45,6 +45,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "stock", label: "Tồn kho" },
   { id: "count", label: "Kiểm kê" },
   { id: "ledger", label: "Lịch sử biến động" },
+  { id: "shift", label: "Ca làm việc" },
   { id: "transfer", label: "Chuyển vàng" },
 ];
 
@@ -78,6 +79,7 @@ export function FundGoldWorkspace({
   const [pending, startTransition] = useTransition();
 
   const [staffId, setStaffId] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [skuQuery, setSkuQuery] = useState("");
   const [skuOptions, setSkuOptions] = useState<GoldSkuOption[]>([]);
   const [capitalSkuId, setCapitalSkuId] = useState("");
@@ -115,6 +117,25 @@ export function FundGoldWorkspace({
     () => (selectedId ? stock.filter((s) => s.accountId === selectedId) : stock),
     [stock, selectedId],
   );
+
+  const shiftToday = useMemo(() => {
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const t0 = dayStart.getTime();
+    const today = ledger.items
+      .filter((r) => new Date(r.occurredAt).getTime() >= t0)
+      .slice()
+      .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+    const inQty = today.filter((r) => r.direction === "IN").reduce((s, r) => s + r.quantity, 0);
+    const outQty = today.filter((r) => r.direction === "OUT").reduce((s, r) => s + r.quantity, 0);
+    return {
+      rows: today,
+      inQty,
+      outQty,
+      openingHint: today[0]?.qtyBefore ?? null,
+      closingHint: today.length ? today[today.length - 1].qtyAfter : null,
+    };
+  }, [ledger.items]);
 
   function reload(accountId?: string | null) {
     const id = accountId === undefined ? selectedId : accountId;
@@ -172,13 +193,21 @@ export function FundGoldWorkspace({
     startTransition(async () => {
       setError(null);
       setNotice(null);
-      const res = await createStaffGoldAccount({ staffId });
+      const staff = staffOptions.find((s) => s.id === staffId);
+      const defaultTestName = staff
+        ? `${staff.fullName} tài khoản quỹ vàng test`
+        : "Tài khoản quỹ vàng test";
+      const res = await createStaffGoldAccount({
+        staffId,
+        name: accountName.trim() || defaultTestName,
+      });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
       setNotice(`Đã tạo tài khoản ${res.data.code}.`);
       setStaffId("");
+      setAccountName("");
       reload(null);
     });
   }
@@ -340,7 +369,11 @@ export function FundGoldWorkspace({
             <select
               className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
               value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
+              onChange={(e) => {
+                setStaffId(e.target.value);
+                const s = staffOptions.find((x) => x.id === e.target.value);
+                if (s) setAccountName(`${s.fullName} tài khoản quỹ vàng test`);
+              }}
             >
               <option value="">Chọn nhân viên…</option>
               {staffWithoutAccount.map((s) => (
@@ -349,6 +382,15 @@ export function FundGoldWorkspace({
                 </option>
               ))}
             </select>
+            <input
+              className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+              placeholder="Tên TK — hard-test thêm chữ «test»"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+              Ví dụ: Dương tài khoản quỹ vàng test
+            </p>
             <button
               type="button"
               disabled={!staffId || pending}
@@ -439,7 +481,7 @@ export function FundGoldWorkspace({
               <option value="">Chọn Quỹ NV…</option>
               {staffAccounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.code} · {a.staffName || a.name}
+                  {a.code} · {a.name}
                 </option>
               ))}
             </select>
@@ -523,7 +565,7 @@ export function FundGoldWorkspace({
                   >
                     <p className="text-[13px] font-semibold">{a.code}</p>
                     <p className="text-[12px] text-[var(--tlkv-muted)]">
-                      {a.kind === "ADMIN_POOL" ? "Quỹ Admin" : a.staffName || a.name}
+                      {a.kind === "ADMIN_POOL" ? "Quỹ Admin" : a.name}
                     </p>
                   </button>
                 </li>
@@ -735,6 +777,68 @@ export function FundGoldWorkspace({
             </div>
           ) : null}
 
+          {tab === "shift" ? (
+            <div className="mt-3 space-y-4">
+              <p className="text-[12px] text-[var(--tlkv-muted)]">
+                Tóm tắt ca theo ledger trong ngày của tài khoản đang chọn (UI; chưa có RPC đóng ca).
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-[var(--tlkv-line)] p-3">
+                  <p className="text-[11px] text-[var(--tlkv-muted)]">Tồn đầu (hint)</p>
+                  <p className="mt-1 text-[15px] font-semibold tabular-nums">
+                    {shiftToday.openingHint ?? "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[var(--tlkv-line)] p-3">
+                  <p className="text-[11px] text-[var(--tlkv-muted)]">Nhập trong ca</p>
+                  <p className="mt-1 text-[15px] font-semibold tabular-nums">{shiftToday.inQty}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--tlkv-line)] p-3">
+                  <p className="text-[11px] text-[var(--tlkv-muted)]">Xuất trong ca</p>
+                  <p className="mt-1 text-[15px] font-semibold tabular-nums">{shiftToday.outQty}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--tlkv-line)] p-3">
+                  <p className="text-[11px] text-[var(--tlkv-muted)]">Tồn cuối (hint)</p>
+                  <p className="mt-1 text-[15px] font-semibold tabular-nums">
+                    {shiftToday.closingHint ?? "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-[13px]">
+                  <thead className="text-[12px] text-[var(--tlkv-muted)]">
+                    <tr className="border-b border-[var(--tlkv-line)]">
+                      <th className="py-2 pr-3 font-medium">Thời điểm</th>
+                      <th className="py-2 pr-3 font-medium">SKU</th>
+                      <th className="py-2 pr-3 font-medium">±</th>
+                      <th className="py-2 pr-3 font-medium">SL</th>
+                      <th className="py-2 font-medium">Sau</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shiftToday.rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-[var(--tlkv-muted)]">
+                          Chưa có biến động trong ngày cho tài khoản này.
+                        </td>
+                      </tr>
+                    ) : (
+                      shiftToday.rows.map((r) => (
+                        <tr key={r.id} className="border-b border-[var(--tlkv-line)]">
+                          <td className="py-2 pr-3 whitespace-nowrap">{formatWhen(r.occurredAt)}</td>
+                          <td className="py-2 pr-3">{r.skuCode}</td>
+                          <td className="py-2 pr-3">{r.direction}</td>
+                          <td className="py-2 pr-3 tabular-nums">{r.quantity}</td>
+                          <td className="py-2 tabular-nums">{r.qtyAfter}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
           {tab === "transfer" ? (
             <div className="mt-3 max-w-lg space-y-3">
               <p className="text-[12px] text-[var(--tlkv-muted)]">
@@ -749,7 +853,7 @@ export function FundGoldWorkspace({
                 <option value="">Từ tài khoản…</option>
                 {staffAccounts.map((a) => (
                   <option key={`from-${a.id}`} value={a.id}>
-                    {a.code} · {a.staffName || a.name}
+                    {a.code} · {a.name}
                   </option>
                 ))}
               </select>
@@ -764,7 +868,7 @@ export function FundGoldWorkspace({
                   .filter((a) => a.id !== xferFrom)
                   .map((a) => (
                     <option key={`to-${a.id}`} value={a.id}>
-                      {a.code} · {a.staffName || a.name}
+                      {a.code} · {a.name}
                     </option>
                   ))}
               </select>

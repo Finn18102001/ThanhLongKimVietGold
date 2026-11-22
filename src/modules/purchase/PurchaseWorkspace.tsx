@@ -21,7 +21,10 @@ import { ROUTES } from "@/shared/navigation/routes";
 import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import { YcPrintPreviewOverlay } from "@/modules/fund-cash/YcPrintPreviewOverlay";
+import type { CashRequestRow } from "@/modules/fund-cash/types";
 import {
+  checkBuyFundRequestStatus,
   collectBuyPayment,
   completeBuy,
   completeBuyMelt,
@@ -29,7 +32,9 @@ import {
   confirmBuyMelt,
   getBuy,
   getCustomerDebtSummary,
+  issueBuyFundRequest,
   issueMeltCommitment,
+  loadBuyFundRequestForPrint,
   setBuyMeltWeights,
   setBuyStone,
   skipBuyMelt,
@@ -90,11 +95,13 @@ export function PurchaseWorkspace({
   marketRefs,
   marketPrices = {},
   productTypes = [],
+  employeeFundEnabled = false,
 }: {
   catalog: PurchaseCatalogItem[];
   marketRefs: MarketGoldRef[];
   marketPrices?: MarketGoldClassPrices;
   productTypes?: PosProductTypeOption[];
+  employeeFundEnabled?: boolean;
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
@@ -127,6 +134,11 @@ export function PurchaseWorkspace({
   } | null>(null);
 
   const [detail, setDetail] = useState<BuyDetail | null>(null);
+  const [fundCanConfirmInvoice, setFundCanConfirmInvoice] = useState(!employeeFundEnabled);
+  const [fundRequestCode, setFundRequestCode] = useState<string | null>(null);
+  const [fundRequestStatus, setFundRequestStatus] = useState<string | null>(null);
+  const [fundStatusMessage, setFundStatusMessage] = useState<string | null>(null);
+  const [ycPrintRow, setYcPrintRow] = useState<CashRequestRow | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [collectAmount, setCollectAmount] = useState(0);
   const [collectMethod, setCollectMethod] = useState<PaymentMethod>("CASH");
@@ -511,6 +523,59 @@ export function PurchaseWorkspace({
     void submitBuy(false);
   }
 
+  async function refreshFundStatus(buyId: string) {
+    if (!employeeFundEnabled) {
+      setFundCanConfirmInvoice(true);
+      return;
+    }
+    const res = await checkBuyFundRequestStatus(buyId);
+    if (!res.ok) {
+      setFundCanConfirmInvoice(false);
+      setFundStatusMessage(res.message);
+      return;
+    }
+    setFundRequestCode(res.data.requestCode);
+    setFundRequestStatus(res.data.requestStatus);
+    setFundCanConfirmInvoice(res.data.canConfirmInvoice);
+    setFundStatusMessage(
+      res.data.canConfirmInvoice
+        ? "Quỹ tiền đã xác nhận — có thể xác nhận Phiếu 02."
+        : res.data.requestStatus
+          ? "Đang chờ Quỹ tiền xác nhận."
+          : "Chưa in phiếu YC-CHI.",
+    );
+  }
+
+  async function onIssueFundSlip() {
+    if (!detail) return;
+    setWorkflowPending(true);
+    try {
+      const res = await issueBuyFundRequest(detail.id);
+      if (!res.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không in phiếu YC-CHI",
+          reason: res.message,
+        });
+        return;
+      }
+      setFundRequestCode(res.data.code);
+      setFundRequestStatus(res.data.status);
+      setFundCanConfirmInvoice(res.data.status === "CONFIRMED");
+      setFundStatusMessage(
+        res.data.alreadyExists
+          ? `Đã có ${res.data.code} — mở lại để in.`
+          : `Đã tạo ${res.data.code} — chờ Quỹ tiền.`,
+      );
+      const printRes = await loadBuyFundRequestForPrint(res.data.requestId);
+      if (printRes.ok) {
+        setYcPrintRow(printRes.data); // xem trước rồi In — không auto print
+      }
+    } finally {
+      setWorkflowPending(false);
+    }
+  }
+
   async function openDetail(buyId: string) {
     setDetailLoading(true);
     setDetail(null);
@@ -518,6 +583,10 @@ export function PurchaseWorkspace({
     collectKey.current = null;
     workflowKey.current = null;
     setPrintDoc("invoice");
+    setFundCanConfirmInvoice(!employeeFundEnabled);
+    setFundRequestCode(null);
+    setFundRequestStatus(null);
+    setFundStatusMessage(null);
     try {
       const buy = await getBuy(buyId);
       setDetail(buy);
@@ -536,6 +605,12 @@ export function PurchaseWorkspace({
         setPrintDoc("invoice");
       } else if (buy.meltCommitmentNo && isBuyInMeltWorkflow(buy)) {
         setPrintDoc("commitment");
+      }
+      if (
+        employeeFundEnabled &&
+        (buy.workflowStatus === "INVOICE_ISSUED" || buy.workflowStatus === "FORM02_READY")
+      ) {
+        await refreshFundStatus(buy.id);
       }
     } catch (err) {
       setAlert({
@@ -1248,6 +1323,13 @@ export function PurchaseWorkspace({
                   buy={detail}
                   pending={workflowPending}
                   uploadPending={uploadPending}
+                  employeeFundEnabled={employeeFundEnabled}
+                  fundCanConfirmInvoice={fundCanConfirmInvoice}
+                  fundRequestCode={fundRequestCode}
+                  fundRequestStatus={fundRequestStatus}
+                  fundStatusMessage={fundStatusMessage}
+                  onIssueFundSlip={() => void onIssueFundSlip()}
+                  onCheckFundStatus={() => void refreshFundStatus(detail.id)}
                   onIssueCommitment={() =>
                     void runWorkflow(
                       () =>
@@ -1352,6 +1434,10 @@ export function PurchaseWorkspace({
           )}
         </Modal>
       )}
+
+      {ycPrintRow ? (
+        <YcPrintPreviewOverlay request={ycPrintRow} onClose={() => setYcPrintRow(null)} />
+      ) : null}
 
       {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
 

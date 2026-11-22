@@ -22,11 +22,19 @@ import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { Modal } from "@/shared/ui/Modal";
 import {
+  confirmSaleGoldDelivery,
+  refreshSalesAwaitingGold,
+} from "@/modules/fund-gold/awaitingGoldActions";
+import type { SaleAwaitingGoldRow } from "@/modules/fund-gold/types";
+import { YcPrintPreviewOverlay } from "@/modules/fund-cash/YcPrintPreviewOverlay";
+import type { CashRequestRow } from "@/modules/fund-cash/types";
+import {
   cancelHeldOrder,
   completeHeldSale,
   completeSale,
   fetchHeldOrders,
   getHeldOrder,
+  loadSaleFundRequestForPrint,
   refreshPosStock,
   saveHeldOrder,
 } from "./actions";
@@ -178,6 +186,8 @@ export function PosTerminal({
   productTypes = [],
   initialHeldOrders,
   saleContext,
+  employeeFundEnabled = false,
+  initialAwaitingGold = [],
 }: {
   catalog: PosCatalogItem[];
   marketPrices?: MarketGoldClassPrices;
@@ -185,6 +195,8 @@ export function PosTerminal({
   productTypes?: PosProductTypeOption[];
   initialHeldOrders: HeldOrderListResult;
   saleContext: PosSaleContext;
+  employeeFundEnabled?: boolean;
+  initialAwaitingGold?: SaleAwaitingGoldRow[];
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
@@ -252,6 +264,9 @@ export function PosTerminal({
   const [heldList, setHeldList] = useState(initialHeldOrders.items);
   const [heldVisibleToAll, setHeldVisibleToAll] = useState(initialHeldOrders.visibleToAll);
   const [heldSeesAll, setHeldSeesAll] = useState(initialHeldOrders.seesAll);
+  const [awaitingGold, setAwaitingGold] = useState(initialAwaitingGold);
+  const [goldConfirmRow, setGoldConfirmRow] = useState<SaleAwaitingGoldRow | null>(null);
+  const [ycPrintRow, setYcPrintRow] = useState<CashRequestRow | null>(null);
   const [heldLoading, setHeldLoading] = useState(false);
   const [heldBusyId, setHeldBusyId] = useState<string | null>(null);
   const [activeHeldOrderId, setActiveHeldOrderId] = useState<string | null>(null);
@@ -1107,7 +1122,70 @@ export function PosTerminal({
     setReviewing(true);
   }
 
-  async function onCheckout() {
+  async function reloadAwaitingGold() {
+    if (!employeeFundEnabled) return;
+    const res = await refreshSalesAwaitingGold();
+    if (res.ok) setAwaitingGold(res.data.items);
+  }
+
+  async function onConfirmGoldDelivery() {
+    if (!goldConfirmRow || pending) return;
+    if (!goldConfirmRow.canConfirmGold) return;
+    const row = goldConfirmRow;
+    setPending(true);
+    try {
+      const res = await confirmSaleGoldDelivery(row.saleId);
+      if (!res.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không xác nhận trả vàng",
+          reason: res.message,
+        });
+        return;
+      }
+      setGoldConfirmRow(null);
+      setReviewing(false);
+      await reloadAwaitingGold();
+      const invoiceNo = res.data.invoiceNo || row.invoiceNo || "";
+      // Như luồng bán thường: màn thành công → xem/in hóa đơn cuối
+      if (invoiceNo) {
+        setPaid({
+          invoiceNo,
+          saleNo: res.data.saleNo || row.saleNo,
+          saleId: row.saleId,
+          totalDong: row.totalDong,
+          paidDong: row.paidDong,
+          remainingDong: Math.max(0, row.totalDong - row.paidDong),
+          paymentMethod: "CASH",
+          transactionType: "SALE",
+          fulfillmentStatus: "DELIVERED",
+          depositWorkflowStatus: null,
+        });
+      } else {
+        setAlert({
+          tone: "success",
+          title: res.data.alreadyConfirmed
+            ? `Đã xác nhận trước: ${res.data.saleNo}`
+            : `Đã xác nhận trả vàng · ${res.data.saleNo}`,
+          reason: "Không tìm thấy mã HĐ để mở in — mở Hóa đơn từ menu.",
+        });
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onPrintFundSlip() {
+    if (lines.length === 0 || pending) return;
+    // Same payload as F9 complete — creates HD + YC; stock deferred until gold confirm.
+    await onCheckout({ printFundSlip: true });
+  }
+
+  async function onCheckout(opts?: { printFundSlip?: boolean }) {
+    if (goldConfirmRow) {
+      await onConfirmGoldDelivery();
+      return;
+    }
     if (lines.length === 0 || pending) return;
     if (!customer || customer.isWalkIn) {
       setAlert({
@@ -1145,6 +1223,19 @@ export function PosTerminal({
         tone: "error",
         title: "Không thể xác nhận thanh toán",
         reason: error,
+      });
+      return;
+    }
+    if (
+      employeeFundEnabled &&
+      !opts?.printFundSlip &&
+      payMode !== "PARTIAL" &&
+      !isPreorder
+    ) {
+      setAlert({
+        tone: "error",
+        title: "Cần in phiếu trước",
+        reason: "Flag ON: bấm «In phiếu» để tạo HĐ + YC-THU. F9 trả vàng sau khi Quỹ tiền xác nhận.",
       });
       return;
     }
@@ -1214,7 +1305,19 @@ export function PosTerminal({
       }
       const depositWf = result.deposit_workflow_status;
       const saleId = result.sale_id;
-      if (depositWf && saleId) {
+      if (opts?.printFundSlip && saleId && employeeFundEnabled) {
+        setReviewing(false);
+        await reloadAwaitingGold();
+        const printRes = await loadSaleFundRequestForPrint(saleId);
+        if (printRes.ok) {
+          setYcPrintRow(printRes.data); // xem trước rồi In — không auto print
+        }
+        setAlert({
+          tone: "success",
+          title: `Đã phát hành ${result.invoice_no}`,
+          reason: "Đơn vào «Đơn đã lưu» chờ Quỹ tiền. Sau QT xác nhận, mở lại đơn và bấm F9 trả vàng.",
+        });
+      } else if (depositWf && saleId) {
         setDepositSaleId(saleId);
       } else {
         setPaid({
@@ -1563,6 +1666,7 @@ export function PosTerminal({
 
         <PosHeldOrdersTable
           items={heldList}
+          awaitingGold={employeeFundEnabled ? awaitingGold : []}
           visibleToAll={heldVisibleToAll}
           seesAll={heldSeesAll}
           activeHoldId={activeHeldOrderId}
@@ -1570,6 +1674,10 @@ export function PosTerminal({
           busyId={heldBusyId}
           onResume={requestResumeHold}
           onCancel={(id) => setCancelHoldId(id)}
+          onOpenAwaitingGold={(row) => {
+            setGoldConfirmRow(row);
+            setReviewing(true);
+          }}
         />
       </div>
 
@@ -1614,30 +1722,60 @@ export function PosTerminal({
         />
       ) : null}
 
-      {reviewing && customer ? (
+      {reviewing && (customer || goldConfirmRow) ? (
         <PosCheckoutDialog
-          customer={customer}
-          lines={lines}
-          charges={charges}
-          displayTotal={displayTotal}
+          customer={
+            customer ??
+            ({
+              id: "awaiting-gold",
+              customerNo: "",
+              name: goldConfirmRow?.customerName || "Khách",
+              phone: "",
+              address: "",
+              isWalkIn: false,
+            } as CustomerRecord)
+          }
+          lines={goldConfirmRow ? [] : lines}
+          charges={goldConfirmRow ? [] : charges}
+          displayTotal={goldConfirmRow ? goldConfirmRow.totalDong : displayTotal}
           paymentMethod={paymentMethod}
           note={note}
-          paidDong={effectivePaidDong}
-          remainingDong={remainingDong}
+          paidDong={goldConfirmRow ? goldConfirmRow.paidDong : effectivePaidDong}
+          remainingDong={
+            goldConfirmRow
+              ? Math.max(0, goldConfirmRow.totalDong - goldConfirmRow.paidDong)
+              : remainingDong
+          }
           dueDate={payMode === "FULL" ? null : dueDate}
           pending={pending}
           isPreorder={isPreorder}
           isDeposit={payMode === "PARTIAL"}
           operatorName={operatorName}
           pickupDueAt={isPreorder || payMode !== "FULL" ? pickupDueAt : null}
-          onClose={() => setReviewing(false)}
+          employeeFundEnabled={employeeFundEnabled}
+          goldConfirmMode={Boolean(goldConfirmRow)}
+          fundAwaitingLabel={
+            goldConfirmRow && !goldConfirmRow.canConfirmGold
+              ? "Đang chờ Quỹ tiền xác nhận YC-THU. F9 vẫn khóa."
+              : null
+          }
+          invoiceNo={goldConfirmRow?.invoiceNo ?? null}
+          onClose={() => {
+            setReviewing(false);
+            setGoldConfirmRow(null);
+          }}
           onConfirm={() => void onCheckout()}
+          onPrintFundSlip={() => void onPrintFundSlip()}
           onChangeCustomer={() => {
             returnToReview.current = true;
             setReviewing(false);
             setPickingCustomer(true);
           }}
         />
+      ) : null}
+
+      {ycPrintRow ? (
+        <YcPrintPreviewOverlay request={ycPrintRow} onClose={() => setYcPrintRow(null)} />
       ) : null}
 
       {depositSaleId ? (

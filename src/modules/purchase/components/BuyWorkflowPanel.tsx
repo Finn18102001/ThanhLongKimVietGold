@@ -35,6 +35,14 @@ export type BuyWorkflowPanelProps = {
   buy: BuyDetail;
   pending?: boolean;
   uploadPending?: boolean;
+  /** P10 Flag ON: gate Xác nhận HĐ → Phiếu 02 until YC-CHI CONFIRMED. */
+  employeeFundEnabled?: boolean;
+  fundCanConfirmInvoice?: boolean;
+  fundRequestCode?: string | null;
+  fundRequestStatus?: string | null;
+  fundStatusMessage?: string | null;
+  onIssueFundSlip?: () => void;
+  onCheckFundStatus?: () => void;
   onIssueCommitment: () => void;
   onStartMelt: () => void;
   onSetWeights: (items: MeltWeightItemPayload[]) => void;
@@ -78,6 +86,13 @@ export function BuyWorkflowPanel({
   buy,
   pending = false,
   uploadPending = false,
+  employeeFundEnabled = false,
+  fundCanConfirmInvoice = false,
+  fundRequestCode = null,
+  fundRequestStatus = null,
+  fundStatusMessage = null,
+  onIssueFundSlip,
+  onCheckFundStatus,
   onIssueCommitment,
   onStartMelt,
   onSetWeights,
@@ -569,12 +584,61 @@ export function BuyWorkflowPanel({
             </div>
           ) : null}
           {showInvoice ? (
-            <PrimaryBtn pending={pending} onClick={onConfirmInvoice} icon={<CheckCircle size={14} />}>
-              Xác nhận hóa đơn → Phiếu 02
-            </PrimaryBtn>
+            <div className="space-y-2">
+              {employeeFundEnabled ? (
+                <>
+                  <p className="rounded-lg bg-[var(--tlkv-amber-soft)] px-2.5 py-2 text-[11px] text-[var(--tlkv-amber)]">
+                    Flag ON: «In phiếu» mở xem trước YC-CHI (kiểm tra rồi mới in). Chờ Quỹ tiền, rồi «Kiểm tra trạng thái»
+                    để mở khóa xác nhận Phiếu 02. Giữ modal này (không có Đơn đã lưu mua).
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onIssueFundSlip?.()}
+                    className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[12px] font-semibold disabled:opacity-40"
+                  >
+                    <Printer size={14} />
+                    In phiếu
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onCheckFundStatus?.()}
+                    className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[12px] font-semibold disabled:opacity-40"
+                  >
+                    Kiểm tra trạng thái
+                  </button>
+                  {fundRequestCode || fundStatusMessage ? (
+                    <p className="text-[11px] text-[var(--tlkv-muted)]">
+                      {fundRequestCode
+                        ? `${fundRequestCode} · ${fundRequestStatus ?? "—"}`
+                        : null}
+                      {fundStatusMessage ? ` — ${fundStatusMessage}` : null}
+                    </p>
+                  ) : null}
+                  <PrimaryBtn
+                    pending={pending}
+                    disabled={!fundCanConfirmInvoice}
+                    onClick={onConfirmInvoice}
+                    icon={<CheckCircle size={14} />}
+                  >
+                    Xác nhận hóa đơn → Phiếu 02
+                  </PrimaryBtn>
+                </>
+              ) : (
+                <PrimaryBtn pending={pending} onClick={onConfirmInvoice} icon={<CheckCircle size={14} />}>
+                  Xác nhận hóa đơn → Phiếu 02
+                </PrimaryBtn>
+              )}
+            </div>
           ) : null}
           {showForm02 ? (
-            <PrimaryBtn pending={pending} onClick={onComplete} icon={<CheckCircle size={14} />}>
+            <PrimaryBtn
+              pending={pending}
+              disabled={employeeFundEnabled && !fundCanConfirmInvoice}
+              onClick={onComplete}
+              icon={<CheckCircle size={14} />}
+            >
               Tiếp tục hoàn thành (Phiếu 02 đã tạo)
             </PrimaryBtn>
           ) : null}

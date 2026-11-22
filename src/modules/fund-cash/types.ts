@@ -81,7 +81,7 @@ export type CashTransferListPage = {
   offset: number;
 };
 
-export type CashRequestStatus = "PENDING" | "CONFIRMED" | "REJECTED";
+export type CashRequestStatus = "PENDING" | "CONFIRMED" | "REJECTED" | "REVERSED"; // P10 M6 void HĐ
 export type CashRequestKind = "THU" | "CHI";
 
 export type CashRequestLine = {

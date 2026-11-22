@@ -1,17 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { formatActionError, type ActionResult } from "@/shared/lib/action-result";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
+import { YcPrintPreviewOverlay } from "@/modules/fund-cash/YcPrintPreviewOverlay";
+import type { CashRequestRow } from "@/modules/fund-cash/types";
 import {
+  checkBuyFundRequestStatus,
   completeBuyMelt,
   confirmBuyInvoiceAndComplete,
   confirmBuyMelt,
+  issueBuyFundRequest,
   issueMeltCommitment,
+  loadBuyFundRequestForPrint,
   setBuyMeltWeights,
   setBuyStone,
   startBuyMelting,
@@ -71,8 +76,61 @@ export function BuyDetailDrawer({
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidError, setVoidError] = useState<string | null>(null);
+  const [employeeFundEnabled, setEmployeeFundEnabled] = useState(false);
+  const [fundCanConfirmInvoice, setFundCanConfirmInvoice] = useState(true);
+  const [fundRequestCode, setFundRequestCode] = useState<string | null>(null);
+  const [fundRequestStatus, setFundRequestStatus] = useState<string | null>(null);
+  const [fundStatusMessage, setFundStatusMessage] = useState<string | null>(null);
+  const [ycPrintRow, setYcPrintRow] = useState<CashRequestRow | null>(null);
   const workflowKey = useRef<string | null>(null);
   const canShowVoid = canVoidBuy && buy.status === "COMPLETED";
+
+  async function refreshFundStatus() {
+    const res = await checkBuyFundRequestStatus(buy.id);
+    if (!res.ok) return;
+    setEmployeeFundEnabled(res.data.fundFlagOn);
+    setFundRequestCode(res.data.requestCode);
+    setFundRequestStatus(res.data.requestStatus);
+    setFundCanConfirmInvoice(res.data.canConfirmInvoice);
+    setFundStatusMessage(
+      res.data.canConfirmInvoice
+        ? "Quỹ tiền đã xác nhận — có thể xác nhận Phiếu 02."
+        : res.data.requestStatus
+          ? "Đang chờ Quỹ tiền xác nhận."
+          : "Chưa in phiếu YC-CHI.",
+    );
+  }
+
+  useEffect(() => {
+    if (
+      buy.workflowStatus === "INVOICE_ISSUED" ||
+      buy.workflowStatus === "FORM02_READY"
+    ) {
+      void refreshFundStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh when step changes
+  }, [buy.id, buy.workflowStatus]);
+
+  async function onIssueFundSlip() {
+    setPending(true);
+    try {
+      const res = await issueBuyFundRequest(buy.id);
+      if (!res.ok) {
+        setAlert({ tone: "error", title: "Không in phiếu YC-CHI", reason: res.message });
+        return;
+      }
+      setEmployeeFundEnabled(true);
+      setFundRequestCode(res.data.code);
+      setFundRequestStatus(res.data.status);
+      setFundCanConfirmInvoice(res.data.status === "CONFIRMED");
+      const printRes = await loadBuyFundRequestForPrint(res.data.requestId);
+      if (printRes.ok) {
+        setYcPrintRow(printRes.data); // xem trước rồi In — không auto print
+      }
+    } finally {
+      setPending(false);
+    }
+  }
 
   async function runWorkflow(
     action: () => Promise<ActionResult<BuyDetail>>,
@@ -325,6 +383,13 @@ export function BuyDetailDrawer({
                 buy={buy}
                 pending={pending}
                 uploadPending={uploadPending}
+                employeeFundEnabled={employeeFundEnabled}
+                fundCanConfirmInvoice={fundCanConfirmInvoice}
+                fundRequestCode={fundRequestCode}
+                fundRequestStatus={fundRequestStatus}
+                fundStatusMessage={fundStatusMessage}
+                onIssueFundSlip={() => void onIssueFundSlip()}
+                onCheckFundStatus={() => void refreshFundStatus()}
                 onIssueCommitment={() =>
                   void runWorkflow(
                     () =>
@@ -428,6 +493,10 @@ export function BuyDetailDrawer({
           </div>
         </div>
       </div>
+
+      {ycPrintRow ? (
+        <YcPrintPreviewOverlay request={ycPrintRow} onClose={() => setYcPrintRow(null)} />
+      ) : null}
 
       {voidOpen ? (
         <Modal title={`Hủy phiếu ${buy.buyNo}`} onClose={() => setVoidOpen(false)}>

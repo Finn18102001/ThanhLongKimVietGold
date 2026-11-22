@@ -83,8 +83,8 @@ export async function searchStaff(input: {
 }
 
 export async function createStaff(input: StaffInput): Promise<StaffRecord> {
-  if (!input.password || input.password.length < 8) {
-    throw new Error("Mật khẩu tối thiểu 8 ký tự");
+  if (!input.password || input.password.length < 7) {
+    throw new Error("Mật khẩu tối thiểu 7 ký tự");
   }
   const payload = await callStaffAdmin({
     action: "create",
@@ -148,8 +148,8 @@ export async function setStaffActive(id: string, isActive: boolean): Promise<Sta
 }
 
 export async function resetStaffPassword(id: string, password: string): Promise<void> {
-  if (password.length < 8) {
-    throw new Error("Mật khẩu tối thiểu 8 ký tự");
+  if (password.length < 7) {
+    throw new Error("Mật khẩu tối thiểu 7 ký tự");
   }
   await callStaffAdmin({
     action: "resetPassword",

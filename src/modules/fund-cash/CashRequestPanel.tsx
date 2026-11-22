@@ -9,7 +9,7 @@ import {
   refreshCashRequests,
   rejectCashRequest,
 } from "./actions";
-import { YcRequestDocument } from "./YcRequestDocument";
+import { YcPrintPreviewOverlay } from "./YcPrintPreviewOverlay";
 import type { CashRequestListPage, CashRequestRow } from "./types";
 
 function formatWhen(iso: string | null): string {
@@ -233,27 +233,7 @@ export function CashRequestPanel({
       </div>
 
       {printRow ? (
-        <div className="fixed inset-0 z-50 overflow-auto bg-black/40 print:static print:bg-transparent">
-          <div className="mx-auto my-6 max-w-[210mm] bg-white p-4 shadow-lg print:my-0 print:max-w-none print:p-0 print:shadow-none">
-            <div className="mb-3 flex justify-end gap-2 print:hidden">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="h-9 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white"
-              >
-                In
-              </button>
-              <button
-                type="button"
-                onClick={() => setPrintRow(null)}
-                className="h-9 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px]"
-              >
-                Đóng
-              </button>
-            </div>
-            <YcRequestDocument request={printRow} />
-          </div>
-        </div>
+        <YcPrintPreviewOverlay request={printRow} onClose={() => setPrintRow(null)} />
       ) : null}
     </section>
   );

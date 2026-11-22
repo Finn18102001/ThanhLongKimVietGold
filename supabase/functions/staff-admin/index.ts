@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       if (!email || !payload.fullName?.trim()) {
         return json({ error: "Thiếu họ tên hoặc email" }, 400);
       }
-      if (!password || password.length < 8) {
-        return json({ error: "Mật khẩu tối thiểu 8 ký tự" }, 400);
+      if (!password || password.length < 7) {
+        return json({ error: "Mật khẩu tối thiểu 7 ký tự" }, 400);
       }
 
       const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -115,8 +115,8 @@ Deno.serve(async (req) => {
     }
 
     if (payload.action === "resetPassword") {
-      if (!payload.password || payload.password.length < 8) {
-        return json({ error: "Mật khẩu tối thiểu 8 ký tự" }, 400);
+      if (!payload.password || payload.password.length < 7) {
+        return json({ error: "Mật khẩu tối thiểu 7 ký tự" }, 400);
       }
       const { data: staffRes, error: getError } = await userClient.rpc("pos_get_staff", {
         p_id: payload.id,

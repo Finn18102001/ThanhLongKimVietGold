@@ -383,6 +383,73 @@ export async function completeBuyMelt(input: {
  * (stock IN + cash/payable). Same BE RPCs as before; no separate “Hoàn tất” step.
  * Idempotency keys are distinct so a partial success can resume via completeBuyMelt.
  */
+/** P10 Flag ON: QV in phiếu → tạo YC-CHI PENDING (idempotent). */
+export async function issueBuyFundRequest(buyId: string): Promise<
+  ActionResult<{
+    requestId: string;
+    code: string;
+    status: string;
+    amountDong: number;
+    alreadyExists: boolean;
+    buyNo: string;
+  }>
+> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_buy_issue_fund_request", {
+      p_buy_id: buyId,
+    });
+    if (error) throw new Error(error.message);
+    const row = (data ?? {}) as Record<string, unknown>;
+    const requestId = String(row.id ?? "");
+    if (!requestId) throw new Error("Không nhận được mã YC-CHI.");
+    revalidatePath("/purchase");
+    return {
+      requestId,
+      code: String(row.code ?? ""),
+      status: String(row.status ?? "PENDING"),
+      amountDong: Number(row.amountDong ?? 0),
+      alreadyExists: Boolean(row.alreadyExists),
+      buyNo: String(row.buyNo ?? ""),
+    };
+  }, "Không phát hành phiếu YC-CHI được.");
+}
+
+/** Load YC row for A4 print after issue (server action). */
+export async function loadBuyFundRequestForPrint(
+  requestId: string,
+): Promise<ActionResult<import("@/modules/fund-cash/types").CashRequestRow>> {
+  return runAction(async () => {
+    const { getCashRequest } = await import("@/modules/fund-cash/query");
+    return getCashRequest(requestId);
+  }, "Không tải phiếu YC để in được.");
+}
+
+/** P10 Flag ON: poll YC-CHI — enable «Xác nhận HĐ → Phiếu 02» khi CONFIRMED. */
+export async function checkBuyFundRequestStatus(buyId: string): Promise<
+  ActionResult<{
+    requestCode: string | null;
+    requestStatus: string | null;
+    canConfirmInvoice: boolean;
+    fundFlagOn: boolean;
+  }>
+> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_buy_fund_request_status", {
+      p_buy_id: buyId,
+    });
+    if (error) throw new Error(error.message);
+    const row = (data ?? {}) as Record<string, unknown>;
+    return {
+      requestCode: row.requestCode ? String(row.requestCode) : null,
+      requestStatus: row.requestStatus ? String(row.requestStatus) : null,
+      canConfirmInvoice: Boolean(row.canConfirmInvoice),
+      fundFlagOn: Boolean(row.fundFlagOn),
+    };
+  }, "Không kiểm tra trạng thái YC được.");
+}
+
 export async function confirmBuyInvoiceAndComplete(input: {
   buyId: string;
   idempotencyKey?: string;

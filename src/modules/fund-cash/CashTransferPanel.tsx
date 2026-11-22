@@ -135,7 +135,7 @@ export function CashTransferPanel({
               <option value="">Từ quỹ…</option>
               {staffAccounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.code} · {a.staffName || a.name}
+                  {a.code} · {a.name}
                 </option>
               ))}
             </select>
@@ -149,7 +149,7 @@ export function CashTransferPanel({
                 .filter((a) => a.id !== fromId)
                 .map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.code} · {a.staffName || a.name}
+                    {a.code} · {a.name}
                   </option>
                 ))}
             </select>

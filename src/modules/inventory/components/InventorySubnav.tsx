@@ -4,22 +4,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ROUTES } from "@/shared/navigation/routes";
 
-const ITEMS = [
+const ALL_ITEMS = [
   { href: ROUTES.inventory, label: "Tồn kho hiện tại", exact: true },
-  { href: ROUTES.inventoryOrder, label: "Đặt hàng cho kho" },
-  { href: ROUTES.inventoryReceive, label: "Nhập hàng" },
-  { href: ROUTES.inventoryOutbound, label: "Xuất hàng" },
-  { href: ROUTES.inventoryReturn, label: "Trả hàng" },
-  { href: ROUTES.inventoryAdjust, label: "Điều chỉnh kho" },
+  { href: ROUTES.inventoryOrder, label: "Đặt hàng cho kho", staffHide: true },
+  { href: ROUTES.inventoryReceive, label: "Nhập hàng", staffHide: true },
+  { href: ROUTES.inventoryOutbound, label: "Xuất hàng", staffHide: true },
+  { href: ROUTES.inventoryAdjust, label: "Điều chỉnh kho", staffHide: true },
   { href: ROUTES.inventoryCount, label: "Kiểm kê kho" },
   { href: ROUTES.inventoryHistory, label: "Lịch sử biến động" },
 ] as const;
 
-export function InventorySubnav() {
+/** P10: NV Quỹ tiền/vàng chỉ xem tồn / kiểm kê / lịch sử — không tab kho vận hành. */
+export function InventorySubnav({
+  fundStaffRestricted = false,
+}: {
+  fundStaffRestricted?: boolean;
+}) {
   const pathname = usePathname();
+  const items = fundStaffRestricted
+    ? ALL_ITEMS.filter((item) => !("staffHide" in item && item.staffHide))
+    : ALL_ITEMS;
+
   return (
     <nav className="flex flex-wrap gap-1 rounded-[12px] bg-white p-1.5 shadow-[var(--tlkv-shadow)]">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const exact = "exact" in item && item.exact;
         const active = exact
           ? pathname === item.href

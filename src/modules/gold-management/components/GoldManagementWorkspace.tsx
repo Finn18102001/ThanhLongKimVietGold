@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { downloadCsv } from "@/shared/lib/csv";
 import { formatViDateTime } from "@/shared/lib/datetime";
@@ -208,6 +209,22 @@ export function GoldManagementWorkspace({
           <DownloadSimple size={15} weight="bold" />
           Xuất Excel
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--tlkv-line)] bg-white px-4 py-3 shadow-[var(--tlkv-shadow)]">
+        <div>
+          <p className="text-[13px] font-semibold">Quỹ vàng nhân viên</p>
+          <p className="mt-0.5 text-[12px] text-[var(--tlkv-muted)]">
+            CRUD tài khoản, nạp/phân bổ ±, tồn / kiểm kê / chuyển / ca — tại màn Quỹ vàng NV (không quản
+            lý trên nghĩa vụ giao/nhận vàng bên dưới).
+          </p>
+        </div>
+        <Link
+          href="/fund-gold"
+          className="inline-flex h-9 shrink-0 items-center rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+        >
+          Quản lý Quỹ vàng NV
+        </Link>
       </div>
 
       <GoldKpis

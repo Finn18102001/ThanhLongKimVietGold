@@ -174,7 +174,9 @@ export async function getCashTransfer(id: string): Promise<CashTransferRow> {
 function mapCashRequest(raw: Record<string, unknown>): CashRequestRow {
   const statusRaw = String(raw.status ?? "PENDING");
   const status: CashRequestStatus =
-    statusRaw === "CONFIRMED" || statusRaw === "REJECTED" ? statusRaw : "PENDING";
+    statusRaw === "CONFIRMED" || statusRaw === "REJECTED" || statusRaw === "REVERSED"
+      ? statusRaw
+      : "PENDING";
   const kind: CashRequestKind = raw.kind === "CHI" ? "CHI" : "THU";
   const linesRaw = Array.isArray(raw.lines) ? (raw.lines as Record<string, unknown>[]) : [];
   return {
@@ -236,4 +238,14 @@ export async function listCashRequests(input?: {
     limit: Number(row.limit ?? 50),
     offset: Number(row.offset ?? 0),
   };
+}
+
+/** Load one YC for print / status (QV In phiếu after issue). */
+export async function getCashRequest(id: string): Promise<CashRequestRow> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_employee_cash_request_get", {
+    p_request_id: id,
+  });
+  if (error) throw new Error(error.message);
+  return mapCashRequest((data ?? {}) as Record<string, unknown>);
 }

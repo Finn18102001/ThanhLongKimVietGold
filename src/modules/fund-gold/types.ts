@@ -84,3 +84,24 @@ export type EmployeeGoldAccess = {
   isAdmin: boolean;
   staffAccountId: string | null;
 };
+
+/** P10-03: đơn SALE đã lưu, chờ QT rồi QV xác nhận trả vàng */
+export type SaleAwaitingGoldRow = {
+  saleId: string;
+  saleNo: string;
+  invoiceNo: string | null;
+  totalDong: number;
+  paidDong: number;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  createdAt: string | null;
+  customerName: string | null;
+  pendingYcCount: number;
+  confirmedYcCount: number;
+  canConfirmGold: boolean;
+};
+
+export type SaleAwaitingGoldList = {
+  items: SaleAwaitingGoldRow[];
+  total: number;
+};

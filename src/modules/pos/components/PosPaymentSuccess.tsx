@@ -37,6 +37,8 @@ export function PosPaymentSuccess({
   const [seconds, setSeconds] = useState(2);
   const hasReceivable = remainingDong > 0;
   const isPreorder = transactionType === "PREORDER" || transactionType === "DEPOSIT";
+  const awaitingFundGold =
+    transactionType === "SALE" && fulfillmentStatus === "UNFULFILLED";
   const unfulfilled = isPreorder && fulfillmentStatus !== "FULFILLED";
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function PosPaymentSuccess({
     }, 1000);
     const redirect = window.setTimeout(() => {
       onViewInvoice();
-    }, 2000);
+    }, awaitingFundGold ? 4000 : 2000);
     return () => {
       window.clearInterval(tick);
       window.clearTimeout(redirect);
@@ -54,19 +56,23 @@ export function PosPaymentSuccess({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const title = isPreorder
-    ? hasReceivable
-      ? "Đã đặt hàng, còn công nợ"
-      : "Đã đặt hàng"
-    : hasReceivable
-      ? "Đơn đã chốt, còn công nợ"
-      : "Thanh toán thành công";
+  const title = awaitingFundGold
+    ? "Đã lưu đơn · chờ Quỹ tiền"
+    : isPreorder
+      ? hasReceivable
+        ? "Đã đặt hàng, còn công nợ"
+        : "Đã đặt hàng"
+      : hasReceivable
+        ? "Đơn đã chốt, còn công nợ"
+        : "Thanh toán thành công";
 
-  const subtitle = isPreorder
-    ? "Hóa đơn đã phát hành. Chưa trả hàng. Kho chưa trừ."
-    : hasReceivable
-      ? "Hóa đơn đã phát hành. Kho đã trừ. Phần còn lại ghi nhận phải thu."
-      : "Hóa đơn đã phát hành. Đơn bán đã chốt. Kho đã trừ.";
+  const subtitle = awaitingFundGold
+    ? "Hóa đơn đã phát hành. YC thu đã gửi Quỹ tiền. Kho chưa trừ — xác nhận trả vàng sau khi QT duyệt."
+    : isPreorder
+      ? "Hóa đơn đã phát hành. Chưa trả hàng. Kho chưa trừ."
+      : hasReceivable
+        ? "Hóa đơn đã phát hành. Kho đã trừ. Phần còn lại ghi nhận phải thu."
+        : "Hóa đơn đã phát hành. Đơn bán đã chốt. Kho đã trừ.";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4">
@@ -108,16 +114,18 @@ export function PosPaymentSuccess({
 
         <div
           className={`mt-4 rounded-lg px-3 py-2.5 text-[13px] ${
-            isPreorder || hasReceivable
+            awaitingFundGold || isPreorder || hasReceivable
               ? "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]"
               : "bg-[var(--tlkv-green-soft)] text-[var(--tlkv-green)]"
           }`}
         >
-          {isPreorder
-            ? "Thanh toán và giao hàng độc lập. Có thể thu tiếp hoặc giao hàng sau từ hóa đơn."
-            : hasReceivable
-              ? "Đơn bán đã chốt và trừ kho. Có thể thu tiếp phần còn lại từ hóa đơn."
-              : "Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn."}
+          {awaitingFundGold
+            ? "In chứng từ ban đầu nếu cần. Quỹ tiền xác nhận tiền → Quỹ vàng xác nhận trả vàng → in chứng từ cuối."
+            : isPreorder
+              ? "Thanh toán và giao hàng độc lập. Có thể thu tiếp hoặc giao hàng sau từ hóa đơn."
+              : hasReceivable
+                ? "Đơn bán đã chốt và trừ kho. Có thể thu tiếp phần còn lại từ hóa đơn."
+                : "Hóa đơn đã phát hành. Giá giữ nguyên như lúc chốt đơn."}
         </div>
 
         <ol className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px]">

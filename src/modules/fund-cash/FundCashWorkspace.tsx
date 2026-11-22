@@ -65,6 +65,7 @@ export function FundCashWorkspace({
   const [pending, startTransition] = useTransition();
 
   const [staffId, setStaffId] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [capitalDong, setCapitalDong] = useState<number | null>(null);
   const [capitalDir, setCapitalDir] = useState<"IN" | "OUT">("IN");
   const [allocDong, setAllocDong] = useState<number | null>(null);
@@ -115,11 +116,19 @@ export function FundCashWorkspace({
     startTransition(async () => {
       setError(null);
       setNotice(null);
-      const res = await createStaffCashAccount({ staffId });
+      const staff = staffOptions.find((s) => s.id === staffId);
+      const defaultTestName = staff
+        ? `${staff.fullName} tài khoản quỹ tiền test`
+        : "Tài khoản quỹ tiền test";
+      const res = await createStaffCashAccount({
+        staffId,
+        name: accountName.trim() || defaultTestName,
+      });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
+      setAccountName("");
       setNotice(`Đã tạo tài khoản ${res.data.code}.`);
       setStaffId("");
       reload(null);
@@ -202,7 +211,11 @@ export function FundCashWorkspace({
             <select
               className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
               value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
+              onChange={(e) => {
+                setStaffId(e.target.value);
+                const s = staffOptions.find((x) => x.id === e.target.value);
+                if (s) setAccountName(`${s.fullName} tài khoản quỹ tiền test`);
+              }}
             >
               <option value="">Chọn nhân viên…</option>
               {staffWithoutAccount.map((s) => (
@@ -211,6 +224,15 @@ export function FundCashWorkspace({
                 </option>
               ))}
             </select>
+            <input
+              className="mt-3 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+              placeholder="Tên TK — hard-test thêm chữ «test»"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+              Ví dụ: Dương tài khoản quỹ tiền test — dễ lọc / ẩn sau round UI.
+            </p>
             <button
               type="button"
               disabled={!staffId || pending}
@@ -274,7 +296,7 @@ export function FundCashWorkspace({
               <option value="">Chọn Quỹ NV…</option>
               {staffAccounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.code} · {a.staffName || a.name}
+                  {a.code} · {a.name}
                 </option>
               ))}
             </select>
@@ -346,7 +368,7 @@ export function FundCashWorkspace({
                   >
                     <p className="text-[13px] font-semibold">{a.code}</p>
                     <p className="text-[12px] text-[var(--tlkv-muted)]">
-                      {a.kind === "ADMIN_POOL" ? "Quỹ Admin" : a.staffName || a.name}
+                      {a.kind === "ADMIN_POOL" ? "Quỹ Admin" : a.name}
                     </p>
                     <p className="mt-0.5 text-[13px] font-semibold">{formatDong(a.balanceDong)}</p>
                   </button>

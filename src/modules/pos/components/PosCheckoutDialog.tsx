@@ -37,8 +37,13 @@ export function PosCheckoutDialog({
   isDeposit = false,
   operatorName,
   pickupDueAt,
+  employeeFundEnabled = false,
+  goldConfirmMode = false,
+  fundAwaitingLabel = null,
+  invoiceNo = null,
   onClose,
   onConfirm,
+  onPrintFundSlip,
   onChangeCustomer,
 }: {
   customer: CustomerRecord;
@@ -55,17 +60,36 @@ export function PosCheckoutDialog({
   isDeposit?: boolean;
   operatorName: string | null;
   pickupDueAt: string | null;
+  employeeFundEnabled?: boolean;
+  goldConfirmMode?: boolean;
+  fundAwaitingLabel?: string | null;
+  invoiceNo?: string | null;
   onClose: () => void;
   onConfirm: () => void;
+  onPrintFundSlip?: () => void;
   onChangeCustomer: () => void;
 }) {
   const extraDong = chargesTotalDong(charges);
   const merch = displayTotal - extraDong;
   const walkInBlocked = customer.isWalkIn;
+  const fundGateNew = employeeFundEnabled && !goldConfirmMode && !isDeposit && !isPreorder;
+  const f9Disabled =
+    pending ||
+    walkInBlocked ||
+    fundGateNew ||
+    (goldConfirmMode && Boolean(fundAwaitingLabel));
 
   return (
     <Modal
-      title={isDeposit ? "Xác nhận đặt cọc" : isPreorder ? "Xác nhận đặt hàng" : "Xác nhận đơn hàng"}
+      title={
+        goldConfirmMode
+          ? "Xác nhận trả vàng"
+          : isDeposit
+            ? "Xác nhận đặt cọc"
+            : isPreorder
+              ? "Xác nhận đặt hàng"
+              : "Xác nhận đơn hàng"
+      }
       wide
       onClose={onClose}
       footer={
@@ -77,14 +101,26 @@ export function PosCheckoutDialog({
           >
             Quay lại
           </button>
+          {fundGateNew && onPrintFundSlip ? (
+            <button
+              type="button"
+              disabled={pending || walkInBlocked}
+              onClick={onPrintFundSlip}
+              className="h-10 rounded-lg border border-[var(--tlkv-line)] bg-white px-4 text-[13px] font-semibold disabled:opacity-40"
+            >
+              {pending ? "Đang phát hành..." : "In phiếu"}
+            </button>
+          ) : null}
           <button
             type="button"
-            disabled={pending || walkInBlocked}
+            disabled={f9Disabled}
             onClick={onConfirm}
             className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
           >
             {pending
-              ? "Đang chốt..."
+              ? goldConfirmMode
+                ? "Đang xác nhận..."
+                : "Đang chốt..."
               : isDeposit
                 ? "Xác nhận đặt cọc F9"
                 : isPreorder
@@ -97,11 +133,17 @@ export function PosCheckoutDialog({
       <div className="mb-4 flex items-start gap-2 rounded-lg bg-[var(--tlkv-amber-soft)] px-3 py-2.5 text-[13px] text-[var(--tlkv-amber)]">
         <Warning size={18} className="mt-0.5 shrink-0" />
         <p>
-          {isDeposit
-            ? "Thanh toán một phần / đặt cọc. Hóa đơn lưu trạng thái thanh toán một phần. Không xuất kho tại lúc tạo đơn. Tiếp theo là thỏa thuận đặt cọc."
-            : isPreorder
-            ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
-            : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
+          {goldConfirmMode
+            ? fundAwaitingLabel
+              ? fundAwaitingLabel
+              : "Quỹ tiền đã xác nhận thu. Bấm F9 để xác nhận trả vàng / trừ kho."
+            : fundGateNew
+              ? "Flag ON: «In phiếu» mở xem trước YC-THU (kiểm tra rồi mới in). Đơn vào «Đơn đã lưu» chờ Quỹ tiền. F9 trả vàng sau khi QT xác nhận và mở lại đơn."
+              : isDeposit
+                ? "Thanh toán một phần / đặt cọc. Hóa đơn lưu trạng thái thanh toán một phần. Không xuất kho tại lúc tạo đơn. Tiếp theo là thỏa thuận đặt cọc."
+                : isPreorder
+                  ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
+                  : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
         </p>
       </div>
 
@@ -120,19 +162,24 @@ export function PosCheckoutDialog({
               {customer.address ? (
                 <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">{customer.address}</p>
               ) : null}
+              {invoiceNo ? (
+                <p className="mt-1 text-[12px] font-semibold">HĐ {invoiceNo}</p>
+              ) : null}
               {walkInBlocked ? (
                 <p className="mt-2 text-[12px] font-medium text-[var(--tlkv-red)]">
                   Vui lòng chọn khách hàng trước khi xác nhận hóa đơn.
                 </p>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={onChangeCustomer}
-              className="h-8 shrink-0 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] font-medium hover:bg-[var(--tlkv-bg)]"
-            >
-              Thay đổi
-            </button>
+            {!goldConfirmMode ? (
+              <button
+                type="button"
+                onClick={onChangeCustomer}
+                className="h-8 shrink-0 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px] font-medium hover:bg-[var(--tlkv-bg)]"
+              >
+                Thay đổi
+              </button>
+            ) : null}
           </div>
 
           <table className="mt-3 w-full text-left text-[13px]">
@@ -144,6 +191,13 @@ export function PosCheckoutDialog({
               </tr>
             </thead>
             <tbody>
+              {lines.length === 0 && goldConfirmMode ? (
+                <tr>
+                  <td colSpan={3} className="py-4 text-[13px] text-[var(--tlkv-muted)]">
+                    Đơn chờ trả vàng · tổng {formatDong(displayTotal)}
+                  </td>
+                </tr>
+              ) : null}
               {lines.map((line) => (
                 <tr key={line.skuId} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                   <td className="py-2.5">

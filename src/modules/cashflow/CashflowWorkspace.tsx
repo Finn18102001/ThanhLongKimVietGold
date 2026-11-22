@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ReactNode } from "react";
+import Link from "next/link";
 import {
   ArrowsLeftRight,
   Bank,
@@ -257,6 +258,22 @@ export function CashflowWorkspace({
       </div>
 
       {error ? <p className="text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--tlkv-line)] bg-white px-4 py-3 shadow-[var(--tlkv-shadow)]">
+        <div>
+          <p className="text-[13px] font-semibold">Quỹ tiền nhân viên</p>
+          <p className="mt-0.5 text-[12px] text-[var(--tlkv-muted)]">
+            CRUD tài khoản, nạp/phân bổ ±, sổ biến động, CTCT và hàng đợi YC thu/chi — tại màn Quỹ tiền
+            NV (không quản lý tại sổ CASH/BANK bên dưới).
+          </p>
+        </div>
+        <Link
+          href="/fund-cash"
+          className="inline-flex h-9 shrink-0 items-center rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+        >
+          Quản lý Quỹ tiền NV
+        </Link>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {(

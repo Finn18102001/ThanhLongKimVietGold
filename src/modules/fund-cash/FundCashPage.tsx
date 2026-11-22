@@ -3,6 +3,7 @@ import { getPosSession } from "@/shared/auth/session";
 import { canMutateAdminData, roleHomePath } from "@/shared/auth/permissions";
 import { ROUTES } from "@/shared/navigation/routes";
 import { listStaff } from "@/modules/employee/query";
+import { CashFundClerkWorkspace } from "./CashFundClerkWorkspace";
 import { FundCashWorkspace } from "./FundCashWorkspace";
 import {
   canOpenEmployeeCashModule,
@@ -34,18 +35,43 @@ export async function FundCashPage() {
   }
 
   const accounts = await listEmployeeCashAccounts();
+  const staffAccount =
+    accounts.find((a) => a.id === gate.access.staffAccountId) ??
+    accounts.find((a) => a.kind === "STAFF") ??
+    null;
+  const ledgerAccountId = gate.access.isAdmin
+    ? (accounts[0]?.id ?? null)
+    : (staffAccount?.id ?? null);
   const ledger = await listEmployeeCashLedger({
-    accountId: accounts[0]?.id ?? null,
-    limit: 50,
+    accountId: ledgerAccountId,
+    limit: 80,
     offset: 0,
   });
   const [transfers, requests] = await Promise.all([
     listCashTransfers({ limit: 50, offset: 0 }),
-    listCashRequests({ limit: 50, offset: 0 }),
+    listCashRequests({ limit: 80, offset: 0 }),
   ]);
 
+  const canMutate = canMutateAdminData(session.role);
+  const canTransfer = canMutate || session.role === "STAFF";
+
+  // NV Quỹ tiền: shell clerk (card YC + CTCT + ca). Admin: workspace quản trị đủ.
+  if (!canMutate && gate.access.staffAccountId) {
+    return (
+      <CashFundClerkWorkspace
+        account={staffAccount}
+        initialRequests={requests}
+        initialTransfers={transfers}
+        initialLedger={ledger}
+        canAct={canTransfer}
+        canTransfer={canTransfer}
+        queueKind="BOTH"
+      />
+    );
+  }
+
   let staffOptions: { id: string; fullName: string; email: string }[] = [];
-  if (canMutateAdminData(session.role)) {
+  if (canMutate) {
     try {
       const page = await listStaff({ active: true, limit: 200, offset: 0 });
       staffOptions = page.items.map((s) => ({
@@ -58,15 +84,13 @@ export async function FundCashPage() {
     }
   }
 
-  const canTransfer = canMutateAdminData(session.role) || session.role === "STAFF";
-
   return (
     <FundCashWorkspace
       initialAccounts={accounts}
       initialLedger={ledger}
       initialTransfers={transfers}
       initialRequests={requests}
-      canMutate={canMutateAdminData(session.role)}
+      canMutate={canMutate}
       canTransfer={canTransfer}
       staffOptions={staffOptions}
     />

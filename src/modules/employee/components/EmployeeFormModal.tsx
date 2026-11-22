@@ -105,12 +105,12 @@ export function EmployeeFormModal({
                 name="password"
                 type="password"
                 required
-                minLength={8}
+                minLength={7}
                 autoComplete="new-password"
                 className={FIELD}
               />
               <span className="mt-1 block text-[12px] text-[var(--tlkv-muted)]">
-                Tối thiểu 8 ký tự.
+                Tối thiểu 7 ký tự.
               </span>
             </label>
           ) : (
@@ -169,7 +169,7 @@ export function EmployeeFormModal({
                     name="password"
                     type="password"
                     required
-                    minLength={8}
+                    minLength={7}
                     autoComplete="new-password"
                     className={FIELD}
                   />

@@ -160,33 +160,32 @@ Ví dụ:
 - Quỹ vàng An: 10 chiếc SKU X.
 - An bán 1 chiếc: tồn kho cửa hàng còn 49, Quỹ vàng An còn 9.
 
-## Câu 4 — Thời điểm trừ vàng so với thời điểm Quỹ tiền xác nhận?
+## Câu 4 — Ai xác nhận tiền? Thời điểm trả vàng?
 
-**Quyết định: Chọn C.**
+> **Chốt lại 2026-11-21** — đè bản «Chọn C» cũ. Chi tiết flow: [`P10-03-TWO-STEP-CONFIRM-FLOW.md`](./P10-03-TWO-STEP-CONFIRM-FLOW.md).
 
-Giữ nguyên thời điểm giao vàng và trừ kho theo loại hóa đơn hiện tại:
+**Quyết định (mới):**
 
-- Bán ngay: hoàn tất hóa đơn thì xử lý giảm tồn kho và Quỹ vàng theo nghiệp vụ bán hàng.
-- Đặt cọc/đặt trước: giữ nguyên thời điểm giao hàng và fulfill hiện tại.
-- Không bắt buộc Quỹ tiền phải xác nhận đủ tiền thì nhân viên mới được tạo hóa đơn.
-- Không thay đổi điều kiện giao vàng hiện tại chỉ vì Quỹ tiền chưa xác nhận.
-- Việc ghi nhận số dư Quỹ tiền chỉ diễn ra khi nhân viên Quỹ tiền xác nhận khoản thu/chi.
+- **Chỉ Admin và tài khoản Quỹ tiền** được xác nhận nhận/chi tiền của hóa đơn (kể cả đặt cọc hoặc thanh toán một phần).
+- **Tài khoản Quỹ vàng không có quyền** xác nhận thu/chi tiền.
+- Số dư Quỹ tiền chỉ cập nhật khi QT/Admin xác nhận YC.
+- **Trừ kho / trừ custody Quỹ vàng / «trả vàng»** chỉ sau khi QT/Admin đã xác nhận khoản tiền tương ứng — Quỹ vàng bấm «Xác nhận hóa đơn / trả vàng» (nút enable lúc đó).
+- Điều kiện hóa đơn **hoàn thành** (cọc / một phần / đủ) **không đổi** — giữ logic POS hiện tại; P10 không đặt rule hoàn thành mới.
 
-## Câu 5 — Nút F9 trên POS khi bật Feature Flag có ý nghĩa gì?
+## Câu 5 — F9 / lưu đơn khi bật Feature Flag nghĩa là gì?
 
-**Quyết định: Chọn A.**
+> **Chốt lại 2026-11-21** — đè bản «Chọn A» cũ (F9 trừ kho ngay). Xem [`P10-03`](./P10-03-TWO-STEP-CONFIRM-FLOW.md).
 
-Khi bật Feature Flag, F9 thực hiện:
+**Quyết định (mới) — 2 bước xác nhận:**
 
-1. Lưu hóa đơn.
-2. Xử lý tồn kho/Quỹ vàng theo loại hóa đơn và quy trình hiện tại.
-3. Tạo yêu cầu thu/chi tương ứng với số tiền cần xử lý.
-4. Yêu cầu được chuyển đến danh sách chờ xử lý của Quỹ tiền.
-5. Quỹ tiền xác nhận thì hệ thống mới cập nhật số dư tài khoản Quỹ tiền.
+1. **Quỹ vàng** tạo HĐ (form hiện tại) → tạo chứng từ A4 đủ thông tin HĐ → **in chứng từ ban đầu** → **lưu đơn** (được làm giao dịch khác; không giữ màn chờ).
+2. Hệ thống tạo YC thu/chi → **Quỹ tiền** nhận card → QT/Admin **Xác nhận** tiền (+ ký giấy).
+3. Chỉ sau bước 2, nút xác nhận phía **Quỹ vàng** mới enable → QV chọn đơn đã lưu → **Xác nhận trả vàng** (= xác nhận hóa đơn phía QV) → **in chứng từ thanh toán cuối**.
+4. Hoàn thành HĐ theo logic POS hiện tại (đủ / cọc / một phần **không đổi** trong P10).
 
-F9 không được tự động cộng/trừ số dư Quỹ tiền khi chưa có xác nhận từ nhân viên quỹ.
+F9/lưu đơn **không** tự cộng/trừ Quỹ tiền và **không** trừ kho/custody cho đến bước xác nhận trả vàng của QV.
 
-Không tách thành hai nút lưu hóa đơn và gửi yêu cầu thu riêng.
+Không gộp xác nhận tiền và xác nhận trả vàng thành một thao tác.
 
 ## Câu 6 — Một nhân viên được gắn bao nhiêu tài khoản quỹ?
 
@@ -394,16 +393,18 @@ Không sửa hoặc thay thế các bảng nghiệp vụ cũ nếu không thực
 
 ## D3. Luồng bán hàng khi bật Flag
 
-1. Nhân viên lập hóa đơn trên POS.
-2. F9 lưu hóa đơn.
-3. Hệ thống xử lý tồn kho và Quỹ vàng theo loại hóa đơn.
-4. Tạo yêu cầu thu tiền tương ứng với số tiền khách cần thanh toán.
-5. Yêu cầu xuất hiện trong danh sách chờ của Quỹ tiền.
-6. Nhân viên Quỹ tiền kiểm tra và xác nhận khoản thu.
-7. Hệ thống cập nhật số dư Quỹ tiền và ghi lịch sử.
-8. Hóa đơn lưu liên kết đến giao dịch Quỹ tiền.
+> Cập nhật 2026-11-21 theo [`P10-03`](./P10-03-TWO-STEP-CONFIRM-FLOW.md).
 
-Trường hợp khách thanh toán nhiều lần hoặc nhiều nhân viên quỹ xác nhận các lần thu khác nhau, mỗi lần phải được ghi nhận thành giao dịch riêng và liên kết với đúng tài khoản đã xác nhận.
+1. Nhân viên **Quỹ vàng** lập hóa đơn trên POS (form hiện tại).
+2. Tạo chứng từ A4 đủ thông tin HĐ → in chứng từ ban đầu → **lưu đơn** (được làm việc khác).
+3. Hệ thống tạo yêu cầu thu (YC-THU) — **chưa** trừ kho / custody QV; **chưa** cộng QT.
+4. Card YC xuất hiện phía **Quỹ tiền** (và Admin).
+5. **Chỉ QT hoặc Admin** xác nhận khoản thu → cập nhật số dư QT + lịch sử.
+6. Nút «Xác nhận hóa đơn / trả vàng» phía QV **enable**.
+7. Quỹ vàng chọn đơn đã lưu → xác nhận trả vàng → trừ kho/custody theo nghiệp vụ hiện tại → in chứng từ thanh toán cuối.
+8. Trạng thái hoàn thành HĐ (đủ / cọc / một phần) = logic POS hiện tại.
+
+Mỗi lần thanh toán thêm = YC riêng; chỉ QT/Admin confirm tiền; QV không có quyền xác nhận tiền.
 
 ## D4. Luồng mua hàng khi bật Flag
 
@@ -442,14 +443,21 @@ Không tự áp dụng quy trình chứng từ A4 và xác nhận của bên nh�
 
 ## D7. Hủy hóa đơn
 
-Khi hủy hóa đơn:
+Khi hủy hóa đơn **bán** (`pos_void_invoice` / `void_sale_invoice`) hoặc hủy phiếu **mua** đã hoàn tất (`pos_void_buy`):
 
-- Giữ nguyên lịch sử giao dịch gốc.
-- Tạo giao dịch đảo tương ứng.
-- Hoàn tiền đúng từng Quỹ tiền đã xác nhận thu.
-- Hoàn vàng/tồn kho theo đúng nghiệp vụ hủy hiện tại.
-- Không hoàn trùng.
-- Mỗi giao dịch hoàn phải liên kết được với giao dịch gốc và hóa đơn bị hủy.
+- Giữ nguyên lịch sử giao dịch gốc (YC, ledger quỹ, payment CASH-001 nếu có).
+- Tạo giao dịch đảo tương ứng — **bắt buộc** hoàn đúng tài khoản Quỹ đã xác nhận giao dịch (P10-01 Q3 / Module 6).
+- **Quỹ tiền (YC):**
+  - Mọi `YC-THU` / `YC-CHI` gắn `source_id` HĐ/phiếu:
+    - `CONFIRMED` → `VOID_REVERSAL` đảo số dư đúng `cash_account_id` đã confirm (THU: OUT; CHI: IN) → status `REVERSED`.
+    - `PENDING` → đóng `REJECTED` (không đụng số dư) với lý do hủy chứng từ.
+  - Không hoàn trùng (idempotent theo `source_table`/`source_row_id` đảo YC).
+  - Không đổ tiền vào tài khoản người đang đăng nhập / pool mặc định.
+- **Quỹ vàng (bán đã trả vàng):** nếu đã `SALE_CUSTODY` OUT khi QV xác nhận trả vàng → đảo custody IN cùng tài khoản gốc; kho chung vẫn hoàn theo AS-IS `SALE_VOID`.
+- Flag OFF / không có YC: giữ AS-IS hoàn CASH-001/BANK-001 qua `pos_sale_payments` / `pos_buy_payments`.
+- Mỗi giao dịch hoàn phải liên kết được với giao dịch gốc và hóa đơn/phiếu bị hủy.
+
+**Chốt 2026-11-22:** void mua/bán Flag ON **không** được để YC còn `CONFIRMED` / QT lệch số dư sau khi chứng từ đã VOIDED.
 
 ## D8. Phạm vi không triển khai trong P10
 
@@ -541,7 +549,7 @@ Hiển thị và in phiếu yêu cầu để Quỹ tiền thực hiện thu ho�
 | Ghi chú yêu cầu | Ví dụ: đề xuất Quỹ tiền chi trả khách theo nghiệp vụ mua vàng |
 | Bảng hàng | STT, Tên hàng, Hàm lượng, ĐVT, KL, Đơn giá, Thành tiền |
 | Tổng hợp | Tổng đề xuất (số + chữ); Hình thức TT; Lý do |
-| Chữ ký | Người yêu cầu (Quỹ vàng / bán) · Nhân viên Quỹ tiền xác nhận (ký + thời điểm) |
+| Chữ ký | Người yêu cầu (Quỹ vàng / bán) **để trống ký tay** — không in email/tên TK đăng nhập · Nhân viên Quỹ tiền xác nhận (ký + thời điểm) |
 
 ## G5. Quy tắc nghiệp vụ phiếu
 
@@ -563,8 +571,8 @@ Ví dụ mẫu trên ảnh: `YC-CHI-000001`, CHI TIỀN, Chờ xác nhận, Qu�
 | 1 | Tiền vào quỹ NV vs CASH/BANK | **A** — chỉ quỹ NV; không kép |
 | 2 | Schema | **A** — nhóm bảng mới |
 | 3 | Quỹ vàng | **A** — custody trên tồn cửa hàng |
-| 4 | Thời điểm trừ vàng | **C** — theo loại HĐ hiện tại |
-| 5 | F9 | **A** — lưu HĐ + tạo YC; quỹ cập nhật khi xác nhận |
+| 4 | Ai confirm tiền / trừ vàng | **2026-11-21** — chỉ QT+Admin confirm tiền; QV trả vàng sau QT ([P10-03](./P10-03-TWO-STEP-CONFIRM-FLOW.md)) |
+| 5 | F9 / lưu đơn | **2026-11-21** — lưu đơn + in A4 đầu + YC; trừ kho ở bước QV xác nhận trả vàng |
 | 6 | Số quỹ / NV | **A** — tối đa 1+1; cho phép kiêm |
 | 7 | Feature Flag | **C** — DB + Admin UI; ENV ép tắt; key `pos_employee_fund_enabled` |
 | 8 | Chuyển tiền | **A** — print A4; mã `CTCT-…`; xác nhận 1 lần |
@@ -586,7 +594,7 @@ Ví dụ mẫu trên ảnh: `YC-CHI-000001`, CHI TIỀN, Chờ xác nhận, Qu�
 | Q1 | A | Production mặc định Feature Flag **OFF**; deploy không tự đổi luồng AS-IS |
 | Q2 | Đồng ý | ENV `TLKV_EMPLOYEE_FUND_FORCE_OFF=1` chỉ ép tắt; không có ép bật |
 | Q3 | Cập nhật | Admin tạo/gán Quỹ tiền & Quỹ vàng; được cộng/trừ; lịch sử đối ứng Admin ↔ NV |
-| Q4 | A | Flag ON: F9 tạo YC, **không** INSERT payment cũ vào CASH/BANK; ghi nhận sau xác nhận quỹ |
+| Q4 | A + P10-03 | Flag ON: lưu đơn + YC, **không** INSERT payment CASH/BANK; QT/Admin confirm tiền; QV xác nhận trả vàng sau đó (không trừ kho lúc lưu đơn) |
 | Q5 | A | Hàng đợi chung; người xác nhận nhận giao dịch vào quỹ của mình |
 | Q6 | A | Từ chối YC: không đổi TT hóa đơn; cho tạo YC mới (mã riêng) |
 | Q7 | A | Prompt hiện tại **chỉ Module 1** Feature Flag; chưa làm quỹ/payment |
@@ -612,9 +620,15 @@ Ví dụ mẫu trên ảnh: `YC-CHI-000001`, CHI TIỀN, Chờ xác nhận, Qu�
 
 **Module 4a (2026-11-19) — YC thu/chi + link HĐ:** bảng `pos_employee_cash_requests`; RPC list/get/confirm/reject/create_from_sale|buy; UI hàng đợi `/fund-cash` + in A4 Phần G. Confirm → quỹ người xác nhận (Admin → QT-ADMIN). Reject không đổi TT HĐ (Q6). Hard-test queue: `YC-THU-000001` ← `HD003854` 2.554.000 → QT-ADMIN 8.000.000→10.554.000; CASH-001 không đổi.
 
-**Module 4b (2026-11-19) — Hook Flag ON:** `pos_private.complete_sale` + `collect_sale_payment` khi `employee_fund_flag_on()`: không INSERT `pos_sale_payments`; tạo YC-THU (+ `fund_request_codes`); SALE soft-trừ custody vàng (`SALE_CUSTODY`, NOTICE nếu thiếu). Flag OFF = AS-IS. **Chưa hard-test F9 end-to-end; chưa YC-CHI từ buy melt; chưa void đảo YC.**
+**Module 4b (2026-11-19) — Hook Flag ON:** `pos_private.complete_sale` + `collect_sale_payment` khi `employee_fund_flag_on()`: không INSERT `pos_sale_payments`; tạo YC-THU (+ `fund_request_codes`); SALE soft-trừ custody vàng (`SALE_CUSTODY`, NOTICE nếu thiếu). Flag OFF = AS-IS. **Hard-test F9 E2E 2026-11-21:** `HD004138` → `YC-THU-000002` 148.700 confirm → QT-ADMIN↑; `pos_sale_payments`=0; CASH-001 không đổi. **YC-CHI buy (2026-11-22):** `pos_complete_buy_melt` + `collect_buy_payment` Flag ON → tạo YC-CHI PENDING, **không** INSERT `pos_buy_payments` (không đụng CASH-001); **nhận kho vẫn AS-IS** (P10-01 D4). UI skip-melt: `pos_create_buy_intake` (không payment) → `pos_buy_skip_melt` → `pos_complete_buy_melt` (YC). Legacy `pos_private.complete_buy` Flag ON cũng không CASH + tạo YC-CHI (one-shot COMPLETED).
+
+**Module 6 (2026-11-22) — Hủy HĐ đảo quỹ:** `void_sale_invoice` / `void_buy` gọi `employee_cash_reverse_requests_for_source` (YC CONFIRMED → `REVERSED` + `VOID_REVERSAL` đúng TK; PENDING → REJECTED) và `employee_gold_reverse_sale_custody` (bán đã trả vàng). Migration `20261122060000_p10_void_reverse_employee_fund`.
+
+> **Lệch P10-03 (2026-11-21):** Module 4b đang trừ custody / coi HĐ hoàn tất giao vàng ngay F9 — **sai** so với Câu 4/5 mới. Cần tách «lưu đơn + YC» khỏi «QV xác nhận trả vàng»; chỉ QT/Admin confirm tiền. Xem [`P10-03`](./P10-03-TWO-STEP-CONFIRM-FLOW.md).
 
 **Rollback hard-test P10 (2026-11-19):** Đảo số dư Quỹ NV bằng `VOID_REVERSAL` (giữ sổ gốc): tiền CTCT/phân bổ/nạp vốn/`YC-THU-000001`; vàng CTCV/phân bổ/nạp vốn `bac-brtl1-1`. Số dư QT/QV về **0**. Feature Flag `pos_employee_fund_enabled` = **OFF** (AS-IS CASH-001/BANK-001). Không sửa CASH-001/BANK-001 vì hard-test Quỹ NV không trừ quỹ cửa hàng; tồn cửa hàng `bac-brtl1-1` không đổi.
+
+**Rollback hard-test Quỹ tiền func (2026-11-21):** `VOID_REVERSAL` đảo QT-ADMIN / QT-000002 / QT-000003 về **0**; ẩn `QT-000003` + `QV-000003`; Flag OFF. CASH-001 = 32.142.301 (không đụng). HĐ test còn: `HD004138` (ISSUED) — có thể void tay khi cần; `CTCT-000002` / `YC-THU-000002` giữ sổ gốc.
 
 ---
 

@@ -26,6 +26,7 @@ type SaleResult = {
   pickup_due_at?: string | null;
   sale_id?: string;
   deposit_workflow_status?: string | null;
+  fund_request_codes?: string[];
 };
 
 /** Prefer Result over throw — production strips Server Action error messages (React #441). */
@@ -254,6 +255,21 @@ export async function cancelPreorder(input: {
     const payload = data as { fulfillment_status: string };
     return { fulfillmentStatus: payload.fulfillment_status };
   }, "Hủy đặt hàng thất bại.");
+}
+
+/** After In phiếu (complete_sale Flag ON): load YC-THU for A4 print. */
+export async function loadSaleFundRequestForPrint(
+  saleId: string,
+): Promise<ActionResult<import("@/modules/fund-cash/types").CashRequestRow>> {
+  return runAction(async () => {
+    const { listCashRequests, getCashRequest } = await import("@/modules/fund-cash/query");
+    const page = await listCashRequests({ status: null, limit: 100, offset: 0 });
+    const hit = page.items.find(
+      (r) => r.sourceType === "sale" && r.sourceId === saleId && r.kind === "THU",
+    );
+    if (!hit) throw new Error("Không tìm thấy YC-THU của hóa đơn vừa tạo.");
+    return getCashRequest(hit.id);
+  }, "Không tải phiếu YC-THU để in được.");
 }
 
 export { actionFail, formatActionError };

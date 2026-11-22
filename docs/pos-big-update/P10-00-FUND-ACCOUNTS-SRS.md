@@ -78,7 +78,7 @@ Xem bảng tóm tắt **Phần H** và chi tiết Câu 1–10 / Phần C–G t�
 
 → [`P10-01-AS-IS-AND-DECISIONS.md`](./P10-01-AS-IS-AND-DECISIONS.md)
 
-Điểm chính: quỹ NV bảng mới; tiền chỉ vào quỹ NV (không kép CASH/BANK); custody vàng; F9 → YC thu/chi; phiếu `YC-THU`/`YC-CHI` + chuyển tiền `CTCT`; cấm cộng/trừ thủ công; Flag `pos_employee_fund_enabled` (DB + ENV ép tắt).
+Điểm chính: quỹ NV bảng mới; tiền chỉ vào quỹ NV (không kép CASH/BANK); custody vàng; F9/lưu đơn → YC thu/chi; **2 bước xác nhận** QT tiền → QV trả vàng ([`P10-03`](./P10-03-TWO-STEP-CONFIRM-FLOW.md)); phiếu `YC-THU`/`YC-CHI` + chuyển tiền `CTCT`; cấm cộng/trừ thủ công; Flag `pos_employee_fund_enabled` (DB + ENV ép tắt).
 
 ---
 

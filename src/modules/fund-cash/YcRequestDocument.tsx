@@ -163,9 +163,10 @@ export function YcRequestDocument({ request }: { request: CashRequestRow }) {
       >
         <div>
           <p className="font-semibold">Người yêu cầu</p>
-          <p style={{ marginTop: "1mm", fontSize: "10pt" }}>(Quỹ vàng / bán)</p>
+          <p style={{ marginTop: "1mm", fontSize: "10pt" }}>(Quỹ vàng / bán · ký tay)</p>
           <div style={{ height: "24mm" }} />
-          <p>{request.relatedStaffName || request.requestedByEmail || "……………………"}</p>
+          {/* Để trống — không điền TK đăng nhập; ký trên giấy */}
+          <p>……………………</p>
         </div>
         <div>
           <p className="font-semibold">Nhân viên Quỹ tiền xác nhận</p>
