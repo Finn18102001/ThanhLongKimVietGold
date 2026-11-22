@@ -13,6 +13,7 @@ import { createServerSupabase } from "@/shared/supabase/server";
 import { isEmployeeFundEnabled } from "@/modules/settings/query";
 import { assertStaffMutate } from "@/shared/auth/assert";
 import {
+  getCashTransfer,
   listCashRequests,
   listCashTransfers,
   listEmployeeCashAccounts,
@@ -21,6 +22,7 @@ import {
 import type {
   CashRequestListPage,
   CashTransferListPage,
+  CashTransferRow,
   EmployeeCashAccount,
   EmployeeCashLedgerPage,
 } from "./types";
@@ -164,7 +166,7 @@ export async function createCashTransfer(input: {
   toAccountId: string;
   amountDong: number;
   content: string;
-}): Promise<ActionResult<{ id: string; code: string }>> {
+}): Promise<ActionResult<{ id: string; code: string; transfer: CashTransferRow | null }>> {
   try {
     await assertStaffMutate();
     await requireFlagOn();
@@ -188,7 +190,16 @@ export async function createCashTransfer(input: {
 
     revalidatePath(ROUTES.fundCash);
     const row = (data ?? {}) as { id?: string; code?: string };
-    return actionOk({ id: String(row.id), code: String(row.code ?? "") });
+    const id = String(row.id ?? "");
+    let transfer: CashTransferRow | null = null;
+    if (id) {
+      try {
+        transfer = await getCashTransfer(id);
+      } catch {
+        transfer = null;
+      }
+    }
+    return actionOk({ id, code: String(row.code ?? ""), transfer });
   } catch (err) {
     return actionFail(formatActionError(err, "Không tạo được chứng từ CTCT."));
   }

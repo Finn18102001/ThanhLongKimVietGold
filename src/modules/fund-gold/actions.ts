@@ -12,10 +12,12 @@ import { ROUTES } from "@/shared/navigation/routes";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { isEmployeeFundEnabled } from "@/modules/settings/query";
 import {
+  getEmployeeGoldTransfer,
   listEmployeeGoldAccounts,
   listEmployeeGoldCounts,
   listEmployeeGoldLedger,
   listEmployeeGoldStock,
+  listEmployeeGoldTransfers,
   searchGoldSkus,
 } from "./query";
 import type {
@@ -24,6 +26,8 @@ import type {
   EmployeeGoldLedgerPage,
   EmployeeGoldStockRow,
   GoldSkuOption,
+  GoldTransferListPage,
+  GoldTransferRow,
 } from "./types";
 
 function idemKey(prefix: string) {
@@ -184,13 +188,24 @@ export async function adminAllocateGold(input: {
   }
 }
 
+export async function refreshEmployeeGoldTransfers(): Promise<
+  ActionResult<GoldTransferListPage>
+> {
+  try {
+    await requireFlagOn();
+    return actionOk(await listEmployeeGoldTransfers({ limit: 50 }));
+  } catch (err) {
+    return actionFail(formatActionError(err, "Không tải được danh sách CTCV."));
+  }
+}
+
 export async function transferEmployeeGold(input: {
   fromAccountId: string;
   toAccountId: string;
   skuId: string;
   quantity: number;
   content: string;
-}): Promise<ActionResult<{ id: string; code: string }>> {
+}): Promise<ActionResult<{ id: string; code: string; transfer: GoldTransferRow | null }>> {
   try {
     await assertStaffMutate();
     await requireFlagOn();
@@ -214,7 +229,16 @@ export async function transferEmployeeGold(input: {
 
     revalidatePath(ROUTES.fundGold);
     const row = (data ?? {}) as { id?: string; code?: string };
-    return actionOk({ id: String(row.id), code: String(row.code ?? "") });
+    const id = String(row.id ?? "");
+    let transfer: GoldTransferRow | null = null;
+    if (id) {
+      try {
+        transfer = await getEmployeeGoldTransfer(id);
+      } catch {
+        transfer = null;
+      }
+    }
+    return actionOk({ id, code: String(row.code ?? ""), transfer });
   } catch (err) {
     return actionFail(formatActionError(err, "Không chuyển được vàng."));
   }

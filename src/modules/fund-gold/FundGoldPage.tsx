@@ -10,6 +10,7 @@ import {
   listEmployeeGoldCounts,
   listEmployeeGoldLedger,
   listEmployeeGoldStock,
+  listEmployeeGoldTransfers,
 } from "./query";
 
 export async function FundGoldPage() {
@@ -38,10 +39,11 @@ export async function FundGoldPage() {
 
   const accounts = await listEmployeeGoldAccounts();
   const firstId = accounts[0]?.id ?? null;
-  const [stock, ledger, counts] = await Promise.all([
+  const [stock, ledger, counts, transfers] = await Promise.all([
     listEmployeeGoldStock(firstId),
     listEmployeeGoldLedger({ accountId: firstId, limit: 50, offset: 0 }),
     listEmployeeGoldCounts({ accountId: firstId, limit: 30 }),
+    listEmployeeGoldTransfers({ limit: 50 }),
   ]);
 
   let staffOptions: { id: string; fullName: string; email: string }[] = [];
@@ -66,6 +68,7 @@ export async function FundGoldPage() {
       initialStock={stock}
       initialLedger={ledger}
       initialCounts={counts}
+      initialTransfers={transfers}
       canMutate={canMutateAdminData(session.role)}
       canTransfer={canTransfer}
       staffOptions={staffOptions}

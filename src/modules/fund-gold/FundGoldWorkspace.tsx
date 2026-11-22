@@ -10,16 +10,20 @@ import {
   refreshEmployeeGoldCounts,
   refreshEmployeeGoldLedger,
   refreshEmployeeGoldStock,
+  refreshEmployeeGoldTransfers,
   searchGoldSkuOptions,
   submitGoldCount,
   transferEmployeeGold,
 } from "./actions";
+import { CtcvPrintPreviewOverlay } from "./CtcvPrintPreviewOverlay";
 import type {
   EmployeeGoldAccount,
   EmployeeGoldCountRow,
   EmployeeGoldLedgerPage,
   EmployeeGoldStockRow,
   GoldSkuOption,
+  GoldTransferListPage,
+  GoldTransferRow,
 } from "./types";
 
 type StaffOption = { id: string; fullName: string; email: string };
@@ -54,6 +58,7 @@ export function FundGoldWorkspace({
   initialStock,
   initialLedger,
   initialCounts,
+  initialTransfers,
   canMutate,
   canTransfer,
   staffOptions,
@@ -62,6 +67,7 @@ export function FundGoldWorkspace({
   initialStock: EmployeeGoldStockRow[];
   initialLedger: EmployeeGoldLedgerPage;
   initialCounts: EmployeeGoldCountRow[];
+  initialTransfers: GoldTransferListPage;
   canMutate: boolean;
   canTransfer: boolean;
   staffOptions: StaffOption[];
@@ -70,6 +76,8 @@ export function FundGoldWorkspace({
   const [stock, setStock] = useState(initialStock);
   const [ledger, setLedger] = useState(initialLedger);
   const [counts, setCounts] = useState(initialCounts);
+  const [transfers, setTransfers] = useState(initialTransfers);
+  const [printTransfer, setPrintTransfer] = useState<GoldTransferRow | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialAccounts[0]?.id ?? null,
   );
@@ -142,11 +150,12 @@ export function FundGoldWorkspace({
     if (accountId !== undefined) setSelectedId(accountId);
     startTransition(async () => {
       setError(null);
-      const [accRes, stockRes, ledRes, countRes] = await Promise.all([
+      const [accRes, stockRes, ledRes, countRes, xferRes] = await Promise.all([
         refreshEmployeeGoldAccounts(),
         refreshEmployeeGoldStock(id),
         refreshEmployeeGoldLedger({ accountId: id }),
         refreshEmployeeGoldCounts({ accountId: id }),
+        refreshEmployeeGoldTransfers(),
       ]);
       if (!accRes.ok) {
         setError(formatActionError(accRes.message));
@@ -164,10 +173,15 @@ export function FundGoldWorkspace({
         setError(formatActionError(countRes.message));
         return;
       }
+      if (!xferRes.ok) {
+        setError(formatActionError(xferRes.message));
+        return;
+      }
       setAccounts(accRes.data);
       setStock(stockRes.data);
       setLedger(ledRes.data);
       setCounts(countRes.data);
+      setTransfers(xferRes.data);
     });
   }
 
@@ -282,9 +296,10 @@ export function FundGoldWorkspace({
         setError(formatActionError(res.message));
         return;
       }
-      setNotice(`Đã chuyển vàng ${res.data.code}.`);
+      setNotice(`Đã chuyển vàng ${res.data.code}. Mở chứng từ để in A4.`);
       setXferQty("");
       setXferContent("");
+      if (res.data.transfer) setPrintTransfer(res.data.transfer);
       reload(xferFrom);
     });
   }
@@ -350,7 +365,7 @@ export function FundGoldWorkspace({
         </h1>
         <p className="mt-2 max-w-[70ch] text-[13px] leading-6 text-[var(--tlkv-muted)]">
           Custody theo dõi vàng phân bổ trên tồn cửa hàng. Kiểm kê chỉ ghi nhận, không tự đổi số
-          dư. Chuyển vàng (CTCV) cập nhật ngay hai tài khoản.
+          dư. Chuyển vàng (CTCV) cập nhật ngay hai tài khoản + in chứng từ A4.
         </p>
         {pool ? (
           <p className="mt-3 text-[14px] font-semibold">Quỹ Admin vàng: {pool.code}</p>
@@ -840,89 +855,174 @@ export function FundGoldWorkspace({
           ) : null}
 
           {tab === "transfer" ? (
-            <div className="mt-3 max-w-lg space-y-3">
-              <p className="text-[12px] text-[var(--tlkv-muted)]">
-                Chuyển vàng giữa hai Quỹ vàng nhân viên — chứng từ CTCV, cập nhật tồn ngay.
-              </p>
-              <select
-                className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-                value={xferFrom}
-                onChange={(e) => setXferFrom(e.target.value)}
-                disabled={!canTransfer}
-              >
-                <option value="">Từ tài khoản…</option>
-                {staffAccounts.map((a) => (
-                  <option key={`from-${a.id}`} value={a.id}>
-                    {a.code} · {a.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-                value={xferTo}
-                onChange={(e) => setXferTo(e.target.value)}
-                disabled={!canTransfer}
-              >
-                <option value="">Đến tài khoản…</option>
-                {staffAccounts
-                  .filter((a) => a.id !== xferFrom)
-                  .map((a) => (
-                    <option key={`to-${a.id}`} value={a.id}>
+            <div className="mt-3 space-y-4">
+              <div className="max-w-lg space-y-3">
+                <p className="text-[12px] text-[var(--tlkv-muted)]">
+                  Chuyển vàng giữa hai Quỹ vàng — tạo chứng từ CTCV, cập nhật tồn ngay, in A4 theo mẫu.
+                </p>
+                <select
+                  className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+                  value={xferFrom}
+                  onChange={(e) => setXferFrom(e.target.value)}
+                  disabled={!canTransfer}
+                >
+                  <option value="">Từ tài khoản…</option>
+                  {staffAccounts.map((a) => (
+                    <option key={`from-${a.id}`} value={a.id}>
                       {a.code} · {a.name}
                     </option>
                   ))}
-              </select>
-              <select
-                className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-                value={xferSkuId}
-                onChange={(e) => setXferSkuId(e.target.value)}
-                disabled={!canTransfer}
-              >
-                <option value="">SKU…</option>
-                {(xferFrom
-                  ? stock.filter((s) => s.accountId === xferFrom)
-                  : stock
-                ).map((s) => (
-                  <option key={`xsku-${s.accountId}-${s.skuId}`} value={s.skuId}>
-                    {s.skuCode} · tồn quỹ {s.quantity}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-                inputMode="numeric"
-                placeholder="Số lượng"
-                value={xferQty}
-                onChange={(e) => setXferQty(e.target.value.replace(/[^\d]/g, ""))}
-                disabled={!canTransfer}
-              />
-              <input
-                className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
-                placeholder="Nội dung chuyển"
-                value={xferContent}
-                onChange={(e) => setXferContent(e.target.value)}
-                disabled={!canTransfer}
-              />
-              <button
-                type="button"
-                disabled={
-                  !canTransfer ||
-                  !xferFrom ||
-                  !xferTo ||
-                  !xferSkuId ||
-                  !xferQty ||
-                  !xferContent.trim() ||
-                  pending
-                }
-                onClick={onTransfer}
-                className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
-              >
-                Chuyển vàng (CTCV)
-              </button>
+                </select>
+                <select
+                  className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+                  value={xferTo}
+                  onChange={(e) => setXferTo(e.target.value)}
+                  disabled={!canTransfer}
+                >
+                  <option value="">Đến tài khoản…</option>
+                  {staffAccounts
+                    .filter((a) => a.id !== xferFrom)
+                    .map((a) => (
+                      <option key={`to-${a.id}`} value={a.id}>
+                        {a.code} · {a.name}
+                      </option>
+                    ))}
+                </select>
+                <select
+                  className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+                  value={xferSkuId}
+                  onChange={(e) => setXferSkuId(e.target.value)}
+                  disabled={!canTransfer}
+                >
+                  <option value="">SKU…</option>
+                  {(xferFrom
+                    ? stock.filter((s) => s.accountId === xferFrom)
+                    : stock
+                  ).map((s) => (
+                    <option key={`xsku-${s.accountId}-${s.skuId}`} value={s.skuId}>
+                      {s.skuCode} · tồn quỹ {s.quantity}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+                  inputMode="numeric"
+                  placeholder="Số lượng"
+                  value={xferQty}
+                  onChange={(e) => setXferQty(e.target.value.replace(/[^\d]/g, ""))}
+                  disabled={!canTransfer}
+                />
+                <input
+                  className="h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px]"
+                  placeholder="Nội dung / lý do chuyển vàng"
+                  value={xferContent}
+                  onChange={(e) => setXferContent(e.target.value)}
+                  disabled={!canTransfer}
+                />
+                <button
+                  type="button"
+                  disabled={
+                    !canTransfer ||
+                    !xferFrom ||
+                    !xferTo ||
+                    !xferSkuId ||
+                    !xferQty ||
+                    !xferContent.trim() ||
+                    pending
+                  }
+                  onClick={onTransfer}
+                  className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+                >
+                  Chuyển vàng (CTCV)
+                </button>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-[13px] font-semibold">Danh sách chứng từ CTCV</h3>
+                  <button
+                    type="button"
+                    onClick={() => reload()}
+                    className="h-8 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px]"
+                  >
+                    Làm mới
+                  </button>
+                </div>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-left text-[13px]">
+                    <thead className="text-[12px] text-[var(--tlkv-muted)]">
+                      <tr className="border-b border-[var(--tlkv-line)]">
+                        <th className="py-2 pr-3 font-medium">Mã</th>
+                        <th className="py-2 pr-3 font-medium">Từ</th>
+                        <th className="py-2 pr-3 font-medium">Đến</th>
+                        <th className="py-2 pr-3 font-medium">SKU</th>
+                        <th className="py-2 pr-3 font-medium">SL</th>
+                        <th className="py-2 pr-3 font-medium">Thời gian</th>
+                        <th className="py-2 font-medium">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transfers.items.map((row) => (
+                        <tr key={row.id} className="border-b border-[var(--tlkv-line)]">
+                          <td className="py-2.5 pr-3 font-semibold">{row.code}</td>
+                          <td className="py-2.5 pr-3">
+                            {row.fromAccountCode}
+                            <span className="block text-[12px] text-[var(--tlkv-muted)]">
+                              {row.fromStaffName}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            {row.toAccountCode}
+                            <span className="block text-[12px] text-[var(--tlkv-muted)]">
+                              {row.toStaffName}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            {row.skuCode}
+                            <span className="block text-[12px] text-[var(--tlkv-muted)]">
+                              {row.skuName}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3 font-medium">{row.quantity}</td>
+                          <td className="py-2.5 pr-3 whitespace-nowrap">
+                            {formatWhen(row.createdAt)}
+                          </td>
+                          <td className="py-2.5">
+                            <button
+                              type="button"
+                              onClick={() => setPrintTransfer(row)}
+                              className="h-8 rounded-lg border border-[var(--tlkv-line)] px-2.5 text-[12px]"
+                            >
+                              In A4
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {transfers.items.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="py-8 text-center text-[var(--tlkv-muted)]"
+                          >
+                            Chưa có chứng từ CTCV
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           ) : null}
         </div>
       </section>
+
+      {printTransfer ? (
+        <CtcvPrintPreviewOverlay
+          transfer={printTransfer}
+          onClose={() => setPrintTransfer(null)}
+        />
+      ) : null}
     </div>
   );
 }

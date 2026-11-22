@@ -10,7 +10,7 @@ import {
   createCashTransfer,
   refreshCashTransfers,
 } from "./actions";
-import { CtctTransferDocument } from "./CtctTransferDocument";
+import { CtctPrintPreviewOverlay } from "./CtctPrintPreviewOverlay";
 import type { CashTransferListPage, CashTransferRow, EmployeeCashAccount } from "./types";
 
 function formatWhen(iso: string | null): string {
@@ -73,8 +73,9 @@ export function CashTransferPanel({
         setError(formatActionError(res.message));
         return;
       }
-      setNotice(`Đã tạo ${res.data.code}. Số dư chưa đổi — chờ bên nhận xác nhận.`);
+      setNotice(`Đã tạo ${res.data.code}. Số dư chưa đổi — chờ bên nhận xác nhận. Mở chứng từ để in A4.`);
       setAmountDong(null);
+      if (res.data.transfer) setPrintRow(res.data.transfer);
       reload();
     });
   }
@@ -114,7 +115,6 @@ export function CashTransferPanel({
 
   function onPrint(row: CashTransferRow) {
     setPrintRow(row);
-    window.setTimeout(() => window.print(), 80);
   }
 
   return (
@@ -270,9 +270,7 @@ export function CashTransferPanel({
       </div>
 
       {printRow ? (
-        <div className="hidden print:block">
-          <CtctTransferDocument transfer={printRow} />
-        </div>
+        <CtctPrintPreviewOverlay transfer={printRow} onClose={() => setPrintRow(null)} />
       ) : null}
     </section>
   );

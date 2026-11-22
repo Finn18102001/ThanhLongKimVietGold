@@ -437,9 +437,10 @@ Không thay đổi công thức giá nhập, giá bán hoặc các nghiệp vụ
 - Ghi nhận giao dịch chuyển vàng.
 - Cập nhật giảm tài khoản gửi và tăng tài khoản nhận.
 - Ghi lịch sử ở cả hai tài khoản.
-- Tạo chứng từ/lịch sử chuyển vàng sau khi giao dịch hoàn tất.
+- Tạo chứng từ `CTCV-…` sau khi giao dịch hoàn tất.
+- **In A4** chứng từ chuyển vàng (cùng bố cục mẫu chứng từ chuyển tiền giữa tài khoản quỹ; cột số lượng/SKU thay cho số tiền). Xem/in lại từ danh sách CTCV.
 
-Không tự áp dụng quy trình chứng từ A4 và xác nhận của bên nhận giống chuyển tiền nếu chưa có yêu cầu riêng cho nghiệp vụ chuyển vàng.
+Khác CTCT: chuyển vàng **cập nhật tồn ngay** — không chờ bên nhận bấm xác nhận trên hệ thống (không đổi rule nghiệp vụ này).
 
 ## D7. Hủy hóa đơn
 
@@ -510,7 +511,7 @@ P10 được xem là hoàn thành khi đáp ứng các điều kiện sau:
 5. Tài khoản quỹ không có quyền cộng/trừ số dư thủ công.
 6. Nghiệp vụ bán hàng giảm đúng tồn kho chung và Quỹ vàng của nhân viên thực hiện.
 7. Chuyển tiền có chứng từ A4, chờ bên nhận xác nhận mới cập nhật số dư.
-8. Chuyển vàng cập nhật đúng hai tài khoản và có lịch sử/chứng từ truy vết.
+8. Chuyển vàng cập nhật đúng hai tài khoản; có chứng từ `CTCV-…` in A4 (mẫu giống CTCT) và lịch sử hai phía.
 9. Hủy hóa đơn hoàn đúng từng khoản tiền và đúng tài khoản đã phát sinh.
 10. Không ghi nhận trùng tiền giữa Quỹ nhân viên và CASH-001/BANK-001 khi Flag bật.
 11. Không thay đổi công thức giá, nghiệp vụ nhập kho P8/P9 và các module ngoài phạm vi.
@@ -657,3 +658,4 @@ P10 không phải đợt thay đổi toàn bộ POS, kho hoặc công thức gi�
 | 2026-11-19 | **Chốt** Câu 1–10 + Phần C–F theo bản nghiệp vụ đã duyệt; thêm Phần G phiếu YC thu/chi |
 | 2026-11-19 | **Chốt** Q1–Q8; cập nhật Admin cộng/trừ (Q3); Module 1 Feature Flag |
 | 2026-11-19 | Module 2a/2b Quỹ tiền + CTCT; Module 3 Quỹ vàng schema/RPC/UI `/fund-gold` |
+| 2026-11-22 | CTCT + CTCV in A4 khớp mẫu chứng từ chuyển giữa tài khoản quỹ; D6 bổ sung in A4 (vẫn cập nhật tồn ngay) |

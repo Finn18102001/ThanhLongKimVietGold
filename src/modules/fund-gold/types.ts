@@ -105,3 +105,30 @@ export type SaleAwaitingGoldList = {
   items: SaleAwaitingGoldRow[];
   total: number;
 };
+
+/** Chứng từ chuyển vàng CTCV (hoàn tất ngay — không chờ xác nhận như CTCT). */
+export type GoldTransferRow = {
+  id: string;
+  code: string;
+  quantity: number;
+  content: string;
+  fromAccountId: string;
+  fromAccountCode: string;
+  fromAccountName: string;
+  fromStaffName: string | null;
+  toAccountId: string;
+  toAccountCode: string;
+  toAccountName: string;
+  toStaffName: string | null;
+  skuId: string;
+  skuCode: string;
+  skuName: string;
+  createdByEmail: string;
+  createdAt: string;
+  transferGroupId: string | null;
+};
+
+export type GoldTransferListPage = {
+  items: GoldTransferRow[];
+  total: number;
+};

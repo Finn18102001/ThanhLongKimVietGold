@@ -7,6 +7,8 @@ import type {
   EmployeeGoldLedgerPage,
   EmployeeGoldStockRow,
   GoldSkuOption,
+  GoldTransferListPage,
+  GoldTransferRow,
 } from "./types";
 
 function mapAccount(raw: Record<string, unknown>): EmployeeGoldAccount {
@@ -152,6 +154,115 @@ export async function listEmployeeGoldCounts(input?: {
     unknown
   >[];
   return items.map(mapCount);
+}
+
+type EmbedAccount = {
+  id?: string;
+  code?: string;
+  name?: string;
+};
+
+type EmbedSku = { id?: string; sku?: string; name?: string } | null;
+
+function oneEmbed<T>(v: T | T[] | null | undefined): T | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+const GOLD_TRANSFER_SELECT = `
+  id,
+  code,
+  quantity,
+  content,
+  created_by_email,
+  created_at,
+  transfer_group_id,
+  from_account_id,
+  to_account_id,
+  sku_id,
+  from_account:pos_employee_gold_accounts!from_account_id(id, code, name),
+  to_account:pos_employee_gold_accounts!to_account_id(id, code, name),
+  sku:pos_skus!sku_id(id, sku, name)
+`;
+
+function mapGoldTransferRow(
+  r: Record<string, unknown>,
+  staffByAccountId: Map<string, string | null>,
+): GoldTransferRow {
+  const fromAcc = oneEmbed(r.from_account as EmbedAccount | EmbedAccount[] | null);
+  const toAcc = oneEmbed(r.to_account as EmbedAccount | EmbedAccount[] | null);
+  const sku = oneEmbed(r.sku as EmbedSku | EmbedSku[] | null);
+  const fromId = String(r.from_account_id ?? fromAcc?.id ?? "");
+  const toId = String(r.to_account_id ?? toAcc?.id ?? "");
+  return {
+    id: String(r.id),
+    code: String(r.code ?? ""),
+    quantity: Number(r.quantity ?? 0),
+    content: String(r.content ?? ""),
+    fromAccountId: fromId,
+    fromAccountCode: String(fromAcc?.code ?? ""),
+    fromAccountName: String(fromAcc?.name ?? ""),
+    fromStaffName: staffByAccountId.get(fromId) ?? null,
+    toAccountId: toId,
+    toAccountCode: String(toAcc?.code ?? ""),
+    toAccountName: String(toAcc?.name ?? ""),
+    toStaffName: staffByAccountId.get(toId) ?? null,
+    skuId: String(r.sku_id ?? sku?.id ?? ""),
+    skuCode: String(sku?.sku ?? ""),
+    skuName: String(sku?.name ?? ""),
+    createdByEmail: String(r.created_by_email ?? ""),
+    createdAt: String(r.created_at ?? ""),
+    transferGroupId: r.transfer_group_id ? String(r.transfer_group_id) : null,
+  };
+}
+
+async function goldStaffNameByAccountId(): Promise<Map<string, string | null>> {
+  try {
+    const accounts = await listEmployeeGoldAccounts();
+    return new Map(accounts.map((a) => [a.id, a.staffName]));
+  } catch {
+    return new Map();
+  }
+}
+
+/** Danh sách chứng từ CTCV — SELECT bảng transfers (RLS), join account + SKU. */
+export async function listEmployeeGoldTransfers(input?: {
+  limit?: number;
+}): Promise<GoldTransferListPage> {
+  const supabase = await createServerSupabase();
+  const limit = Math.min(Math.max(input?.limit ?? 50, 1), 100);
+  const [staffByAccountId, result] = await Promise.all([
+    goldStaffNameByAccountId(),
+    supabase
+      .from("pos_employee_gold_transfers")
+      .select(GOLD_TRANSFER_SELECT)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  ]);
+
+  if (result.error) throw new Error(result.error.message);
+
+  const items: GoldTransferRow[] = ((result.data ?? []) as Record<string, unknown>[]).map(
+    (r) => mapGoldTransferRow(r, staffByAccountId),
+  );
+
+  return { items, total: items.length };
+}
+
+export async function getEmployeeGoldTransfer(id: string): Promise<GoldTransferRow | null> {
+  if (!id) return null;
+  const supabase = await createServerSupabase();
+  const [staffByAccountId, result] = await Promise.all([
+    goldStaffNameByAccountId(),
+    supabase
+      .from("pos_employee_gold_transfers")
+      .select(GOLD_TRANSFER_SELECT)
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
+  if (result.error) throw new Error(result.error.message);
+  if (!result.data) return null;
+  return mapGoldTransferRow(result.data as Record<string, unknown>, staffByAccountId);
 }
 
 export async function searchGoldSkus(

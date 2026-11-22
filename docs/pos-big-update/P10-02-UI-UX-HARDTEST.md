@@ -131,15 +131,15 @@ Local = DB production → chỉ tạo object có chữ **test** khi có thể.
 | **Func/nghiệp vụ** (F9→YC-THU→QV gold · mua→YC-CHI) | **~98%** | E2E + void đảo YC (M6) OK; còn RPC đóng ca |
 | **P10 tổng (UI + func round này)** | **~93%** | Flag ON full flow mới; mã test ghi sẵn để hủy |
 
-### Production AS-IS ép tắt (2026-11-22)
+### Production mặc định TẮT — giữ nút Module 1 (2026-11-22)
 
-Hệ thống cũ còn người dùng → **không** để Flag ON trên live:
+Hệ thống cũ còn người dùng → **mặc định Flag OFF**; **không** xóa / khóa nút bật-tắt tại Cài đặt:
 
 | Lớp | Trạng thái | Ghi chú |
 |-----|------------|---------|
-| DB `pos_employee_fund_enabled` | **OFF** | `updated_by=system:force-off-live-users-2026-11-22` — RPC `employee_fund_flag_on()` chỉ đọc DB |
-| ENV `TLKV_EMPLOYEE_FUND_FORCE_OFF` | **`1`** | Vercel production/preview/development + `.env.example` / local — app layer ép AS-IS |
-| Branch push | `Finn/New/POS-Future` | Code P10 giữ nguyên; Flag OFF = luồng CASH-001/BANK-001 |
+| DB `pos_employee_fund_enabled` | **OFF** (default) | Seed + Admin toggle Module 1 tại Cài đặt; RPC đọc DB |
+| ENV `TLKV_EMPLOYEE_FUND_FORCE_OFF` | **không set** (mặc định) | Chỉ dùng =1 khi ép tắt khẩn cấp — không để mặc định =1 (Admin bật DB vẫn bị app ép AS-IS) |
+| UI Module 1 | **Giữ switch** | Admin có thể bật khi hard-test / go-live P10; tắt lại về AS-IS |
 
 ---
 
@@ -177,4 +177,4 @@ Port 3000 · login theo [`POS-DEV-BUILD.md`](./POS-DEV-BUILD.md) · **bật Flag
 | 2026-11-22 | **P10 Module 6:** void bán/mua đảo YC (`REVERSED` + `VOID_REVERSAL` đúng TK confirm) + đảo custody QV; backfill YC gắn chứng từ đã VOIDED. Rule: P10-01 D7 · P10-03 §5.2 |
 | 2026-11-22 | Hủy nốt hard-test còn lại: `BUY-000509`+`YC-CHI-000001`, `HD004141`+`YC-THU-000005` → QT-000005 về **148.700** (= đầu ca) |
 | 2026-11-22 | Hủy `HD004139` + `YC-THU-000003` REVERSED · kho hoàn · QT-000005 → **0** |
-| 2026-11-22 | **AS-IS ép tắt live:** DB Flag OFF + Vercel/local `TLKV_EMPLOYEE_FUND_FORCE_OFF=1`; push `Finn/New/POS-Future` |
+| 2026-11-22 | Production **default Flag OFF**; giữ nút Module 1; ENV FORCE_OFF không set mặc định; push CTCT/CTCV A4 |
