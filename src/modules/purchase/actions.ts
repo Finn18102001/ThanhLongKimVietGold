@@ -171,6 +171,8 @@ export async function completeBuy(input: {
   priceExceptionReason?: string | null;
   bankAccount?: string | null;
   bankAccountHolder?: string | null;
+  receiveAccountKind?: "COMPANY" | "PERSONAL" | null;
+  receiveAccountNote?: string | null;
   idempotencyKey?: string;
 }): Promise<ActionResult<CompleteBuyResult>> {
   return runAction(async () => {
@@ -187,6 +189,8 @@ export async function completeBuy(input: {
       p_price_exception_reason: input.priceExceptionReason || null,
       p_bank_account: input.bankAccount?.trim() || null,
       p_bank_account_holder: input.bankAccountHolder?.trim() || null,
+      p_receive_account_kind: input.receiveAccountKind || null,
+      p_receive_account_note: input.receiveAccountNote || null,
     });
     if (error) throw new Error(error.message);
 
@@ -617,6 +621,8 @@ export async function collectBuyPayment(input: {
   note?: string | null;
   idempotencyKey?: string | null;
   dueDate?: string | null;
+  receiveAccountKind?: "COMPANY" | "PERSONAL" | null;
+  receiveAccountNote?: string | null;
 }): Promise<ActionResult<CollectBuyPaymentResult>> {
   if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
     return actionFail("Số tiền phải là số nguyên VND > 0");
@@ -630,6 +636,8 @@ export async function collectBuyPayment(input: {
       p_note: input.note || null,
       p_idempotency_key: input.idempotencyKey || null,
       p_due_date: input.dueDate || null,
+      p_receive_account_kind: input.receiveAccountKind || null,
+      p_receive_account_note: input.receiveAccountNote || null,
     });
     if (error) throw new Error(error.message);
 
@@ -765,16 +773,38 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
   }
   const raw = data as Record<string, unknown>;
   const items = ((raw.items as Record<string, unknown>[] | null) ?? []).map(mapBuyDetailItem);
-  const payments: BuyPaymentRow[] = ((raw.payments as Record<string, unknown>[] | null) ?? []).map(
-    (p) => ({
-      id: String(p.id),
-      amountDong: asNumber(p.amountDong),
-      paymentMethod: String(p.paymentMethod ?? "CASH"),
-      paidAt: String(p.paidAt ?? ""),
-      actorEmail: String(p.actorEmail ?? ""),
-      note: (p.note as string | null) ?? null,
-    }),
-  );
+  const { data: paymentRows } = await supabase
+    .from("pos_buy_payments")
+    .select(
+      "id, amount_dong, payment_method, paid_at, actor_email, note, receive_account_kind, receive_account_note",
+    )
+    .eq("buy_id", buyId)
+    .order("paid_at", { ascending: true });
+  const payments: BuyPaymentRow[] =
+    paymentRows && paymentRows.length > 0
+      ? paymentRows.map((p) => ({
+          id: String(p.id),
+          amountDong: asNumber(p.amount_dong),
+          paymentMethod: String(p.payment_method ?? "CASH"),
+          paidAt: String(p.paid_at ?? ""),
+          actorEmail: String(p.actor_email ?? ""),
+          note: (p.note as string | null) ?? null,
+          receiveAccountKind:
+            p.receive_account_kind === "COMPANY" || p.receive_account_kind === "PERSONAL"
+              ? p.receive_account_kind
+              : null,
+          receiveAccountNote: (p.receive_account_note as string | null) ?? null,
+        }))
+      : ((raw.payments as Record<string, unknown>[] | null) ?? []).map((p) => ({
+          id: String(p.id),
+          amountDong: asNumber(p.amountDong),
+          paymentMethod: String(p.paymentMethod ?? "CASH"),
+          paidAt: String(p.paidAt ?? ""),
+          actorEmail: String(p.actorEmail ?? ""),
+          note: (p.note as string | null) ?? null,
+          receiveAccountKind: null,
+          receiveAccountNote: null,
+        }));
 
   const completedAt = (raw.completedAt as string | null) ?? null;
   const attachments = ((raw.attachments as Record<string, unknown>[] | null) ?? []).map(

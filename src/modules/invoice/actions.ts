@@ -204,6 +204,8 @@ export async function reverseStockReceipt(input: {
 }
 
 export async function searchInvoices(filter: InvoiceListFilter): Promise<InvoiceListPage> {
+  // goldDelivery / fulfillment / transactionType still use direct sale query;
+  // payment method + account kind are applied there via pos_sale_payments.
   if (filter.transactionType || filter.fulfillment || filter.goldDelivery) {
     return listInvoices({
       ...filter,
@@ -244,6 +246,8 @@ export async function collectSalePayment(input: {
   dueDate?: string | null;
   idempotencyKey?: string;
   receivedByStaffId?: string | null;
+  receiveAccountKind?: "COMPANY" | "PERSONAL" | null;
+  receiveAccountNote?: string | null;
 }): Promise<ActionResult<CollectSalePaymentData>> {
   if (!Number.isInteger(input.amountDong) || input.amountDong <= 0) {
     return actionFail("Số tiền thu phải là số nguyên VND > 0");
@@ -259,6 +263,8 @@ export async function collectSalePayment(input: {
       p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
       p_due_date: input.dueDate || null,
       p_operator_staff_id: input.receivedByStaffId || null,
+      p_receive_account_kind: input.receiveAccountKind || null,
+      p_receive_account_note: input.receiveAccountNote || null,
     });
     if (error) throw new Error(error.message);
     revalidatePath("/invoices");

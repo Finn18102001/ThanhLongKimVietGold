@@ -36,6 +36,8 @@ export function PosCartPanel({
   useTransfer,
   cashDong,
   transferDong,
+  transferAccountKind,
+  transferAccountNote,
   payMode,
   paidDong,
   dueDate,
@@ -52,6 +54,8 @@ export function PosCartPanel({
   onUseTransferChange,
   onCashDongChange,
   onTransferDongChange,
+  onTransferAccountKindChange,
+  onTransferAccountNoteChange,
   onPayModeChange,
   onPaidDongChange,
   onDueDateChange,
@@ -81,6 +85,8 @@ export function PosCartPanel({
   useTransfer: boolean;
   cashDong: number;
   transferDong: number;
+  transferAccountKind: "" | "COMPANY" | "PERSONAL";
+  transferAccountNote: string;
   payMode: PosPayMode;
   paidDong: number;
   dueDate: string;
@@ -99,6 +105,8 @@ export function PosCartPanel({
   onUseTransferChange: (value: boolean) => void;
   onCashDongChange: (value: number) => void;
   onTransferDongChange: (value: number) => void;
+  onTransferAccountKindChange: (value: "" | "COMPANY" | "PERSONAL") => void;
+  onTransferAccountNoteChange: (value: string) => void;
   onPayModeChange: (value: PosPayMode) => void;
   onPaidDongChange: (value: number) => void;
   onDueDateChange: (value: string) => void;
@@ -595,6 +603,46 @@ export function PosCartPanel({
               <p className="text-[11px] text-[var(--tlkv-muted)]">
                 Tổng hai khoản phải bằng số tiền thu: {formatDong(effectivePaid)}.
               </p>
+            ) : null}
+            {useTransfer ? (
+              <div className="space-y-2 border-t border-[var(--tlkv-line)] pt-2">
+                <p className="text-[12px] font-medium">Tài khoản nhận (TLKV)</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      { value: "COMPANY" as const, label: "Công ty" },
+                      { value: "PERSONAL" as const, label: "Cá nhân" },
+                    ] as const
+                  ).map((opt) => {
+                    const active = transferAccountKind === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => onTransferAccountKindChange(opt.value)}
+                        className={`h-9 rounded-lg text-[12px] font-semibold ${
+                          active
+                            ? "bg-[var(--tlkv-red)] text-white"
+                            : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {transferAccountKind === "PERSONAL" ? (
+                  <label className="block text-[12px] text-[var(--tlkv-muted)]">
+                    Nhận diện TK cá nhân
+                    <input
+                      value={transferAccountNote}
+                      onChange={(event) => onTransferAccountNoteChange(event.target.value)}
+                      placeholder="Tên chủ TK / số TK / ghi chú nhận diện"
+                      className="mt-0.5 h-9 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+                    />
+                  </label>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </fieldset>

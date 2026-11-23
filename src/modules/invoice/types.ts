@@ -73,15 +73,22 @@ export type InvoiceListRow = {
   documentType: DocumentType;
   /** True when chứng từ đã hủy / đảo (hiện "Đã hủy" trên danh sách). */
   isVoided?: boolean;
+  /** Document note (pos_sales.note / pos_buys.note / receipt.note). Null/blank = không cần theo dõi. */
+  note?: string | null;
 };
 
 export type GoldDeliveryFilter = "DELIVERED" | "UNFULFILLED";
+
+export type ReceiveAccountKind = "COMPANY" | "PERSONAL";
 
 export type InvoiceListFilter = {
   query?: string;
   from?: string | null;
   to?: string | null;
-  paymentMethod?: "CASH" | "TRANSFER" | "CARD" | null;
+  /** FR-06: CASH | TRANSFER only (list filter). CARD not offered. */
+  paymentMethod?: "CASH" | "TRANSFER" | null;
+  /** FR-06: COMPANY | PERSONAL on TRANSFER payments. */
+  receiveAccountKind?: ReceiveAccountKind | null;
   paymentStatus?: PaymentStatusFilter | null;
   transactionType?: "SALE" | "PREORDER" | "DEPOSIT" | null;
   fulfillment?: "UNFULFILLED" | "FULFILLED" | null;
@@ -190,4 +197,6 @@ export type SalePaymentRecord = {
   actorEmail: string;
   note: string | null;
   receivedByName: string | null;
+  receiveAccountKind?: ReceiveAccountKind | null;
+  receiveAccountNote?: string | null;
 };

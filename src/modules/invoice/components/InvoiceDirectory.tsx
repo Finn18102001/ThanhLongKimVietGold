@@ -23,9 +23,11 @@ import {
   invoiceLifecycleBadgeClass,
   invoiceLifecycleLabel,
   invoiceLifecycleStatus,
+  invoiceNeedsFollowUp,
   paymentBadgeClass,
   paymentLabel,
   paymentStatusLabel,
+  truncateInvoiceNote,
 } from "../labels";
 import type {
   DocumentType,
@@ -35,6 +37,7 @@ import type {
   InvoiceListRow,
   PaymentStatus,
   PaymentStatusFilter,
+  ReceiveAccountKind,
 } from "../types";
 import type { StockReceiptDetail } from "../types-receipt";
 import { InvoiceDrawer } from "./InvoiceDrawer";
@@ -70,6 +73,16 @@ const GOLD_DELIVERY_OPTIONS: { value: "" | GoldDeliveryFilter; label: string }[]
   { value: "UNFULFILLED", label: "Chưa trả vàng" },
   { value: "DELIVERED", label: "Đã trả vàng" },
 ];
+const PAYMENT_METHOD_OPTIONS: { value: "" | "CASH" | "TRANSFER"; label: string }[] = [
+  { value: "", label: "Phương thức TT: Tất cả" },
+  { value: "CASH", label: "Tiền mặt" },
+  { value: "TRANSFER", label: "Chuyển khoản" },
+];
+const ACCOUNT_KIND_OPTIONS: { value: "" | ReceiveAccountKind; label: string }[] = [
+  { value: "", label: "Loại tài khoản: Tất cả" },
+  { value: "COMPANY", label: "Tài khoản công ty" },
+  { value: "PERSONAL", label: "Tài khoản cá nhân" },
+];
 
 export function InvoiceDirectory({
   initial,
@@ -86,6 +99,8 @@ export function InvoiceDirectory({
   const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatusFilter>("");
   const [documentType, setDocumentType] = useState<"" | DocumentType>("");
   const [goldDelivery, setGoldDelivery] = useState<"" | GoldDeliveryFilter>("");
+  const [paymentMethod, setPaymentMethod] = useState<"" | "CASH" | "TRANSFER">("");
+  const [receiveAccountKind, setReceiveAccountKind] = useState<"" | ReceiveAccountKind>("");
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [receiptDetail, setReceiptDetail] = useState<StockReceiptDetail | null>(null);
@@ -117,6 +132,8 @@ export function InvoiceDirectory({
     paymentStatus?: "" | PaymentStatusFilter;
     documentType?: "" | DocumentType;
     goldDelivery?: "" | GoldDeliveryFilter;
+    paymentMethod?: "" | "CASH" | "TRANSFER";
+    receiveAccountKind?: "" | ReceiveAccountKind;
     limit?: number;
     offset?: number;
   }) {
@@ -126,6 +143,8 @@ export function InvoiceDirectory({
     const nextPayStatus = next.paymentStatus ?? paymentStatus;
     const nextDocumentType = next.documentType ?? documentType;
     const nextGoldDelivery = next.goldDelivery ?? goldDelivery;
+    const nextPaymentMethod = next.paymentMethod ?? paymentMethod;
+    const nextAccountKind = next.receiveAccountKind ?? receiveAccountKind;
     const nextLimit = next.limit ?? page.limit;
     const nextOffset = next.offset ?? 0;
     const seq = ++requestSeqRef.current;
@@ -138,6 +157,8 @@ export function InvoiceDirectory({
           paymentStatus: nextPayStatus || null,
           documentType: nextDocumentType || null,
           goldDelivery: nextGoldDelivery || null,
+          paymentMethod: nextPaymentMethod || null,
+          receiveAccountKind: nextAccountKind || null,
           limit: nextLimit,
           offset: nextOffset,
         });
@@ -237,6 +258,8 @@ export function InvoiceDirectory({
         paymentStatus: paymentStatus || null,
         documentType: documentType || null,
         goldDelivery: goldDelivery || null,
+        paymentMethod: paymentMethod || null,
+        receiveAccountKind: receiveAccountKind || null,
         limit: exportLimit,
       });
       downloadCsv(
@@ -350,7 +373,7 @@ export function InvoiceDirectory({
             {exporting ? "Đang xuất..." : "Xuất CSV"}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           <select
             value={documentType}
             onChange={(event) => {
@@ -421,18 +444,51 @@ export function InvoiceDirectory({
               </option>
             ))}
           </select>
+          <select
+            value={paymentMethod}
+            onChange={(event) => {
+              const value = event.target.value as "" | "CASH" | "TRANSFER";
+              setPaymentMethod(value);
+              refresh({ paymentMethod: value, offset: 0 });
+            }}
+            aria-label="Phương thức thanh toán"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {PAYMENT_METHOD_OPTIONS.map((opt) => (
+              <option key={opt.value || "all-method"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={receiveAccountKind}
+            onChange={(event) => {
+              const value = event.target.value as "" | ReceiveAccountKind;
+              setReceiveAccountKind(value);
+              refresh({ receiveAccountKind: value, offset: 0 });
+            }}
+            aria-label="Loại tài khoản"
+            className="h-10 min-w-0 rounded-lg border border-[var(--tlkv-line)] bg-white px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+          >
+            {ACCOUNT_KIND_OPTIONS.map((opt) => (
+              <option key={opt.value || "all-kind"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
 
       <div className={`mt-4 overflow-x-auto ${pending ? "opacity-60" : ""}`}>
-        <table className="w-full min-w-[1080px] text-left text-[13px]">
+        <table className="w-full min-w-[1180px] text-left text-[13px]">
           <thead className="text-[12px] text-[var(--tlkv-muted)]">
             <tr className="border-b border-[var(--tlkv-line)]">
               <th className="py-2 pr-3 font-medium">Số chứng từ</th>
               <th className="py-2 pr-3 font-medium">Loại</th>
               <th className="py-2 pr-3 font-medium">Đối tác</th>
+              <th className="py-2 pr-3 font-medium">Ghi chú</th>
               <th className="py-2 pr-3 font-medium">Tổng / Còn lại</th>
               <th className="py-2 pr-3 font-medium">Hình thức</th>
               <th className="py-2 pr-3 font-medium">Trạng thái TT</th>
@@ -443,7 +499,7 @@ export function InvoiceDirectory({
           <tbody>
             {page.items.length === 0 ? (
               <tr>
-                <td className="py-8 text-center text-[var(--tlkv-muted)]" colSpan={8}>
+                <td className="py-8 text-center text-[var(--tlkv-muted)]" colSpan={9}>
                   Không có chứng từ khớp bộ lọc.
                 </td>
               </tr>
@@ -467,6 +523,7 @@ export function InvoiceDirectory({
                   row.fulfillmentStatus,
                   payStatus,
                 );
+                const needsFollowUp = invoiceNeedsFollowUp(row.note);
                 return (
                   <tr key={`${row.documentType}-${row.id}`} className="border-b border-[var(--tlkv-line)] last:border-b-0">
                     <td className="py-3 pr-3">
@@ -487,6 +544,23 @@ export function InvoiceDirectory({
                       <p className="text-[12px] text-[var(--tlkv-muted)]">
                         {row.isWalkIn ? "Khách vãng lai" : phone || row.customerNo || "-"}
                       </p>
+                    </td>
+                    <td className="py-3 pr-3 max-w-[220px]">
+                      {needsFollowUp ? (
+                        <>
+                          <span className="inline-flex rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--tlkv-amber)]">
+                            Cần theo dõi
+                          </span>
+                          <p
+                            className="mt-1 text-[12px] text-[var(--tlkv-text)]"
+                            title={row.note ?? undefined}
+                          >
+                            {truncateInvoiceNote(row.note ?? "")}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-[var(--tlkv-muted)]">—</span>
+                      )}
                     </td>
                     <td className="py-3 pr-3">
                       <p className="font-semibold">{formatDong(row.totalDong)}</p>

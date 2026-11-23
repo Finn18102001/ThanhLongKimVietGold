@@ -114,6 +114,16 @@ export function CustomerDetailModal({
             <Stat label="Số lần mua" value={String(customer.saleCount)} />
             <Stat label="Công nợ hiện tại" value={formatDong(customer.debtDong)} />
           </div>
+          <section className="mt-5">
+            <h3 className="text-[14px] font-semibold">Ghi chú</h3>
+            <p
+              className={`mt-2 whitespace-pre-wrap rounded-[12px] border border-[var(--tlkv-line)] p-3 text-[13px] ${
+                customer.note?.trim() ? "text-[var(--tlkv-text)]" : "text-[var(--tlkv-muted)]"
+              }`}
+            >
+              {customer.note?.trim() ? customer.note : "—"}
+            </p>
+          </section>
           <h3 className="mt-5 text-[14px] font-semibold">Lịch sử mua/bán gần đây</h3>
           <table className="mt-2 w-full text-left text-[13px]">
             <thead className="text-[12px] text-[var(--tlkv-muted)]">

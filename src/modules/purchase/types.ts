@@ -1,6 +1,7 @@
 import type { MarketGoldClass } from "@/modules/pos/types";
 
 export type PaymentMethod = "CASH" | "TRANSFER" | "CARD";
+export type ReceiveAccountKind = "COMPANY" | "PERSONAL";
 
 export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "OVERDUE";
 
@@ -216,6 +217,8 @@ export type BuyPaymentRow = {
   paidAt: string;
   actorEmail: string;
   note: string | null;
+  receiveAccountKind?: ReceiveAccountKind | null;
+  receiveAccountNote?: string | null;
 };
 
 export type BuyDetail = {

@@ -23,7 +23,13 @@ import {
   uploadBuyFile,
   voidBuy,
 } from "../actions";
-import { formatChi, formatStoneDetail, paymentMethodLabel, paymentStatusLabel } from "../labels";
+import {
+  formatChi,
+  formatStoneDetail,
+  paymentMethodLabel,
+  paymentStatusLabel,
+  receiveAccountKindLabel,
+} from "../labels";
 import {
   buyItemHasStone,
   type BuyAttachmentDocKind,
@@ -338,6 +344,9 @@ export function BuyDetailDrawer({
                         >
                           <span>
                             {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
+                            {receiveAccountKindLabel(p.receiveAccountKind)
+                              ? ` · ${receiveAccountKindLabel(p.receiveAccountKind)}`
+                              : ""}
                           </span>
                           <span className="font-medium">{formatDong(p.amountDong)}</span>
                         </li>

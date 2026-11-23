@@ -255,6 +255,10 @@ export function PosTerminal({
   const [useTransfer, setUseTransfer] = useState(false);
   const [cashDong, setCashDong] = useState(0);
   const [transferDong, setTransferDong] = useState(0);
+  const [transferAccountKind, setTransferAccountKind] = useState<"COMPANY" | "PERSONAL" | "">(
+    "",
+  );
+  const [transferAccountNote, setTransferAccountNote] = useState("");
   const [payMode, setPayMode] = useState<PosPayMode>("FULL");
   const [paidDong, setPaidDong] = useState(0);
   const [dueDate, setDueDate] = useState(defaultDueDateIso);
@@ -1031,6 +1035,14 @@ export function PosTerminal({
         return `Tổng tiền mặt + chuyển khoản phải bằng số tiền thu (${formatDongDigits(targetPaid)}đ).`;
       }
     }
+    if (useTransfer) {
+      if (transferAccountKind !== "COMPANY" && transferAccountKind !== "PERSONAL") {
+        return "Chuyển khoản phải chọn tài khoản công ty hoặc cá nhân.";
+      }
+      if (transferAccountKind === "PERSONAL" && !transferAccountNote.trim()) {
+        return "Tài khoản cá nhân cần thông tin nhận diện (tên/số TK).";
+      }
+    }
     return null;
   }
 
@@ -1040,16 +1052,34 @@ export function PosTerminal({
     return "CASH";
   }
 
-  function buildPaymentSplits(targetPaid: number): Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }> {
+  function buildPaymentSplits(targetPaid: number): Array<{
+    method: "CASH" | "TRANSFER";
+    amount_dong: number;
+    receive_account_kind?: "COMPANY" | "PERSONAL" | null;
+    receive_account_note?: string | null;
+  }> {
     if (targetPaid <= 0) return [];
-    const splits: Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }> = [];
+    const splits: Array<{
+      method: "CASH" | "TRANSFER";
+      amount_dong: number;
+      receive_account_kind?: "COMPANY" | "PERSONAL" | null;
+      receive_account_note?: string | null;
+    }> = [];
     if (useCash) {
       const amount = useTransfer ? Math.max(0, Math.trunc(cashDong)) : targetPaid;
       if (amount > 0) splits.push({ method: "CASH", amount_dong: amount });
     }
     if (useTransfer) {
       const amount = useCash ? Math.max(0, Math.trunc(transferDong)) : targetPaid;
-      if (amount > 0) splits.push({ method: "TRANSFER", amount_dong: amount });
+      if (amount > 0) {
+        splits.push({
+          method: "TRANSFER",
+          amount_dong: amount,
+          receive_account_kind: transferAccountKind || null,
+          receive_account_note:
+            transferAccountKind === "PERSONAL" ? transferAccountNote.trim() || null : null,
+        });
+      }
     }
     return splits;
   }
@@ -1613,6 +1643,8 @@ export function PosTerminal({
             useTransfer={useTransfer}
             cashDong={cashDong}
             transferDong={transferDong}
+            transferAccountKind={transferAccountKind}
+            transferAccountNote={transferAccountNote}
             payMode={payMode}
             paidDong={paidDong}
             dueDate={dueDate}
@@ -1632,7 +1664,13 @@ export function PosTerminal({
             onUseTransferChange={(value) => {
               setUseTransfer(value);
               if (!value && !useCash) setUseCash(true);
+              if (!value) {
+                setTransferAccountKind("");
+                setTransferAccountNote("");
+              }
             }}
+            onTransferAccountKindChange={setTransferAccountKind}
+            onTransferAccountNoteChange={setTransferAccountNote}
             onCashDongChange={(value) => {
               const capped = Math.max(0, Math.min(value, effectivePaidDong));
               setCashDong(capped);

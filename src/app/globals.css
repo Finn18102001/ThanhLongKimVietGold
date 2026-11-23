@@ -16,7 +16,8 @@
   --tlkv-line: #e5e7eb;
   --tlkv-green: #16a34a;
   --tlkv-green-soft: #dcfce7;
-  --tlkv-amber: #d97706;
+  /* Warning badges: darker ink on soft wash for small-label contrast (POS/HĐ). */
+  --tlkv-amber: #9a3412;
   --tlkv-amber-soft: #ffedd5;
   --tlkv-violet: #7c3aed;
   --tlkv-violet-soft: #ede9fe;

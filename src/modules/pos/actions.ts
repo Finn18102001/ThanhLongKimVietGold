@@ -39,7 +39,12 @@ type CompleteSaleInput = {
   customerName: string;
   customerPhone: string;
   paymentMethod: "CASH" | "TRANSFER" | "CARD" | "MIXED";
-  paymentSplits?: Array<{ method: "CASH" | "TRANSFER"; amount_dong: number }>;
+  paymentSplits?: Array<{
+    method: "CASH" | "TRANSFER";
+    amount_dong: number;
+    receive_account_kind?: "COMPANY" | "PERSONAL" | null;
+    receive_account_note?: string | null;
+  }>;
   note?: string;
   idempotencyKey?: string;
   paidDong?: number | null;

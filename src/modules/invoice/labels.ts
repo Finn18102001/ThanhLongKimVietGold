@@ -224,3 +224,20 @@ export function canPrintSalesInvoice(input: {
   if (!workflow) return true;
   return workflow === "COMPLETED" || input.fulfillmentStatus === "FULFILLED";
 }
+
+/** FR-03: note non-empty (after trim) ⇒ cần theo dõi. No separate status column. */
+export function invoiceNeedsFollowUp(note: string | null | undefined): boolean {
+  return Boolean(note && note.trim().length > 0);
+}
+
+export function receiveAccountKindLabel(kind: string | null | undefined): string {
+  if (kind === "COMPANY") return "TK công ty";
+  if (kind === "PERSONAL") return "TK cá nhân";
+  return "";
+}
+
+export function truncateInvoiceNote(note: string, max = 48): string {
+  const trimmed = note.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1)}…`;
+}

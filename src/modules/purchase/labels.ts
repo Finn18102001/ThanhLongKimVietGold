@@ -15,6 +15,12 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   OVERDUE: "Quá hạn",
 };
 
+export function receiveAccountKindLabel(kind: string | null | undefined): string {
+  if (kind === "COMPANY") return "TK công ty";
+  if (kind === "PERSONAL") return "TK cá nhân";
+  return "";
+}
+
 export function paymentMethodLabel(method: string): string {
   return PAYMENT_METHOD_LABEL[method as PaymentMethod] ?? method;
 }

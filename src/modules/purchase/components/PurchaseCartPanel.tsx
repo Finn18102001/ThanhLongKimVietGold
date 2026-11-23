@@ -51,6 +51,10 @@ export function PurchaseCartPanel({
   onBankAccount,
   bankAccountHolder,
   onBankAccountHolder,
+  receiveAccountKind,
+  onReceiveAccountKind,
+  receiveAccountNote,
+  onReceiveAccountNote,
   onCheckout,
 }: {
   customer: CustomerRecord | null;
@@ -66,6 +70,8 @@ export function PurchaseCartPanel({
   note: string;
   bankAccount: string;
   bankAccountHolder: string;
+  receiveAccountKind: "" | "COMPANY" | "PERSONAL";
+  receiveAccountNote: string;
   pending: boolean;
   anyCatalogException: boolean;
   onOpenCustomer: () => void;
@@ -79,6 +85,8 @@ export function PurchaseCartPanel({
   onNote: (v: string) => void;
   onBankAccount: (v: string) => void;
   onBankAccountHolder: (v: string) => void;
+  onReceiveAccountKind: (v: "" | "COMPANY" | "PERSONAL") => void;
+  onReceiveAccountNote: (v: string) => void;
   onCheckout: () => void;
 }) {
   function setUnitPrice(line: BuyLine, next: number) {
@@ -337,29 +345,68 @@ export function PurchaseCartPanel({
           </select>
         </label>
 
-        <label className="mt-3 block text-[13px]">
-          Số tài khoản
-          <input
-            type="text"
-            value={bankAccount}
-            onChange={(e) => onBankAccount(e.target.value)}
-            placeholder="Số TK ngân hàng của khách"
-            autoComplete="off"
-            className={`${purchaseInputClass} mt-1`}
-          />
-        </label>
-
-        <label className="mt-3 block text-[13px]">
-          Chủ tài khoản
-          <input
-            type="text"
-            value={bankAccountHolder}
-            onChange={(e) => onBankAccountHolder(e.target.value)}
-            placeholder="Tên chủ tài khoản"
-            autoComplete="off"
-            className={`${purchaseInputClass} mt-1`}
-          />
-        </label>
+        {paymentMethod === "TRANSFER" ? (
+          <div className="mt-3 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
+            <p className="text-[12px] font-medium">Loại TK nhận của khách</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(
+                [
+                  { value: "COMPANY" as const, label: "Công ty" },
+                  { value: "PERSONAL" as const, label: "Cá nhân" },
+                ] as const
+              ).map((opt) => {
+                const active = receiveAccountKind === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onReceiveAccountKind(opt.value)}
+                    className={`h-9 rounded-lg text-[12px] font-semibold ${
+                      active
+                        ? "bg-[var(--tlkv-red)] text-white"
+                        : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {receiveAccountKind === "PERSONAL" && !bankAccount.trim() && !bankAccountHolder.trim() ? (
+              <label className="block text-[12px] text-[var(--tlkv-muted)]">
+                Nhận diện TK cá nhân
+                <input
+                  value={receiveAccountNote}
+                  onChange={(e) => onReceiveAccountNote(e.target.value)}
+                  placeholder="Bắt buộc nếu chưa nhập số TK / chủ TK"
+                  className={`${purchaseInputClass} mt-0.5`}
+                />
+              </label>
+            ) : null}
+            <label className="block text-[13px]">
+              Số tài khoản
+              <input
+                type="text"
+                value={bankAccount}
+                onChange={(e) => onBankAccount(e.target.value)}
+                placeholder="Số TK ngân hàng của khách"
+                autoComplete="off"
+                className={`${purchaseInputClass} mt-1`}
+              />
+            </label>
+            <label className="block text-[13px]">
+              Chủ tài khoản
+              <input
+                type="text"
+                value={bankAccountHolder}
+                onChange={(e) => onBankAccountHolder(e.target.value)}
+                placeholder="Tên chủ tài khoản"
+                autoComplete="off"
+                className={`${purchaseInputClass} mt-1`}
+              />
+            </label>
+          </div>
+        ) : null}
 
         <fieldset className="mt-3">
           <legend className="text-[13px]">Trả cho khách</legend>

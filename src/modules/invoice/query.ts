@@ -50,6 +50,7 @@ type SaleEmbed = {
   fulfillment_status?: string | null;
   pickup_due_at?: string | null;
   operator_staff_id?: string | null;
+  note?: string | null;
 };
 
 function mapListRow(invoice: {
@@ -72,6 +73,9 @@ function mapListRow(invoice: {
   const remainingDong = Number(
     sale?.remaining_dong ?? Math.max(0, totalDong - paidDong),
   );
+  const noteRaw = sale?.note;
+  const note =
+    typeof noteRaw === "string" && noteRaw.trim().length > 0 ? noteRaw.trim() : null;
   return {
     id: invoice.id,
     invoiceNo: invoice.invoice_no,
@@ -96,11 +100,12 @@ function mapListRow(invoice: {
       sale?.fulfillment_status,
     ),
     documentType: "SALE_TO_CUSTOMER",
+    note,
   };
 }
 
 const SALE_COLS =
-  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id, deposit_workflow_status, deposit_agreement_no, deposit_slip_no, delivery_receipt_no";
+  "sale_no, payment_method, actor_email, status, payment_status, paid_dong, remaining_dong, due_date, transaction_type, fulfillment_status, pickup_due_at, operator_staff_id, deposit_workflow_status, deposit_agreement_no, deposit_slip_no, delivery_receipt_no, note";
 
 export async function listInvoices(filter: InvoiceListFilter = {}): Promise<InvoiceListPage> {
   const scope = await getInvoiceAccessScope();
@@ -109,11 +114,32 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const offset = Math.max(filter.offset ?? 0, 0);
   const query = sanitizeSearch(filter.query ?? "");
   const paymentMethod = filter.paymentMethod ?? null;
+  const receiveAccountKind = filter.receiveAccountKind ?? null;
   const paymentStatus = filter.paymentStatus ?? null;
   const transactionType = filter.transactionType ?? null;
   const fulfillment = filter.fulfillment ?? null;
   const from = filter.from || null;
   const to = filter.to || null;
+
+  // FR-06: filter by actual payment rows (MIXED can match CASH and TRANSFER).
+  let paymentSaleIds: string[] | null = null;
+  if (paymentMethod || receiveAccountKind) {
+    let payBuilder = supabase.from("pos_sale_payments").select("sale_id");
+    if (paymentMethod) payBuilder = payBuilder.eq("payment_method", paymentMethod);
+    if (receiveAccountKind) {
+      payBuilder = payBuilder
+        .eq("payment_method", "TRANSFER")
+        .eq("receive_account_kind", receiveAccountKind);
+    }
+    const { data: payRows, error: payError } = await payBuilder.limit(5000);
+    if (payError) throw new Error(payError.message);
+    paymentSaleIds = Array.from(
+      new Set((payRows ?? []).map((row) => String(row.sale_id)).filter(Boolean)),
+    );
+    if (paymentSaleIds.length === 0) {
+      return { items: [], total: 0, limit, offset };
+    }
+  }
 
   // Inner-join sales; VOIDED included when filter is Tất cả / VOIDED.
   const saleSelect = `pos_sales!inner(${SALE_COLS})`;
@@ -134,7 +160,7 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
 
   if (from) builder = builder.gte("issued_at", `${from}T00:00:00+07:00`);
   if (to) builder = builder.lte("issued_at", `${to}T23:59:59.999+07:00`);
-  if (paymentMethod) builder = builder.eq("pos_sales.payment_method", paymentMethod);
+  if (paymentSaleIds) builder = builder.in("sale_id", paymentSaleIds);
 
   if (paymentStatus === "VOIDED") {
     builder = builder.or("status.eq.VOIDED,voided_at.not.is.null,pos_sales.status.eq.VOIDED");
@@ -280,7 +306,7 @@ export async function getInvoiceByNo(invoiceNo: string): Promise<InvoiceDetail |
   const { data: invoice, error } = await supabase
     .from("pos_invoices")
     .select(
-      `id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, voided_at, voided_by, void_reason, pos_customers(name, phone, address, customer_no, is_walk_in, citizen_id, date_of_birth), pos_sales(${SALE_COLS}, note)`,
+      `id, invoice_no, total_dong, issued_at, status, actor_email, sale_id, voided_at, voided_by, void_reason, pos_customers(name, phone, address, customer_no, is_walk_in, citizen_id, date_of_birth), pos_sales(${SALE_COLS})`,
     )
     .eq("invoice_no", invoiceNo)
     .maybeSingle();
@@ -464,7 +490,9 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
     // Fallback direct read when RPC not yet deployed on an env.
     const { data: rows, error: rowError } = await supabase
       .from("pos_sale_payments")
-      .select("id, sale_id, amount_dong, payment_method, paid_at, actor_email, note")
+      .select(
+        "id, sale_id, amount_dong, payment_method, paid_at, actor_email, note, receive_account_kind, receive_account_note",
+      )
       .eq("sale_id", saleId)
       .order("paid_at", { ascending: true });
     if (rowError) throw new Error(error.message);
@@ -477,6 +505,11 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
       actorEmail: row.actor_email,
       note: row.note,
       receivedByName: row.actor_email.split("@")[0] ?? row.actor_email,
+      receiveAccountKind:
+        row.receive_account_kind === "COMPANY" || row.receive_account_kind === "PERSONAL"
+          ? row.receive_account_kind
+          : null,
+      receiveAccountNote: (row.receive_account_note as string | null) ?? null,
     }));
   }
   const items = (
@@ -490,6 +523,8 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
         actor_email: string;
         note: string | null;
         received_by_name?: string | null;
+        receive_account_kind?: string | null;
+        receive_account_note?: string | null;
       }>;
     } | null
   )?.items;
@@ -502,6 +537,11 @@ export async function listSalePayments(saleId: string): Promise<SalePaymentRecor
     actorEmail: row.actor_email,
     note: row.note,
     receivedByName: row.received_by_name ?? row.actor_email.split("@")[0] ?? row.actor_email,
+    receiveAccountKind:
+      row.receive_account_kind === "COMPANY" || row.receive_account_kind === "PERSONAL"
+        ? row.receive_account_kind
+        : null,
+    receiveAccountNote: row.receive_account_note ?? null,
   }));
 }
 
@@ -552,6 +592,8 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
     p_q: sanitizeSearch(filter.query ?? "") || null,
     p_limit: limit,
     p_offset: offset,
+    p_payment_method: filter.paymentMethod ?? null,
+    p_receive_account_kind: filter.receiveAccountKind ?? null,
   });
   if (error) throw new Error(error.message);
   const raw = data as {
@@ -597,6 +639,12 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
         ),
         documentType,
         isVoided,
+        note: (() => {
+          const rawNote = row.note;
+          if (typeof rawNote !== "string") return null;
+          const trimmed = rawNote.trim();
+          return trimmed.length > 0 ? trimmed : null;
+        })(),
       };
     }),
     total: Number(raw?.total ?? 0),
@@ -616,6 +664,8 @@ export async function exportDocuments(filter: InvoiceListFilter = {}): Promise<I
     p_to: filter.to || null,
     p_q: sanitizeSearch(filter.query ?? "") || null,
     p_limit: exportLimit,
+    p_payment_method: filter.paymentMethod ?? null,
+    p_receive_account_kind: filter.receiveAccountKind ?? null,
   });
   if (error) throw new Error(error.message);
   const raw = data as {

@@ -62,6 +62,7 @@ import {
   formatChi,
   formatStoneDetail,
   paymentMethodLabel,
+  receiveAccountKindLabel,
   paymentStatusBadgeClass,
   paymentStatusLabel,
 } from "./labels";
@@ -120,6 +121,10 @@ export function PurchaseWorkspace({
   const [note, setNote] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
+  const [receiveAccountKind, setReceiveAccountKind] = useState<"" | "COMPANY" | "PERSONAL">("");
+  const [receiveAccountNote, setReceiveAccountNote] = useState("");
+  const [collectAccountKind, setCollectAccountKind] = useState<"" | "COMPANY" | "PERSONAL">("");
+  const [collectAccountNote, setCollectAccountNote] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [meltChoiceOpen, setMeltChoiceOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -390,6 +395,29 @@ export function PurchaseWorkspace({
       });
       return;
     }
+    if (paymentMethod === "TRANSFER") {
+      if (receiveAccountKind !== "COMPANY" && receiveAccountKind !== "PERSONAL") {
+        setAlert({
+          tone: "error",
+          title: "Thiếu loại tài khoản",
+          reason: "Chuyển khoản phải chọn tài khoản công ty hoặc cá nhân của khách.",
+        });
+        return;
+      }
+      if (
+        receiveAccountKind === "PERSONAL" &&
+        !bankAccount.trim() &&
+        !bankAccountHolder.trim() &&
+        !receiveAccountNote.trim()
+      ) {
+        setAlert({
+          tone: "error",
+          title: "Thiếu nhận diện TK cá nhân",
+          reason: "Nhập số TK / chủ TK hoặc ghi chú nhận diện tài khoản cá nhân.",
+        });
+        return;
+      }
+    }
     if (!idempotencyKey.current) {
       idempotencyKey.current = crypto.randomUUID();
     }
@@ -449,6 +477,11 @@ export function PurchaseWorkspace({
         priceExceptionReason: null,
         bankAccount: bankAccount.trim() || null,
         bankAccountHolder: bankAccountHolder.trim() || null,
+        receiveAccountKind: paymentMethod === "TRANSFER" ? receiveAccountKind || null : null,
+        receiveAccountNote:
+          paymentMethod === "TRANSFER" && receiveAccountKind === "PERSONAL"
+            ? receiveAccountNote.trim() || null
+            : null,
         idempotencyKey: idempotencyKey.current || crypto.randomUUID(),
       });
       if (!created.ok) {
@@ -720,12 +753,40 @@ export function PurchaseWorkspace({
     setCollectPending(true);
     try {
       const nextRemaining = Math.max(0, detail.remainingDong - collectAmount);
+      if (collectMethod === "TRANSFER") {
+        if (collectAccountKind !== "COMPANY" && collectAccountKind !== "PERSONAL") {
+          setAlert({
+            tone: "error",
+            title: "Thiếu loại tài khoản",
+            reason: "Chuyển khoản phải chọn tài khoản công ty hoặc cá nhân.",
+          });
+          return;
+        }
+        if (
+          collectAccountKind === "PERSONAL" &&
+          !detail.customerBankAccount?.trim() &&
+          !detail.customerBankHolder?.trim() &&
+          !collectAccountNote.trim()
+        ) {
+          setAlert({
+            tone: "error",
+            title: "Thiếu nhận diện TK cá nhân",
+            reason: "Nhập ghi chú nhận diện hoặc đảm bảo phiếu đã có số TK / chủ TK.",
+          });
+          return;
+        }
+      }
       const collected = await collectBuyPayment({
         buyId: detail.id,
         amountDong: collectAmount,
         paymentMethod: collectMethod,
         idempotencyKey: collectKey.current,
         dueDate: nextRemaining > 0 ? collectDue : null,
+        receiveAccountKind: collectMethod === "TRANSFER" ? collectAccountKind || null : null,
+        receiveAccountNote:
+          collectMethod === "TRANSFER" && collectAccountKind === "PERSONAL"
+            ? collectAccountNote.trim() || null
+            : null,
       });
       if (!collected.ok) {
         setAlert({
@@ -846,7 +907,13 @@ export function PurchaseWorkspace({
             effectivePaid={effectivePaid}
             remainingDong={remainingDong}
             paymentMethod={paymentMethod}
-            onPaymentMethod={setPaymentMethod}
+            onPaymentMethod={(m) => {
+              setPaymentMethod(m);
+              if (m !== "TRANSFER") {
+                setReceiveAccountKind("");
+                setReceiveAccountNote("");
+              }
+            }}
             payMode={payMode}
             onPayMode={setPayMode}
             paidDong={paidDong}
@@ -859,6 +926,10 @@ export function PurchaseWorkspace({
             onBankAccount={setBankAccount}
             bankAccountHolder={bankAccountHolder}
             onBankAccountHolder={setBankAccountHolder}
+            receiveAccountKind={receiveAccountKind}
+            onReceiveAccountKind={setReceiveAccountKind}
+            receiveAccountNote={receiveAccountNote}
+            onReceiveAccountNote={setReceiveAccountNote}
             pending={pending}
             anyCatalogException={anyCatalogException}
             onOpenCustomer={() => setPickingCustomer(true)}
@@ -1248,6 +1319,9 @@ export function PurchaseWorkspace({
                         >
                           <span>
                             {formatViDateTime(p.paidAt)} · {paymentMethodLabel(p.paymentMethod)}
+                            {receiveAccountKindLabel(p.receiveAccountKind)
+                              ? ` · ${receiveAccountKindLabel(p.receiveAccountKind)}`
+                              : ""}
                             {p.actorEmail ? (
                               <span className="text-[var(--tlkv-muted)]"> · {p.actorEmail}</span>
                             ) : null}
@@ -1293,6 +1367,35 @@ export function PurchaseWorkspace({
                           />
                         </Field>
                       </div>
+                      {collectMethod === "TRANSFER" ? (
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <Field label="Loại TK khách">
+                            <select
+                              value={collectAccountKind}
+                              onChange={(e) =>
+                                setCollectAccountKind(
+                                  e.target.value as "" | "COMPANY" | "PERSONAL",
+                                )
+                              }
+                              className={purchaseInputClass}
+                            >
+                              <option value="">Chọn…</option>
+                              <option value="COMPANY">Công ty</option>
+                              <option value="PERSONAL">Cá nhân</option>
+                            </select>
+                          </Field>
+                          {collectAccountKind === "PERSONAL" ? (
+                            <Field label="Nhận diện TK cá nhân">
+                              <input
+                                value={collectAccountNote}
+                                onChange={(e) => setCollectAccountNote(e.target.value)}
+                                placeholder="Nếu phiếu chưa có số TK / chủ TK"
+                                className={purchaseInputClass}
+                              />
+                            </Field>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <button
                         type="button"
                         disabled={collectPending || collectAmount <= 0}

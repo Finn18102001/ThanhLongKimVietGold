@@ -28,6 +28,7 @@ import {
   canPrintSalesInvoice,
   paymentBadgeClass,
   paymentLabel,
+  receiveAccountKindLabel,
   paymentStatusBadgeClass,
   paymentStatusLabel,
   transactionTypeLabel,
@@ -96,6 +97,8 @@ export function InvoiceDrawer({
     (invoice.paymentMethod as "CASH" | "TRANSFER" | "CARD") || "CASH",
   );
   const [note, setNote] = useState("");
+  const [receiveAccountKind, setReceiveAccountKind] = useState<"" | "COMPANY" | "PERSONAL">("");
+  const [receiveAccountNote, setReceiveAccountNote] = useState("");
 
   function openPrintView() {
     window.open(invoiceDetailPath(invoice.invoiceNo), "_blank", "noopener,noreferrer");
@@ -143,6 +146,16 @@ export function InvoiceDrawer({
       setError(`Không vượt số còn lại (${formatDong(invoice.remainingDong)}).`);
       return;
     }
+    if (method === "TRANSFER") {
+      if (receiveAccountKind !== "COMPANY" && receiveAccountKind !== "PERSONAL") {
+        setError("Chuyển khoản phải chọn tài khoản công ty hoặc cá nhân.");
+        return;
+      }
+      if (receiveAccountKind === "PERSONAL" && !receiveAccountNote.trim()) {
+        setError("Tài khoản cá nhân cần thông tin nhận diện.");
+        return;
+      }
+    }
     setPending(true);
     setError(null);
     const result = await collectSalePayment({
@@ -151,6 +164,11 @@ export function InvoiceDrawer({
       paymentMethod: method,
       note: note || undefined,
       dueDate: invoice.dueDate,
+      receiveAccountKind: method === "TRANSFER" ? receiveAccountKind || null : null,
+      receiveAccountNote:
+        method === "TRANSFER" && receiveAccountKind === "PERSONAL"
+          ? receiveAccountNote.trim() || null
+          : null,
     });
     if (!result.ok) {
       setError(formatActionError(result.message, "Thu tiền thất bại."));
@@ -175,6 +193,15 @@ export function InvoiceDrawer({
           actorEmail: invoice.actorEmail,
           note: note || null,
           receivedByName: null,
+          receiveAccountKind:
+            method === "TRANSFER" &&
+            (receiveAccountKind === "COMPANY" || receiveAccountKind === "PERSONAL")
+              ? receiveAccountKind
+              : null,
+          receiveAccountNote:
+            method === "TRANSFER" && receiveAccountKind === "PERSONAL"
+              ? receiveAccountNote.trim() || null
+              : null,
         },
       ],
     });
@@ -434,7 +461,14 @@ export function InvoiceDrawer({
                 Hình thức
                 <select
                   value={method}
-                  onChange={(e) => setMethod(e.target.value as "CASH" | "TRANSFER" | "CARD")}
+                  onChange={(e) => {
+                    const next = e.target.value as "CASH" | "TRANSFER" | "CARD";
+                    setMethod(next);
+                    if (next !== "TRANSFER") {
+                      setReceiveAccountKind("");
+                      setReceiveAccountNote("");
+                    }
+                  }}
                   className={FIELD}
                 >
                   <option value="CASH">Tiền mặt</option>
@@ -442,6 +476,35 @@ export function InvoiceDrawer({
                   <option value="CARD">Thẻ</option>
                 </select>
               </label>
+              {method === "TRANSFER" ? (
+                <>
+                  <label className="mt-2 block text-[13px]">
+                    Tài khoản nhận (TLKV)
+                    <select
+                      value={receiveAccountKind}
+                      onChange={(e) =>
+                        setReceiveAccountKind(e.target.value as "" | "COMPANY" | "PERSONAL")
+                      }
+                      className={FIELD}
+                    >
+                      <option value="">Chọn…</option>
+                      <option value="COMPANY">Công ty</option>
+                      <option value="PERSONAL">Cá nhân</option>
+                    </select>
+                  </label>
+                  {receiveAccountKind === "PERSONAL" ? (
+                    <label className="mt-2 block text-[13px]">
+                      Nhận diện TK cá nhân
+                      <input
+                        value={receiveAccountNote}
+                        onChange={(e) => setReceiveAccountNote(e.target.value)}
+                        className={FIELD}
+                        placeholder="Tên chủ TK / số TK"
+                      />
+                    </label>
+                  ) : null}
+                </>
+              ) : null}
               <label className="mt-2 block text-[13px]">
                 Ghi chú
                 <input
@@ -477,8 +540,15 @@ export function InvoiceDrawer({
                     <div>
                       <p className="font-medium">{formatDong(p.amountDong)}</p>
                       <p className="text-[var(--tlkv-muted)]">
-                        {paymentLabel(p.paymentMethod)} · {formatViDateTime(p.paidAt)}
+                        {paymentLabel(p.paymentMethod)}
+                        {receiveAccountKindLabel(p.receiveAccountKind)
+                          ? ` · ${receiveAccountKindLabel(p.receiveAccountKind)}`
+                          : ""}{" "}
+                        · {formatViDateTime(p.paidAt)}
                       </p>
+                      {p.receiveAccountNote ? (
+                        <p className="text-[var(--tlkv-muted)]">{p.receiveAccountNote}</p>
+                      ) : null}
                       {p.note ? <p className="text-[var(--tlkv-muted)]">{p.note}</p> : null}
                     </div>
                     <span className="shrink-0 text-[var(--tlkv-muted)]">
