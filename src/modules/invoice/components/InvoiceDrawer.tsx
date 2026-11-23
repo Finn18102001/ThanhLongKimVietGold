@@ -244,11 +244,17 @@ export function InvoiceDrawer({
               <p className="text-[18px] font-bold text-[var(--tlkv-red)]">{invoice.invoiceNo}</p>
               <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">Mã bán {invoice.saleNo}</p>
             </div>
-            <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
-            >
-              {invoiceLifecycleLabel(lifecycle)}
-            </span>
+            {isVoided ? (
+              <span className="rounded-full bg-[var(--tlkv-red-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--tlkv-red)]">
+                Đã hủy
+              </span>
+            ) : (
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
+              >
+                {invoiceLifecycleLabel(lifecycle)}
+              </span>
+            )}
           </div>
           <div className="mt-2 flex flex-wrap gap-1">
             <span className="rounded-full bg-[var(--tlkv-slate-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-slate)]">
@@ -257,13 +263,19 @@ export function InvoiceDrawer({
             <span className="rounded-full bg-[var(--tlkv-amber-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--tlkv-amber)]">
               {fulfillmentLabel(invoice.transactionType, invoice.fulfillmentStatus)}
             </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
-            >
-              {paymentStatusLabel(payStatus)}
-            </span>
+            {!isVoided ? (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${paymentStatusBadgeClass(payStatus)}`}
+              >
+                {paymentStatusLabel(payStatus)}
+              </span>
+            ) : null}
           </div>
-          {!incomplete ? (
+          {isVoided ? (
+            <p className="mt-2 rounded-lg border border-[var(--tlkv-red)]/30 bg-[var(--tlkv-red-soft)] px-2.5 py-1.5 text-[11px] text-[var(--tlkv-red)]">
+              Hóa đơn đã hủy — khóa thu thêm / giao hàng / chỉnh sửa. Chỉ xem và in.
+            </p>
+          ) : !incomplete ? (
             <p className="mt-2 rounded-lg border border-[var(--tlkv-green)]/30 bg-[var(--tlkv-green-soft)] px-2.5 py-1.5 text-[11px] text-[var(--tlkv-green)]">
               Hóa đơn đã hoàn thành - khóa thu thêm / giao hàng. Chỉ in và xem.
             </p>
@@ -408,15 +420,6 @@ export function InvoiceDrawer({
                   {pending ? "Đang giao..." : "Giao hàng"}
                 </button>
               </div>
-            </section>
-          ) : null}
-
-          {isVoided ? (
-            <section className="mt-3 rounded-[12px] border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)]/50 p-3">
-              <p className="text-[12px] font-semibold text-[var(--tlkv-red)]">Hóa đơn đã hủy</p>
-              <p className="mt-1 text-[12px] text-[var(--tlkv-muted)]">
-                Không thu thêm / giao hàng / chỉnh sửa. Chỉ xem lịch sử và in.
-              </p>
             </section>
           ) : null}
 
@@ -570,6 +573,24 @@ export function InvoiceDrawer({
               </div>
             </div>
           </div>
+
+          {isVoided ? (
+            <section className="mt-4 rounded-[12px] border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)]/50 p-3">
+              <p className="text-[12px] font-semibold text-[var(--tlkv-red)]">Lý do hủy</p>
+              <p className="mt-1 text-[13px] text-[var(--tlkv-text)]">
+                {invoice.voidReason?.trim() || "Không ghi nhận lý do."}
+              </p>
+              <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
+                Không thu thêm / giao hàng / chỉnh sửa. Chỉ xem lịch sử và in.
+              </p>
+              {(invoice.voidedBy || invoice.voidedAt) && (
+                <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+                  {invoice.voidedBy ? `Người hủy: ${invoice.voidedBy}` : null}
+                  {invoice.voidedAt ? ` · ${formatViDateTime(invoice.voidedAt)}` : null}
+                </p>
+              )}
+            </section>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-[var(--tlkv-line)] px-5 py-3">

@@ -48,6 +48,9 @@ export type StockReceiptDetail = {
   completedAt: string | null;
   stockAppliedAt: string | null;
   createdAt: string;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
   items: StockReceiptLine[];
   payments: StockReceiptPayment[];
 };

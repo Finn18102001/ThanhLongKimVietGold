@@ -172,6 +172,9 @@ export function StockReceiptDrawer({
       goodsStatus: "CANCELLED",
       status: "CANCELLED",
       remainingDong: 0,
+      voidReason: reason,
+      voidedAt: new Date().toISOString(),
+      voidedBy: receipt.voidedBy ?? receipt.actorEmail,
     });
     setVoidOpen(false);
     setVoidReason("");
@@ -332,6 +335,21 @@ export function StockReceiptDrawer({
           </section>
 
           {error ? <p className="mt-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
+
+          {isCancelled ? (
+            <section className="mt-4 rounded-[12px] border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)]/50 p-3">
+              <p className="text-[12px] font-semibold text-[var(--tlkv-red)]">Lý do hủy</p>
+              <p className="mt-1 text-[13px] text-[var(--tlkv-text)]">
+                {receipt.voidReason?.trim() || "Không ghi nhận lý do."}
+              </p>
+              {(receipt.voidedBy || receipt.voidedAt) && (
+                <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
+                  {receipt.voidedBy ? `Người hủy: ${receipt.voidedBy}` : null}
+                  {receipt.voidedAt ? ` · ${formatViDateTime(receipt.voidedAt)}` : null}
+                </p>
+              )}
+            </section>
+          ) : null}
 
           {!isCancelled && receipt.goodsStatus === "NOT_RECEIVED" ? (
             <button

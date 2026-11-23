@@ -8,6 +8,9 @@ export const PAYMENT_LABEL: Record<string, string> = {
 /** Spec §14 — independent of sale / invoice transaction status. */
 export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "OVERDUE";
 
+/** List filter Trạng thái TT: payment statuses + Đã hủy. */
+export type PaymentStatusFilter = PaymentStatus | "VOIDED";
+
 export type DocumentType = "SALE_TO_CUSTOMER" | "PURCHASE_FROM_CUSTOMER" | "STOCK_RECEIPT";
 
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
@@ -15,6 +18,11 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   PARTIALLY_PAID: "Thanh toán một phần",
   PAID: "Đã thanh toán đủ",
   OVERDUE: "Quá hạn thanh toán",
+};
+
+export const PAYMENT_STATUS_FILTER_LABEL: Record<PaymentStatusFilter, string> = {
+  ...PAYMENT_STATUS_LABEL,
+  VOIDED: "Đã hủy",
 };
 
 export type InvoiceLine = {
@@ -63,6 +71,8 @@ export type InvoiceListRow = {
   transactionType: "SALE" | "PREORDER" | "DEPOSIT";
   fulfillmentStatus: string;
   documentType: DocumentType;
+  /** True when chứng từ đã hủy / đảo (hiện "Đã hủy" trên danh sách). */
+  isVoided?: boolean;
 };
 
 export type GoldDeliveryFilter = "DELIVERED" | "UNFULFILLED";
@@ -72,7 +82,7 @@ export type InvoiceListFilter = {
   from?: string | null;
   to?: string | null;
   paymentMethod?: "CASH" | "TRANSFER" | "CARD" | null;
-  paymentStatus?: PaymentStatus | null;
+  paymentStatus?: PaymentStatusFilter | null;
   transactionType?: "SALE" | "PREORDER" | "DEPOSIT" | null;
   fulfillment?: "UNFULFILLED" | "FULFILLED" | null;
   /** Filter đặt hàng/đặt cọc theo trạng thái trả vàng (không đổi nghiệp vụ). */

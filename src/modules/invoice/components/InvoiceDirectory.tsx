@@ -34,6 +34,7 @@ import type {
   InvoiceListPage,
   InvoiceListRow,
   PaymentStatus,
+  PaymentStatusFilter,
 } from "../types";
 import type { StockReceiptDetail } from "../types-receipt";
 import { InvoiceDrawer } from "./InvoiceDrawer";
@@ -50,12 +51,13 @@ const EXPORT_LIMIT_OPTIONS = [
   { value: 500, label: "500 gần nhất" },
   { value: 0, label: "Tất cả (tối đa 5000)" },
 ] as const;
-const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatus; label: string }[] = [
+const PAYMENT_STATUS_OPTIONS: { value: "" | PaymentStatusFilter; label: string }[] = [
   { value: "", label: "Trạng thái TT: Tất cả" },
   { value: "PAID", label: "Đã thanh toán" },
   { value: "PARTIALLY_PAID", label: "Thanh toán một phần" },
   { value: "UNPAID", label: "Chưa thanh toán" },
   { value: "OVERDUE", label: "Quá hạn" },
+  { value: "VOIDED", label: "Đã hủy" },
 ];
 const DOCUMENT_TYPE_OPTIONS: { value: "" | DocumentType; label: string }[] = [
   { value: "", label: "Loại: Tất cả" },
@@ -81,7 +83,7 @@ export function InvoiceDirectory({
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatus>("");
+  const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatusFilter>("");
   const [documentType, setDocumentType] = useState<"" | DocumentType>("");
   const [goldDelivery, setGoldDelivery] = useState<"" | GoldDeliveryFilter>("");
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export function InvoiceDirectory({
     query?: string;
     from?: string;
     to?: string;
-    paymentStatus?: "" | PaymentStatus;
+    paymentStatus?: "" | PaymentStatusFilter;
     documentType?: "" | DocumentType;
     goldDelivery?: "" | GoldDeliveryFilter;
     limit?: number;
@@ -160,14 +162,20 @@ export function InvoiceDirectory({
   useEffect(() => {
     const q = searchParams.get("q")?.trim();
     const pay = searchParams.get("paymentStatus")?.trim();
-    if (pay === "PARTIALLY_PAID" || pay === "PAID" || pay === "UNPAID" || pay === "OVERDUE") {
+    if (
+      pay === "PARTIALLY_PAID" ||
+      pay === "PAID" ||
+      pay === "UNPAID" ||
+      pay === "OVERDUE" ||
+      pay === "VOIDED"
+    ) {
       setPaymentStatus(pay);
     }
     if (!q && !pay) return;
     if (q) setQuery(q);
     refresh({
       query: q || query,
-      paymentStatus: (pay as PaymentStatus | undefined) || paymentStatus,
+      paymentStatus: (pay as PaymentStatusFilter | undefined) || paymentStatus,
       offset: 0,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- áp dụng theo query trên URL
@@ -272,7 +280,12 @@ export function InvoiceDirectory({
           row.totalDong,
           row.paidDong,
           row.remainingDong,
-          paymentStatusLabel(row.paymentStatus),
+          paymentStatus === "VOIDED" ||
+          row.status === "VOIDED" ||
+          row.saleStatus === "VOIDED" ||
+          row.isVoided
+            ? "Đã hủy"
+            : paymentStatusLabel(row.paymentStatus),
           paymentLabel(row.paymentMethod),
           formatViDateTime(row.issuedAt),
           row.goldReturnStatus,
@@ -379,7 +392,7 @@ export function InvoiceDirectory({
           <select
             value={paymentStatus}
             onChange={(event) => {
-              const value = event.target.value as "" | PaymentStatus;
+              const value = event.target.value as "" | PaymentStatusFilter;
               setPaymentStatus(value);
               refresh({ paymentStatus: value, offset: 0 });
             }}
@@ -437,6 +450,10 @@ export function InvoiceDirectory({
             ) : (
               page.items.map((row) => {
                 const phone = formatInvoicePhone(row.customerPhone);
+                const isVoided =
+                  row.isVoided === true ||
+                  row.status === "VOIDED" ||
+                  row.saleStatus === "VOIDED";
                 const payStatus = effectivePaymentStatus(
                   row.paymentStatus,
                   row.remainingDong,
@@ -487,14 +504,22 @@ export function InvoiceDirectory({
                       </span>
                     </td>
                     <td className="py-3 pr-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
-                      >
-                        {invoiceLifecycleLabel(lifecycle)}
-                      </span>
-                      <p className="mt-1 text-[10px] text-[var(--tlkv-muted)]">
-                        {paymentStatusLabel(payStatus)}
-                      </p>
+                      {isVoided ? (
+                        <span className="inline-flex rounded-full bg-[var(--tlkv-red-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--tlkv-red)]">
+                          Đã hủy
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${invoiceLifecycleBadgeClass(lifecycle)}`}
+                          >
+                            {invoiceLifecycleLabel(lifecycle)}
+                          </span>
+                          <p className="mt-1 text-[10px] text-[var(--tlkv-muted)]">
+                            {paymentStatusLabel(payStatus)}
+                          </p>
+                        </>
+                      )}
                     </td>
                     <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
                       {formatViDateTime(row.issuedAt)}

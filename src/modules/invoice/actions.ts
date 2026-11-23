@@ -58,6 +58,9 @@ function mapStockReceipt(raw: Record<string, unknown>): StockReceiptDetail {
     completedAt: (raw.completedAt as string | null) ?? null,
     stockAppliedAt: (raw.stockAppliedAt as string | null) ?? null,
     createdAt: String(raw.createdAt ?? ""),
+    voidedAt: (raw.voidedAt as string | null) ?? (raw.voided_at as string | null) ?? null,
+    voidedBy: (raw.voidedBy as string | null) ?? (raw.voided_by as string | null) ?? null,
+    voidReason: (raw.voidReason as string | null) ?? (raw.void_reason as string | null) ?? null,
     items: items.map((row) => ({
       id: String(row.id),
       skuId: String(row.skuId),
@@ -92,7 +95,20 @@ export async function fetchStockReceiptDetail(
       p_receipt_id: receiptId,
     });
     if (error) throw new Error(error.message);
-    return mapStockReceipt((data ?? {}) as Record<string, unknown>);
+    const mapped = mapStockReceipt((data ?? {}) as Record<string, unknown>);
+    if (mapped.voidReason != null || mapped.voidedAt != null) return mapped;
+    const { data: voidMeta } = await supabase
+      .from("pos_purchase_receipts")
+      .select("void_reason, voided_at, voided_by")
+      .eq("id", receiptId)
+      .maybeSingle();
+    if (!voidMeta) return mapped;
+    return {
+      ...mapped,
+      voidReason: (voidMeta.void_reason as string | null) ?? null,
+      voidedAt: (voidMeta.voided_at as string | null) ?? null,
+      voidedBy: (voidMeta.voided_by as string | null) ?? null,
+    };
   }, "Không tải được phiếu nhập.");
 }
 

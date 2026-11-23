@@ -372,6 +372,21 @@ export function BuyDetailDrawer({
                       </span>
                     ) : null}
                   </div>
+
+                  {buy.status === "VOIDED" || buy.voidedAt ? (
+                    <section className="rounded-[12px] border border-[var(--tlkv-red)]/40 bg-[var(--tlkv-red-soft)]/50 p-3">
+                      <p className="text-[12px] font-semibold text-[var(--tlkv-red)]">Lý do hủy</p>
+                      <p className="mt-1 text-[13px] text-[var(--tlkv-text)]">
+                        {buy.voidReason?.trim() || "Không ghi nhận lý do."}
+                      </p>
+                      {(buy.voidedBy || buy.voidedAt) && (
+                        <p className="mt-2 text-[11px] text-[var(--tlkv-muted)]">
+                          {buy.voidedBy ? `Người hủy: ${buy.voidedBy}` : null}
+                          {buy.voidedAt ? ` · ${formatViDateTime(buy.voidedAt)}` : null}
+                        </p>
+                      )}
+                    </section>
+                  ) : null}
                 </>
               )}
             </div>

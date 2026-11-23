@@ -752,9 +752,14 @@ export async function listBuys(input?: {
 
 export async function getBuy(buyId: string): Promise<BuyDetail> {
   const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_get_buy", {
-    p_buy_id: buyId,
-  });
+  const [{ data, error }, voidMetaResult] = await Promise.all([
+    supabase.rpc("pos_get_buy", { p_buy_id: buyId }),
+    supabase
+      .from("pos_buys")
+      .select("void_reason, voided_at, voided_by")
+      .eq("id", buyId)
+      .maybeSingle(),
+  ]);
   if (error) {
     throw new Error(error.message);
   }
@@ -775,6 +780,7 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
   const attachments = ((raw.attachments as Record<string, unknown>[] | null) ?? []).map(
     mapBuyAttachment,
   );
+  const voidMeta = voidMetaResult.data;
   return {
     id: String(raw.id),
     buyNo: String(raw.buyNo ?? ""),
@@ -803,6 +809,21 @@ export async function getBuy(buyId: string): Promise<BuyDetail> {
         ? asNumber(raw.intendedPaidDong ?? raw.intended_paid_dong)
         : null,
     skipMelt: Boolean(raw.skipMelt ?? raw.skip_melt),
+    voidedAt:
+      (raw.voidedAt as string | null) ??
+      (raw.voided_at as string | null) ??
+      (voidMeta?.voided_at as string | null) ??
+      null,
+    voidedBy:
+      (raw.voidedBy as string | null) ??
+      (raw.voided_by as string | null) ??
+      (voidMeta?.voided_by as string | null) ??
+      null,
+    voidReason:
+      (raw.voidReason as string | null) ??
+      (raw.void_reason as string | null) ??
+      (voidMeta?.void_reason as string | null) ??
+      null,
     items,
     payments,
     attachments,

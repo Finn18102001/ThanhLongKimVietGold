@@ -97,6 +97,12 @@ export function paymentBadgeClass(method: string): string {
 }
 
 export function paymentStatusLabel(status: PaymentStatus | string): string {
+  if (status === "VOIDED") return "Đã hủy";
+  return PAYMENT_STATUS_LABEL[status as PaymentStatus] ?? status;
+}
+
+export function paymentStatusFilterLabel(status: PaymentStatus | "VOIDED" | string): string {
+  if (status === "VOIDED") return "Đã hủy";
   return PAYMENT_STATUS_LABEL[status as PaymentStatus] ?? status;
 }
 
@@ -124,7 +130,7 @@ export function paymentStatusBadgeClass(status: PaymentStatus | string): string 
   if (status === "PARTIALLY_PAID") {
     return "bg-[var(--tlkv-amber-soft)] text-[var(--tlkv-amber)]";
   }
-  if (status === "OVERDUE") {
+  if (status === "OVERDUE" || status === "VOIDED") {
     return "bg-[var(--tlkv-red-soft)] text-[var(--tlkv-red)]";
   }
   if (status === "UNPAID") {

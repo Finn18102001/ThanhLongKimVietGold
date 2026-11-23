@@ -249,6 +249,9 @@ export type BuyDetail = {
   intendedPaidDong?: number | null;
   /** True when buy skipped melt/purity (direct branded repurchase). */
   skipMelt?: boolean;
+  voidedAt?: string | null;
+  voidedBy?: string | null;
+  voidReason?: string | null;
   items: BuyDetailItem[];
   payments: BuyPaymentRow[];
   attachments: BuyAttachment[];

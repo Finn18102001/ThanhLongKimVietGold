@@ -115,18 +115,16 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const from = filter.from || null;
   const to = filter.to || null;
 
-  // Always inner-join sales so VOIDED sales never appear in list/search.
+  // Inner-join sales; VOIDED included when filter is Tất cả / VOIDED.
   const saleSelect = `pos_sales!inner(${SALE_COLS})`;
 
   let builder = supabase
     .from("pos_invoices")
     .select(
-      `id, invoice_no, total_dong, issued_at, status, actor_email, customer_id, ${saleSelect}, pos_customers(name, phone, customer_no, is_walk_in)`,
+      `id, invoice_no, total_dong, issued_at, status, actor_email, customer_id, voided_at, ${saleSelect}, pos_customers(name, phone, customer_no, is_walk_in)`,
       { count: "exact" },
     )
-    .neq("status", "VOIDED")
-    .is("voided_at", null)
-    .eq("pos_sales.status", "COMPLETED")
+    .in("pos_sales.status", paymentStatus === "VOIDED" ? ["VOIDED"] : ["COMPLETED", "VOIDED"])
     .order("issued_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -138,14 +136,23 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   if (to) builder = builder.lte("issued_at", `${to}T23:59:59.999+07:00`);
   if (paymentMethod) builder = builder.eq("pos_sales.payment_method", paymentMethod);
 
-  if (paymentStatus === "OVERDUE") {
+  if (paymentStatus === "VOIDED") {
+    builder = builder.or("status.eq.VOIDED,voided_at.not.is.null,pos_sales.status.eq.VOIDED");
+  } else if (paymentStatus === "OVERDUE") {
     const today = new Date().toISOString().slice(0, 10);
     builder = builder
+      .neq("status", "VOIDED")
+      .is("voided_at", null)
+      .eq("pos_sales.status", "COMPLETED")
       .gt("pos_sales.remaining_dong", 0)
       .not("pos_sales.due_date", "is", null)
       .lt("pos_sales.due_date", today);
   } else if (paymentStatus) {
-    builder = builder.eq("pos_sales.payment_status", paymentStatus);
+    builder = builder
+      .neq("status", "VOIDED")
+      .is("voided_at", null)
+      .eq("pos_sales.status", "COMPLETED")
+      .eq("pos_sales.payment_status", paymentStatus);
   }
 
   if (transactionType) {
@@ -221,9 +228,14 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const { data, error, count } = await builder;
   if (error) throw new Error(error.message);
 
-  const items = (data ?? [])
-    .map((row) => mapListRow(row))
-    .filter((row) => row.status !== "VOIDED" && row.saleStatus !== "VOIDED");
+  const items = (data ?? []).map((row) => {
+    const mapped = mapListRow(row);
+    const isVoided =
+      mapped.status === "VOIDED" ||
+      mapped.saleStatus === "VOIDED" ||
+      Boolean((row as { voided_at?: string | null }).voided_at);
+    return { ...mapped, isVoided };
+  });
 
   return {
     items,
@@ -554,10 +566,11 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
       const totalDong = Number(row.totalDong ?? 0);
       const paidDong = Number(row.paidDong ?? 0);
       const remainingDong = Number(row.remainingDong ?? 0);
+      const isVoided = Boolean(row.isVoided);
       return {
         id: String(row.id),
         invoiceNo: String(row.documentNo ?? ""),
-        status: "ISSUED",
+        status: isVoided ? "VOIDED" : "ISSUED",
         totalDong,
         paidDong,
         remainingDong,
@@ -576,13 +589,14 @@ export async function listDocuments(filter: InvoiceListFilter = {}): Promise<Inv
         isWalkIn: false,
         paymentMethod: String(row.paymentMethod ?? ""),
         saleNo: String(row.refNo ?? ""),
-        saleStatus: "COMPLETED",
+        saleStatus: isVoided ? "VOIDED" : "COMPLETED",
         transactionType: asSaleTransactionType(row.transactionType),
         fulfillmentStatus: asFulfillmentStatus(
           asSaleTransactionType(row.transactionType),
           row.fulfillmentStatus,
         ),
         documentType,
+        isVoided,
       };
     }),
     total: Number(raw?.total ?? 0),
