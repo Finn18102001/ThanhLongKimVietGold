@@ -179,6 +179,43 @@ export type BuyListPage = {
   offset: number;
 };
 
+/** P10 M1: phiếu mua chờ QT / chờ Phiếu 02 — mirror sale awaiting-gold list shape. */
+export type BuyFundPhase =
+  | "NEED_ISSUE"
+  | "AWAITING_FUND"
+  | "FUND_CONFIRMED"
+  | "FUND_REJECTED"
+  | string;
+
+export type BuyAwaitingFundRow = {
+  buyId: string;
+  buyNo: string;
+  customerId: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  totalDong: number;
+  intendedPaidDong: number | null;
+  paymentMethod: string | null;
+  workflowStatus: BuyWorkflowStatus | string;
+  status: BuyStatus | string;
+  actorEmail: string | null;
+  createdAt: string | null;
+  requestId: string | null;
+  requestCode: string | null;
+  requestStatus: string | null;
+  requestAmountDong: number | null;
+  cashAccountCode: string | null;
+  itemCount: number;
+  fundPhase: BuyFundPhase;
+  canCompleteForm02: boolean;
+};
+
+export type BuyAwaitingFundList = {
+  items: BuyAwaitingFundRow[];
+  total: number;
+  seesAll: boolean;
+};
+
 export type BuyDetailItem = {
   id: string;
   skuId: string | null;

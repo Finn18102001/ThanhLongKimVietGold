@@ -18,14 +18,13 @@ export function YcRequestDocument({ request }: { request: CashRequestRow }) {
         ? "Từ chối"
         : "Chờ xác nhận";
   const kindLabel = request.kind === "CHI" ? "CHI TIỀN" : "THU TIỀN";
-  const created = new Date(request.createdAt);
-  const dateLabel = Number.isNaN(created.getTime())
-    ? ""
-    : created.toLocaleDateString("vi-VN");
+  const createdAtLabel = formatWhen(request.createdAt);
+  /** Stable DB code on YC slip: HD… (THU) / BUY-… (CHI). */
+  const documentBarcodeCode = request.sourceCode?.trim() || "";
 
   return (
     <article className="sale-deposit-print bg-white text-black">
-      <PrintBrandIdentityHeader />
+      <PrintBrandIdentityHeader documentCode={documentBarcodeCode || null} />
 
       <p
         className="text-center font-bold uppercase"
@@ -34,7 +33,7 @@ export function YcRequestDocument({ request }: { request: CashRequestRow }) {
         Phiếu yêu cầu thu/chi
       </p>
       <p className="text-center" style={{ marginTop: "1.5mm", fontSize: "11pt" }}>
-        Ngày lập: {dateLabel}
+        Ngày lập: {createdAtLabel}
       </p>
 
       <table className="w-full" style={{ marginTop: "6mm", fontSize: "11pt", borderCollapse: "collapse" }}>

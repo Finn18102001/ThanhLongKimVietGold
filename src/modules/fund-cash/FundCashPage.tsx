@@ -34,39 +34,56 @@ export async function FundCashPage() {
     redirect(roleHomePath(session.role));
   }
 
-  const accounts = await listEmployeeCashAccounts();
-  const staffAccount =
-    accounts.find((a) => a.id === gate.access.staffAccountId) ??
-    accounts.find((a) => a.kind === "STAFF") ??
-    null;
-  const ledgerAccountId = gate.access.isAdmin
-    ? (accounts[0]?.id ?? null)
-    : (staffAccount?.id ?? null);
-  const ledger = await listEmployeeCashLedger({
-    accountId: ledgerAccountId,
-    limit: 80,
-    offset: 0,
-  });
-  const [transfers, requests] = await Promise.all([
-    listCashTransfers({ limit: 50, offset: 0 }),
-    listCashRequests({ limit: 80, offset: 0 }),
-  ]);
-
   const canMutate = canMutateAdminData(session.role);
   const canTransfer = canMutate || session.role === "STAFF";
 
-  // NV Quỹ tiền: shell clerk (card YC + CTCT + ca). Admin: workspace quản trị đủ.
-  if (!canMutate && gate.access.staffAccountId) {
+  let accounts;
+  let ledger;
+  let transfers;
+  let requests;
+  try {
+    accounts = await listEmployeeCashAccounts();
+    const staffAccount =
+      accounts.find((a) => a.id === gate.access.staffAccountId) ??
+      accounts.find((a) => a.kind === "STAFF") ??
+      null;
+    const ledgerAccountId = gate.access.isAdmin
+      ? (accounts[0]?.id ?? null)
+      : (staffAccount?.id ?? null);
+    ledger = await listEmployeeCashLedger({
+      accountId: ledgerAccountId,
+      limit: 80,
+      offset: 0,
+    });
+    [transfers, requests] = await Promise.all([
+      listCashTransfers({ limit: 50, offset: 0 }),
+      listCashRequests({ limit: 80, offset: 0 }),
+    ]);
+
+    // NV Quỹ tiền: shell clerk (card YC + CTCT + ca). Admin: workspace quản trị đủ.
+    if (!canMutate && gate.access.staffAccountId) {
+      return (
+        <CashFundClerkWorkspace
+          account={staffAccount}
+          initialRequests={requests}
+          initialTransfers={transfers}
+          initialLedger={ledger}
+          canAct={canTransfer}
+          canTransfer={canTransfer}
+          queueKind="BOTH"
+        />
+      );
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "Không tải được dữ liệu Quỹ tiền.";
     return (
-      <CashFundClerkWorkspace
-        account={staffAccount}
-        initialRequests={requests}
-        initialTransfers={transfers}
-        initialLedger={ledger}
-        canAct={canTransfer}
-        canTransfer={canTransfer}
-        queueKind="BOTH"
-      />
+      <section className="rounded-[12px] bg-white p-8 shadow-[var(--tlkv-shadow)]">
+        <h1 className="text-2xl font-semibold tracking-tight">Quỹ tiền</h1>
+        <p className="mt-3 text-[14px] text-[var(--tlkv-red)]">{reason}</p>
+        <p className="mt-2 text-[13px] text-[var(--tlkv-muted)]">
+          Thử Làm mới trang. Nếu vừa đăng nhập, đợi session ổn định rồi vào lại menu Quỹ tiền NV.
+        </p>
+      </section>
     );
   }
 

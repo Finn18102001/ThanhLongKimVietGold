@@ -110,15 +110,16 @@ Quy tắc:
 
 ### Mua — bước `INVOICE_ISSUED` («Xác nhận hóa đơn → Phiếu 02»)
 
-**Không** dùng «Đơn đã lưu» cho mua. Hold user trên modal phiếu BUY:
+> **Đè 2026-11-25 (P10 M1):** dùng section **«Đơn mua đang chờ xác nhận»** dưới form Mua (mirror «Đơn đã lưu» bán) — không giữ NV trên modal trong lúc QT xử lý.
 
 | Nút | Trạng thái | Ý nghĩa |
 |-----|------------|---------|
-| **In phiếu** | Enabled | Tạo YC-CHI PENDING → **mở xem trước phiếu A4** (giống xem Phiếu 02 / HĐ mua) → NV kiểm tra rồi bấm «In phiếu». Chưa nhập kho / chưa CASH |
-| **Kiểm tra trạng thái** | Enabled | Poll YC-CHI theo `buy_no` — nếu QT đã CONFIRMED → unlock nút xác nhận |
+| **In phiếu** | Enabled | Tạo YC-CHI PENDING → **mở xem trước phiếu A4** → sau đó đóng drawer; phiếu vào list chờ QT. Chưa nhập kho / chưa CASH |
+| **Kiểm tra trạng thái** | Enabled (khi mở lại từ list) | Poll YC-CHI theo `buy_no` — nếu QT đã CONFIRMED → unlock nút xác nhận |
 | **Xác nhận hóa đơn → Phiếu 02** | **Disabled** đến khi YC-CHI CONFIRMED | Complete Form02 + nhập kho AS-IS (P10-01 D4); không INSERT `pos_buy_payments` khi Flag ON |
 
 Server **gate** complete: Flag ON → từ chối `pos_complete_buy_melt` nếu chưa có YC-CHI CONFIRMED (không tin UI).
+List RPC: `pos_list_buys_awaiting_fund` (Flag ON).
 
 ### Lệch code cần gỡ (2026-11-22)
 

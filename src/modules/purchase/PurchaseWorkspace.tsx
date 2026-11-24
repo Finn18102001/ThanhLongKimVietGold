@@ -35,6 +35,7 @@ import {
   issueBuyFundRequest,
   issueMeltCommitment,
   loadBuyFundRequestForPrint,
+  refreshBuysAwaitingFund,
   setBuyMeltWeights,
   setBuyStone,
   skipBuyMelt,
@@ -49,6 +50,7 @@ import { MarketGoldModal } from "./components/MarketGoldModal";
 import { MeltCommitmentDocument } from "./components/MeltCommitmentDocument";
 import { PurchaseCartPanel } from "./components/PurchaseCartPanel";
 import { PurchaseCatalogPanel } from "./components/PurchaseCatalogPanel";
+import { PurchasePendingFundTable } from "./components/PurchasePendingFundTable";
 import { RecentBuysModal } from "./components/RecentBuysModal";
 import { PurchaseVoucherDocument } from "./components/PurchaseVoucherDocument";
 import { printPurchaseDocument } from "./print";
@@ -75,6 +77,8 @@ import {
   lineTotalDong,
   toBuyItemPayload,
   type BuyAttachmentDocKind,
+  type BuyAwaitingFundList,
+  type BuyAwaitingFundRow,
   type BuyDetail,
   type BuyLine,
   type BuyPayMode,
@@ -91,18 +95,26 @@ import { canPrintCommitmentFromFlow, isBuyInMeltWorkflow } from "./workflowLabel
 
 type PrintDocKind = "commitment" | "form02" | "invoice";
 
+const EMPTY_AWAITING_FUND: BuyAwaitingFundList = {
+  items: [],
+  total: 0,
+  seesAll: false,
+};
+
 export function PurchaseWorkspace({
   catalog,
   marketRefs,
   marketPrices = {},
   productTypes = [],
   employeeFundEnabled = false,
+  initialAwaitingFund = EMPTY_AWAITING_FUND,
 }: {
   catalog: PurchaseCatalogItem[];
   marketRefs: MarketGoldRef[];
   marketPrices?: MarketGoldClassPrices;
   productTypes?: PosProductTypeOption[];
   employeeFundEnabled?: boolean;
+  initialAwaitingFund?: BuyAwaitingFundList;
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
@@ -144,6 +156,11 @@ export function PurchaseWorkspace({
   const [fundRequestStatus, setFundRequestStatus] = useState<string | null>(null);
   const [fundStatusMessage, setFundStatusMessage] = useState<string | null>(null);
   const [ycPrintRow, setYcPrintRow] = useState<CashRequestRow | null>(null);
+  const [awaitingFundItems, setAwaitingFundItems] = useState<BuyAwaitingFundRow[]>(
+    initialAwaitingFund.items,
+  );
+  const [awaitingFundSeesAll, setAwaitingFundSeesAll] = useState(initialAwaitingFund.seesAll);
+  const [awaitingFundLoading, setAwaitingFundLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [collectAmount, setCollectAmount] = useState(0);
   const [collectMethod, setCollectMethod] = useState<PaymentMethod>("CASH");
@@ -532,6 +549,7 @@ export function PurchaseWorkspace({
       } catch {
         /* ignore */
       }
+      void reloadAwaitingFundList();
       void openDetail(result.buyId);
     } catch (err) {
       setReviewing(false);
@@ -579,6 +597,19 @@ export function PurchaseWorkspace({
     );
   }
 
+  async function reloadAwaitingFundList() {
+    if (!employeeFundEnabled) return;
+    setAwaitingFundLoading(true);
+    try {
+      const res = await refreshBuysAwaitingFund({ limit: 50, offset: 0 });
+      if (!res.ok) return;
+      setAwaitingFundItems(res.data.items);
+      setAwaitingFundSeesAll(res.data.seesAll);
+    } finally {
+      setAwaitingFundLoading(false);
+    }
+  }
+
   async function onIssueFundSlip() {
     if (!detail) return;
     setWorkflowPending(true);
@@ -604,6 +635,14 @@ export function PurchaseWorkspace({
       if (printRes.ok) {
         setYcPrintRow(printRes.data); // xem trước rồi In — không auto print
       }
+      await reloadAwaitingFundList();
+      // P10 M1: sau In phiếu — đóng drawer, quầy trống tạo phiếu mới (đơn nằm list dưới).
+      setDetail(null);
+      setAlert({
+        tone: "success",
+        title: "Đã gửi chờ Quỹ tiền",
+        reason: `${res.data.buyNo} · ${res.data.code} nằm trong «Đơn mua đang chờ xác nhận». Có thể tạo phiếu mới.`,
+      });
     } finally {
       setWorkflowPending(false);
     }
@@ -683,6 +722,7 @@ export function PurchaseWorkspace({
       if (opts?.successTitle) {
         setAlert({ tone: "success", title: opts.successTitle, reason: buy.buyNo });
       }
+      void reloadAwaitingFundList();
       return true;
     } catch (err) {
       setAlert({
@@ -940,6 +980,19 @@ export function PurchaseWorkspace({
           />
         </div>
       </div>
+
+      {employeeFundEnabled ? (
+        <div className="mt-4">
+          <PurchasePendingFundTable
+            items={awaitingFundItems}
+            seesAll={awaitingFundSeesAll}
+            activeBuyId={detail?.id ?? null}
+            loading={awaitingFundLoading}
+            busyId={workflowPending || detailLoading ? detail?.id ?? null : null}
+            onOpen={(buyId) => void openDetail(buyId)}
+          />
+        </div>
+      ) : null}
 
       {pickingCustomer ? (
         <CustomerSelectModal

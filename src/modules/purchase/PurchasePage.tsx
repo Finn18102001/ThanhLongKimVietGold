@@ -3,6 +3,7 @@ import { CashRequestCards } from "@/modules/fund-cash/CashRequestCards";
 import { listCashRequests } from "@/modules/fund-cash/query";
 import { resolveCashClerkShellMode } from "@/modules/fund-cash/resolveCashClerkShell";
 import { isEmployeeFundEnabled } from "@/modules/settings/query";
+import { listBuysAwaitingFund } from "./actions";
 import { PurchaseWorkspace } from "./PurchaseWorkspace";
 import {
   listMarketGoldRefs,
@@ -10,6 +11,7 @@ import {
   listPurchaseMarketPrices,
   listPurchaseProductTypes,
 } from "./query";
+import type { BuyAwaitingFundList } from "./types";
 
 export async function PurchasePage() {
   const shellMode = await resolveCashClerkShellMode();
@@ -35,6 +37,16 @@ export async function PurchasePage() {
     listPurchaseProductTypes(),
     isEmployeeFundEnabled(),
   ]);
+
+  let initialAwaitingFund: BuyAwaitingFundList = { items: [], total: 0, seesAll: false };
+  if (employeeFundEnabled) {
+    try {
+      initialAwaitingFund = await listBuysAwaitingFund({ limit: 50, offset: 0 });
+    } catch {
+      initialAwaitingFund = { items: [], total: 0, seesAll: false };
+    }
+  }
+
   return (
     <Suspense fallback={<p className="px-6 py-4 text-[13px] text-[var(--tlkv-muted)]">Đang tải mua vào...</p>}>
       <PurchaseWorkspace
@@ -43,6 +55,7 @@ export async function PurchasePage() {
         marketPrices={marketPrices}
         productTypes={productTypes}
         employeeFundEnabled={employeeFundEnabled}
+        initialAwaitingFund={initialAwaitingFund}
       />
     </Suspense>
   );

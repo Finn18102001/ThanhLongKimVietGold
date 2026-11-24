@@ -40,6 +40,16 @@ function formatWhen(iso: string): string {
   return d.toLocaleString("vi-VN", { hour12: false });
 }
 
+function formatFundCashError(raw: unknown, fallback: string): string {
+  const msg = formatActionError(raw, fallback);
+  if (/EMP_CASH_INSUFFICIENT_BALANCE/i.test(msg)) {
+    return "Số dư Quỹ Admin không đủ cho loại TM/CK đang chọn (Rút vốn / Cộng NV trừ đúng bucket). Hãy Nạp vốn đúng loại hoặc chọn Chuyển khoản nếu còn dư CK.";
+  }
+  if (/EMP_CASH_AMOUNT_INVALID/i.test(msg)) return "Số tiền không hợp lệ.";
+  if (/EMP_CASH_STAFF_ACCOUNT_INVALID/i.test(msg)) return "Tài khoản nhân viên không hợp lệ hoặc đã ẩn.";
+  return msg;
+}
+
 export function FundCashWorkspace({
   initialAccounts,
   initialLedger,
@@ -87,7 +97,13 @@ export function FundCashWorkspace({
   );
   const staffWithoutAccount = useMemo(() => {
     const have = new Set(staffAccounts.map((a) => a.staffId).filter(Boolean));
-    return staffOptions.filter((s) => !have.has(s.id));
+    // Hard-test: NV dedicated Quỹ vàng (testquyvang…) không hiện trong picker tạo QT.
+    return staffOptions.filter((s) => {
+      if (have.has(s.id)) return false;
+      const blob = `${s.email} ${s.fullName}`.toLowerCase();
+      if (/quyvang|quy\s*vang|quỹ\s*vàng/.test(blob)) return false;
+      return true;
+    });
   }, [staffAccounts, staffOptions]);
 
   function reload(accountId?: string | null) {
@@ -141,6 +157,16 @@ export function FundCashWorkspace({
 
   function onCapital() {
     if (!canMutate || !capitalDong || capitalDong <= 0) return;
+    if (capitalDir === "OUT" && pool) {
+      const bucket =
+        capitalKind === "BANK" ? pool.bankBalanceDong : pool.cashBalanceDong;
+      if (bucket < capitalDong) {
+        setError(
+          `Không rút được: Quỹ Admin chỉ còn ${formatMoneyKind(capitalKind)} ${formatDong(bucket)}.`,
+        );
+        return;
+      }
+    }
     startTransition(async () => {
       setError(null);
       setNotice(null);
@@ -152,7 +178,7 @@ export function FundCashWorkspace({
         moneyKind: capitalKind,
       });
       if (!res.ok) {
-        setError(formatActionError(res.message));
+        setError(formatFundCashError(res.message, "Không ghi nhận vốn Quỹ Admin."));
         return;
       }
       setNotice(`Đã cập nhật vốn Quỹ Admin (${formatMoneyKind(capitalKind)}).`);
@@ -163,6 +189,16 @@ export function FundCashWorkspace({
 
   function onAllocate() {
     if (!canMutate || !allocAccountId || !allocDong || allocDong <= 0) return;
+    // Cộng NV = OUT Quỹ Admin đúng bucket TM/CK.
+    if (allocDir === "IN" && pool) {
+      const bucket = allocKind === "BANK" ? pool.bankBalanceDong : pool.cashBalanceDong;
+      if (bucket < allocDong) {
+        setError(
+          `Không phân bổ được: Quỹ Admin ${formatMoneyKind(allocKind)} còn ${formatDong(bucket)} (TM đang ${formatDong(pool.cashBalanceDong)} · CK ${formatDong(pool.bankBalanceDong)}). Nạp vốn đúng loại trước.`,
+        );
+        return;
+      }
+    }
     startTransition(async () => {
       setError(null);
       setNotice(null);
@@ -178,7 +214,7 @@ export function FundCashWorkspace({
         moneyKind: allocKind,
       });
       if (!res.ok) {
-        setError(formatActionError(res.message));
+        setError(formatFundCashError(res.message, "Không phân bổ được."));
         return;
       }
       setNotice(`Đã ghi phân bổ đối ứng (${formatMoneyKind(allocKind)}).`);
@@ -206,6 +242,12 @@ export function FundCashWorkspace({
             <p className="text-[12px] text-[var(--tlkv-muted)]">
               TM {formatDong(pool.cashBalanceDong)} · CK {formatDong(pool.bankBalanceDong)}
             </p>
+            {pool.cashBalanceDong < 0 || pool.bankBalanceDong < 0 ? (
+              <p className="mt-2 rounded-lg border border-[var(--tlkv-amber)] bg-[var(--tlkv-amber-soft)] px-3 py-2 text-[12px] text-[var(--tlkv-amber)]">
+                Cảnh báo: bucket Quỹ Admin đang âm (thường do đảo/void lịch sử). Rút vốn / Cộng NV
+                trên đúng loại TM hoặc CK sẽ bị chặn đến khi Nạp vốn đủ số dư loại đó.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -242,7 +284,8 @@ export function FundCashWorkspace({
               onChange={(e) => setAccountName(e.target.value)}
             />
             <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
-              Ví dụ: Dương tài khoản quỹ tiền test — dễ lọc / ẩn sau round UI.
+              Ví dụ: Dương tài khoản quỹ tiền test — dễ lọc / ẩn sau round UI. Không liệt kê NV
+              dedicated Quỹ vàng (testquyvang…).
             </p>
             <button
               type="button"

@@ -11,6 +11,8 @@ import { createServerSupabase } from "@/shared/supabase/server";
 import type {
   BuyAttachment,
   BuyAttachmentDocKind,
+  BuyAwaitingFundList,
+  BuyAwaitingFundRow,
   BuyDetail,
   BuyDetailItem,
   BuyItemPayload,
@@ -387,6 +389,66 @@ export async function completeBuyMelt(input: {
  * (stock IN + cash/payable). Same BE RPCs as before; no separate “Hoàn tất” step.
  * Idempotency keys are distinct so a partial success can resume via completeBuyMelt.
  */
+function mapBuyAwaitingFundRow(raw: Record<string, unknown>): BuyAwaitingFundRow {
+  return {
+    buyId: String(raw.buyId ?? ""),
+    buyNo: String(raw.buyNo ?? ""),
+    customerId: raw.customerId ? String(raw.customerId) : null,
+    customerName: raw.customerName ? String(raw.customerName) : null,
+    customerPhone: raw.customerPhone ? String(raw.customerPhone) : null,
+    totalDong: asNumber(raw.totalDong),
+    intendedPaidDong:
+      raw.intendedPaidDong != null && raw.intendedPaidDong !== ""
+        ? asNumber(raw.intendedPaidDong)
+        : null,
+    paymentMethod: raw.paymentMethod ? String(raw.paymentMethod) : null,
+    workflowStatus: asWorkflowStatus(raw.workflowStatus, "INVOICE_ISSUED"),
+    status: asBuyStatus(raw.status, "PROCESSING"),
+    actorEmail: raw.actorEmail ? String(raw.actorEmail) : null,
+    createdAt: raw.createdAt ? String(raw.createdAt) : null,
+    requestId: raw.requestId ? String(raw.requestId) : null,
+    requestCode: raw.requestCode ? String(raw.requestCode) : null,
+    requestStatus: raw.requestStatus ? String(raw.requestStatus) : null,
+    requestAmountDong:
+      raw.requestAmountDong != null && raw.requestAmountDong !== ""
+        ? asNumber(raw.requestAmountDong)
+        : null,
+    cashAccountCode: raw.cashAccountCode ? String(raw.cashAccountCode) : null,
+    itemCount: asNumber(raw.itemCount),
+    fundPhase: String(raw.fundPhase ?? "NEED_ISSUE"),
+    canCompleteForm02: Boolean(raw.canCompleteForm02),
+  };
+}
+
+/** P10 M1: đơn mua chờ QT / chờ Phiếu 02 (Flag ON). */
+export async function listBuysAwaitingFund(input?: {
+  limit?: number;
+  offset?: number;
+}): Promise<BuyAwaitingFundList> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("pos_list_buys_awaiting_fund", {
+    p_limit: input?.limit ?? 50,
+    p_offset: input?.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    items: ((row.items as Record<string, unknown>[]) ?? []).map(mapBuyAwaitingFundRow),
+    total: asNumber(row.total),
+    seesAll: Boolean(row.seesAll),
+  };
+}
+
+export async function refreshBuysAwaitingFund(input?: {
+  limit?: number;
+  offset?: number;
+}): Promise<ActionResult<BuyAwaitingFundList>> {
+  return runAction(
+    () => listBuysAwaitingFund(input),
+    "Không tải được đơn mua đang chờ xác nhận.",
+  );
+}
+
 /** P10 Flag ON: QV in phiếu → tạo YC-CHI PENDING (idempotent). */
 export async function issueBuyFundRequest(buyId: string): Promise<
   ActionResult<{

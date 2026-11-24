@@ -118,7 +118,13 @@ export function FundGoldWorkspace({
   );
   const staffWithoutAccount = useMemo(() => {
     const have = new Set(staffAccounts.map((a) => a.staffId).filter(Boolean));
-    return staffOptions.filter((s) => !have.has(s.id));
+    // Hard-test: NV dedicated Quỹ tiền (testquytien…) không hiện trong picker tạo QV.
+    return staffOptions.filter((s) => {
+      if (have.has(s.id)) return false;
+      const blob = `${s.email} ${s.fullName}`.toLowerCase();
+      if (/quytien|quy\s*tien|quỹ\s*tiền/.test(blob)) return false;
+      return true;
+    });
   }, [staffAccounts, staffOptions]);
 
   const accountStock = useMemo(
@@ -368,7 +374,13 @@ export function FundGoldWorkspace({
           dư. Chuyển vàng (CTCV) cập nhật ngay hai tài khoản + in chứng từ A4.
         </p>
         {pool ? (
-          <p className="mt-3 text-[14px] font-semibold">Quỹ Admin vàng: {pool.code}</p>
+          <div className="mt-3 space-y-2">
+            <p className="text-[14px] font-semibold">Quỹ Admin vàng: {pool.code}</p>
+            <p className="text-[12px] text-[var(--tlkv-muted)]">
+              Cộng NV (phân bổ) trừ custody Quỹ Admin theo từng SKU — cần Nạp vàng Admin trước nếu
+              tồn Admin = 0.
+            </p>
+          </div>
         ) : null}
       </section>
 
@@ -404,7 +416,8 @@ export function FundGoldWorkspace({
               onChange={(e) => setAccountName(e.target.value)}
             />
             <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
-              Ví dụ: Dương tài khoản quỹ vàng test
+              Ví dụ: Dương tài khoản quỹ vàng test. Không liệt kê NV dedicated Quỹ tiền
+              (testquytien…).
             </p>
             <button
               type="button"
