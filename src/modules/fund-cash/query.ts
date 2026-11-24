@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { isEmployeeFundEnabled } from "@/modules/settings/query";
+import { withPerfSpan } from "@/shared/lib/perf-span";
 import type {
   CashRequestKind,
   CashRequestListPage,
@@ -33,17 +35,20 @@ function mapAccount(raw: Record<string, unknown>): EmployeeCashAccount {
   };
 }
 
-export async function getEmployeeCashAccess(): Promise<EmployeeCashAccess> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_employee_cash_my_access");
-  if (error) throw new Error(error.message);
-  const row = (data ?? {}) as Record<string, unknown>;
-  return {
-    canAccess: Boolean(row.canAccess),
-    isAdmin: Boolean(row.isAdmin),
-    staffAccountId: row.staffAccountId ? String(row.staffAccountId) : null,
-  };
-}
+/** Request-deduped (PERF-002): same access for layout menu + cash-clerk shell. */
+export const getEmployeeCashAccess = cache(async (): Promise<EmployeeCashAccess> => {
+  return withPerfSpan("fundCash.access", async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_employee_cash_my_access");
+    if (error) throw new Error(error.message);
+    const row = (data ?? {}) as Record<string, unknown>;
+    return {
+      canAccess: Boolean(row.canAccess),
+      isAdmin: Boolean(row.isAdmin),
+      staffAccountId: row.staffAccountId ? String(row.staffAccountId) : null,
+    };
+  });
+});
 
 export async function listEmployeeCashAccounts(): Promise<EmployeeCashAccount[]> {
   const supabase = await createServerSupabase();
@@ -95,12 +100,12 @@ export async function listEmployeeCashLedger(input?: {
   };
 }
 
-/** Gate: Flag ON + (Admin hoặc NV được gán Quỹ tiền). */
-export async function canOpenEmployeeCashModule(): Promise<{
+/** Gate: Flag ON + (Admin hoặc NV được gán Quỹ tiền). Request-deduped. */
+export const canOpenEmployeeCashModule = cache(async (): Promise<{
   flagOn: boolean;
   access: EmployeeCashAccess;
   allowed: boolean;
-}> {
+}> => {
   const flagOn = await isEmployeeFundEnabled();
   if (!flagOn) {
     return {
@@ -111,7 +116,7 @@ export async function canOpenEmployeeCashModule(): Promise<{
   }
   const access = await getEmployeeCashAccess();
   return { flagOn: true, access, allowed: access.canAccess };
-}
+});
 
 function mapTransfer(raw: Record<string, unknown>): CashTransferRow {
   const statusRaw = String(raw.status ?? "PENDING");

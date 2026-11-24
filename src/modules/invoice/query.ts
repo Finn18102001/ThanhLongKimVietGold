@@ -1,3 +1,4 @@
+import { withPerfSpan } from "@/shared/lib/perf-span";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { assertActorOwnsInvoice, getInvoiceAccessScope } from "./access";
 import type {
@@ -122,20 +123,41 @@ export async function listInvoices(filter: InvoiceListFilter = {}): Promise<Invo
   const to = filter.to || null;
 
   // FR-06: filter by actual payment rows (MIXED can match CASH and TRANSFER).
+  // PERF-010: when date range is set, narrow payment scan to invoice sale_ids in range
+  // (same match set for that filter). Index on payment_method added with EXPLAIN proof.
   let paymentSaleIds: string[] | null = null;
   if (paymentMethod || receiveAccountKind) {
-    let payBuilder = supabase.from("pos_sale_payments").select("sale_id");
-    if (paymentMethod) payBuilder = payBuilder.eq("payment_method", paymentMethod);
-    if (receiveAccountKind) {
-      payBuilder = payBuilder
-        .eq("payment_method", "TRANSFER")
-        .eq("receive_account_kind", receiveAccountKind);
-    }
-    const { data: payRows, error: payError } = await payBuilder.limit(5000);
-    if (payError) throw new Error(payError.message);
-    paymentSaleIds = Array.from(
-      new Set((payRows ?? []).map((row) => String(row.sale_id)).filter(Boolean)),
-    );
+    paymentSaleIds = await withPerfSpan("invoice.paymentSaleIds", async () => {
+      let candidateSaleIds: string[] | null = null;
+      if (from || to) {
+        let invBuilder = supabase.from("pos_invoices").select("sale_id");
+        if (!scope.seeAll) invBuilder = invBuilder.eq("actor_email", scope.email);
+        if (from) invBuilder = invBuilder.gte("issued_at", `${from}T00:00:00+07:00`);
+        if (to) invBuilder = invBuilder.lte("issued_at", `${to}T23:59:59.999+07:00`);
+        const { data: invRows, error: invError } = await invBuilder.limit(5000);
+        if (invError) throw new Error(invError.message);
+        candidateSaleIds = Array.from(
+          new Set((invRows ?? []).map((row) => String(row.sale_id ?? "")).filter(Boolean)),
+        );
+        if (candidateSaleIds.length === 0) return [];
+      }
+
+      let payBuilder = supabase.from("pos_sale_payments").select("sale_id");
+      if (paymentMethod) payBuilder = payBuilder.eq("payment_method", paymentMethod);
+      if (receiveAccountKind) {
+        payBuilder = payBuilder
+          .eq("payment_method", "TRANSFER")
+          .eq("receive_account_kind", receiveAccountKind);
+      }
+      if (candidateSaleIds) {
+        payBuilder = payBuilder.in("sale_id", candidateSaleIds);
+      }
+      const { data: payRows, error: payError } = await payBuilder.limit(5000);
+      if (payError) throw new Error(payError.message);
+      return Array.from(
+        new Set((payRows ?? []).map((row) => String(row.sale_id)).filter(Boolean)),
+      );
+    });
     if (paymentSaleIds.length === 0) {
       return { items: [], total: 0, limit, offset };
     }

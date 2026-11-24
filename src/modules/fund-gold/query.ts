@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { isEmployeeFundEnabled } from "@/modules/settings/query";
+import { withPerfSpan } from "@/shared/lib/perf-span";
 import type {
   EmployeeGoldAccess,
   EmployeeGoldAccount,
@@ -61,17 +63,20 @@ function mapCount(raw: Record<string, unknown>): EmployeeGoldCountRow {
   };
 }
 
-export async function getEmployeeGoldAccess(): Promise<EmployeeGoldAccess> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_employee_gold_my_access");
-  if (error) throw new Error(error.message);
-  const row = (data ?? {}) as Record<string, unknown>;
-  return {
-    canAccess: Boolean(row.canAccess),
-    isAdmin: Boolean(row.isAdmin),
-    staffAccountId: row.staffAccountId ? String(row.staffAccountId) : null,
-  };
-}
+/** Request-deduped (PERF-002): layout menu + cash-clerk shell share one access read. */
+export const getEmployeeGoldAccess = cache(async (): Promise<EmployeeGoldAccess> => {
+  return withPerfSpan("fundGold.access", async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_employee_gold_my_access");
+    if (error) throw new Error(error.message);
+    const row = (data ?? {}) as Record<string, unknown>;
+    return {
+      canAccess: Boolean(row.canAccess),
+      isAdmin: Boolean(row.isAdmin),
+      staffAccountId: row.staffAccountId ? String(row.staffAccountId) : null,
+    };
+  });
+});
 
 export async function listEmployeeGoldAccounts(): Promise<EmployeeGoldAccount[]> {
   const supabase = await createServerSupabase();
@@ -288,11 +293,11 @@ export async function searchGoldSkus(
 }
 
 /** Gate: Flag ON + (Admin hoặc NV được gán Quỹ vàng). */
-export async function canOpenEmployeeGoldModule(): Promise<{
+export const canOpenEmployeeGoldModule = cache(async (): Promise<{
   flagOn: boolean;
   access: EmployeeGoldAccess;
   allowed: boolean;
-}> {
+}> => {
   const flagOn = await isEmployeeFundEnabled();
   if (!flagOn) {
     return {
@@ -303,4 +308,4 @@ export async function canOpenEmployeeGoldModule(): Promise<{
   }
   const access = await getEmployeeGoldAccess();
   return { flagOn: true, access, allowed: access.canAccess };
-}
+});

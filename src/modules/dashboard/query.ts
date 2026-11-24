@@ -1,5 +1,6 @@
 import { formatDong } from "@/shared/lib/money";
 import { addVnCalendarDays, formatVnIsoDate } from "@/shared/lib/datetime";
+import { withPerfSpan } from "@/shared/lib/perf-span";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { formatTrendHint, trendFrom } from "./trend";
 import type { DashboardSnapshot } from "./types";
@@ -19,8 +20,13 @@ type DashboardRpc = {
 };
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  // PERF-007: keep KPI/series semantics; instrument only. Folding into one RPC
+  // needs a SQL migration — deferred (see PHASE2 leftover → Phase 3).
+  return withPerfSpan("dashboard.snapshot", async () => {
   const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_get_dashboard");
+  const { data, error } = await withPerfSpan("dashboard.rpc", async () =>
+    supabase.rpc("pos_get_dashboard"),
+  );
   if (error) {
     throw new Error(error.message);
   }
@@ -43,7 +49,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     { data: invoices },
     { data: buys },
     { data: buysYesterday },
-  ] = await Promise.all([
+  ] = await withPerfSpan("dashboard.followups", async () =>
+    Promise.all([
     supabase
       .from("pos_sales")
       .select("id, total_dong, completed_at, pos_sale_items(quantity, total_price_dong, pos_skus(name))")
@@ -75,7 +82,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       .eq("status", "COMPLETED")
       .gte("completed_at", yesterdayStart)
       .lte("completed_at", yesterdayEnd),
-  ]);
+  ]),
+  );
 
   const seriesMap = new Map<string, { sell: number; buy: number }>();
   for (let i = 0; i < 7; i += 1) {
@@ -242,4 +250,5 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       };
     }),
   };
+  });
 }

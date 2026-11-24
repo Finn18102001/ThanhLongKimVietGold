@@ -49,20 +49,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const role = session.role as StaffRole;
 
-  let showFundCash = false;
-  let showFundGold = false;
-  try {
-    const gate = await canOpenEmployeeCashModule();
-    showFundCash = gate.allowed;
-  } catch {
-    showFundCash = false;
-  }
-  try {
-    const gate = await canOpenEmployeeGoldModule();
-    showFundGold = gate.allowed;
-  } catch {
-    showFundGold = false;
-  }
+  // PERF-002: parallel gates (same allow rules); React.cache dedupes with page shell.
+  const [cashGate, goldGate] = await Promise.all([
+    canOpenEmployeeCashModule().catch(() => null),
+    canOpenEmployeeGoldModule().catch(() => null),
+  ]);
+  const showFundCash = cashGate?.allowed === true;
+  const showFundGold = goldGate?.allowed === true;
 
   return (
     <AdminShell

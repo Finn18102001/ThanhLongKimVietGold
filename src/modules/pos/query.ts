@@ -1,4 +1,5 @@
 import { calcGoldSellDongFromHesoBoard } from "@/modules/inventory/priceLink";
+import { withPerfSpan } from "@/shared/lib/perf-span";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { mapHeldOrderList } from "./heldOrderMap";
 import {
@@ -60,38 +61,41 @@ function firstEmbed<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-/** MSP in tem: piece.msp ưu tiên, không thì unit.shared_product_code. Không tự sinh. */
-async function loadMspBySkuIds(skuIds: string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  if (skuIds.length === 0) return out;
-  const supabase = await createServerSupabase();
-  const [piecesRes, unitsRes] = await Promise.all([
-    supabase
-      .from("pos_label_pieces")
-      .select("sku_id, msp, created_at")
-      .in("sku_id", skuIds)
-      .not("msp", "is", null)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("pos_inventory_units")
-      .select("sku_id, shared_product_code, created_at")
-      .in("sku_id", skuIds)
-      .not("shared_product_code", "is", null)
-      .order("created_at", { ascending: false }),
-  ]);
-  for (const row of piecesRes.data ?? []) {
-    const id = String(row.sku_id ?? "");
-    const msp = String(row.msp ?? "").trim();
-    if (!id || !msp || out.has(id)) continue;
-    out.set(id, msp);
-  }
-  for (const row of unitsRes.data ?? []) {
-    const id = String(row.sku_id ?? "");
-    const code = String(row.shared_product_code ?? "").trim();
-    if (!id || !code || out.has(id)) continue;
-    out.set(id, code);
-  }
-  return out;
+/**
+ * MSP in tem: piece.msp ưu tiên, không thì unit.shared_product_code. Không tự sinh.
+ * PERF-012: load full (small) piece/unit maps in parallel with catalog — same first-wins
+ * semantics as the old `.in(sku_id, …)` path (order created_at desc).
+ */
+async function loadMspCatalogMap(): Promise<Map<string, string>> {
+  return withPerfSpan("pos.mspMap", async () => {
+    const out = new Map<string, string>();
+    const supabase = await createServerSupabase();
+    const [piecesRes, unitsRes] = await Promise.all([
+      supabase
+        .from("pos_label_pieces")
+        .select("sku_id, msp, created_at")
+        .not("msp", "is", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("pos_inventory_units")
+        .select("sku_id, shared_product_code, created_at")
+        .not("shared_product_code", "is", null)
+        .order("created_at", { ascending: false }),
+    ]);
+    for (const row of piecesRes.data ?? []) {
+      const id = String(row.sku_id ?? "");
+      const msp = String(row.msp ?? "").trim();
+      if (!id || !msp || out.has(id)) continue;
+      out.set(id, msp);
+    }
+    for (const row of unitsRes.data ?? []) {
+      const id = String(row.sku_id ?? "");
+      const code = String(row.shared_product_code ?? "").trim();
+      if (!id || !code || out.has(id)) continue;
+      out.set(id, code);
+    }
+    return out;
+  });
 }
 
 /**
@@ -108,6 +112,7 @@ async function loadMspBySkuIds(skuIds: string[]): Promise<Map<string, string>> {
 async function fetchPosCatalogMeta(options?: {
   includeMarketGold?: boolean;
 }): Promise<CatalogMeta[]> {
+  return withPerfSpan("pos.catalogMeta", async () => {
   const includeMarketGold = options?.includeMarketGold === true;
   const supabase = await createServerSupabase();
   let request = supabase
@@ -119,11 +124,11 @@ async function fetchPosCatalogMeta(options?: {
   request = includeMarketGold
     ? request.or("is_active.eq.true,is_market_gold.eq.true")
     : request.eq("is_active", true).eq("is_market_gold", false);
-  const { data, error } = await request;
+  // PERF-012: MSP map parallel with SKU query (no serial stage after catalog).
+  const [{ data, error }, mspBySku] = await Promise.all([request, loadMspCatalogMap()]);
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
-  const mspBySku = await loadMspBySkuIds(rows.map((row) => String(row.id)));
 
   return rows.map((row) => {
     const price = firstEmbed(row.gold_price_rows as PriceEmbed | PriceEmbed[] | null);
@@ -253,6 +258,7 @@ async function fetchPosCatalogMeta(options?: {
       allowDirectBuy: Boolean(row.allow_direct_buy),
     };
   });
+  });
 }
 
 export async function listPosBrands(): Promise<PosBrandOption[]> {
@@ -334,26 +340,34 @@ async function fetchMarketGoldStock(): Promise<Map<string, MarketStockRow>> {
 
 /** Display-only price per chỉ for the market group cards (mua / bán tabs). */
 export async function listMarketGoldClassPrices(): Promise<MarketGoldClassPrices> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_market_gold_class_prices");
-  if (error || !data || typeof data !== "object") return {};
-  const out: MarketGoldClassPrices = {};
-  for (const [cls, raw] of Object.entries(data as Record<string, Record<string, unknown>>)) {
-    if (!MARKET_GOLD_CLASSES.includes(cls as MarketGoldClass)) continue;
-    out[cls as MarketGoldClass] = {
-      priceRowId: String(raw.priceRowId ?? ""),
-      buyDong: Number(raw.buyDong ?? 0),
-      sellDong: Number(raw.sellDong ?? 0),
-    };
-  }
-  return out;
+  return withPerfSpan("pos.marketClassPrices", async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_market_gold_class_prices");
+    if (error || !data || typeof data !== "object") return {};
+    const out: MarketGoldClassPrices = {};
+    for (const [cls, raw] of Object.entries(data as Record<string, Record<string, unknown>>)) {
+      if (!MARKET_GOLD_CLASSES.includes(cls as MarketGoldClass)) continue;
+      out[cls as MarketGoldClass] = {
+        priceRowId: String(raw.priceRowId ?? ""),
+        buyDong: Number(raw.buyDong ?? 0),
+        sellDong: Number(raw.sellDong ?? 0),
+      };
+    }
+    return out;
+  });
 }
 
-export async function listPosCatalog(): Promise<PosCatalogItem[]> {
+export async function listPosCatalog(options?: {
+  /** PERF-001: share one prices fetch with PosPage (Promise or resolved map). */
+  marketPrices?: MarketGoldClassPrices | Promise<MarketGoldClassPrices>;
+}): Promise<PosCatalogItem[]> {
+  return withPerfSpan("pos.listPosCatalog", async () => {
   const [meta, marketStock, classPrices] = await Promise.all([
     fetchPosCatalogMeta({ includeMarketGold: true }),
     fetchMarketGoldStock(),
-    listMarketGoldClassPrices(),
+    options?.marketPrices !== undefined
+      ? Promise.resolve(options.marketPrices)
+      : listMarketGoldClassPrices(),
   ]);
   return meta.map((item) => {
     const market = item.isMarketGold ? marketStock.get(item.skuId) : undefined;
@@ -402,6 +416,7 @@ export async function listPosCatalog(): Promise<PosCatalogItem[]> {
       manualSellDong: item.manualSellDong ?? null,
       ...marketFields(market),
     };
+  });
   });
 }
 
