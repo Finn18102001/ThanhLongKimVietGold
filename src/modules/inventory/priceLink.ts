@@ -9,8 +9,36 @@ import { formatDongDigits } from "@/shared/lib/money";
 
 export type SellPriceMode = "link" | "heso";
 
+/** Persist shape for pos_skus.sell_pricing_* (POS live board × mode). */
+export type SkuSellPricingInput = {
+  mode: "LINK" | "HESO";
+  hl: number | null;
+  multiplier: number | null;
+};
+
 /** Receive metal tab — UI only; silver cost/sell are manual (no board autofill). */
 export type ReceiveMetalKind = "gold" | "silver";
+
+/**
+ * Map receive-form sellMode + HL + heso → SKU pricing metadata.
+ * Silver / incomplete HESO inputs fall back to LINK (safe AS-IS).
+ */
+export function resolveSkuSellPricingInput(input: {
+  metalKind?: ReceiveMetalKind | null;
+  sellMode: SellPriceMode;
+  purityText: string;
+  heso: string;
+}): SkuSellPricingInput {
+  if (input.metalKind === "silver" || input.sellMode !== "heso") {
+    return { mode: "LINK", hl: null, multiplier: null };
+  }
+  const hl = purityToDecimal(input.purityText);
+  const multRaw = input.heso.trim() === "" ? NaN : Number(input.heso.replace(",", "."));
+  if (hl == null || !(hl > 0 && hl <= 1) || !Number.isFinite(multRaw) || multRaw <= 0) {
+    return { mode: "LINK", hl: null, multiplier: null };
+  }
+  return { mode: "HESO", hl, multiplier: multRaw };
+}
 
 /** Board unit stand-in: 0.1 chỉ rows vs per-chỉ (1). Matches create_order_jewelry_sku. */
 export function boardUnitChiFromProductName(product: string): number {

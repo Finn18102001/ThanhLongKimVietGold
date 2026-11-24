@@ -1,0 +1,14 @@
+---
+description: Brief protocol — restatement, context dump, re-read before coding
+alwaysApply: true
+---
+
+# Brief protocol (account / every request)
+
+Before coding or deep analysis on any request:
+
+1. **Restate** what the user conveyed: goal, constraints, required outputs. State explicitly **what you will NOT do**. Define **done** as a short checklist; at end mark pass/fail.
+2. **Dump context first** (before solutions): goal, key data/fields, and **one correct example** for that context so the user can correct a wrong read early.
+3. **Re-read** the critical parts of the user message / SRS / screenshots yourself; do not invent rules that were not stated.
+
+Keep this block brief (a few lines) but do not skip it on multi-step or ambiguous prompts.

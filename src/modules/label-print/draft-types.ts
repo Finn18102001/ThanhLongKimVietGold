@@ -29,6 +29,10 @@ export type LabelDraftDetail = LabelDraftSummary & {
   priceNote: string | null;
   laborFeeDong: number | null;
   goldAgeText: string | null;
+  /** LINK|HESO metadata for POS sync (nullable on legacy drafts). */
+  sellPricingMode: "LINK" | "HESO" | null;
+  sellPricingHl: number | null;
+  sellPricingMultiplier: number | null;
   /** Từ print payload / snapshot lúc in — không có cột riêng trên draft. */
   kltChi: number | null;
   klvChi: number | null;
@@ -57,4 +61,7 @@ export type CreateLabelDraftInput = {
   goldAgeText?: string;
   note?: string;
   testMarker?: string | null;
+  sellPricingMode?: "LINK" | "HESO" | null;
+  sellPricingHl?: number | null;
+  sellPricingMultiplier?: number | null;
 };

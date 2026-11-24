@@ -344,3 +344,40 @@ export async function applySkuSellLaborByCode(
   if (!data?.id) return;
   await applySkuSellLaborDong(String(data.id), sellLaborDong);
 }
+
+/** Persist LINK|HESO metadata on SKU (no fixed sell price). Null/legacy → call with LINK. */
+export async function applySkuSellPricingDong(
+  skuId: string,
+  pricing: { mode: "LINK" | "HESO"; hl: number | null; multiplier: number | null },
+): Promise<void> {
+  if (!skuId) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_set_sku_sell_pricing", {
+    p_sku_id: skuId,
+    p_mode: pricing.mode,
+    p_hl: pricing.mode === "HESO" ? pricing.hl : null,
+    p_multiplier: pricing.mode === "HESO" ? pricing.multiplier : null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/pos");
+  revalidatePath("/inventory");
+}
+
+export async function applySkuSellPricingByCode(
+  skuCode: string | null | undefined,
+  pricing: { mode: "LINK" | "HESO"; hl: number | null; multiplier: number | null },
+): Promise<void> {
+  const code = String(skuCode ?? "").trim();
+  if (!code) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_skus")
+    .select("id")
+    .eq("sku", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return;
+  await applySkuSellPricingDong(String(data.id), pricing);
+}

@@ -2,10 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { Printer } from "@phosphor-icons/react";
-import { applySkuSellLaborByCode } from "@/modules/inventory/actions";
+import {
+  applySkuSellLaborByCode,
+  applySkuSellPricingByCode,
+} from "@/modules/inventory/actions";
 import { PriceLinkControls } from "@/modules/inventory/components/PriceLinkControls";
 import { ReceiveMetalTabs } from "@/modules/inventory/components/ReceiveMetalTabs";
-import type { ReceiveMetalKind, SellPriceMode } from "@/modules/inventory/priceLink";
+import {
+  resolveSkuSellPricingInput,
+  type ReceiveMetalKind,
+  type SellPriceMode,
+} from "@/modules/inventory/priceLink";
 import type { PriceRowOption } from "@/modules/inventory/types";
 import { formatDong } from "../labels";
 import { receiveLabelOrderPurchase } from "../receive-actions";
@@ -194,12 +201,21 @@ export function CombinedReceivePrintPanel({
         return;
       }
       const sellLabor = Math.trunc(Number(draft.sellLaborDong.replace(/\D/g, "")) || 0);
-      if (sellLabor > 0 && result.data.skuCode) {
+      const sellPricing = resolveSkuSellPricingInput({
+        metalKind: draft.metalKind,
+        sellMode: draft.sellMode,
+        purityText: draft.goldAge,
+        heso: draft.heso,
+      });
+      if (result.data.skuCode) {
         try {
-          await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+          if (sellLabor >= 0) {
+            await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+          }
+          await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
         } catch (laborErr) {
           setError(
-            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu tiền công bán: ${
+            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu công bán / chế độ giá: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );

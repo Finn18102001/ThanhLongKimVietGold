@@ -1,3 +1,4 @@
+import { calcGoldSellDongFromHesoBoard } from "@/modules/inventory/priceLink";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { mapHeldOrderList } from "./heldOrderMap";
 import {
@@ -112,7 +113,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id, price_numeric), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, sell_pricing_mode, sell_pricing_hl, sell_pricing_multiplier, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id, price_numeric), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -167,8 +168,40 @@ async function fetchPosCatalogMeta(options?: {
       (row as { stone_unit_price_dong?: number | string | null }).stone_unit_price_dong ?? 0,
     );
     // Market SKUs get their gold price from the group price row in listPosCatalog (P4 C5).
-    const goldUnitDong =
-      !isMarketGold && sell > 0 ? Math.round(sell * (Number(row.weight_chi) / perChiDivisor)) : null;
+    // Null/LINK = AS-IS board×TL; HESO = (TL×HL×board_per_chi + labor)×heso − labor (cart still +labor+stone).
+    const sellPricingMode =
+      String((row as { sell_pricing_mode?: string | null }).sell_pricing_mode ?? "")
+        .trim()
+        .toUpperCase() === "HESO"
+        ? "HESO"
+        : "LINK";
+    const sellPricingHl = Number((row as { sell_pricing_hl?: number | string | null }).sell_pricing_hl);
+    const sellPricingMultiplier = Number(
+      (row as { sell_pricing_multiplier?: number | string | null }).sell_pricing_multiplier,
+    );
+    let goldUnitDong: number | null = null;
+    if (!isMarketGold && sell > 0) {
+      if (
+        sellPricingMode === "HESO" &&
+        Number.isFinite(sellPricingHl) &&
+        sellPricingHl > 0 &&
+        sellPricingHl <= 1 &&
+        Number.isFinite(sellPricingMultiplier) &&
+        sellPricingMultiplier > 0
+      ) {
+        const hesoUnit = calcGoldSellDongFromHesoBoard(
+          sell,
+          perChiDivisor,
+          Number(row.weight_chi ?? 0),
+          sellPricingHl,
+          laborFeeDong,
+          sellPricingMultiplier,
+        );
+        goldUnitDong = hesoUnit == null ? null : hesoUnit - laborFeeDong;
+      } else {
+        goldUnitDong = Math.round(sell * (Number(row.weight_chi) / perChiDivisor));
+      }
+    }
     // Board path first; unlinked → manual product sell (SRS §6) for card display.
     const unitPriceDong =
       goldUnitDong !== null

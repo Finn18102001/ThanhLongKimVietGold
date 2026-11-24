@@ -17,7 +17,8 @@ import type {
   PriceRowOption,
   ProductTypeOption,
 } from "../types";
-import { applySkuSellLaborByCode } from "../actions";
+import { applySkuSellLaborByCode, applySkuSellPricingByCode } from "../actions";
+import { resolveSkuSellPricingInput } from "../priceLink";
 import { PriceLinkControls } from "./PriceLinkControls";
 import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
 
@@ -162,6 +163,14 @@ export function DraftReceivePanel({
     setSellPriceDong(d.sellPriceDong == null ? "" : String(d.sellPriceDong));
     setPriceRowId(d.priceRowId ?? "");
     setPriceNote(d.priceNote ?? "");
+    const snapMode = String(
+      d.sellPricingMode ?? d.snapshotJson?.sell_pricing_mode ?? d.snapshotJson?.sellMode ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    setSellMode(snapMode === "heso" ? "heso" : "link");
+    const snapHeso = d.sellPricingMultiplier ?? d.snapshotJson?.sell_pricing_multiplier ?? d.snapshotJson?.heso;
+    setHeso(snapHeso == null || snapHeso === "" ? "" : String(snapHeso));
     setTypeCode(type);
     // SKU prefix is Order warehouse code — default TLKVTS; do NOT copy MSP/type+serial.
     setSkuPrefix("TLKVTS");
@@ -407,12 +416,21 @@ export function DraftReceivePanel({
         return;
       }
       const sellLabor = Math.trunc(Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong) || 0);
-      if (sellLabor >= 0 && result.data.skuCode) {
+      const sellPricing = resolveSkuSellPricingInput({
+        metalKind,
+        sellMode,
+        purityText,
+        heso,
+      });
+      if (result.data.skuCode) {
         try {
-          await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+          if (sellLabor >= 0) {
+            await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
+          }
+          await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
         } catch (laborErr) {
           setError(
-            `Đã nhập draft nhưng chưa lưu tiền công bán: ${
+            `Đã nhập draft nhưng chưa lưu công bán / chế độ giá: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );

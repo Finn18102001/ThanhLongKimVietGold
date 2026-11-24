@@ -2,8 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
-import { applySkuSellLaborByCode, applySkuSellLaborDong, receivePurchase } from "../actions";
-import type { ReceiveMetalKind, SellPriceMode } from "../priceLink";
+import {
+  applySkuSellLaborByCode,
+  applySkuSellLaborDong,
+  applySkuSellPricingByCode,
+  applySkuSellPricingDong,
+  receivePurchase,
+} from "../actions";
+import {
+  resolveSkuSellPricingInput,
+  type ReceiveMetalKind,
+  type SellPriceMode,
+} from "../priceLink";
 import type {
   BrandCategoryLink,
   BrandOption,
@@ -175,11 +185,18 @@ export function ReceiveForm({
       setPending(true);
       try {
         const sellLabor = Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong);
+        const sellPricing = resolveSkuSellPricingInput({
+          metalKind,
+          sellMode,
+          purityText,
+          heso,
+        });
         const result = await receivePurchase(formData);
-        if (Number.isInteger(sellLabor) && sellLabor >= 0) {
-          for (const code of result.orderSkus ?? []) {
+        for (const code of result.orderSkus ?? []) {
+          if (Number.isInteger(sellLabor) && sellLabor >= 0) {
             await applySkuSellLaborByCode(code, sellLabor);
           }
+          await applySkuSellPricingByCode(code, sellPricing);
         }
         setIdempotencyKey(crypto.randomUUID());
         resetOrderDraft();
@@ -210,9 +227,18 @@ export function ReceiveForm({
     setPending(true);
     try {
       const sellLabor = Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong);
+      const sellPricing = resolveSkuSellPricingInput({
+        metalKind,
+        sellMode,
+        purityText,
+        heso,
+      });
       const result = await receivePurchase(formData);
       if (skuId && Number.isInteger(sellLabor) && sellLabor >= 0) {
         await applySkuSellLaborDong(skuId, sellLabor);
+      }
+      if (skuId) {
+        await applySkuSellPricingDong(skuId, sellPricing);
       }
       setIdempotencyKey(crypto.randomUUID());
       setAlert({

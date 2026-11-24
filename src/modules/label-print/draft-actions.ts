@@ -81,6 +81,18 @@ export async function createLabelDraftAction(
       printable_code: string;
       reserved_msp?: string | null;
     };
+    if (input.sellPricingMode === "LINK" || input.sellPricingMode === "HESO") {
+      const { error: pricingError } = await supabase
+        .from("pos_label_drafts")
+        .update({
+          sell_pricing_mode: input.sellPricingMode,
+          sell_pricing_hl: input.sellPricingMode === "HESO" ? input.sellPricingHl ?? null : null,
+          sell_pricing_multiplier:
+            input.sellPricingMode === "HESO" ? input.sellPricingMultiplier ?? null : null,
+        })
+        .eq("id", row.id);
+      if (pricingError) throw new Error(pricingError.message);
+    }
     revalidateDraftPaths();
     return {
       id: row.id,
@@ -188,6 +200,20 @@ export async function getLabelDraftAction(
       sellPriceDong: summary.sellPriceDong ?? sellFromPrint,
       goldAgeText:
         goldAgeFromPrint ?? (row.gold_age_text == null ? null : String(row.gold_age_text)),
+      sellPricingMode: (() => {
+        const raw = String(row.sell_pricing_mode ?? snap.sell_pricing_mode ?? "")
+          .trim()
+          .toUpperCase();
+        return raw === "HESO" || raw === "LINK" ? raw : null;
+      })(),
+      sellPricingHl:
+        row.sell_pricing_hl == null && snap.sell_pricing_hl == null
+          ? null
+          : Number(row.sell_pricing_hl ?? snap.sell_pricing_hl),
+      sellPricingMultiplier:
+        row.sell_pricing_multiplier == null && snap.sell_pricing_multiplier == null
+          ? null
+          : Number(row.sell_pricing_multiplier ?? snap.sell_pricing_multiplier),
       kltChi: pickChi(printPayload, snap, "klt_chi"),
       klvChi: pickChi(printPayload, snap, "klv_chi"),
       kldChi: pickChi(printPayload, snap, "kld_chi"),
