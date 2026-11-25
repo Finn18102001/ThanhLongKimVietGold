@@ -7,7 +7,6 @@ import { listBuysAwaitingFund } from "./actions";
 import { PurchaseWorkspace } from "./PurchaseWorkspace";
 import {
   listMarketGoldRefs,
-  listPurchaseCatalog,
   listPurchaseMarketPrices,
   listPurchaseProductTypes,
 } from "./query";
@@ -30,8 +29,8 @@ export async function PurchasePage() {
     );
   }
 
-  const [catalog, marketRefs, marketPrices, productTypes, employeeFundEnabled] = await Promise.all([
-    listPurchaseCatalog(),
+  // Shell-first: do not await full catalog here. Client loads same listPurchaseCatalog.
+  const [marketRefs, marketPrices, productTypes, employeeFundEnabled] = await Promise.all([
     listMarketGoldRefs(),
     listPurchaseMarketPrices(),
     listPurchaseProductTypes(),
@@ -50,7 +49,8 @@ export async function PurchasePage() {
   return (
     <Suspense fallback={<p className="px-6 py-4 text-[13px] text-[var(--tlkv-muted)]">Đang tải mua vào...</p>}>
       <PurchaseWorkspace
-        catalog={catalog}
+        catalog={[]}
+        catalogDeferred
         marketRefs={marketRefs}
         marketPrices={marketPrices}
         productTypes={productTypes}

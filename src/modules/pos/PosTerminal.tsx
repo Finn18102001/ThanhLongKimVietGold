@@ -32,10 +32,12 @@ import {
   completeSale,
   fetchHeldOrders,
   getHeldOrder,
+  loadPosCatalogAction,
   loadSaleFundRequestForPrint,
   refreshPosStock,
   saveHeldOrder,
 } from "./actions";
+import { peekPosCatalogCache, setPosCatalogCache } from "./catalog-client-cache";
 import {
   PRICE_OUT_OF_RANGE_CONFIRM,
   chargesTotalDong,
@@ -179,6 +181,7 @@ function customerFromHold(detail: HeldOrderDetail): CustomerRecord | null {
 
 export function PosTerminal({
   catalog: initialCatalog,
+  catalogDeferred = false,
   marketPrices = {},
   brands,
   productTypes = [],
@@ -188,6 +191,8 @@ export function PosTerminal({
   initialAwaitingGold = [],
 }: {
   catalog: PosCatalogItem[];
+  /** When true, RSC skipped full catalog; client loads via loadPosCatalogAction (+ cache). */
+  catalogDeferred?: boolean;
   marketPrices?: MarketGoldClassPrices;
   brands: PosBrandOption[];
   productTypes?: PosProductTypeOption[];
@@ -198,7 +203,10 @@ export function PosTerminal({
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef<string | null>(null);
-  const catalogRef = useRef(initialCatalog);
+  const bootCatalog = catalogDeferred
+    ? (peekPosCatalogCache() ?? initialCatalog)
+    : initialCatalog;
+  const catalogRef = useRef(bootCatalog);
   const scanBusyRef = useRef(false);
   const lastScanRef = useRef({ code: "", at: 0 });
   const scanGateRef = useRef({
@@ -210,7 +218,11 @@ export function PosTerminal({
   const tryAddFromLabelCodeRef = useRef<(raw: string) => Promise<void>>(async () => {});
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [catalog, setCatalog] = useState(initialCatalog);
+  const [catalog, setCatalog] = useState(bootCatalog);
+  const [catalogLoading, setCatalogLoading] = useState(
+    () => catalogDeferred && bootCatalog.length === 0,
+  );
+  const [catalogLoadError, setCatalogLoadError] = useState<string | null>(null);
   const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const mspSkuIds = useMspSkuIdSearch(query, 300);
@@ -284,6 +296,41 @@ export function PosTerminal({
     const resume = searchParams.get("depositSaleId")?.trim();
     if (resume) setDepositSaleId(resume);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!catalogDeferred) return;
+    let cancelled = false;
+    const cached = peekPosCatalogCache();
+    if (cached && cached.length > 0) {
+      setCatalog(cached);
+      setCatalogLoading(false);
+      setCatalogLoadError(null);
+    } else {
+      setCatalogLoading(true);
+    }
+
+    void (async () => {
+      const result = await loadPosCatalogAction();
+      if (cancelled) return;
+      if (!result.ok) {
+        if (!peekPosCatalogCache()?.length) {
+          setCatalogLoadError(
+            formatActionError(result.message, "Không tải được danh mục bán hàng."),
+          );
+        }
+        setCatalogLoading(false);
+        return;
+      }
+      setPosCatalogCache(result.data);
+      setCatalog(result.data);
+      setCatalogLoadError(null);
+      setCatalogLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogDeferred]);
 
   useEffect(() => {
     let cancelled = false;
@@ -580,6 +627,14 @@ export function PosTerminal({
     const gate = scanGateRef.current;
     if (gate.paid || gate.reviewing || gate.pickingCustomer || gate.hasPicker) return;
     if (scanBusyRef.current) return;
+    if (catalogRef.current.length === 0) {
+      setAlert({
+        tone: "error",
+        title: "Đang tải danh mục",
+        reason: "Chờ danh sách sản phẩm tải xong rồi quét lại.",
+      });
+      return;
+    }
 
     scanBusyRef.current = true;
     setQuery(code);
@@ -1544,7 +1599,19 @@ export function PosTerminal({
             </div>
 
             <div className="mt-4 grid min-h-0 auto-rows-max grid-cols-2 content-start items-start gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
-              {pageItems.length === 0 ? (
+              {catalogLoading && catalog.length === 0 ? (
+                Array.from({ length: 8 }, (_, i) => (
+                  <div
+                    key={`pos-skel-${i}`}
+                    className="h-[168px] animate-pulse rounded-[12px] bg-[var(--tlkv-bg)]"
+                    aria-hidden
+                  />
+                ))
+              ) : catalogLoadError && catalog.length === 0 ? (
+                <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-red)]">
+                  {catalogLoadError}
+                </p>
+              ) : pageItems.length === 0 ? (
                 <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-muted)]">
                   Không có sản phẩm khớp tìm kiếm.
                 </p>

@@ -13,7 +13,6 @@ import {
   listHeldOrders,
   listMarketGoldClassPrices,
   listPosBrands,
-  listPosCatalog,
   listPosOperators,
   listPosProductTypes,
 } from "./query";
@@ -37,18 +36,15 @@ export async function PosPage() {
       );
     }
 
-    // PERF-001: one market-prices RPC shared by catalog mapper + PosTerminal props.
-    const marketPricesPromise = listMarketGoldClassPrices();
-    const [catalog, brands, productTypes, heldOrders, session, marketPrices, flagOn] =
-      await Promise.all([
-        listPosCatalog({ marketPrices: marketPricesPromise }),
-        listPosBrands(),
-        listPosProductTypes(),
-        listHeldOrders(),
-        getPosSession(),
-        marketPricesPromise,
-        isEmployeeFundEnabled(),
-      ]);
+    // Shell-first: do not await full catalog here (PERF open-tab). Client loads same listPosCatalog.
+    const [brands, productTypes, heldOrders, session, marketPrices, flagOn] = await Promise.all([
+      listPosBrands(),
+      listPosProductTypes(),
+      listHeldOrders(),
+      getPosSession(),
+      listMarketGoldClassPrices(),
+      isEmployeeFundEnabled(),
+    ]);
 
     let awaitingGoldItems: SaleAwaitingGoldRow[] = [];
     if (flagOn) {
@@ -68,7 +64,8 @@ export async function PosPage() {
     return (
       <Suspense fallback={<div className="p-6 text-[13px] text-[var(--tlkv-muted)]">Đang tải quầy...</div>}>
         <PosTerminal
-          catalog={catalog}
+          catalog={[]}
+          catalogDeferred
           marketPrices={marketPrices}
           brands={brands}
           productTypes={productTypes}

@@ -735,6 +735,19 @@ export async function listMarketGoldRefs(): Promise<MarketGoldRef[]> {
   }));
 }
 
+/**
+ * Client bootstrap for /purchase shell-first load.
+ * Same listPurchaseCatalog mapper as RSC — no pricing/stock rule change.
+ */
+export async function loadPurchaseCatalogAction(): Promise<
+  ActionResult<import("./types").PurchaseCatalogItem[]>
+> {
+  return runAction(async () => {
+    const { listPurchaseCatalog } = await import("./query");
+    return listPurchaseCatalog();
+  }, "Không tải được danh mục mua vào.");
+}
+
 export async function listBuys(input?: {
   limit?: number;
   offset?: number;

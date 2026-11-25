@@ -24,6 +24,8 @@ const PAGE_SIZE = 12;
 
 export function PurchaseCatalogPanel({
   catalog,
+  catalogLoading = false,
+  catalogLoadError = null,
   productTypes = [],
   marketPrices = {},
   onPickCatalog,
@@ -31,6 +33,8 @@ export function PurchaseCatalogPanel({
   onLabelCodeSubmit,
 }: {
   catalog: PurchaseCatalogItem[];
+  catalogLoading?: boolean;
+  catalogLoadError?: string | null;
   productTypes?: PosProductTypeOption[];
   marketPrices?: MarketGoldClassPrices;
   onPickCatalog: (item: PurchaseCatalogItem) => void;
@@ -301,7 +305,21 @@ export function PurchaseCatalogPanel({
               );
             })
           : null}
-        {pageItems.length === 0 && !showMarketCards ? (
+        {catalogLoading && catalog.length === 0
+          ? Array.from({ length: 8 }, (_, i) => (
+              <div
+                key={`purchase-skel-${i}`}
+                className="h-[168px] animate-pulse rounded-[12px] bg-[var(--tlkv-bg)]"
+                aria-hidden
+              />
+            ))
+          : null}
+        {catalogLoadError && catalog.length === 0 ? (
+          <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-red)]">
+            {catalogLoadError}
+          </p>
+        ) : null}
+        {!catalogLoading && !catalogLoadError && pageItems.length === 0 && !showMarketCards ? (
           <p className="col-span-full py-10 text-center text-[13px] text-[var(--tlkv-muted)]">
             Không có sản phẩm phù hợp.
           </p>

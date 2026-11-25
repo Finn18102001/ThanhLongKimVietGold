@@ -35,6 +35,7 @@ import {
   issueBuyFundRequest,
   issueMeltCommitment,
   loadBuyFundRequestForPrint,
+  loadPurchaseCatalogAction,
   refreshBuysAwaitingFund,
   setBuyMeltWeights,
   setBuyStone,
@@ -42,6 +43,7 @@ import {
   startBuyMelting,
   uploadBuyFile,
 } from "./actions";
+import { peekPurchaseCatalogCache, setPurchaseCatalogCache } from "./catalog-client-cache";
 import { BuyAttachmentsPanel } from "./components/BuyAttachmentsPanel";
 import { BuyLabelPrintButton } from "./components/BuyLabelPrintButton";
 import { BuyWorkflowPanel } from "./components/BuyWorkflowPanel";
@@ -102,7 +104,8 @@ const EMPTY_AWAITING_FUND: BuyAwaitingFundList = {
 };
 
 export function PurchaseWorkspace({
-  catalog,
+  catalog: initialCatalog,
+  catalogDeferred = false,
   marketRefs,
   marketPrices = {},
   productTypes = [],
@@ -110,6 +113,8 @@ export function PurchaseWorkspace({
   initialAwaitingFund = EMPTY_AWAITING_FUND,
 }: {
   catalog: PurchaseCatalogItem[];
+  /** When true, RSC skipped full catalog; client loads via loadPurchaseCatalogAction (+ cache). */
+  catalogDeferred?: boolean;
   marketRefs: MarketGoldRef[];
   marketPrices?: MarketGoldClassPrices;
   productTypes?: PosProductTypeOption[];
@@ -118,6 +123,14 @@ export function PurchaseWorkspace({
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const collectKey = useRef<string | null>(null);
+  const bootCatalog = catalogDeferred
+    ? (peekPurchaseCatalogCache() ?? initialCatalog)
+    : initialCatalog;
+  const [catalog, setCatalog] = useState(bootCatalog);
+  const [catalogLoading, setCatalogLoading] = useState(
+    () => catalogDeferred && bootCatalog.length === 0,
+  );
+  const [catalogLoadError, setCatalogLoadError] = useState<string | null>(null);
 
   const [lines, setLines] = useState<BuyLine[]>([]);
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
@@ -171,12 +184,47 @@ export function PurchaseWorkspace({
   const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
   const [detailTab, setDetailTab] = useState<"overview" | "docs">("overview");
   const workflowKey = useRef<string | null>(null);
-  const catalogRef = useRef(catalog);
+  const catalogRef = useRef(bootCatalog);
   const scanBusyRef = useRef(false);
   const lastScanRef = useRef({ code: "", at: 0 });
   const scanGateRef = useRef({
     blocked: false,
   });
+
+  useEffect(() => {
+    if (!catalogDeferred) return;
+    let cancelled = false;
+    const cached = peekPurchaseCatalogCache();
+    if (cached && cached.length > 0) {
+      setCatalog(cached);
+      setCatalogLoading(false);
+      setCatalogLoadError(null);
+    } else {
+      setCatalogLoading(true);
+    }
+
+    void (async () => {
+      const result = await loadPurchaseCatalogAction();
+      if (cancelled) return;
+      if (!result.ok) {
+        if (!peekPurchaseCatalogCache()?.length) {
+          setCatalogLoadError(
+            formatActionError(result.message, "Không tải được danh mục mua vào."),
+          );
+        }
+        setCatalogLoading(false);
+        return;
+      }
+      setPurchaseCatalogCache(result.data);
+      setCatalog(result.data);
+      setCatalogLoadError(null);
+      setCatalogLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogDeferred]);
   const tryAddFromLabelCodeRef = useRef<(raw: string) => Promise<void>>(async () => {});
 
   const totalDong = useMemo(
@@ -309,6 +357,14 @@ export function PurchaseWorkspace({
 
     if (scanGateRef.current.blocked) return;
     if (scanBusyRef.current) return;
+    if (catalogRef.current.length === 0) {
+      setAlert({
+        tone: "error",
+        title: "Đang tải danh mục",
+        reason: "Chờ danh sách sản phẩm tải xong rồi quét lại.",
+      });
+      return;
+    }
 
     scanBusyRef.current = true;
     try {
@@ -926,6 +982,8 @@ export function PurchaseWorkspace({
           <div className="flex min-h-0 flex-col gap-4">
             <PurchaseCatalogPanel
               catalog={catalog}
+              catalogLoading={catalogLoading}
+              catalogLoadError={catalogLoadError}
               productTypes={productTypes}
               onPickCatalog={addCatalogItem}
               onLabelCodeSubmit={(code) => {

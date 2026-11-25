@@ -277,4 +277,17 @@ export async function loadSaleFundRequestForPrint(
   }, "Không tải phiếu YC-THU để in được.");
 }
 
+/**
+ * Client bootstrap for /pos shell-first load.
+ * Same listPosCatalog mapper as RSC — no pricing/stock rule change.
+ */
+export async function loadPosCatalogAction(): Promise<
+  ActionResult<import("./types").PosCatalogItem[]>
+> {
+  return runAction(async () => {
+    const { listPosCatalog } = await import("./query");
+    return listPosCatalog();
+  }, "Không tải được danh mục bán hàng.");
+}
+
 export { actionFail, formatActionError };
