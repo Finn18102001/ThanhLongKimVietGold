@@ -337,29 +337,31 @@ Không phụ thuộc timezone máy NV.
 
 ## 13. Acceptance mapping — gap hiện tại
 
-### Future 1
+> **Cập nhật 2026-11-25 ~22:48 — chấm SRS:** Future 1 **~99%** (go-live 07–20 + hard-test STAFF). Future 2 **~98%** (app/SQL + Auth timebox=24; thiếu soak-test 24h tường minh). Future 3 **~98%** (OTP allowlist + SMTP Gmail OK + bỏ DEV UI; From tạm `tuananh18101@gmail.com`). **Tổng ~98%.**
+
+### Future 1 (~99%)
 
 | AC | Hiện trạng | Gap |
 |---|---|---|
-| Non-Admin bị giới hạn giờ | Chưa | SQL + login + FE |
-| Admin / Admin viewer không bị | N/A | Dùng `tlkv_can_admin_read` |
-| Login chỉ 07:00–&lt;20:00 | Chưa | Login action |
-| Message đúng câu | Chưa | |
-| Tới 20:00 chặn + logout | Chưa | FE timer + SQL |
-| Backend từ chối | Chưa | `require_*` |
-| TZ Việt Nam | Sẵn sàng | Dùng pattern hiện có |
+| Non-Admin bị giới hạn giờ | SQL + login + FE; override **OFF**; 07:00–20:00 | — |
+| Admin / Admin viewer không bị | OK (`tlkv_can_admin_read`) | — |
+| Login chỉ 07:00–&lt;20:00 | `login/actions.ts` + hard-test STAFF | — |
+| Message đúng câu | `"Đã hết ca làm việc."` | — |
+| Tới 20:00 chặn + logout | `SessionExpiryGuard` + layout | — |
+| Backend từ chối | `assert_work_hours_for_staff` trong `require_pos_user` | — |
+| TZ Việt Nam | Sẵn sàng | — |
 
-### Future 2
+### Future 2 (~98%)
 
 | AC | Hiện trạng | Gap |
 |---|---|---|
-| 24h từ login | Refresh vô hạn | Timebox + app check |
-| Refresh trang không reset | Đúng với Auth session | Giữ nguyên |
-| Đóng tab/browser giữ phiên | Đúng (cookie) | Giữ nguyên |
-| Hết 24h logout | Chưa | |
-| Refresh không kéo quá 24h | Chưa | Timebox |
-| Backend từ chối phiên hết hạn | Chưa | SQL |
-| Multi-tab nhất quán | Một phần (cookie) | Thêm sync logout |
+| 24h từ login | App/SQL `assert_session_fresh` (1440 phút) | Soak-test 24h (tuỳ chọn) |
+| Refresh trang không reset | Đúng với Auth session | — |
+| Đóng tab/browser giữ phiên | Đúng (cookie) | — |
+| Hết 24h logout | FE timer + layout + SQL | — |
+| Refresh không kéo quá 24h | App-level + **Auth timebox = 24** (đã bật) | — |
+| Backend từ chối phiên hết hạn | `assert_session_fresh` trên `require_*` | — |
+| Multi-tab nhất quán | BroadcastChannel `tlkv-auth-logout` | — |
 
 ---
 
@@ -402,7 +404,15 @@ Không phụ thuộc timezone máy NV.
 - [x] §14.4 Gate 20:00  
 - [x] §14.3 Dashboard PRO đã xác minh; timebox Production vẫn = 0 — chỉ bật khi đến cửa sổ triển khai Future 2 (xem §14.7)  
 - [ ] §16 Future 3 OTP email — SMTP Production + thiết kế challenge allowlist 2 Gmail  
-- [ ] PO/tech lead duyệt bắt đầu implementation (Future 1+2 ± Future 3)  
+- [x] PO/tech lead duyệt bắt đầu implementation Future 1+2 (2026-11-25) — Future 3 vẫn chờ SMTP  
+
+### 14.8 Go-live checklist (Future 1+2)
+
+1. [x] `work_hours_dev_override=false` + cửa sổ 07:00–20:00 (Production 2026-11-25 22:03 VN).
+2. [x] Hard-test STAFF ngoài giờ → `"Đã hết ca làm việc."` (`testquytien@gmail.com`). Admin allowlist vào qua OTP (không bị work-hours).
+3. [ ] Hard-test hết 24h (có thể tạm `session_dev_max_minutes` nhỏ).
+4. [x] Bật Auth Dashboard **Time-box user sessions = 24** (PO xác nhận 2026-11-25 ~22:14 VN).
+5. [ ] Thông báo user đang login khi bật timebox (phiên cũ hết hạn dần lúc refresh).
 
 ---
 
@@ -420,7 +430,7 @@ Không phụ thuộc timezone máy NV.
 - [x] Verdict khả thi  
 - [x] Ghi nhận quyết định §14.1 / 14.2 / 14.4  
 
-**Không** bắt đầu implementation cho đến khi §14.6 đủ tick (tối thiểu: xác nhận chiến lược Pro+/timebox vs app-level-only + lệnh bắt đầu code).
+**Trạng thái 2026-11-25 đêm:** Future 1 **go-live + hard-test OK**. Future 2 app/SQL + **Auth timebox Dashboard = 24** (đã bật). Future 3 **OTP flow hard-test OK** qua DEV code; chờ SMTP thật rồi tắt `otp_dev_return_code`.
 
 ---
 
@@ -500,15 +510,22 @@ ADMIN khác / ADMIN_VIEWER:
   password → session → 24h (không work hours, không MFA bước 2)
 ```
 
-### 16.6. Việc còn lại trước code Future 3
+### 16.6. Việc còn lại trước / sau code Future 3
 
 - [x] Chốt ADMIN_VIEWER = không MFA  
 - [x] Chốt allowlist 2 email  
 - [x] Chốt mỗi lần login  
 - [x] Chốt thông số 6 số / TTL / resend (email)  
 - [x] **PO chọn phương án A — OTP email** (không dùng Google Authenticator)  
-- [ ] Check SMTP Production (Dashboard → Auth → SMTP) — **blocker** Future 3  
-- [ ] Duyệt bắt đầu implementation Future 3
+- [x] Duyệt bắt đầu implementation Future 3 (2026-11-25)  
+- [x] DB: `pos_login_otp_challenges` / `pos_login_otp_verified` + RPCs + gate `require_*` (migration `20261125150000_f3_admin_login_otp`)  
+- [x] App: `/login/otp`, login redirect allowlist, layout gate  
+- [x] Hard-test allowlist bằng `otp_dev_return_code=true` (hiển thị mã trên UI DEV)  
+- [x] Mailer app: Gmail SMTP + HTML template TLKV (`src/shared/email/*`, preview `docs/pos-big-update/otp-email-preview.html`)  
+- [x] Sender hard-test: `tuananh18101@gmail.com` — SMTP verify OK; `otp_dev_return_code=false`  
+- [x] Bỏ UI DEV OTP — SMTP lỗi chỉ hiện message lỗi  
+- [ ] Hard-test: login allowlist → inbox nhận mail OTP  
+- [ ] (Tuỳ) chuyển lại From sang `thanglongkimviet@gmail.com` khi có App Password shop  
 
 ## 17. Tổng hợp yêu cầu đã chốt (Future 1 + 2 + 3)
 

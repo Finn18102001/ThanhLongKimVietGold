@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ArrowsClockwise, CalendarBlank } from "@phosphor-icons/react";
 import { isNavActive, navForRole } from "./nav";
 import { signOut } from "@/app/login/actions";
+import { SessionExpiryGuard } from "@/shared/auth/SessionExpiryGuard";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { GlobalSearch } from "@/shared/search/GlobalSearch";
 import { roleLabel, type StaffRole } from "@/shared/auth/permissions";
@@ -18,6 +19,9 @@ export function AdminShell({
   role,
   showFundCash = false,
   showFundGold = false,
+  sessionExpiresAt = null,
+  workHoursApplies = false,
+  workHoursEndAt = null,
 }: {
   children: ReactNode;
   businessDateLabel: string;
@@ -26,6 +30,9 @@ export function AdminShell({
   role: StaffRole;
   showFundCash?: boolean;
   showFundGold?: boolean;
+  sessionExpiresAt?: string | null;
+  workHoursApplies?: boolean;
+  workHoursEndAt?: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -34,6 +41,11 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-[100dvh] bg-[var(--tlkv-bg)] print:min-h-0 print:block">
+      <SessionExpiryGuard
+        sessionExpiresAt={sessionExpiresAt}
+        workHoursApplies={workHoursApplies}
+        workHoursEndAt={workHoursEndAt}
+      />
       <aside className="sticky top-0 flex h-[100dvh] w-[280px] shrink-0 flex-col border-r border-[var(--tlkv-line)] bg-white print:hidden">
         <BrandLockup variant="sidebar" href={role === "STAFF" ? "/pos" : "/"} />
 

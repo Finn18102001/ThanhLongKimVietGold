@@ -1,7 +1,8 @@
-import { signOut } from "@/app/login/actions";
+import { forceSignOut, signOut } from "@/app/login/actions";
 import { PermissionGate } from "@/shared/auth/PermissionGate";
+import { canAdminRead, type StaffRole } from "@/shared/auth/permissions";
 import { getPosSession } from "@/shared/auth/session";
-import type { StaffRole } from "@/shared/auth/permissions";
+import { msUntil } from "@/shared/auth/session-policy";
 import { AdminShell } from "@/shared/layout/AdminShell";
 import { formatViDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
@@ -47,6 +48,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     );
   }
 
+  // Future 3 — allowlist Admin must verify OTP before admin shell.
+  if (session.otp?.required && !session.otp.verified) {
+    redirect(`/login/otp?next=${encodeURIComponent("/")}`);
+  }
+
+  // Future 2 — absolute 24h (all roles; allowlist clock starts after OTP).
+  if (msUntil(session.sessionExpiresAt) === 0) {
+    await forceSignOut("session");
+  }
+
+  // Future 1 — work hours for non-Admin only (UX early exit; SQL require_* remains SoT).
+  if (
+    !canAdminRead(session.role) &&
+    session.workHours?.applies &&
+    !session.workHours.within
+  ) {
+    await forceSignOut("work_hours");
+  }
+
   const role = session.role as StaffRole;
 
   // PERF-002: parallel gates (same allow rules); React.cache dedupes with page shell.
@@ -65,6 +85,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       role={role}
       showFundCash={showFundCash}
       showFundGold={showFundGold}
+      sessionExpiresAt={session.sessionExpiresAt}
+      workHoursApplies={Boolean(session.workHours?.applies)}
+      workHoursEndAt={session.workHours?.endAt ?? null}
     >
       <PermissionGate role={role}>{children}</PermissionGate>
     </AdminShell>
