@@ -38,6 +38,9 @@ export type PriceLinkControlsProps = {
   /** Tiền công bán — lưu vào pos_skus.labor_fee_dong; prefill HĐ bán. */
   sellLaborDong: string;
   onSellLaborDongChange: (value: string) => void;
+  /** P9.4: hiện riêng dòng tiền công trên phôi HĐ (chỉ trình bày). */
+  invoiceShowLaborLine: boolean;
+  onInvoiceShowLaborLineChange: (value: boolean) => void;
   costPriceDong: string;
   onCostPriceDongChange: (value: string) => void;
   sellPriceDong: string;
@@ -50,10 +53,7 @@ export type PriceLinkControlsProps = {
   className?: string;
 };
 
-/**
- * Reading this as: POS admin receive form controls for TLKV staff,
- * matching existing --tlkv-* template (not a marketing landing).
- */
+/** Price / labor / sell-suggest controls for receive (kho + in tem). */
 export function PriceLinkControls({
   metalKind,
   priceRows,
@@ -69,6 +69,8 @@ export function PriceLinkControls({
   onReceiveLaborDongChange,
   sellLaborDong,
   onSellLaborDongChange,
+  invoiceShowLaborLine,
+  onInvoiceShowLaborLineChange,
   costPriceDong,
   onCostPriceDongChange,
   sellPriceDong,
@@ -287,6 +289,22 @@ export function PriceLinkControls({
         </span>
       </label>
 
+      <label className="sm:col-span-2 flex cursor-pointer items-start gap-2 rounded-lg border border-[var(--tlkv-line)] px-3 py-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="invoice_show_labor_line"
+          checked={invoiceShowLaborLine}
+          onChange={(e) => onInvoiceShowLaborLineChange(e.target.checked)}
+          className="mt-0.5 size-4 accent-[var(--tlkv-red)]"
+        />
+        <span>
+          <span className="font-medium">Hiện riêng dòng tiền công bán trên hóa đơn</span>
+          <span className="mt-0.5 block text-[11px] text-[var(--tlkv-muted)]">
+            Bật: phôi in có dòng “Tiền công”. Tắt: gộp công vào dòng vàng. Tổng tiền không đổi.
+          </span>
+        </span>
+      </label>
+
       {metalKind === "gold" ? (
         <>
           <fieldset className="sm:col-span-2">
@@ -351,8 +369,8 @@ export function PriceLinkControls({
         />
         <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
           {metalKind === "silver"
-            ? "Bạc: nhập tay. Không autofill từ bảng giá."
-            : "Gợi ý theo chế độ đã chọn + tiền công bán. Vẫn sửa tay được."}
+            ? "Bạc: nhập tay (all-in). Không autofill từ bảng giá."
+            : "Có link bảng giá: gợi ý theo LINK/HESO (+ công). Không link: bắt buộc nhập tay — lưu làm giá cơ sở trên Bán hàng (cộng công bán nếu có)."}
         </span>
       </label>
     </div>

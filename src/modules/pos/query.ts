@@ -198,7 +198,19 @@ async function fetchPosCatalogMeta(options?: {
       (row as { sell_pricing_multiplier?: number | string | null }).sell_pricing_multiplier,
     );
     let goldUnitDong: number | null = null;
-    if (!isMarketGold && !isSilverReceive && sell > 0) {
+    const hasPriceRow = row.price_row_id != null && String(row.price_row_id).trim() !== "";
+    // P9.4: vàng không link + manual_sell = cơ sở (ex-labor). Bạc all-in xử lý riêng bên dưới.
+    const goldManualBase =
+      !isMarketGold &&
+      !isSilverReceive &&
+      !hasPriceRow &&
+      manualSellDong != null &&
+      manualSellDong > 0
+        ? manualSellDong
+        : null;
+    if (goldManualBase != null) {
+      goldUnitDong = goldManualBase;
+    } else if (!isMarketGold && !isSilverReceive && sell > 0) {
       if (
         sellPricingMode === "HESO" &&
         Number.isFinite(sellPricingHl) &&
@@ -220,13 +232,15 @@ async function fetchPosCatalogMeta(options?: {
         goldUnitDong = Math.round(sell * (Number(row.weight_chi) / perChiDivisor));
       }
     }
-    // Board path first (vàng); bạc / unlinked → manual_sell (P9 §4 / SRS §6).
+    // Board/HESO hoặc P9.4 gold manual base → +labor+stone; bạc all-in = manual_sell nguyên.
     const unitPriceDong =
       goldUnitDong !== null
         ? goldUnitDong + laborFeeDong + stonePriceDong
-        : !isMarketGold && manualSellDong != null
+        : !isMarketGold && isSilverReceive && manualSellDong != null
           ? manualSellDong
-          : null;
+          : !isMarketGold && !isSilverReceive && manualSellDong != null && !hasPriceRow
+            ? manualSellDong + laborFeeDong + stonePriceDong
+            : null;
     const category = isMarketGold
       ? product?.category ?? "Vàng thị trường"
       : product?.category ?? "Khác";
@@ -395,15 +409,17 @@ export async function listPosCatalog(options?: {
     const stonePriceDong = item.stonePriceDong ?? 0;
     const boardUnit =
       goldUnitDong === null ? null : goldUnitDong + laborFeeDong + stonePriceDong;
-    // Unlinked catalog: keep manual sell from meta when board path empty (SRS §6).
+    // Prefer meta unitPrice (P9 bạc all-in / P9.4 vàng manual+labor) when board path empty.
     const unitPriceDong =
       boardUnit !== null
         ? boardUnit
         : item.isMarketGold
           ? null
-          : item.manualSellDong != null && item.manualSellDong > 0
-            ? item.manualSellDong
-            : null;
+          : item.unitPriceDong != null
+            ? item.unitPriceDong
+            : item.manualSellDong != null && item.manualSellDong > 0
+              ? item.manualSellDong
+              : null;
     return {
       skuId: item.skuId,
       sku: item.sku,

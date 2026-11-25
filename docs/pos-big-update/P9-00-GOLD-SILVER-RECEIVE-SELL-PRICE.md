@@ -4,7 +4,8 @@
 > Nguồn: BIG CHANGE – cập nhật công thức giá vàng, giá bạc và nhập kho  
 > Contract: [`../SYSTEM_DEVELOPMENT_RULES.md`](../SYSTEM_DEVELOPMENT_RULES.md) §9, §13, §21  
 > Liên quan: [`P8-00-ORDER-LABEL-RECEIVE.md`](./P8-00-ORDER-LABEL-RECEIVE.md), [`P4-02-SELL-FLOW.md`](./P4-02-SELL-FLOW.md), [`P7-00-PRERECEIPT-LABELING.md`](./P7-00-PRERECEIPT-LABELING.md)  
-> Trạng thái: **UI nhập kho 3 khu vực + tiền công bán tại kho + heso board_sell + bạc manual** (2026-11-20). Mục §5 **hoãn**.
+> Trạng thái: **UI nhập kho 3 khu vực + tiền công bán tại kho + heso board_sell + bạc manual** (2026-11-20). Mục §5 **hoãn**.  
+> P9.4 (2026-11-26): vàng **không link** bảng giá → `manual_sell_dong` cơ sở (+ công trên POS/HĐ); xem [`P9-04-GOLD-MANUAL-SELL-NO-LINK.md`](./P9-04-GOLD-MANUAL-SELL-NO-LINK.md).
 
 ## 0. Phạm vi round này vs hoãn
 

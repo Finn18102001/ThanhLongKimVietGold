@@ -5,6 +5,8 @@ import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
   applySkuManualSellByCode,
   applySkuManualSellDong,
+  applySkuInvoiceShowLaborByCode,
+  applySkuInvoiceShowLaborDong,
   applySkuSellLaborByCode,
   applySkuSellLaborDong,
   applySkuSellPricingByCode,
@@ -83,6 +85,7 @@ export function ReceiveForm({
   const [spotBuyDong, setSpotBuyDong] = useState("");
   const [receiveLaborDong, setReceiveLaborDong] = useState("0");
   const [sellLaborDong, setSellLaborDong] = useState("0");
+  const [invoiceShowLaborLine, setInvoiceShowLaborLine] = useState(true);
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [paidDongText, setPaidDongText] = useState("");
@@ -104,6 +107,7 @@ export function ReceiveForm({
     setSpotBuyDong("");
     setReceiveLaborDong("0");
     setSellLaborDong("0");
+    setInvoiceShowLaborLine(true);
     setCostPriceDong("");
     setSellPriceDong("");
     setPaidDongText("");
@@ -159,12 +163,24 @@ export function ReceiveForm({
 
       const orderSellRaw = sellPriceDong.trim();
       const orderSellDong = orderSellRaw === "" ? null : Number(orderSellRaw);
+      const orderHasPriceLink = Boolean(orderPriceRowId?.trim());
       if (metalKind === "silver") {
         if (orderSellDong == null || !Number.isInteger(orderSellDong) || orderSellDong <= 0) {
           setAlert({
             tone: "error",
             title: "Thiếu giá bán bạc",
             reason: "Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.",
+          });
+          return;
+        }
+      } else if (!orderHasPriceLink) {
+        // P9.4: vàng không link bảng giá → bắt buộc giá gợi ý tay (cơ sở, chưa gồm công).
+        if (orderSellDong == null || !Number.isInteger(orderSellDong) || orderSellDong <= 0) {
+          setAlert({
+            tone: "error",
+            title: "Thiếu giá bán gợi ý",
+            reason:
+              "Vàng không liên kết bảng giá cần giá bán gợi ý / chiếc (số nguyên VND > 0) để hiện trên bán hàng.",
           });
           return;
         }
@@ -218,10 +234,13 @@ export function ReceiveForm({
           if (Number.isInteger(sellLabor) && sellLabor >= 0) {
             await applySkuSellLaborByCode(code, sellLabor);
           }
+          await applySkuInvoiceShowLaborByCode(code, invoiceShowLaborLine);
           await applySkuSellPricingByCode(code, sellPricing);
           await applySkuManualSellByCode(code, {
             metalKind,
-            manualSellDong: orderSellDong,
+            // P9.4: chỉ lưu manual vàng khi không chọn link bảng giá.
+            manualSellDong:
+              metalKind === "gold" && orderHasPriceLink ? null : orderSellDong,
           });
         }
         setIdempotencyKey(crypto.randomUUID());
@@ -274,6 +293,7 @@ export function ReceiveForm({
         await applySkuSellLaborDong(skuId, sellLabor);
       }
       if (skuId) {
+        await applySkuInvoiceShowLaborDong(skuId, invoiceShowLaborLine);
         await applySkuSellPricingDong(skuId, sellPricing);
         // Catalog: điền giá bán > 0 → lưu manual_sell (SILVER) để POS hiện giá (vá SKU bạc cũ).
         await applySkuManualSellDong(skuId, {
@@ -452,6 +472,8 @@ export function ReceiveForm({
               onReceiveLaborDongChange={setReceiveLaborDong}
               sellLaborDong={sellLaborDong}
               onSellLaborDongChange={setSellLaborDong}
+              invoiceShowLaborLine={invoiceShowLaborLine}
+              onInvoiceShowLaborLineChange={setInvoiceShowLaborLine}
               costPriceDong={costPriceDong}
               onCostPriceDongChange={setCostPriceDong}
               sellPriceDong={sellPriceDong}
@@ -543,6 +565,20 @@ export function ReceiveForm({
               />
               <span className="mt-1 block text-[11px] text-[var(--tlkv-muted)]">
                 Lưu vào mã hàng, tự điền công trên hóa đơn bán (vẫn sửa được).
+              </span>
+            </label>
+            <label className="sm:col-span-2 flex cursor-pointer items-start gap-2 rounded-lg border border-[var(--tlkv-line)] px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={invoiceShowLaborLine}
+                onChange={(e) => setInvoiceShowLaborLine(e.target.checked)}
+                className="mt-0.5 size-4 accent-[var(--tlkv-red)]"
+              />
+              <span>
+                <span className="font-medium">Hiện riêng dòng tiền công bán trên hóa đơn</span>
+                <span className="mt-0.5 block text-[11px] text-[var(--tlkv-muted)]">
+                  Bật: phôi in có dòng “Tiền công”. Tắt: gộp công vào dòng vàng. Tổng tiền không đổi.
+                </span>
               </span>
             </label>
             <label className="text-sm sm:col-span-2">

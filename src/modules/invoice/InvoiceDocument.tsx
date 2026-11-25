@@ -22,6 +22,11 @@ function weightWithQty(weightChi: number, quantity: number): string {
   return quantity > 1 ? `× ${quantity}` : "";
 }
 
+export type InvoicePrintOptions = {
+  /** P9.4: when false, fold labor into gold line amounts (no separate "Tiền công" row). Default true. */
+  showLaborLine?: boolean;
+};
+
 /**
  * P4 C9 + Big Change BC-19: each product prints its gold row, then detail rows right under it:
  * đá (only when the piece has stone) and tiền công (only when ≠ 0). Gold unit price never includes stone / labor.
@@ -29,10 +34,19 @@ function weightWithQty(weightChi: number, quantity: number): string {
  * thành tiền = đơn giá × số lượng đá × số chiếc.
  * Lines sold before the split (goldAmountDong null) keep the single legacy row.
  * Row limit is unchanged: detail rows still count toward MAX_FITTED_ROWS.
+ * P9.4: `showLaborLine=false` merges labor into the gold row (totals unchanged).
  */
-function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
+function invoiceProductRows(
+  invoice: InvoiceDetail,
+  options?: InvoicePrintOptions,
+): Omit<PrintItem, "stt">[] {
   const rows: Omit<PrintItem, "stt">[] = [];
   for (const line of invoice.lines) {
+    // Receive-time SKU flag snapshotted on sale line; null/legacy = show. Optional override for tests.
+    const showLaborLine =
+      options?.showLaborLine !== undefined
+        ? options.showLaborLine !== false
+        : line.invoiceShowLaborLine !== false;
     if (line.goldAmountDong == null) {
       rows.push({
         productName: line.name,
@@ -43,12 +57,15 @@ function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
       });
       continue;
     }
+    const labor = line.laborFinalDong ?? 0;
+    const foldLabor = !showLaborLine && labor !== 0;
+    const goldAmount = foldLabor ? line.goldAmountDong + labor : line.goldAmountDong;
     rows.push({
       productName: line.name,
       purity: line.purity || "",
       weightLabel: weightWithQty(line.weightChi, line.quantity),
-      unitPriceDong: line.weightChi > 0 ? Math.round(line.goldAmountDong / line.weightChi) : line.goldAmountDong,
-      amountDong: line.goldAmountDong * line.quantity,
+      unitPriceDong: line.weightChi > 0 ? Math.round(goldAmount / line.weightChi) : goldAmount,
+      amountDong: goldAmount * line.quantity,
     });
     if (line.stoneWeightChi > 0 || line.stonePriceDong > 0) {
       // Lines sold with a hand-typed stone amount (no stone quantity) keep printing that amount per piece.
@@ -61,8 +78,7 @@ function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
         amountDong: line.stonePriceDong * line.quantity,
       });
     }
-    const labor = line.laborFinalDong ?? 0;
-    if (labor !== 0) {
+    if (showLaborLine && labor !== 0) {
       rows.push({
         productName: "Tiền công",
         purity: "",
@@ -75,11 +91,17 @@ function invoiceProductRows(invoice: InvoiceDetail): Omit<PrintItem, "stt">[] {
   return rows;
 }
 
-export function invoiceCertificateRowCount(invoice: InvoiceDetail): number {
-  return invoiceProductRows(invoice).length + (invoice.charges?.length ?? 0);
+export function invoiceCertificateRowCount(
+  invoice: InvoiceDetail,
+  options?: InvoicePrintOptions,
+): number {
+  return invoiceProductRows(invoice, options).length + (invoice.charges?.length ?? 0);
 }
 
-export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPayload {
+export function invoiceToPrintPayload(
+  invoice: InvoiceDetail,
+  options?: InvoicePrintOptions,
+): InvoicePrintPayload {
   const issued = invoiceIssuedParts(invoice.issuedAt);
   const walkIn = invoice.isWalkIn || invoice.customerPhone === "WALKIN";
   const phone = walkIn ? "" : invoice.customerPhone;
@@ -90,7 +112,10 @@ export function invoiceToPrintPayload(invoice: InvoiceDetail): InvoicePrintPaylo
   const paidDong = Math.max(0, invoice.paidDong);
 
   // Đơn giá on phôi: vàng = giá / 1 chỉ; đá = giá / 1 viên; công = giá / 1 chiếc. Qty goes into the weight cell.
-  const productItems = invoiceProductRows(invoice).map((row, index) => ({ stt: index + 1, ...row }));
+  const productItems = invoiceProductRows(invoice, options).map((row, index) => ({
+    stt: index + 1,
+    ...row,
+  }));
   const chargeItems = (invoice.charges ?? []).map((charge: InvoiceCharge, index) => ({
     stt: productItems.length + index + 1,
     productName: charge.name,

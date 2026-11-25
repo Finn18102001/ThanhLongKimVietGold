@@ -346,6 +346,42 @@ export async function applySkuSellLaborByCode(
   await applySkuSellLaborDong(String(data.id), sellLaborDong);
 }
 
+/** P9.4: persist “hiện dòng tiền công trên HĐ” set at receive (presentation only). */
+export async function applySkuInvoiceShowLaborDong(
+  skuId: string,
+  showLaborLine: boolean,
+): Promise<void> {
+  if (!skuId) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_set_sku_invoice_show_labor", {
+    p_sku_id: skuId,
+    p_show: showLaborLine,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/pos");
+  revalidatePath("/inventory");
+  revalidatePath("/invoices");
+}
+
+export async function applySkuInvoiceShowLaborByCode(
+  skuCode: string | null | undefined,
+  showLaborLine: boolean,
+): Promise<void> {
+  const code = String(skuCode ?? "").trim();
+  if (!code) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_skus")
+    .select("id")
+    .eq("sku", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return;
+  await applySkuInvoiceShowLaborDong(String(data.id), showLaborLine);
+}
+
 /** Persist LINK|HESO metadata on SKU (no fixed sell price). Null/legacy → call with LINK. */
 export async function applySkuSellPricingDong(
   skuId: string,
@@ -384,9 +420,9 @@ export async function applySkuSellPricingByCode(
 }
 
 /**
- * P9 bạc: lưu `receive_metal_kind` + `manual_sell_dong` (RPC `pos_set_sku_manual_sell`).
- * Vàng: chỉ ghi kind=GOLD (không ghi đè manual sell).
- * Không truyền metalKind + có giá bán > 0 (catalog vá SKU cũ): coi là SILVER.
+ * P9 bạc: `SILVER` + `manual_sell_dong` all-in.
+ * P9.4 vàng không link: `GOLD` + `manual_sell_dong` = cơ sở (chưa gồm công); caller chỉ truyền giá khi không chọn price_row.
+ * Không truyền metalKind + có giá bán > 0 (catalog vá SKU bạc cũ): coi là SILVER.
  */
 export async function applySkuManualSellDong(
   skuId: string,
@@ -399,6 +435,12 @@ export async function applySkuManualSellDong(
   let manual: number | null = null;
   if (input.metalKind === "gold") {
     kind = "GOLD";
+    const sell = input.manualSellDong;
+    if (sell != null && Number.isInteger(sell) && sell > 0) {
+      manual = sell;
+    } else {
+      manual = null;
+    }
   } else if (input.metalKind === "silver") {
     kind = "SILVER";
     const sell = input.manualSellDong;

@@ -48,6 +48,8 @@ export type InvoiceLine = {
   /** Thành tiền đá / chiếc = đơn giá đá × số lượng đá. */
   stonePriceDong: number;
   laborFinalDong: number | null;
+  /** Snapshot from SKU at sale. Null/undefined = legacy → show labor line. */
+  invoiceShowLaborLine?: boolean | null;
 };
 
 export type InvoiceListRow = {

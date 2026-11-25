@@ -19,6 +19,7 @@ import type {
 } from "../types";
 import {
   applySkuManualSellByCode,
+  applySkuInvoiceShowLaborByCode,
   applySkuSellLaborByCode,
   applySkuSellPricingByCode,
 } from "../actions";
@@ -109,6 +110,7 @@ export function DraftReceivePanel({
   const [receiveLaborDong, setReceiveLaborDong] = useState("0");
   /** Draft labor_fee = tiền công bán (tem); không map sang công nhập. */
   const [sellLaborDong, setSellLaborDong] = useState("0");
+  const [invoiceShowLaborLine, setInvoiceShowLaborLine] = useState(true);
   const [costPriceDong, setCostPriceDong] = useState("");
   const [sellPriceDong, setSellPriceDong] = useState("");
   const [sellMode, setSellMode] = useState<SellPriceMode>("link");
@@ -371,9 +373,17 @@ export function DraftReceivePanel({
     }
     const sellRaw = sellPriceDong.trim();
     const sell = sellRaw === "" ? null : Number(sellRaw);
+    const hasPriceLink = Boolean(priceRowId?.trim());
     if (metalKind === "silver") {
       if (sell == null || !Number.isInteger(sell) || sell <= 0) {
         setError("Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.");
+        return;
+      }
+    } else if (!hasPriceLink) {
+      if (sell == null || !Number.isInteger(sell) || sell <= 0) {
+        setError(
+          "Vàng không liên kết bảng giá cần giá bán gợi ý / chiếc (số nguyên VND > 0) để hiện trên bán hàng.",
+        );
         return;
       }
     } else if (sell != null && (!Number.isInteger(sell) || sell < 0)) {
@@ -436,14 +446,15 @@ export function DraftReceivePanel({
           if (sellLabor >= 0) {
             await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
           }
+          await applySkuInvoiceShowLaborByCode(result.data.skuCode, invoiceShowLaborLine);
           await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
           await applySkuManualSellByCode(result.data.skuCode, {
             metalKind,
-            manualSellDong: sell,
+            manualSellDong: metalKind === "gold" && hasPriceLink ? null : sell,
           });
         } catch (laborErr) {
           setError(
-            `Đã nhập draft nhưng chưa lưu công bán / chế độ giá / giá bán bạc: ${
+            `Đã nhập draft nhưng chưa lưu công bán / chế độ giá / giá bán: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );
@@ -791,6 +802,8 @@ export function DraftReceivePanel({
             onReceiveLaborDongChange={setReceiveLaborDong}
             sellLaborDong={sellLaborDong}
             onSellLaborDongChange={setSellLaborDong}
+            invoiceShowLaborLine={invoiceShowLaborLine}
+            onInvoiceShowLaborLineChange={setInvoiceShowLaborLine}
             costPriceDong={costPriceDong}
             onCostPriceDongChange={setCostPriceDong}
             sellPriceDong={sellPriceDong}

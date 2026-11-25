@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Printer } from "@phosphor-icons/react";
 import {
   applySkuManualSellByCode,
+  applySkuInvoiceShowLaborByCode,
   applySkuSellLaborByCode,
   applySkuSellPricingByCode,
 } from "@/modules/inventory/actions";
@@ -42,6 +43,7 @@ type Draft = {
   spotBuyDong: string;
   receiveLaborDong: string;
   sellLaborDong: string;
+  invoiceShowLaborLine: boolean;
   visible: boolean;
   expectedQty: string;
   receivedQty: string;
@@ -68,6 +70,7 @@ function emptyDraft(defaultBrandId: string): Draft {
     spotBuyDong: "",
     receiveLaborDong: "0",
     sellLaborDong: "0",
+    invoiceShowLaborLine: true,
     visible: false,
     expectedQty: "0",
     receivedQty: "1",
@@ -85,10 +88,7 @@ function isWholeNumber(raw: string): boolean {
   return /^\d+$/.test(raw.trim());
 }
 
-/**
- * Reading this as: POS admin combined receive+print form for TLKV staff,
- * matching existing --tlkv-* template (not a marketing landing).
- */
+/** Combined receive + label print (kho Order path). */
 export function CombinedReceivePrintPanel({
   options,
   onReceived,
@@ -161,6 +161,12 @@ export function CombinedReceivePrintPanel({
       if (!Number.isInteger(sell) || sell <= 0) {
         return "Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.";
       }
+    } else if (!draft.priceRowId.trim()) {
+      // P9.4: vàng không link → bắt buộc giá gợi ý tay.
+      const sell = draft.sellPriceDong.trim() === "" ? NaN : Number(draft.sellPriceDong);
+      if (!Number.isInteger(sell) || sell <= 0) {
+        return "Vàng không liên kết bảng giá cần giá bán gợi ý / chiếc (số nguyên VND > 0).";
+      }
     }
     if (!draft.supplierName.trim()) return "Nhà cung cấp là bắt buộc.";
     return null;
@@ -219,17 +225,26 @@ export function CombinedReceivePrintPanel({
           if (sellLabor >= 0) {
             await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
           }
+          await applySkuInvoiceShowLaborByCode(
+            result.data.skuCode,
+            draft.invoiceShowLaborLine,
+          );
           await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
           const sellRaw = draft.sellPriceDong.trim();
           const sellDong = sellRaw === "" ? null : Number(sellRaw);
+          const hasPriceLink = Boolean(draft.priceRowId.trim());
           await applySkuManualSellByCode(result.data.skuCode, {
             metalKind: draft.metalKind,
             manualSellDong:
-              sellDong != null && Number.isInteger(sellDong) ? sellDong : null,
+              draft.metalKind === "gold" && hasPriceLink
+                ? null
+                : sellDong != null && Number.isInteger(sellDong)
+                  ? sellDong
+                  : null,
           });
         } catch (laborErr) {
           setError(
-            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu công bán / chế độ giá / giá bán bạc: ${
+            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu công bán / chế độ giá / giá bán: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );
@@ -286,6 +301,7 @@ export function CombinedReceivePrintPanel({
               spotBuyDong: "",
               receiveLaborDong: "0",
               sellLaborDong: "0",
+              invoiceShowLaborLine: true,
               costPriceDong: "",
               sellPriceDong: "",
               heso: "",
@@ -400,6 +416,8 @@ export function CombinedReceivePrintPanel({
           onReceiveLaborDongChange={(value) => patch({ receiveLaborDong: value })}
           sellLaborDong={draft.sellLaborDong}
           onSellLaborDongChange={(value) => patch({ sellLaborDong: value })}
+          invoiceShowLaborLine={draft.invoiceShowLaborLine}
+          onInvoiceShowLaborLineChange={(value) => patch({ invoiceShowLaborLine: value })}
           costPriceDong={draft.costPriceDong}
           onCostPriceDongChange={(value) => patch({ costPriceDong: value })}
           sellPriceDong={draft.sellPriceDong}
