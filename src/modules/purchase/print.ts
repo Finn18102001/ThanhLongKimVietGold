@@ -2,7 +2,14 @@
  * Print purchase phôi without Chrome date / site-URL headers.
  * Uses an about:blank iframe so the print footer has no app path,
  * and an empty document title so the header title slot stays blank.
+ *
+ * Chrome print preview hangs on "Loading…" if the iframe is 0×0 or removed while the
+ * dialog is still open — keep a real-size hidden frame until afterprint.
  */
+
+/** Safety: remove iframe if afterprint never fires. */
+const IFRAME_CLEANUP_MS = 5 * 60_000;
+
 export function printPurchaseDocument(): void {
   void waitForPrintNode().then((node) => {
     if (!node) {
@@ -36,8 +43,9 @@ function printNodeInBlankFrame(node: HTMLElement): void {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.setAttribute("title", "");
+  // A4-sized hidden frame — Chrome 0×0 frames often stick on "Loading preview…".
   iframe.style.cssText =
-    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+    "position:fixed;right:0;bottom:0;width:210mm;height:297mm;border:0;visibility:hidden;pointer-events:none;";
   document.body.appendChild(iframe);
 
   const idoc = iframe.contentDocument;
@@ -47,6 +55,7 @@ function printNodeInBlankFrame(node: HTMLElement): void {
     return;
   }
 
+  // Voucher/Form02/Commitment use Tailwind classNames — need app stylesheets.
   const styleHtml = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
     .map((el) => el.outerHTML)
     .join("\n");
@@ -82,17 +91,28 @@ ${styleHtml}
   clone.style.display = "block";
   idoc.body.appendChild(clone);
 
+  let cleaned = false;
   const cleanup = () => {
-    iframe.remove();
+    if (cleaned) return;
+    cleaned = true;
+    try {
+      iframe.remove();
+    } catch {
+      /* already gone */
+    }
   };
 
+  let printed = false;
   const runPrint = () => {
+    if (printed) return;
+    printed = true;
     try {
       iwin.focus();
       iwin.print();
     } finally {
-      // Keep frame until the print dialog can capture layout.
-      window.setTimeout(cleanup, 1500);
+      // Do NOT remove the iframe while Chrome is still building print preview.
+      iwin.addEventListener("afterprint", cleanup, { once: true });
+      window.setTimeout(cleanup, IFRAME_CLEANUP_MS);
     }
   };
 
@@ -112,6 +132,6 @@ ${styleHtml}
     link.addEventListener("error", done, { once: true });
   }
   window.setTimeout(() => {
-    if (pending > 0) runPrint();
-  }, 900);
+    if (!printed) runPrint();
+  }, 2000);
 }

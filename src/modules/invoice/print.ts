@@ -2,12 +2,19 @@
  * Print sales invoice (Giấy đảm bảo vàng) at the project phôi size 205 × 148 mm.
  * Uses an about:blank iframe so Chrome's default @page is the phôi size (not A4/Letter).
  * Source of truth: GOLD_CERTIFICATE in print-template.ts.
+ *
+ * Chrome print preview hangs on "Loading…" if the iframe is 0×0 or removed while the
+ * dialog is still open — keep a real-size hidden frame until afterprint.
+ * Phôi layout is almost entirely inline styles; do NOT clone the whole app CSS
+ * (Next/Tailwind) into the frame (that also stalls preview).
  */
 
 import { GOLD_CERTIFICATE } from "./print-template";
 
 const PAGE_W = `${GOLD_CERTIFICATE.widthMm}mm`;
 const PAGE_H = `${GOLD_CERTIFICATE.heightMm}mm`;
+/** Safety: remove iframe if afterprint never fires (dialog dismissed oddly). */
+const IFRAME_CLEANUP_MS = 5 * 60_000;
 
 export function printSalesInvoiceDocument(): void {
   void waitForInvoicePrintNode().then((node) => {
@@ -42,8 +49,8 @@ function printInvoiceNodeInBlankFrame(node: HTMLElement): void {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.setAttribute("title", "");
-  iframe.style.cssText =
-    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+  // Real phôi size + visibility:hidden — Chrome 0×0 frames often stick on "Loading preview…".
+  iframe.style.cssText = `position:fixed;right:0;bottom:0;width:${PAGE_W};height:${PAGE_H};border:0;visibility:hidden;pointer-events:none;`;
   document.body.appendChild(iframe);
 
   const idoc = iframe.contentDocument;
@@ -53,17 +60,12 @@ function printInvoiceNodeInBlankFrame(node: HTMLElement): void {
     return;
   }
 
-  const styleHtml = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map((el) => el.outerHTML)
-    .join("\n");
-
   idoc.open();
   idoc.write(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <title></title>
-${styleHtml}
 <style>
   /* Default page = project phôi (205×148). Do not fall back to A4/Letter. */
   @page {
@@ -74,6 +76,7 @@ ${styleHtml}
     size: ${PAGE_W} ${PAGE_H};
     margin: 0;
   }
+  * { box-sizing: border-box; }
   html, body {
     margin: 0 !important;
     padding: 0 !important;
@@ -81,6 +84,8 @@ ${styleHtml}
     width: ${PAGE_W} !important;
     height: ${PAGE_H} !important;
     overflow: hidden !important;
+    color: #1f1f1f;
+    font-family: Arial, Helvetica, sans-serif;
   }
   body > * { margin: 0 !important; }
   .invoice-print-page,
@@ -103,6 +108,10 @@ ${styleHtml}
   .invoice-template-background {
     display: none !important;
   }
+  /* Tailwind classNames used on InvoiceDocument fields (layout/color are inline). */
+  .font-semibold { font-weight: 600 !important; }
+  .font-medium { font-weight: 500 !important; }
+  .font-bold { font-weight: 700 !important; }
 </style>
 </head>
 <body></body>
@@ -124,34 +133,29 @@ ${styleHtml}
   clone.style.left = "0";
   idoc.body.appendChild(clone);
 
+  let cleaned = false;
   const cleanup = () => {
-    iframe.remove();
+    if (cleaned) return;
+    cleaned = true;
+    try {
+      iframe.remove();
+    } catch {
+      /* already gone */
+    }
   };
 
+  let printed = false;
   const runPrint = () => {
+    if (printed) return;
+    printed = true;
     try {
       iwin.focus();
       iwin.print();
     } finally {
-      window.setTimeout(cleanup, 1500);
+      iwin.addEventListener("afterprint", cleanup, { once: true });
+      window.setTimeout(cleanup, IFRAME_CLEANUP_MS);
     }
   };
 
-  const links = Array.from(idoc.querySelectorAll('link[rel="stylesheet"]'));
-  if (links.length === 0) {
-    window.setTimeout(runPrint, 200);
-    return;
-  }
-  let pending = links.length;
-  const done = () => {
-    pending -= 1;
-    if (pending <= 0) window.setTimeout(runPrint, 80);
-  };
-  for (const link of links) {
-    link.addEventListener("load", done, { once: true });
-    link.addEventListener("error", done, { once: true });
-  }
-  window.setTimeout(() => {
-    if (pending > 0) runPrint();
-  }, 900);
+  window.setTimeout(runPrint, 200);
 }
