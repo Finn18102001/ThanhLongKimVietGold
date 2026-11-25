@@ -29,7 +29,7 @@ Tự ghi nhận thời gian làm việc STAFF từ lúc đăng nhập đến lú
 
 - Bảng `public.pos_work_shifts` (RPC-only Data API; §32.1 GRANT `service_role` + revoke anon/authenticated)
 - RPC: `pos_open_work_shift`, `pos_close_work_shift`, `pos_list_work_shifts`, `pos_work_shift_overview`
-- `pos_private.reconcile_stale_work_shifts` — đóng ca treo sau hết giờ VN
+- `pos_private.reconcile_stale_work_shifts` — đóng ca treo sau hết giờ VN (chỉ gọi từ open/close/list/overview; **không** gọi trong `require_pos_user` — UPDATE trên list RPC read-only làm crash `/invoices`)
 
 ## 5. UI (template admin sẵn có)
 

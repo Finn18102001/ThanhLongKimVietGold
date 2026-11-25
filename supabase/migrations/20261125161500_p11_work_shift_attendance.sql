@@ -402,7 +402,9 @@ begin
     raise exception 'Forbidden' using errcode = '42501';
   end if;
   perform pos_private.assert_admin_otp_verified();
-  perform pos_private.reconcile_stale_work_shifts(auth.uid());
+  -- Do NOT reconcile here: list RPCs (e.g. pos_list_documents) run read-only;
+  -- UPDATE inside require_pos_user crashes /invoices (digest 965157535).
+  -- Reconcile lives on open/close/list/overview write paths only.
   perform pos_private.assert_session_fresh();
   perform pos_private.assert_work_hours_for_staff();
   return v_email;
