@@ -145,7 +145,7 @@ export type LabelProductType = { id: string; name: string };
 /** One row of `brand_categories`: the category may be used with that brand. */
 export type LabelBrandCategoryLink = { brandId: string; categoryId: string };
 
-/** Dropdown sources for "Nhập hàng" on the label screen (ADMIN only). */
+/** Dropdown sources for tab «In tem kiêm nhập kho». */
 export type LabelReceiveOptions = {
   brands: LabelReceiveBrand[];
   categories: LabelReceiveCategory[];

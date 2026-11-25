@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { downloadCsv } from "@/shared/lib/csv";
-import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
+import { useMspSkuIdSearch } from "@/modules/label-print/use-msp-sku-search";
 import { STOCK_STATUS_LABEL } from "../labels";
 import { stockStatus, type ProductTypeOption, type StockFilter, type StockRow } from "../types";
 
@@ -31,31 +31,12 @@ export function StockTable({
   productTypes?: ProductTypeOption[];
 }) {
   const [query, setQuery] = useState("");
-  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
+  const mspSkuIds = useMspSkuIdSearch(query, 300);
   const [tab, setTab] = useState<StockFilter>("ALL");
   const [category, setCategory] = useState("");
   const [productTypeId, setProductTypeId] = useState("");
   const [brand, setBrand] = useState("");
   const [page, setPage] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (q.length < 2) {
-      setMspSkuIds([]);
-      return;
-    }
-    void findSkuIdsByMspQuery(q)
-      .then((ids) => {
-        if (!cancelled) setMspSkuIds(ids);
-      })
-      .catch(() => {
-        if (!cancelled) setMspSkuIds([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
 
   const brands = useMemo(
     () =>
@@ -132,7 +113,7 @@ export function StockTable({
         row.sku.toLowerCase().includes(q) ||
         row.category.toLowerCase().includes(q) ||
         (row.brandName ?? "").toLowerCase().includes(q) ||
-        mspSkuIds.includes(row.skuId);
+        (q.length >= 2 && mspSkuIds.includes(row.skuId));
       return matchesTab && matchesCategory && matchesType && matchesQuery;
     });
   }, [brandScopedRows, query, tab, category, productTypeId, mspSkuIds]);

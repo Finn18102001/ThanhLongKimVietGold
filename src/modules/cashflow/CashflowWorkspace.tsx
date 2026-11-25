@@ -84,6 +84,7 @@ export function CashflowWorkspace({
   initialObligations,
   initialFrom,
   initialTo,
+  initialLoadWarnings = [],
   canMutate = true,
 }: {
   initialOverview: CashflowOverview;
@@ -93,6 +94,8 @@ export function CashflowWorkspace({
   initialObligations: CashObligationRow[];
   initialFrom: string;
   initialTo: string;
+  /** Partial load failures — empty KPI must not silently look like “zero business”. */
+  initialLoadWarnings?: string[];
   canMutate?: boolean;
 }) {
   const [overview, setOverview] = useState(initialOverview);
@@ -107,7 +110,9 @@ export function CashflowWorkspace({
   const [q, setQ] = useState("");
   const [pageSize, setPageSize] = useState(initialLedger.limit || 50);
   const [offset, setOffset] = useState(initialLedger.offset || 0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialLoadWarnings.length > 0 ? initialLoadWarnings.join(" ") : null,
+  );
   const [pending, startTransition] = useTransition();
   const [modal, setModal] = useState<ModalKind>(null);
   const [tab, setTab] = useState<CashflowTab>("ledger");

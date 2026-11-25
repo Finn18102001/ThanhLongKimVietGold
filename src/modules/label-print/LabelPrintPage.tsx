@@ -1,22 +1,27 @@
-import { assertAdminWrite } from "@/shared/auth/assert";
 import { LabelPrintWorkspace } from "./components/LabelPrintWorkspace";
 import { parseLabelPrefill } from "./prefill";
 import { listLabelProductTypes, listLabelReceiveOptions, listLabelSkus } from "./query";
+import type { LabelReceiveOptions } from "./types";
+
+const EMPTY_RECEIVE_OPTIONS: LabelReceiveOptions = {
+  brands: [],
+  categories: [],
+  priceRows: [],
+  productTypes: [],
+  brandCategories: [],
+};
 
 export async function LabelPrintPage({
   searchParams = {},
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const [skus, productTypes] = await Promise.all([listLabelSkus(), listLabelProductTypes()]);
-
-  let receiveOptions = null;
-  try {
-    await assertAdminWrite();
-    receiveOptions = await listLabelReceiveOptions();
-  } catch {
-    // STAFF / viewer: no combined receive tab (require_admin).
-  }
+  // Tab «In tem kiêm nhập kho» luôn hiện — không ẩn theo assertAdminWrite / lỗi load options.
+  const [skus, productTypes, receiveOptions] = await Promise.all([
+    listLabelSkus(),
+    listLabelProductTypes(),
+    listLabelReceiveOptions().catch(() => EMPTY_RECEIVE_OPTIONS),
+  ]);
 
   return (
     <LabelPrintWorkspace

@@ -105,7 +105,7 @@ export function LabelPrintWorkspace({
 }: {
   skus: LabelSkuOption[];
   productTypes?: LabelProductType[];
-  /** ADMIN: options for tab In tem kiêm nhập kho. */
+  /** Dropdown sources for tab In tem kiêm nhập kho (always shown). */
   receiveOptions?: LabelReceiveOptions | null;
   /** Opened from a buy invoice: preselect the SKU and fill purity / weights / stone. */
   prefill?: LabelPrefill | null;
@@ -691,9 +691,17 @@ export function LabelPrintWorkspace({
   const onWorkTab = tab !== "history";
   const workModes: { id: WorkMode; label: string }[] = [
     { id: "print", label: "In tem" },
-    ...(receiveOptions ? [{ id: "combined" as const, label: "In tem kiêm nhập kho" }] : []),
+    { id: "combined", label: "In tem kiêm nhập kho" },
     { id: "draft", label: "In tem trước nhập kho" },
   ];
+
+  const combinedOptions: LabelReceiveOptions = receiveOptions ?? {
+    brands: [],
+    categories: [],
+    priceRows: [],
+    productTypes: [],
+    brandCategories: [],
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -775,9 +783,9 @@ export function LabelPrintWorkspace({
 
       {tab === "draft" ? <DraftLabelPanel /> : null}
 
-      {tab === "combined" && receiveOptions ? (
+      {tab === "combined" ? (
         <CombinedReceivePrintPanel
-          options={receiveOptions}
+          options={combinedOptions}
           onReceived={(result: LabelReceiveResult) => {
             if (result.sku) {
               const nextList = (() => {

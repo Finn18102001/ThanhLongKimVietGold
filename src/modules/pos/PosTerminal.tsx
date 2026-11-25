@@ -14,10 +14,8 @@ import {
 import { formatActionError } from "@/shared/lib/action-result";
 import { subscribeBarcodeWedge } from "@/shared/lib/barcode-wedge";
 import { formatDongDigits } from "@/shared/lib/money";
-import {
-  findSkuIdsByMspQuery,
-  resolveUniqueSkuIdByLabelCode,
-} from "@/modules/label-print/msp-search";
+import { resolveUniqueSkuIdByLabelCode } from "@/modules/label-print/msp-search";
+import { useMspSkuIdSearch } from "@/modules/label-print/use-msp-sku-search";
 import { invoiceDetailPath, ROUTES } from "@/shared/navigation/routes";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { Modal } from "@/shared/ui/Modal";
@@ -215,31 +213,12 @@ export function PosTerminal({
   const [catalog, setCatalog] = useState(initialCatalog);
   const [stockRefreshing, setStockRefreshing] = useState(false);
   const [query, setQuery] = useState("");
-  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
+  const mspSkuIds = useMspSkuIdSearch(query, 300);
   const [brandId, setBrandId] = useState("all");
   const [categoryName, setCategoryName] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [group, setGroup] = useState("Tất cả");
   const [pageIndex, setPageIndex] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (q.length < 2) {
-      setMspSkuIds([]);
-      return;
-    }
-    void findSkuIdsByMspQuery(q)
-      .then((ids) => {
-        if (!cancelled) setMspSkuIds(ids);
-      })
-      .catch(() => {
-        if (!cancelled) setMspSkuIds([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
   const [cart, setCart] = useState<CartQtyMap>({});
   const [charges, setCharges] = useState<PosChargeDraft[]>([]);
   const [operatorStaffId, setOperatorStaffId] = useState("");
@@ -476,7 +455,8 @@ export function PosTerminal({
     // MSP hit: show from full catalog, ignore brand/category/type/group filters.
     const mspHits = q.length >= 2 ? gridCatalog.filter((item) => mspSet.has(item.skuId)) : [];
     const rows = brandScopedCatalog.filter((item) => {
-      if (mspSet.has(item.skuId)) return false; // added via mspHits
+      // Only exclude when MSP search is active — avoid hiding SKUs while debounce clears.
+      if (q.length >= 2 && mspSet.has(item.skuId)) return false;
       const matchesCategory =
         categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =

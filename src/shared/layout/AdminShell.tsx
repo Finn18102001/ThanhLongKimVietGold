@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { ArrowsClockwise, CalendarBlank } from "@phosphor-icons/react";
 import { isNavActive, navForRole } from "./nav";
+import { shouldPrefetchNavHref } from "./prefetch-routes";
 import { signOut } from "@/app/login/actions";
 import { SessionExpiryGuard } from "@/shared/auth/SessionExpiryGuard";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
@@ -38,6 +39,14 @@ export function AdminShell({
   const router = useRouter();
   const { main, admin } = navForRole(role, { showFundCash, showFundGold });
   const showAdminSection = admin.length > 0;
+  // PERF-004: one intentional prefetch per href per shell mount (no hover thrash).
+  const prefetchedRef = useRef(new Set<string>());
+  function prefetchIfLight(href: string) {
+    if (!shouldPrefetchNavHref(href)) return;
+    if (prefetchedRef.current.has(href)) return;
+    prefetchedRef.current.add(href);
+    router.prefetch(href);
+  }
 
   return (
     <div className="flex min-h-[100dvh] bg-[var(--tlkv-bg)] print:min-h-0 print:block">
@@ -59,8 +68,8 @@ export function AdminShell({
                   <Link
                     href={item.href}
                     prefetch={false}
-                    onMouseEnter={() => router.prefetch(item.href)}
-                    onFocus={() => router.prefetch(item.href)}
+                    onMouseEnter={() => prefetchIfLight(item.href)}
+                    onFocus={() => prefetchIfLight(item.href)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
                       active
                         ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"
@@ -93,8 +102,8 @@ export function AdminShell({
                       <Link
                         href={item.href}
                         prefetch={false}
-                        onMouseEnter={() => router.prefetch(item.href)}
-                        onFocus={() => router.prefetch(item.href)}
+                        onMouseEnter={() => prefetchIfLight(item.href)}
+                        onFocus={() => prefetchIfLight(item.href)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${
                           active
                             ? "bg-[var(--tlkv-red-soft)] font-semibold text-[var(--tlkv-red)]"

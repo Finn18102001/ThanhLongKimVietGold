@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { addVnCalendarDays } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import type {
@@ -32,7 +33,8 @@ export function defaultCashflowRange(businessDate?: string): { from: string; to:
   return { from: addVnCalendarDays(to, -6), to };
 }
 
-export async function getCashflowOverview(): Promise<CashflowOverview> {
+/** Request-scoped cache: period summary reuses the same overview as the page. */
+export const getCashflowOverview = cache(async (): Promise<CashflowOverview> => {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("pos_cashflow_overview");
   if (error) throw new Error(error.message);
@@ -52,7 +54,7 @@ export async function getCashflowOverview(): Promise<CashflowOverview> {
     payableDong: Number(raw.payableDong ?? 0),
     stockCapitalDong: Number(raw.stockCapitalDong ?? 0),
   };
-}
+});
 
 export async function getCashLedger(filters: CashLedgerFilters): Promise<CashLedgerPage> {
   const supabase = await createServerSupabase();
@@ -142,8 +144,10 @@ export async function getCashPeriodSummary(
     };
   }
 
-  const cash = overview.cash ? await kpiFor(overview.cash) : null;
-  const bank = overview.bank ? await kpiFor(overview.bank) : null;
+  const [cash, bank] = await Promise.all([
+    overview.cash ? kpiFor(overview.cash) : Promise.resolve(null),
+    overview.bank ? kpiFor(overview.bank) : Promise.resolve(null),
+  ]);
 
   return {
     from,

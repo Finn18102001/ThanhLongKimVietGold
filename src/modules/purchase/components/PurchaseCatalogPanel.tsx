@@ -8,6 +8,7 @@ import {
   prioritizeGoldGroupLabels,
 } from "@/shared/lib/catalog-priority";
 import { formatDong } from "@/shared/lib/money";
+import { useMspSkuIdSearch } from "@/modules/label-print/use-msp-sku-search";
 import {
   MARKET_GOLD_CLASSES,
   MARKET_GOLD_CLASS_LABEL,
@@ -43,28 +44,8 @@ export function PurchaseCatalogPanel({
   const [categoryName, setCategoryName] = useState("all");
   const [productTypeId, setProductTypeId] = useState("all");
   const [query, setQuery] = useState("");
-  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
+  const mspSkuIds = useMspSkuIdSearch(query, 300);
   const [pageIndex, setPageIndex] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (q.length < 2) {
-      setMspSkuIds([]);
-      return;
-    }
-    void import("@/modules/label-print/msp-search")
-      .then(({ findSkuIdsByMspQuery }) => findSkuIdsByMspQuery(q))
-      .then((ids) => {
-        if (!cancelled) setMspSkuIds(ids);
-      })
-      .catch(() => {
-        if (!cancelled) setMspSkuIds([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
 
   const brandOptions = useMemo(() => {
     const names = Array.from(
@@ -152,7 +133,7 @@ export function PurchaseCatalogPanel({
     // MSP hit: show from full catalog, ignore brand/category/type/group filters.
     const mspHits = q.length >= 2 ? catalog.filter((item) => mspSet.has(item.skuId)) : [];
     const rows = brandScopedCatalog.filter((item) => {
-      if (mspSet.has(item.skuId)) return false;
+      if (q.length >= 2 && mspSet.has(item.skuId)) return false;
       const matchesCategory =
         categoryName === "all" || (item.category || "").trim() === categoryName;
       const matchesType =

@@ -33,6 +33,7 @@ export const ROUTES = {
   suppliers: "/suppliers",
   settings: "/settings",
   audit: "/audit",
+  workShifts: "/work-shifts",
   form02: "/form02",
 } as const;
 

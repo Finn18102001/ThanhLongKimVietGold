@@ -13,6 +13,7 @@ import {
   Scroll,
   Storefront,
   Tag,
+  Timer,
   Truck,
   Users,
   Wallet,
@@ -41,18 +42,20 @@ export const MAIN_NAV: NavItem[] = [
   { href: ROUTES.reports, label: "Báo cáo", icon: ChartBar },
 ];
 
+/** Thứ tự QUẢN TRỊ (PO 2026-11-25). Quỹ NV chỉ hiện khi gate bật — đặt sau Dòng tiền. */
 export const ADMIN_NAV: NavItem[] = [
-  { href: ROUTES.products, label: "Sản phẩm", icon: Tag },
   { href: ROUTES.categories, label: "Danh mục", icon: FolderSimple },
+  { href: ROUTES.products, label: "Sản phẩm", icon: Tag },
   { href: ROUTES.employees, label: "Nhân viên", icon: IdentificationBadge },
   { href: ROUTES.suppliers, label: "Nhà cung cấp", icon: Truck },
+  { href: ROUTES.goldManagement, label: "Quản lý vàng", icon: Scales },
   { href: ROUTES.cashflow, label: "Quản lý dòng tiền", icon: Wallet },
   { href: ROUTES.fundCash, label: "Quỹ tiền NV", icon: Coins },
   { href: ROUTES.fundGold, label: "Quỹ vàng NV", icon: Scales },
   { href: ROUTES.form02, label: "Quản lý Phiếu 02", icon: Files },
-  { href: ROUTES.goldManagement, label: "Quản lý vàng", icon: Scales },
-  { href: ROUTES.settings, label: "Cài đặt", icon: GearSix },
+  { href: ROUTES.workShifts, label: "Quản lý ca làm việc", icon: Timer },
   { href: ROUTES.audit, label: "Nhật ký hệ thống", icon: Scroll },
+  { href: ROUTES.settings, label: "Cài đặt", icon: GearSix },
 ];
 
 export function navForRole(

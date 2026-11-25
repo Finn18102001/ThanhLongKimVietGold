@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowsLeftRight, MagnifyingGlass } from "@phosphor-icons/react";
-import { findSkuIdsByMspQuery } from "@/modules/label-print/msp-search";
+import { useMspSkuIdSearch } from "@/modules/label-print/use-msp-sku-search";
 import { formatViDateTime } from "@/shared/lib/datetime";
 import { Modal } from "@/shared/ui/Modal";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
@@ -33,7 +33,7 @@ export function AdjustWorkspace({
 }) {
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
-  const [mspSkuIds, setMspSkuIds] = useState<string[]>([]);
+  const mspSkuIds = useMspSkuIdSearch(query, 300);
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
   const [productTypeId, setProductTypeId] = useState("");
@@ -48,25 +48,6 @@ export function AdjustWorkspace({
   useEffect(() => {
     setRows(initialRows);
   }, [initialRows]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (q.length < 2) {
-      setMspSkuIds([]);
-      return;
-    }
-    void findSkuIdsByMspQuery(q)
-      .then((ids) => {
-        if (!cancelled) setMspSkuIds(ids);
-      })
-      .catch(() => {
-        if (!cancelled) setMspSkuIds([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
 
   const brands = useMemo(
     () =>
@@ -133,7 +114,7 @@ export function AdjustWorkspace({
         row.sku.toLowerCase().includes(q) ||
         row.category.toLowerCase().includes(q) ||
         (row.brandName ?? "").toLowerCase().includes(q) ||
-        mspSkuIds.includes(row.skuId);
+        (q.length >= 2 && mspSkuIds.includes(row.skuId));
       return matchesStock && matchesCategory && matchesType && matchesQuery;
     });
     const dir = sortDir === "asc" ? 1 : -1;

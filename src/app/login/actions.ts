@@ -11,6 +11,10 @@ import {
   msUntil,
 } from "@/shared/auth/session-policy";
 import { isOtpSmtpConfigured, sendOtpEmail } from "@/shared/email/send-otp-email";
+import {
+  closeWorkShiftBestEffort,
+  openWorkShiftBestEffort,
+} from "@/modules/work-shift/shift-lifecycle";
 import { createServerSupabase } from "@/shared/supabase/server";
 
 function loginErrorRedirect(message: string): never {
@@ -129,6 +133,9 @@ export async function signIn(formData: FormData) {
     redirect(otpPageUrl({ next, mailed: true }));
   }
 
+  // P11 — STAFF: auto mở ca sau login thành công trong khung giờ (Admin RPC no-op).
+  await openWorkShiftBestEffort();
+
   redirect(next.startsWith("/") ? next : "/");
 }
 
@@ -178,6 +185,7 @@ export async function verifyLoginOtp(formData: FormData) {
 }
 
 export async function signOut() {
+  await closeWorkShiftBestEffort("logout");
   const supabase = await createServerSupabase();
   await supabase.auth.signOut();
   redirect("/login");
@@ -185,6 +193,9 @@ export async function signOut() {
 
 /** Force logout with SRS message (work hours / 24h timer / multi-tab sync). */
 export async function forceSignOut(reason?: string) {
+  await closeWorkShiftBestEffort(
+    reason === "work_hours" ? "auto_end_of_day" : "logout",
+  );
   const supabase = await createServerSupabase();
   await supabase.auth.signOut();
   const message =

@@ -59,6 +59,7 @@ export async function CashflowPage() {
   let obligations: CashObligationRow[] = [];
   let from = defaultCashflowRange().from;
   let to = defaultCashflowRange().to;
+  const loadWarnings: string[] = [];
 
   try {
     overview = await getCashflowOverview();
@@ -66,32 +67,29 @@ export async function CashflowPage() {
     from = r.from;
     to = r.to;
   } catch {
-    // Overview chưa sẵn sàng
+    // Overview chờ xong rồi mới parallel nhóm sau (không phải parallel toàn waterfall).
+    loadWarnings.push("Không tải được tổng quan dòng tiền.");
   }
 
-  try {
-    ledger = await getCashLedger({ from, to, limit: 50, offset: 0 });
-  } catch {
-    // Ledger chưa sẵn sàng
-  }
+  // Parallel nhóm sau overview — cùng from/to; lỗi từng phần không kéo sập màn hình.
+  const settled = await Promise.allSettled([
+    getCashLedger({ from, to, limit: 50, offset: 0 }),
+    getCapitalSnapshot(),
+    getCashPeriodSummary(from, to),
+    getCashObligations(),
+  ]);
 
-  try {
-    capital = await getCapitalSnapshot();
-  } catch {
-    // Vốn hàng hóa chưa sẵn sàng
-  }
-
-  try {
-    period = await getCashPeriodSummary(from, to);
-  } catch {
+  if (settled[0].status === "fulfilled") ledger = settled[0].value;
+  else loadWarnings.push("Không tải được sổ quỹ (ledger).");
+  if (settled[1].status === "fulfilled") capital = settled[1].value;
+  else loadWarnings.push("Không tải được vốn hàng hóa.");
+  if (settled[2].status === "fulfilled") period = settled[2].value;
+  else {
     period = emptyPeriod(from, to);
+    loadWarnings.push("Không tải được KPI kỳ.");
   }
-
-  try {
-    obligations = await getCashObligations();
-  } catch {
-    // Công nợ chưa sẵn sàng
-  }
+  if (settled[3].status === "fulfilled") obligations = settled[3].value;
+  else loadWarnings.push("Không tải được công nợ.");
 
   return (
     <CashflowWorkspace
@@ -102,6 +100,7 @@ export async function CashflowPage() {
       initialObligations={obligations}
       initialFrom={from}
       initialTo={to}
+      initialLoadWarnings={loadWarnings}
       canMutate={canMutateAdminData(session.role)}
     />
   );

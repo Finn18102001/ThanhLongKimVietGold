@@ -8,6 +8,7 @@ import { formatViDate } from "@/shared/lib/datetime";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { canOpenEmployeeCashModule } from "@/modules/fund-cash/query";
 import { canOpenEmployeeGoldModule } from "@/modules/fund-gold/query";
+import { openWorkShiftBestEffort } from "@/modules/work-shift/shift-lifecycle";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -65,6 +66,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     !session.workHours.within
   ) {
     await forceSignOut("work_hours");
+  }
+
+  // P11 — ensure STAFF ca đang mở khi còn trong khung giờ (idempotent; mid-session deploy).
+  if (
+    !canAdminRead(session.role) &&
+    session.workHours?.applies &&
+    session.workHours.within
+  ) {
+    await openWorkShiftBestEffort();
   }
 
   const role = session.role as StaffRole;
