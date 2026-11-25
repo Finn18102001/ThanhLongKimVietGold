@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import {
+  applySkuManualSellByCode,
+  applySkuManualSellDong,
   applySkuSellLaborByCode,
   applySkuSellLaborDong,
   applySkuSellPricingByCode,
@@ -155,6 +157,26 @@ export function ReceiveForm({
         return;
       }
 
+      const orderSellRaw = sellPriceDong.trim();
+      const orderSellDong = orderSellRaw === "" ? null : Number(orderSellRaw);
+      if (metalKind === "silver") {
+        if (orderSellDong == null || !Number.isInteger(orderSellDong) || orderSellDong <= 0) {
+          setAlert({
+            tone: "error",
+            title: "Thiếu giá bán bạc",
+            reason: "Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.",
+          });
+          return;
+        }
+      } else if (orderSellDong != null && (!Number.isInteger(orderSellDong) || orderSellDong < 0)) {
+        setAlert({
+          tone: "error",
+          title: "Giá bán không hợp lệ",
+          reason: "Giá bán phải là số nguyên VND không âm.",
+        });
+        return;
+      }
+
       formData.set("cost_price_dong", String(cost));
       formData.set("goods_status", "RECEIVED");
       formData.set(
@@ -197,6 +219,10 @@ export function ReceiveForm({
             await applySkuSellLaborByCode(code, sellLabor);
           }
           await applySkuSellPricingByCode(code, sellPricing);
+          await applySkuManualSellByCode(code, {
+            metalKind,
+            manualSellDong: orderSellDong,
+          });
         }
         setIdempotencyKey(crypto.randomUUID());
         resetOrderDraft();
@@ -224,6 +250,16 @@ export function ReceiveForm({
     const skuId = String(formData.get("sku_id") ?? "");
     const sku = rows.find((row) => row.skuId === skuId);
     const received = Number(formData.get("received_qty") ?? 0);
+    const catalogSellRaw = sellPriceDong.trim();
+    const catalogSellDong = catalogSellRaw === "" ? null : Number(catalogSellRaw);
+    if (catalogSellDong != null && (!Number.isInteger(catalogSellDong) || catalogSellDong < 0)) {
+      setAlert({
+        tone: "error",
+        title: "Giá bán không hợp lệ",
+        reason: "Giá bán phải là số nguyên VND không âm.",
+      });
+      return;
+    }
     setPending(true);
     try {
       const sellLabor = Number(sellLaborDong.trim() === "" ? "0" : sellLaborDong);
@@ -239,6 +275,11 @@ export function ReceiveForm({
       }
       if (skuId) {
         await applySkuSellPricingDong(skuId, sellPricing);
+        // Catalog: điền giá bán > 0 → lưu manual_sell (SILVER) để POS hiện giá (vá SKU bạc cũ).
+        await applySkuManualSellDong(skuId, {
+          metalKind: null,
+          manualSellDong: catalogSellDong,
+        });
       }
       setIdempotencyKey(crypto.randomUUID());
       setAlert({

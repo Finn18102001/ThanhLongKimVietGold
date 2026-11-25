@@ -17,7 +17,11 @@ import type {
   PriceRowOption,
   ProductTypeOption,
 } from "../types";
-import { applySkuSellLaborByCode, applySkuSellPricingByCode } from "../actions";
+import {
+  applySkuManualSellByCode,
+  applySkuSellLaborByCode,
+  applySkuSellPricingByCode,
+} from "../actions";
 import { resolveSkuSellPricingInput } from "../priceLink";
 import { PriceLinkControls } from "./PriceLinkControls";
 import { ReceiveMetalTabs } from "./ReceiveMetalTabs";
@@ -367,7 +371,12 @@ export function DraftReceivePanel({
     }
     const sellRaw = sellPriceDong.trim();
     const sell = sellRaw === "" ? null : Number(sellRaw);
-    if (sell != null && (!Number.isInteger(sell) || sell < 0)) {
+    if (metalKind === "silver") {
+      if (sell == null || !Number.isInteger(sell) || sell <= 0) {
+        setError("Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.");
+        return;
+      }
+    } else if (sell != null && (!Number.isInteger(sell) || sell < 0)) {
       setError("Giá bán phải là số nguyên VND không âm.");
       return;
     }
@@ -428,9 +437,13 @@ export function DraftReceivePanel({
             await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
           }
           await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
+          await applySkuManualSellByCode(result.data.skuCode, {
+            metalKind,
+            manualSellDong: sell,
+          });
         } catch (laborErr) {
           setError(
-            `Đã nhập draft nhưng chưa lưu công bán / chế độ giá: ${
+            `Đã nhập draft nhưng chưa lưu công bán / chế độ giá / giá bán bạc: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );

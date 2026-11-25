@@ -17,8 +17,8 @@ export type PosCatalogItem = {
   /** Loại sản phẩm (`products.product_type_id`); null khi chưa phân loại. */
   productTypeId?: string | null;
   /**
-   * Giá bán thủ công từ `products.price_numeric` khi không có/không dùng được board sell.
-   * Chỉ dùng hiển thị card / gợi ý — không thay compute_unit_price khi đã có price_row.
+   * Giá bán thủ công: ưu tiên `pos_skus.manual_sell_dong` (P9 bạc),
+   * fallback `products.price_numeric` khi không có/không dùng board sell.
    */
   manualSellDong?: number | null;
   /** Giá vốn/chiếc gần nhất (`pos_inventory_stock.last_cost_dong`) — gợi ý mua khi không có board buy. */

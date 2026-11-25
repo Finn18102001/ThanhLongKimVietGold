@@ -184,6 +184,7 @@ Link bảng giá vẫn dùng để gợi ý / điền giá nguyên liệu hoặc
 
 ## 12. Lịch sử
 
+- 2026-11-25: nối end-to-end giá bán bạc — `applySkuManualSell*` → RPC `pos_set_sku_manual_sell`; POS đọc `manual_sell_dong` (bạc không dùng board). Vá SKU cũ: Nhập kho → Sản phẩm có sẵn → điền Giá bán / chiếc > 0.
 - 2026-11-18: tạo sổ từ BIG CHANGE; §5 đánh dấu hoãn; chưa code.
 - 2026-11-18: code tab Nhập vàng/Nhập bạc + công thức nhập vàng + tiền công nhập trên ReceiveForm / Combined / DraftReceive; gợi ý bán P9 (không map công nhập → labor_fee). Hard-test Order: `PN000128` / `TLKVTS000025` → đã void + ẩn SKU.
 - 2026-11-19: trên **Nhập từ tem draft (P7)** — tạm **ẩn** tab Nhập vàng/Nhập bạc.

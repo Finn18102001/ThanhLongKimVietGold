@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdminWrite } from "@/shared/auth/assert";
+import type { ReceiveMetalKind } from "@/modules/inventory/priceLink";
 import { createServerSupabase } from "@/shared/supabase/server";
 
 function revalidateInventory() {
@@ -380,4 +381,67 @@ export async function applySkuSellPricingByCode(
   if (error) throw new Error(error.message);
   if (!data?.id) return;
   await applySkuSellPricingDong(String(data.id), pricing);
+}
+
+/**
+ * P9 bạc: lưu `receive_metal_kind` + `manual_sell_dong` (RPC `pos_set_sku_manual_sell`).
+ * Vàng: chỉ ghi kind=GOLD (không ghi đè manual sell).
+ * Không truyền metalKind + có giá bán > 0 (catalog vá SKU cũ): coi là SILVER.
+ */
+export async function applySkuManualSellDong(
+  skuId: string,
+  input: { metalKind?: ReceiveMetalKind | null; manualSellDong: number | null },
+): Promise<void> {
+  if (!skuId) return;
+  await assertAdminWrite();
+
+  let kind: "GOLD" | "SILVER";
+  let manual: number | null = null;
+  if (input.metalKind === "gold") {
+    kind = "GOLD";
+  } else if (input.metalKind === "silver") {
+    kind = "SILVER";
+    const sell = input.manualSellDong;
+    if (sell == null || !Number.isInteger(sell) || sell <= 0) {
+      throw new Error("Nhập bạc cần giá bán / chiếc là số nguyên VND > 0.");
+    }
+    manual = sell;
+  } else if (
+    input.manualSellDong != null &&
+    Number.isInteger(input.manualSellDong) &&
+    input.manualSellDong > 0
+  ) {
+    kind = "SILVER";
+    manual = input.manualSellDong;
+  } else {
+    return;
+  }
+
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("pos_set_sku_manual_sell", {
+    p_sku_id: skuId,
+    p_receive_metal_kind: kind,
+    p_manual_sell_dong: manual,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/pos");
+  revalidatePath("/inventory");
+}
+
+export async function applySkuManualSellByCode(
+  skuCode: string | null | undefined,
+  input: { metalKind?: ReceiveMetalKind | null; manualSellDong: number | null },
+): Promise<void> {
+  const code = String(skuCode ?? "").trim();
+  if (!code) return;
+  await assertAdminWrite();
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("pos_skus")
+    .select("id")
+    .eq("sku", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return;
+  await applySkuManualSellDong(String(data.id), input);
 }

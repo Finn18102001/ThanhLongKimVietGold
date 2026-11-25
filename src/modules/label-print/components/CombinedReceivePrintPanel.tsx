@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Printer } from "@phosphor-icons/react";
 import {
+  applySkuManualSellByCode,
   applySkuSellLaborByCode,
   applySkuSellPricingByCode,
 } from "@/modules/inventory/actions";
@@ -155,6 +156,12 @@ export function CombinedReceivePrintPanel({
       return "Số nhận thực tế phải là số nguyên > 0.";
     }
     if (!isWholeNumber(draft.costPriceDong)) return "Giá vốn phải là số nguyên VND không âm.";
+    if (draft.metalKind === "silver") {
+      const sell = draft.sellPriceDong.trim() === "" ? NaN : Number(draft.sellPriceDong);
+      if (!Number.isInteger(sell) || sell <= 0) {
+        return "Nhập bạc cần giá bán / chiếc là số nguyên VND > 0 để hiện trên bán hàng.";
+      }
+    }
     if (!draft.supplierName.trim()) return "Nhà cung cấp là bắt buộc.";
     return null;
   }
@@ -213,9 +220,16 @@ export function CombinedReceivePrintPanel({
             await applySkuSellLaborByCode(result.data.skuCode, sellLabor);
           }
           await applySkuSellPricingByCode(result.data.skuCode, sellPricing);
+          const sellRaw = draft.sellPriceDong.trim();
+          const sellDong = sellRaw === "" ? null : Number(sellRaw);
+          await applySkuManualSellByCode(result.data.skuCode, {
+            metalKind: draft.metalKind,
+            manualSellDong:
+              sellDong != null && Number.isInteger(sellDong) ? sellDong : null,
+          });
         } catch (laborErr) {
           setError(
-            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu công bán / chế độ giá: ${
+            `Đã nhập phiếu ${result.data.receiptNo} nhưng chưa lưu công bán / chế độ giá / giá bán bạc: ${
               laborErr instanceof Error ? laborErr.message : "lỗi không xác định"
             }`,
           );

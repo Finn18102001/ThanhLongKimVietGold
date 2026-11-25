@@ -118,7 +118,7 @@ async function fetchPosCatalogMeta(options?: {
   let request = supabase
     .from("pos_skus")
     .select(
-      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, sell_pricing_mode, sell_pricing_hl, sell_pricing_multiplier, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id, price_numeric), brands!pos_skus_brand_id_fkey(id, name)",
+      "id, sku, name, weight_chi, board_unit_chi, labor_fee_dong, stone_weight_chi, stone_quantity, stone_unit_price_dong, stone_price_dong, brand_id, price_row_id, allow_direct_buy, is_active, is_market_gold, sell_pricing_mode, sell_pricing_hl, sell_pricing_multiplier, manual_sell_dong, receive_metal_kind, gold_price_rows!pos_skus_price_row_id_fkey(sell, buy, product, purity, brand), pos_inventory_stock(quantity, last_cost_dong), products!pos_skus_catalog_product_id_fkey(image, category, product_type_id, price_numeric), brands!pos_skus_brand_id_fkey(id, name)",
     )
     .order("name");
   request = includeMarketGold
@@ -152,14 +152,26 @@ async function fetchPosCatalogMeta(options?: {
       stock?.last_cost_dong != null && stock.last_cost_dong !== ""
         ? Number(stock.last_cost_dong)
         : null;
-    const manualSellRaw =
+    // P9 bạc: ưu tiên pos_skus.manual_sell_dong; fallback products.price_numeric (catalog cũ).
+    const skuManualRaw = Number(
+      (row as { manual_sell_dong?: number | string | null }).manual_sell_dong,
+    );
+    const productManualRaw =
       product?.price_numeric != null && product.price_numeric !== ""
         ? Number(product.price_numeric)
         : null;
     const manualSellDong =
-      manualSellRaw != null && Number.isFinite(manualSellRaw) && manualSellRaw > 0
-        ? Math.round(manualSellRaw)
-        : null;
+      Number.isFinite(skuManualRaw) && skuManualRaw > 0
+        ? Math.round(skuManualRaw)
+        : productManualRaw != null && Number.isFinite(productManualRaw) && productManualRaw > 0
+          ? Math.round(productManualRaw)
+          : null;
+    const receiveMetalKind = String(
+      (row as { receive_metal_kind?: string | null }).receive_metal_kind ?? "",
+    )
+      .trim()
+      .toUpperCase();
+    const isSilverReceive = receiveMetalKind === "SILVER";
     const referenceSellDongPerChi = sell > 0 ? Math.round(sell / perChiDivisor) : 0;
     // Purchase: board buy / chỉ; never use sell column.
     const suggestedBuyDongPerChi = buy > 0 ? Math.round(buy / perChiDivisor) : 0;
@@ -174,6 +186,7 @@ async function fetchPosCatalogMeta(options?: {
     );
     // Market SKUs get their gold price from the group price row in listPosCatalog (P4 C5).
     // Null/LINK = AS-IS board×TL; HESO = (TL×HL×board_per_chi + labor)×heso − labor (cart still +labor+stone).
+    // P9 bạc: không dùng board sell để tính giá bán.
     const sellPricingMode =
       String((row as { sell_pricing_mode?: string | null }).sell_pricing_mode ?? "")
         .trim()
@@ -185,7 +198,7 @@ async function fetchPosCatalogMeta(options?: {
       (row as { sell_pricing_multiplier?: number | string | null }).sell_pricing_multiplier,
     );
     let goldUnitDong: number | null = null;
-    if (!isMarketGold && sell > 0) {
+    if (!isMarketGold && !isSilverReceive && sell > 0) {
       if (
         sellPricingMode === "HESO" &&
         Number.isFinite(sellPricingHl) &&
@@ -207,7 +220,7 @@ async function fetchPosCatalogMeta(options?: {
         goldUnitDong = Math.round(sell * (Number(row.weight_chi) / perChiDivisor));
       }
     }
-    // Board path first; unlinked → manual product sell (SRS §6) for card display.
+    // Board path first (vàng); bạc / unlinked → manual_sell (P9 §4 / SRS §6).
     const unitPriceDong =
       goldUnitDong !== null
         ? goldUnitDong + laborFeeDong + stonePriceDong
