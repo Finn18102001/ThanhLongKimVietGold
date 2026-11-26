@@ -1,8 +1,9 @@
 ## Thăng Long Kim Việt — demo site
 
 > **Quy chuẩn phát triển:** mọi task / bug / refactor phải tuân theo
-> [`ENGINEERING-PLAYBOOK.md`](./ENGINEERING-PLAYBOOK.md) — quy trình chuẩn, naming convention,
-> rule cache/RLS nghiêm ngặt và Definition of Done. Đọc trước khi code.
+> [`ENGINEERING-PLAYBOOK.md`](./ENGINEERING-PLAYBOOK.md) (Quality First) và bản đồ
+> [`docs/FEATURE_MAP.md`](./docs/FEATURE_MAP.md) — quy trình chuẩn, naming, cache/RLS,
+> Definition of Done. Đọc trước khi code.
 
 ### Chạy local (khuyến nghị)
 

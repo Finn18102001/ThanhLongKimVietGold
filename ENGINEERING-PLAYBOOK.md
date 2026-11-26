@@ -1,11 +1,30 @@
 # TLKV Engineering Playbook
 
-> Quy chuẩn bắt buộc cho **mọi task, bug, refactor** trên repo này.
+> Quy chuẩn bắt buộc cho **mọi task, bug, refactor** trên phần **Website** (Express + vanilla JS) của repo này.
 > Tham khảo khung [Microsoft Code-With Engineering Playbook](https://github.com/microsoft/code-with-engineering-playbook),
 > điều chỉnh cho stack thực tế: **Express + vanilla JS + Supabase + Vercel**.
 >
-> Nguyên tắc gốc: *chất lượng và độ chính xác quan trọng hơn "làm cho xong"*.
+> Nguyên tắc gốc: **Quality First, Token Second** — chất lượng và độ chính xác quan trọng hơn tiết kiệm token hay "làm cho xong".
 > Nếu playbook sai hoặc thiếu — sửa playbook, đừng lách nó.
+>
+> Bản đồ tra cứu nhanh: [`docs/FEATURE_MAP.md`](./docs/FEATURE_MAP.md).
+
+---
+
+## 0.-1. Global Engineering Rules (bắt buộc — mọi task)
+
+Một Agent duy nhất thực hiện. Không chủ động Multi-Agent trừ khi user yêu cầu rõ.
+
+| # | Rule | Hành vi bắt buộc |
+|---|---|---|
+| 1 | **Understand Requirements** | Hiểu mục tiêu, phạm vi, constraints, out-of-scope và điều kiện hoàn thành trước khi code. |
+| 2 | **Context Discovery** | Đọc đủ source, docs, dependency và luồng nghiệp vụ liên quan trước khi sửa. Không đoán path/API. |
+| 3 | **Root Cause & Impact Analysis** | Xác định nguyên nhân gốc; đánh giá ảnh hưởng trực tiếp, gián tiếp, regression (kể cả DB dùng chung Website/POS). |
+| 4 | **Best Solution** | Chọn giải pháp tốt về kiến trúc / maintainability / performance / reliability — không chọn chỉ vì nhanh hoặc ít dòng. |
+| 5 | **Self-Verification** | Chủ động verify bằng `node --test`, build/lint, hoặc DevTools/browser khi chạm UI. Không tuyên bố xong khi chưa có bằng chứng. |
+| 6 | **Quality Over Tokens** | Không đánh đổi tính đúng đắn, độ hoàn thiện và verification để tiết kiệm token. |
+
+Cursor rule song song: `.cursor/rules/tlkv-quality-first.mdc` (`alwaysApply`).
 
 ---
 

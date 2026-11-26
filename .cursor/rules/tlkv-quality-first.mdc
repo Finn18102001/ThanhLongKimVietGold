@@ -1,0 +1,24 @@
+---
+description: TLKV global Quality-First engineering harness. Always apply for every task.
+alwaysApply: true
+---
+
+# TLKV — Quality First (Engineering Harness)
+
+**Quality First, Token Second.** One disciplined agent. Do not spawn Multi-Agent workflows unless the user explicitly asks.
+
+## Six rules (every task)
+
+1. **Understand Requirements** — Restate goal, scope, constraints, out-of-scope, and done checklist before coding.
+2. **Context Discovery** — Read related source, docs, dependencies, and business flow first. Do not guess APIs or paths.
+3. **Root Cause & Impact Analysis** — Find root cause; assess direct, indirect, and regression impact (including shared Website/POS Supabase when relevant).
+4. **Best Solution** — Prefer architecture, maintainability, performance, and reliability over the smallest or fastest patch.
+5. **Self-Verification** — Verify with unit/integration tests, build/lint, or DevTools/browser for UI. Do not claim done without evidence.
+6. **Quality Over Tokens** — Never trade correctness, completeness, or verification to save tokens or finish faster.
+
+## Project maps
+
+- **Website (Express + vanilla JS):** `ENGINEERING-PLAYBOOK.md` + `docs/FEATURE_MAP.md`
+- **POS admin (Next.js `src/`):** `docs/SYSTEM_DEVELOPMENT_RULES.md` + module isolation rules — do not invent a second Feature Map for POS in this task stream
+
+If a step is skipped, stop and complete it before merging or declaring success.
