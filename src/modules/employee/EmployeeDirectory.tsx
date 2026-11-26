@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Key, MagnifyingGlass, Plus, Prohibit, Trash, UserCheck } from "@phosphor-icons/react";
+import { formatActionError } from "@/shared/lib/action-result";
 import { formatViDateOnly } from "@/shared/lib/datetime";
 import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { deleteStaff, searchStaff, setStaffActive } from "./actions";
@@ -9,6 +10,8 @@ import { ROLE_LABEL, roleBadgeClass, staffInitials } from "./labels";
 import type { StaffListPage, StaffRecord, StaffRole } from "./types";
 import { STAFF_ROLES } from "./types";
 import { EmployeeFormModal } from "./components/EmployeeFormModal";
+
+type RowAction = "toggle" | "delete";
 
 export function EmployeeDirectory({
   initial,
@@ -27,6 +30,7 @@ export function EmployeeDirectory({
   const [error, setError] = useState<string | null>(null);
   const [alert, setAlert] = useState<ResultAlertModel | null>(null);
   const [pending, startTransition] = useTransition();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const activeCount = useMemo(
     () => page.items.filter((row) => row.isActive).length,
@@ -43,32 +47,45 @@ export function EmployeeDirectory({
     const nextRole = next?.role ?? role;
     const nextActive = next?.activeFilter ?? activeFilter;
     startTransition(async () => {
-      try {
-        const result = await searchStaff({
-          query: nextQuery,
-          role: nextRole || null,
-          active: nextActive === "" ? null : nextActive === "1",
-          limit: page.limit || 50,
-          offset: next?.offset ?? 0,
-        });
-        setPage(result);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Không tải được danh sách nhân viên");
+      const result = await searchStaff({
+        query: nextQuery,
+        role: nextRole || null,
+        active: nextActive === "" ? null : nextActive === "1",
+        limit: page.limit || 50,
+        offset: next?.offset ?? 0,
+      });
+      if (!result.ok) {
+        setError(formatActionError(result.message, "Không tải được danh sách nhân viên"));
+        return;
       }
+      setPage(result.data);
+      setError(null);
     });
   }
 
   async function toggleActive(row: StaffRecord) {
+    const key = `${row.id}:toggle`;
+    if (busyKey) return;
+    setBusyKey(key);
     try {
-      await setStaffActive(row.id, !row.isActive);
+      const result = await setStaffActive(row.id, !row.isActive);
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Không đổi được trạng thái",
+          reason: formatActionError(result.message, "Thao tác thất bại"),
+        });
+        return;
+      }
       refresh();
     } catch (err) {
       setAlert({
         tone: "error",
         title: "Không đổi được trạng thái",
-        reason: err instanceof Error ? err.message : "Thao tác thất bại",
+        reason: formatActionError(err, "Thao tác thất bại"),
       });
+    } finally {
+      setBusyKey(null);
     }
   }
 
@@ -76,17 +93,36 @@ export function EmployeeDirectory({
     if (!window.confirm(`Xóa nhân viên ${row.fullName}? Tài khoản đăng nhập cũng sẽ bị xóa.`)) {
       return;
     }
+    const key = `${row.id}:delete`;
+    if (busyKey) return;
+    setBusyKey(key);
     try {
-      await deleteStaff(row.id);
+      const result = await deleteStaff(row.id);
+      if (!result.ok) {
+        setAlert({
+          tone: "error",
+          title: "Xóa thất bại",
+          reason: formatActionError(result.message, "Không xóa được nhân viên"),
+        });
+        return;
+      }
       refresh();
     } catch (err) {
       setAlert({
         tone: "error",
         title: "Xóa thất bại",
-        reason: err instanceof Error ? err.message : "Không xóa được nhân viên",
+        reason: formatActionError(err, "Không xóa được nhân viên"),
       });
+    } finally {
+      setBusyKey(null);
     }
   }
+
+  function isBusy(rowId: string, action: RowAction) {
+    return busyKey === `${rowId}:${action}`;
+  }
+
+  const anyRowBusy = Boolean(busyKey);
 
   return (
     <div className="space-y-4">
@@ -104,7 +140,8 @@ export function EmployeeDirectory({
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white"
+              disabled={anyRowBusy}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[var(--tlkv-red)] px-3 text-[13px] font-semibold text-white disabled:opacity-40"
             >
               <Plus size={14} weight="bold" />
               Thêm nhân viên
@@ -181,8 +218,13 @@ export function EmployeeDirectory({
       </section>
 
       <section
-        className={`rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] ${pending ? "opacity-60" : ""}`}
+        className={`relative rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] ${pending || anyRowBusy ? "opacity-60" : ""}`}
       >
+        {pending || anyRowBusy ? (
+          <p className="mb-3 text-[13px] text-[var(--tlkv-muted)]">
+            {anyRowBusy ? "Đang xử lý thao tác..." : "Đang tải danh sách..."}
+          </p>
+        ) : null}
         {error ? <p className="mb-3 text-[13px] text-[var(--tlkv-red)]">{error}</p> : null}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-[13px]">
@@ -205,83 +247,98 @@ export function EmployeeDirectory({
                   </td>
                 </tr>
               ) : (
-                page.items.map((row) => (
-                  <tr key={row.id} className="border-b border-[var(--tlkv-line)] last:border-b-0">
-                    <td className="py-3 pr-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--tlkv-red-soft)] text-[11px] font-bold text-[var(--tlkv-red)]">
-                          {staffInitials(row.fullName)}
-                        </span>
-                        <span>
-                          <span className="block font-medium">{row.fullName}</span>
-                          <span className="text-[12px] text-[var(--tlkv-muted)]">{row.staffNo}</span>
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${roleBadgeClass(row.role)}`}
-                      >
-                        {ROLE_LABEL[row.role]}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-3">{row.email}</td>
-                    <td className="py-3 pr-3">{row.phone || "—"}</td>
-                    <td className="py-3 pr-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          row.isActive
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-stone-100 text-stone-500"
-                        }`}
-                      >
-                        {row.isActive ? "Hoạt động" : "Đã tắt"}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
-                      {formatViDateOnly(row.updatedAt)}
-                    </td>
-                    <td className="py-3">
-                      {canMutate ? (
-                        <div className="flex flex-wrap gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditing(row)}
-                            className="h-8 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            type="button"
-                            title="Đổi mật khẩu"
-                            onClick={() => setPasswordFor(row)}
-                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                          >
-                            <Key size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            title={row.isActive ? "Tắt" : "Bật"}
-                            onClick={() => void toggleActive(row)}
-                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)]"
-                          >
-                            {row.isActive ? <Prohibit size={14} /> : <UserCheck size={14} />}
-                          </button>
-                          <button
-                            type="button"
-                            title="Xóa"
-                            onClick={() => void removeStaff(row)}
-                            className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)]"
-                          >
-                            <Trash size={14} />
-                          </button>
+                page.items.map((row) => {
+                  const toggling = isBusy(row.id, "toggle");
+                  const deleting = isBusy(row.id, "delete");
+                  const rowLocked = anyRowBusy;
+                  return (
+                    <tr key={row.id} className="border-b border-[var(--tlkv-line)] last:border-b-0">
+                      <td className="py-3 pr-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--tlkv-red-soft)] text-[11px] font-bold text-[var(--tlkv-red)]">
+                            {staffInitials(row.fullName)}
+                          </span>
+                          <span>
+                            <span className="block font-medium">{row.fullName}</span>
+                            <span className="text-[12px] text-[var(--tlkv-muted)]">{row.staffNo}</span>
+                          </span>
                         </div>
-                      ) : (
-                        <span className="text-[12px] text-[var(--tlkv-muted)]">Chỉ xem</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3 pr-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${roleBadgeClass(row.role)}`}
+                        >
+                          {ROLE_LABEL[row.role]}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-3">{row.email}</td>
+                      <td className="py-3 pr-3">{row.phone || "—"}</td>
+                      <td className="py-3 pr-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            row.isActive
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-stone-100 text-stone-500"
+                          }`}
+                        >
+                          {row.isActive ? "Hoạt động" : "Đã tắt"}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-3 text-[var(--tlkv-muted)]">
+                        {formatViDateOnly(row.updatedAt)}
+                      </td>
+                      <td className="py-3">
+                        {canMutate ? (
+                          <div className="flex flex-wrap gap-1">
+                            <button
+                              type="button"
+                              disabled={rowLocked}
+                              onClick={() => setEditing(row)}
+                              className="h-8 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              type="button"
+                              title="Đổi mật khẩu"
+                              disabled={rowLocked}
+                              onClick={() => setPasswordFor(row)}
+                              className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
+                            >
+                              <Key size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              title={row.isActive ? "Tắt" : "Bật"}
+                              disabled={rowLocked}
+                              onClick={() => void toggleActive(row)}
+                              className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] hover:bg-[var(--tlkv-bg)] disabled:opacity-40"
+                            >
+                              {toggling ? (
+                                <span className="text-[11px]">...</span>
+                              ) : row.isActive ? (
+                                <Prohibit size={14} />
+                              ) : (
+                                <UserCheck size={14} />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              title="Xóa"
+                              disabled={rowLocked}
+                              onClick={() => void removeStaff(row)}
+                              className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-red)] hover:bg-[var(--tlkv-red-soft)] disabled:opacity-40"
+                            >
+                              {deleting ? <span className="text-[11px]">...</span> : <Trash size={14} />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[12px] text-[var(--tlkv-muted)]">Chỉ xem</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

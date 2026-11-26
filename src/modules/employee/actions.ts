@@ -1,6 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  actionFail,
+  actionOk,
+  formatActionError,
+  runAction,
+  type ActionResult,
+} from "@/shared/lib/action-result";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { getSupabasePublicConfig } from "@/shared/supabase/env";
 import { mapStaff, mapStaffList } from "./map";
@@ -10,7 +17,14 @@ function revalidateStaffViews() {
   revalidatePath("/employees");
 }
 
-async function callStaffAdmin(body: Record<string, unknown>) {
+type StaffAdminPayload = {
+  error?: string;
+  staff?: Parameters<typeof mapStaff>[0];
+  ok?: boolean;
+  auth_user_id?: string | null;
+};
+
+async function callStaffAdmin(body: Record<string, unknown>): Promise<StaffAdminPayload> {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -35,11 +49,18 @@ async function callStaffAdmin(body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   });
-  const payload = (await res.json()) as {
-    error?: string;
-    staff?: Parameters<typeof mapStaff>[0];
-    ok?: boolean;
-  };
+
+  let payload: StaffAdminPayload = {};
+  try {
+    payload = (await res.json()) as StaffAdminPayload;
+  } catch {
+    throw new Error(
+      res.ok
+        ? "Phản hồi staff-admin không hợp lệ"
+        : `staff-admin lỗi HTTP ${res.status}`,
+    );
+  }
+
   if (!res.ok) {
     const raw = (payload.error ?? "").trim();
     if (res.status === 403 || /^forbidden$/i.test(raw)) {
@@ -56,113 +77,138 @@ export async function searchStaff(input: {
   active?: boolean | null;
   limit?: number;
   offset?: number;
-}): Promise<StaffListPage> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_list_staff", {
-    p_query: input.query ?? "",
-    p_role: input.role || null,
-    p_active: input.active ?? null,
-    p_limit: input.limit ?? 50,
-    p_offset: input.offset ?? 0,
-  });
-  if (error) {
-    const msg = error.message || "";
-    if (/^forbidden$/i.test(msg)) {
-      throw new Error("Không đủ quyền thực hiện.");
-    }
-    throw new Error(msg);
-  }
-  return mapStaffList(
-    data as {
-      items: Parameters<typeof mapStaffList>[0]["items"];
-      total: number;
-      limit: number;
-      offset: number;
-    },
-  );
-}
-
-export async function createStaff(input: StaffInput): Promise<StaffRecord> {
-  if (!input.password || input.password.length < 7) {
-    throw new Error("Mật khẩu tối thiểu 7 ký tự");
-  }
-  const payload = await callStaffAdmin({
-    action: "create",
-    fullName: input.fullName,
-    email: input.email,
-    phone: input.phone ?? null,
-    role: input.role,
-    note: input.note ?? null,
-    password: input.password,
-  });
-  const staff = mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
-  if (input.isShared) {
+}): Promise<ActionResult<StaffListPage>> {
+  return runAction(async () => {
     const supabase = await createServerSupabase();
-    const shared = await supabase.rpc("pos_set_staff_shared", {
-      p_id: staff.id,
-      p_is_shared: true,
+    const { data, error } = await supabase.rpc("pos_list_staff", {
+      p_query: input.query ?? "",
+      p_role: input.role || null,
+      p_active: input.active ?? null,
+      p_limit: input.limit ?? 50,
+      p_offset: input.offset ?? 0,
     });
-    if (shared.error) throw new Error(shared.error.message);
-    staff.isShared = true;
-  }
-  revalidateStaffViews();
-  return staff;
-}
-
-export async function updateStaff(id: string, input: StaffInput): Promise<StaffRecord> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("pos_update_staff", {
-    p_id: id,
-    p_full_name: input.fullName,
-    p_phone: input.phone ?? null,
-    p_role: input.role,
-    p_note: input.note ?? null,
-    p_is_active: input.isActive ?? null,
-  });
-  if (error) {
-    const msg = error.message || "";
-    if (/^forbidden$/i.test(msg)) {
-      throw new Error("Không đủ quyền thực hiện.");
+    if (error) {
+      const msg = error.message || "";
+      if (/^forbidden$/i.test(msg)) {
+        throw new Error("Không đủ quyền thực hiện.");
+      }
+      throw new Error(msg);
     }
-    throw new Error(msg);
-  }
-  if (input.isShared !== undefined) {
-    const shared = await supabase.rpc("pos_set_staff_shared", {
-      p_id: id,
-      p_is_shared: input.isShared,
+    return mapStaffList(
+      data as {
+        items: Parameters<typeof mapStaffList>[0]["items"];
+        total: number;
+        limit: number;
+        offset: number;
+      },
+    );
+  }, "Không tải được danh sách nhân viên");
+}
+
+export async function createStaff(input: StaffInput): Promise<ActionResult<StaffRecord>> {
+  return runAction(async () => {
+    if (!input.password || input.password.length < 7) {
+      throw new Error("Mật khẩu tối thiểu 7 ký tự");
+    }
+    const payload = await callStaffAdmin({
+      action: "create",
+      fullName: input.fullName,
+      email: input.email,
+      phone: input.phone ?? null,
+      role: input.role,
+      note: input.note ?? null,
+      password: input.password,
     });
-    if (shared.error) throw new Error(shared.error.message);
-  }
-  revalidateStaffViews();
-  return mapStaff((data as { staff: Parameters<typeof mapStaff>[0] }).staff);
+    const staff = mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
+    if (input.isShared) {
+      const supabase = await createServerSupabase();
+      const shared = await supabase.rpc("pos_set_staff_shared", {
+        p_id: staff.id,
+        p_is_shared: true,
+      });
+      if (shared.error) throw new Error(shared.error.message);
+      staff.isShared = true;
+    }
+    revalidateStaffViews();
+    return staff;
+  }, "Không tạo được nhân viên");
 }
 
-export async function setStaffActive(id: string, isActive: boolean): Promise<StaffRecord> {
-  const payload = await callStaffAdmin({
-    action: "setActive",
-    id,
-    isActive,
-  });
-  revalidateStaffViews();
-  return mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
+export async function updateStaff(
+  id: string,
+  input: StaffInput,
+): Promise<ActionResult<StaffRecord>> {
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("pos_update_staff", {
+      p_id: id,
+      p_full_name: input.fullName,
+      p_phone: input.phone ?? null,
+      p_role: input.role,
+      p_note: input.note ?? null,
+      p_is_active: input.isActive ?? null,
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (/^forbidden$/i.test(msg)) {
+        throw new Error("Không đủ quyền thực hiện.");
+      }
+      throw new Error(msg);
+    }
+    if (input.isShared !== undefined) {
+      const shared = await supabase.rpc("pos_set_staff_shared", {
+        p_id: id,
+        p_is_shared: input.isShared,
+      });
+      if (shared.error) throw new Error(shared.error.message);
+    }
+    revalidateStaffViews();
+    return mapStaff((data as { staff: Parameters<typeof mapStaff>[0] }).staff);
+  }, "Không cập nhật được nhân viên");
 }
 
-export async function resetStaffPassword(id: string, password: string): Promise<void> {
-  if (password.length < 7) {
-    throw new Error("Mật khẩu tối thiểu 7 ký tự");
-  }
-  await callStaffAdmin({
-    action: "resetPassword",
-    id,
-    password,
-  });
+export async function setStaffActive(
+  id: string,
+  isActive: boolean,
+): Promise<ActionResult<StaffRecord>> {
+  return runAction(async () => {
+    const payload = await callStaffAdmin({
+      action: "setActive",
+      id,
+      isActive,
+    });
+    revalidateStaffViews();
+    return mapStaff(payload.staff as Parameters<typeof mapStaff>[0]);
+  }, "Không đổi được trạng thái nhân viên");
 }
 
-export async function deleteStaff(id: string): Promise<void> {
-  await callStaffAdmin({
-    action: "delete",
-    id,
-    deleteAuth: true,
-  });
-  revalidateStaffViews();
+export async function resetStaffPassword(
+  id: string,
+  password: string,
+): Promise<ActionResult<{ ok: true }>> {
+  return runAction(async () => {
+    if (password.length < 7) {
+      throw new Error("Mật khẩu tối thiểu 7 ký tự");
+    }
+    await callStaffAdmin({
+      action: "resetPassword",
+      id,
+      password,
+    });
+    return { ok: true as const };
+  }, "Không đổi được mật khẩu");
 }
+
+export async function deleteStaff(id: string): Promise<ActionResult<{ ok: true }>> {
+  return runAction(async () => {
+    await callStaffAdmin({
+      action: "delete",
+      id,
+      deleteAuth: true,
+    });
+    revalidateStaffViews();
+    return { ok: true as const };
+  }, "Không xóa được nhân viên");
+}
+
+export { actionFail, actionOk, formatActionError };
