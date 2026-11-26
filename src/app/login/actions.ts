@@ -106,18 +106,19 @@ export async function signIn(formData: FormData) {
 
   const session = await getPosSession();
   if (!session) {
-    await supabase.auth.signOut();
+    // Session Isolation: chỉ revoke session vừa tạo trên device này (FR-05).
+    await supabase.auth.signOut({ scope: "local" });
     loginErrorRedirect("Tài khoản chưa được cấp quyền POS hoặc đã bị tắt.");
   }
 
   const expiresIn = msUntil(session.sessionExpiresAt);
   if (expiresIn === 0) {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     loginErrorRedirect(SESSION_EXPIRED_MESSAGE);
   }
 
   if (!canAdminRead(session.role) && session.workHours?.applies && !session.workHours.within) {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     loginErrorRedirect(WORK_HOURS_ENDED_MESSAGE);
   }
 
@@ -127,7 +128,8 @@ export async function signIn(formData: FormData) {
       const challenge = await createOtpChallenge();
       await sendOtpOrThrow(challenge);
     } catch (err) {
-      await supabase.auth.signOut();
+      // Cleanup session vừa tạo; không đụng device khác đang OTP-verified.
+      await supabase.auth.signOut({ scope: "local" });
       loginErrorRedirect(err instanceof Error ? err.message : OTP_REQUIRED_MESSAGE);
     }
     redirect(otpPageUrl({ next, mailed: true }));
@@ -187,7 +189,8 @@ export async function verifyLoginOtp(formData: FormData) {
 export async function signOut() {
   await closeWorkShiftBestEffort("logout");
   const supabase = await createServerSupabase();
-  await supabase.auth.signOut();
+  // FR-04: logout thủ công chỉ hủy session thiết bị hiện tại.
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }
 
@@ -197,7 +200,8 @@ export async function forceSignOut(reason?: string) {
     reason === "work_hours" ? "auto_end_of_day" : "logout",
   );
   const supabase = await createServerSupabase();
-  await supabase.auth.signOut();
+  // FR-02/03/06: hết 24h hoặc hết ca — local only (Session Isolation).
+  await supabase.auth.signOut({ scope: "local" });
   const message =
     reason === "session"
       ? SESSION_EXPIRED_MESSAGE
