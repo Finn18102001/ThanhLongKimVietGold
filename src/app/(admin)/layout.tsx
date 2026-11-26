@@ -49,12 +49,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     );
   }
 
-  // Future 3 — allowlist Admin must verify OTP before admin shell.
+  // Future 3 — mọi ADMIN phải verify OTP trước admin shell.
   if (session.otp?.required && !session.otp.verified) {
     redirect(`/login/otp?next=${encodeURIComponent("/")}`);
   }
 
-  // Future 2 — absolute 24h (all roles; allowlist clock starts after OTP).
+  // Future 2 — absolute 24h (all roles; ADMIN clock starts after OTP).
   if (msUntil(session.sessionExpiresAt) === 0) {
     await forceSignOut("session");
   }

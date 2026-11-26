@@ -1,16 +1,24 @@
-/** Future 3 — fixed Admin allowlist requiring email OTP every login. */
+import type { StaffRole } from "./permissions";
 
-export const ADMIN_OTP_ALLOWLIST = [
-  "tuananh18101@gmail.com",
-  "thanglongkimviet@gmail.com",
-] as const;
+/**
+ * Future 3 — OTP email cho mọi role ADMIN (active trên pos_staff).
+ * SoT SQL: pos_private.otp_email_requires_step2. ADMIN_VIEWER / STAFF không bắt OTP.
+ */
 
-export function requiresAdminEmailOtp(email: string | null | undefined): boolean {
-  const normalized = String(email ?? "")
-    .trim()
-    .toLowerCase();
-  if (!normalized) return false;
-  return ADMIN_OTP_ALLOWLIST.some((item) => item === normalized);
+export function requiresAdminRoleOtp(role: StaffRole | string | null | undefined): boolean {
+  return role === "ADMIN";
+}
+
+/** @deprecated Dùng requiresAdminRoleOtp(session.role). Giữ alias tạm cho import cũ. */
+export function requiresAdminEmailOtp(
+  emailOrRole: string | null | undefined,
+): boolean {
+  // Nếu caller nhầm truyền role string "ADMIN".
+  if (emailOrRole === "ADMIN" || emailOrRole === "STAFF" || emailOrRole === "ADMIN_VIEWER") {
+    return requiresAdminRoleOtp(emailOrRole);
+  }
+  // Không còn allowlist email — luôn false ở đây; gate thật qua session.role / SQL.
+  return false;
 }
 
 export const OTP_REQUIRED_MESSAGE = "Cần xác thực OTP email.";

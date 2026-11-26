@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
-import { requiresAdminEmailOtp } from "@/shared/auth/otp-allowlist";
+import { requiresAdminRoleOtp } from "@/shared/auth/otp-allowlist";
 import { createServerSupabase } from "@/shared/supabase/server";
 import { getPosSession } from "@/shared/auth/session";
 import { OtpResendForm, OtpSignOutForm, OtpVerifyForm } from "./OtpForms";
@@ -30,11 +30,11 @@ export default async function LoginOtpPage({
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
-  if (!requiresAdminEmailOtp(user.email)) {
-    redirect(next);
-  }
 
   const session = await getPosSession();
+  if (!requiresAdminRoleOtp(session?.role) && !session?.otp?.required) {
+    redirect(next);
+  }
   if (session?.otp?.verified) {
     redirect(next);
   }

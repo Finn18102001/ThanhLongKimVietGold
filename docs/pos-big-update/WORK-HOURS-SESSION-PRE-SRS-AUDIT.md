@@ -19,7 +19,7 @@
 
 **Verdict:** Future 1+2 **khả thi kỹ thuật** (quyết định §14 đã chốt; Dashboard PRO đã xác minh).  
 
-**Bổ sung 2026-11-25:** **Future 3 — OTP email** khi 2 Admin allowlist đăng nhập (xem §16–§17). Supabase không có Email MFA native → **OTP email custom**. PO đã **từ chối** TOTP. Blocker còn lại: SMTP Production.
+**Bổ sung 2026-11-25:** **Future 3 — OTP email** khi Admin đăng nhập (xem §16–§17). **Cập nhật 2026-11-26:** mọi `pos_staff.role = ADMIN` (active) đều bắt OTP — không còn allowlist 2 email. ADMIN_VIEWER / STAFF không OTP. Supabase không có Email MFA native → **OTP email custom**. PO đã **từ chối** TOTP.
 
 ---
 
@@ -455,8 +455,9 @@ Không phụ thuộc timezone máy NV.
 |---|---|---|
 | `tuananh18101@gmail.com` | ADMIN | **Bắt buộc** bước 2 |
 | `thanglongkimviet@gmail.com` | ADMIN | **Bắt buộc** bước 2 |
-| `ketoan02@gmail.com` | ADMIN | Không (ngoài allowlist) |
-| `linh@123gmail.com` | ADMIN | Không (ngoài allowlist) |
+| `ketoan02@gmail.com` | ADMIN | **Có** (mọi ADMIN, 2026-11-26) |
+| `linh@123gmail.com` | ADMIN | **Có** (mọi ADMIN, 2026-11-26) |
+| `linhndtl3007@gmail.com` | ADMIN | **Có** (mọi ADMIN, 2026-11-26) |
 | `quantrivientlkv@gmail.com` | ADMIN_VIEWER | Không |
 
 STAFF: không MFA bước 2 (chỉ password + giờ làm việc + 24h).
@@ -473,7 +474,7 @@ STAFF: không MFA bước 2 (chỉ password + giờ làm việc + 24h).
 ### 16.3. Phương án đã chốt — OTP email custom (A)
 
 ```text
-Mỗi lần login (2 email allowlist):
+Mỗi lần login (mọi role ADMIN active):
   email + password OK
   → tạo OTP 6 số (hash + TTL 5–10 phút), gửi email
   → UI nhập mã; resend ≥ 60s
@@ -495,7 +496,7 @@ Mỗi lần login (2 email allowlist):
 | `proxy` / layout / `require_*` | Cao | Allowlist chưa OTP → không vào app / reject RPC |
 | SMTP | **Cao — blocker** | Check Dashboard trước code |
 | Future 1–2 | Thấp–TB | 24h sau OTP thành công; work hours không đụng 2 Admin này |
-| Admin ngoài allowlist / VIEWER / STAFF | Thấp | Password-only (+ Future 1–2 theo role) |
+| ADMIN_VIEWER / STAFF | Thấp | Password-only (+ Future 1–2 theo role); mọi ADMIN bắt OTP |
 
 ### 16.5. Quan hệ Future 1–2–3
 
@@ -503,7 +504,7 @@ Mỗi lần login (2 email allowlist):
 STAFF:
   password → trong [07:00,20:00)? → session → 24h + work-hours gates
 
-ADMIN allowlist (2 Gmail):
+ADMIN (mọi email role ADMIN active):
   password → OTP gửi email → nhập đúng → session thành công → 24h (không work hours)
 
 ADMIN khác / ADMIN_VIEWER:
@@ -548,12 +549,12 @@ ADMIN khác / ADMIN_VIEWER:
 - App/SQL check `auth.sessions.created_at + 24h` bắt buộc (JWT còn ~1h sau timebox).
 - Không dùng hết hạn 00:00.
 
-### Future 3 — OTP email Admin (allowlist)
+### Future 3 — OTP email Admin (mọi role ADMIN)
 
 - Phương án triển khai: **OTP email custom** (không TOTP / Google Authenticator).
 
-- Chỉ 2 email: `tuananh18101@gmail.com`, `thanglongkimviet@gmail.com`.
-- Không áp dụng: ADMIN_VIEWER, ADMIN khác ngoài allowlist, STAFF.
+- Áp dụng: mọi `pos_staff.role = ADMIN` và `is_active` (SoT: `pos_private.otp_email_requires_step2`). Cập nhật 2026-11-26 — hết allowlist 2 email.
+- Không áp dụng: ADMIN_VIEWER, STAFF.
 - Mỗi lần login: password đúng → gửi OTP email → nhập đúng mới vào app.
 - Thông số: 6 số; TTL 5–10 phút; resend ≥ 60s.
 - Không dùng Google Authenticator / TOTP (đã từ chối).

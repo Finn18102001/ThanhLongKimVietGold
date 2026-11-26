@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { canAdminRead } from "@/shared/auth/permissions";
-import { requiresAdminEmailOtp } from "@/shared/auth/otp-allowlist";
+import { requiresAdminRoleOtp } from "@/shared/auth/otp-allowlist";
 import { getPosSession } from "@/shared/auth/session";
 import {
   OTP_REQUIRED_MESSAGE,
@@ -122,8 +122,8 @@ export async function signIn(formData: FormData) {
     loginErrorRedirect(WORK_HOURS_ENDED_MESSAGE);
   }
 
-  // Future 3 — allowlist Admin: password OK → OTP email → /login/otp
-  if (requiresAdminEmailOtp(session.email) && !session.otp?.verified) {
+  // Future 3 — mọi role ADMIN: password OK → OTP email → /login/otp
+  if (requiresAdminRoleOtp(session.role) && !session.otp?.verified) {
     try {
       const challenge = await createOtpChallenge();
       await sendOtpOrThrow(challenge);
@@ -150,7 +150,8 @@ export async function resendLoginOtp(formData: FormData) {
   if (!user) {
     loginErrorRedirect("Phiên đăng nhập không hợp lệ. Đăng nhập lại.");
   }
-  if (!requiresAdminEmailOtp(user.email)) {
+  const session = await getPosSession();
+  if (!requiresAdminRoleOtp(session?.role)) {
     redirect(next.startsWith("/") ? next : "/");
   }
 
@@ -175,7 +176,8 @@ export async function verifyLoginOtp(formData: FormData) {
   if (!user) {
     loginErrorRedirect("Phiên đăng nhập không hợp lệ. Đăng nhập lại.");
   }
-  if (!requiresAdminEmailOtp(user.email)) {
+  const session = await getPosSession();
+  if (!requiresAdminRoleOtp(session?.role)) {
     redirect(next.startsWith("/") ? next : "/");
   }
 
