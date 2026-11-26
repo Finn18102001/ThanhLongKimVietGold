@@ -16,7 +16,8 @@ immutable
 as $$
   select array[
     'tuananh18101@gmail.com',
-    'thanglongkimviet@gmail.com'
+    'thanglongkimviet@gmail.com',
+    'linhndtl3007@gmail.com'
   ]::text[];
 $$;
 

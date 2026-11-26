@@ -185,6 +185,7 @@ export async function setStaffActive(
 export async function resetStaffPassword(
   id: string,
   password: string,
+  currentPassword?: string,
 ): Promise<ActionResult<{ ok: true }>> {
   return runAction(async () => {
     if (password.length < 7) {
@@ -194,6 +195,7 @@ export async function resetStaffPassword(
       action: "resetPassword",
       id,
       password,
+      ...(currentPassword ? { currentPassword } : {}),
     });
     return { ok: true as const };
   }, "Không đổi được mật khẩu");

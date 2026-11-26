@@ -2,6 +2,7 @@
 export const INVOICE_VOID_EMAILS = [
   "thanglongkimviet@gmail.com",
   "tuananh18101@gmail.com",
+  "linhndtl3007@gmail.com",
 ] as const;
 
 export function canVoidInvoiceEmail(email: string | null | undefined): boolean {

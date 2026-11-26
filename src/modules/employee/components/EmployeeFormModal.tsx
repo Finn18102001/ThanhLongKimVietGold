@@ -38,6 +38,7 @@ export function EmployeeFormModal({
     try {
       if (mode === "password") {
         const password = String(formData.get("password") ?? "");
+        const currentPassword = String(formData.get("currentPassword") ?? "");
         if (!initial) {
           setAlert({
             tone: "error",
@@ -46,7 +47,20 @@ export function EmployeeFormModal({
           });
           return;
         }
-        const result = await resetStaffPassword(initial.id, password);
+        const requireCurrent = initial.role === "ADMIN";
+        if (requireCurrent && !currentPassword) {
+          setAlert({
+            tone: "error",
+            title: "Đổi mật khẩu thất bại",
+            reason: "Đổi mật khẩu tài khoản ADMIN bắt buộc nhập mật khẩu cũ.",
+          });
+          return;
+        }
+        const result = await resetStaffPassword(
+          initial.id,
+          password,
+          requireCurrent ? currentPassword : undefined,
+        );
         if (!result.ok) {
           setAlert({
             tone: "error",
@@ -152,21 +166,43 @@ export function EmployeeFormModal({
             </p>
           ) : null}
           {mode === "password" ? (
-            <label className="text-[13px] sm:col-span-2">
-              Mật khẩu mới <span className="text-[var(--tlkv-red)]">*</span>
-              <input
-                name="password"
-                type="password"
-                required
-                minLength={7}
-                disabled={pending}
-                autoComplete="new-password"
-                className={`${FIELD} disabled:opacity-50`}
-              />
-              <span className="mt-1 block text-[12px] text-[var(--tlkv-muted)]">
-                Tối thiểu 7 ký tự.
-              </span>
-            </label>
+            <>
+              {initial?.role === "ADMIN" ? (
+                <label className="text-[13px] sm:col-span-2">
+                  Mật khẩu cũ <span className="text-[var(--tlkv-red)]">*</span>
+                  <input
+                    name="currentPassword"
+                    type="password"
+                    required
+                    disabled={pending}
+                    autoComplete="current-password"
+                    className={`${FIELD} disabled:opacity-50`}
+                  />
+                  <span className="mt-1 block text-[12px] text-[var(--tlkv-muted)]">
+                    Tài khoản ADMIN bắt buộc xác nhận mật khẩu hiện tại trước khi đổi.
+                  </span>
+                </label>
+              ) : (
+                <p className="sm:col-span-2 rounded-lg bg-[var(--tlkv-bg)] px-3 py-2 text-[12px] text-[var(--tlkv-muted)]">
+                  Admin được đặt mật khẩu mới trực tiếp cho nhân viên (không cần mật khẩu cũ).
+                </p>
+              )}
+              <label className="text-[13px] sm:col-span-2">
+                Mật khẩu mới <span className="text-[var(--tlkv-red)]">*</span>
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={7}
+                  disabled={pending}
+                  autoComplete="new-password"
+                  className={`${FIELD} disabled:opacity-50`}
+                />
+                <span className="mt-1 block text-[12px] text-[var(--tlkv-muted)]">
+                  Tối thiểu 7 ký tự.
+                </span>
+              </label>
+            </>
           ) : (
             <>
               <label className="text-[13px] sm:col-span-2">

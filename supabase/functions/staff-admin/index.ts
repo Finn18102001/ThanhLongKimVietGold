@@ -2,10 +2,30 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 type StaffAction =
-  | { action: "create"; fullName: string; email: string; phone?: string | null; role: "ADMIN" | "ADMIN_VIEWER" | "STAFF"; note?: string | null; password: string }
+  | {
+      action: "create";
+      fullName: string;
+      email: string;
+      phone?: string | null;
+      role: "ADMIN" | "ADMIN_VIEWER" | "STAFF";
+      note?: string | null;
+      password: string;
+    }
   | { action: "setActive"; id: string; isActive: boolean }
   | { action: "delete"; id: string; deleteAuth?: boolean }
-  | { action: "resetPassword"; id: string; password: string };
+  | {
+      action: "resetPassword";
+      id: string;
+      password: string;
+      /** Required when target staff.role = ADMIN (verify before overwrite). */
+      currentPassword?: string;
+    };
+
+type StaffRow = {
+  auth_user_id?: string | null;
+  email?: string | null;
+  role?: string | null;
+};
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -98,7 +118,7 @@ Deno.serve(async (req) => {
         p_id: payload.id,
       });
       if (getError) return json({ error: getError.message }, 400);
-      const authUserId = (staffRes as { staff?: { auth_user_id?: string | null } })?.staff?.auth_user_id;
+      const authUserId = (staffRes as { staff?: StaffRow })?.staff?.auth_user_id;
 
       const { data, error } = await userClient.rpc("pos_set_staff_active", {
         p_id: payload.id,
@@ -122,10 +142,35 @@ Deno.serve(async (req) => {
         p_id: payload.id,
       });
       if (getError) return json({ error: getError.message }, 400);
-      const authUserId = (staffRes as { staff?: { auth_user_id?: string | null } })?.staff?.auth_user_id;
-      if (!authUserId) {
+      const staff = (staffRes as { staff?: StaffRow })?.staff;
+      const authUserId = staff?.auth_user_id;
+      const staffEmail = (staff?.email ?? "").trim().toLowerCase();
+      const staffRole = (staff?.role ?? "").trim().toUpperCase();
+      if (!authUserId || !staffEmail) {
         return json({ error: "Nhân viên chưa gắn tài khoản đăng nhập" }, 400);
       }
+
+      // ADMIN accounts: must prove current password before overwrite.
+      // STAFF / ADMIN_VIEWER: acting admin may force-set a new password.
+      if (staffRole === "ADMIN") {
+        const currentPassword = (payload.currentPassword ?? "").trim();
+        if (!currentPassword) {
+          return json(
+            { error: "Đổi mật khẩu tài khoản ADMIN bắt buộc nhập mật khẩu cũ." },
+            400,
+          );
+        }
+        const verifier = createClient(supabaseUrl, anonKey);
+        const { error: verifyError } = await verifier.auth.signInWithPassword({
+          email: staffEmail,
+          password: currentPassword,
+        });
+        if (verifyError) {
+          return json({ error: "Mật khẩu cũ không đúng." }, 400);
+        }
+        await verifier.auth.signOut();
+      }
+
       const { error: pwdError } = await admin.auth.admin.updateUserById(authUserId, {
         password: payload.password,
       });
