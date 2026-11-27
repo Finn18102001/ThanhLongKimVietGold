@@ -90,7 +90,9 @@ Chuyển tiền CASH ↔ BANK hiện hoàn tất ngay, không có bước in ch�
 | Thanh toán một phần | Đã phát sinh một phần thanh toán, vẫn còn số dư cần xử lý. |
 | Hủy hóa đơn | Ghi nhận giao dịch đảo, hoàn kho nếu hàng đã xuất và hoàn tiền theo các khoản thanh toán đã phát sinh. Không xóa lịch sử gốc. |
 
-P10 không thay đổi công thức giá, cách tính tổng hóa đơn, trạng thái thanh toán hoặc quy trình đặt cọc hiện tại. P10 thay đổi cách phân công và nơi ghi nhận số dư khi Feature Flag được bật.
+P10 không thay đổi công thức giá, cách tính tổng hóa đơn, hoặc quy trình đặt cọc hiện tại. P10 thay đổi cách phân công và nơi ghi nhận số dư khi Feature Flag được bật.
+
+> **Chốt 2026-11-28 (nơi chọn):** Khi Flag ON, **phương thức TT** và section **«Trạng thái thu»** chuyển sang Quỹ tiền lúc xác nhận YC — xem [`P10-03` §5.3](./P10-03-TWO-STEP-CONFIRM-FLOW.md#53-phương-thức-tt--trạng-thái-thu-do-quỹ-tiền-chốt-2026-11-28) + [`§5.4`](./P10-03-TWO-STEP-CONFIRM-FLOW.md). Ý nghĩa các trạng thái Đủ / Cọc / Chờ TT **giữ nguyên**; chỉ đổi **ai chọn** và **khi nào** ghi nhận. Reject YC / trả vàng 100% / status lưu tạm: câu hỏi mở §5.5.
 
 ## A5. So sánh AS-IS và nghiệp vụ mới
 

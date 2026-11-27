@@ -19,6 +19,77 @@ import type {
   TransactionExportRow,
 } from "./types";
 
+const REPORT_PAGE_SIZE = 20;
+
+function usePagedRows<T>(rows: T[], pageSize = REPORT_PAGE_SIZE) {
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const safePage = Math.min(pageIndex, pageCount - 1);
+  const pageRows = rows.slice(safePage * pageSize, safePage * pageSize + pageSize);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [rows]);
+
+  useEffect(() => {
+    if (pageIndex !== safePage) setPageIndex(safePage);
+  }, [pageIndex, safePage]);
+
+  return {
+    pageRows,
+    pageIndex: safePage,
+    pageCount,
+    total: rows.length,
+    pageSize,
+    setPageIndex,
+  };
+}
+
+function ReportTablePager({
+  total,
+  pageIndex,
+  pageCount,
+  pageSize,
+  onPrev,
+  onNext,
+}: {
+  total: number;
+  pageIndex: number;
+  pageCount: number;
+  pageSize: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (total <= pageSize) return null;
+  const from = pageIndex * pageSize + 1;
+  const to = Math.min((pageIndex + 1) * pageSize, total);
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 print:hidden">
+      <p className="text-[12px] text-[var(--tlkv-muted)]">
+        {from}–{to} / {total} dòng
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={pageIndex === 0}
+          onClick={onPrev}
+          className="h-8 rounded-md border border-[var(--tlkv-line)] px-3 text-[12px] disabled:opacity-40"
+        >
+          Trước
+        </button>
+        <button
+          type="button"
+          disabled={pageIndex + 1 >= pageCount}
+          onClick={onNext}
+          className="h-8 rounded-md border border-[var(--tlkv-line)] px-3 text-[12px] disabled:opacity-40"
+        >
+          Sau
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ReportingWorkspace({
   initial,
   initialPurchase,
@@ -41,6 +112,12 @@ export function ReportingWorkspace({
   const [pending, startTransition] = useTransition();
   const [exporting, setExporting] = useState(false);
   const [exportLimit, setExportLimit] = useState<number>(0);
+
+  const topProductsPage = usePagedRows(snapshot.topProducts);
+  const staffPage = usePagedRows(staffRows);
+  const purchaseTopProductsPage = usePagedRows(purchase.topProducts);
+  const purchaseTopBrandsPage = usePagedRows(purchase.topBrands);
+  const purchaseHistoryPage = usePagedRows(purchase.history);
 
   const maxRevenue = Math.max(...snapshot.daily.map((row) => row.revenueDong), 1);
   const maxPurchaseDaily = Math.max(
@@ -275,7 +352,7 @@ export function ReportingWorkspace({
                 </td>
               </tr>
             ) : (
-              snapshot.topProducts.map((row) => (
+              topProductsPage.pageRows.map((row) => (
                 <tr key={row.sku} className="border-b border-[var(--tlkv-line)]">
                   <td className="py-2.5">{row.sku}</td>
                   <td className="py-2.5 font-medium">{row.name}</td>
@@ -289,6 +366,16 @@ export function ReportingWorkspace({
             )}
           </tbody>
         </table>
+        <ReportTablePager
+          total={topProductsPage.total}
+          pageIndex={topProductsPage.pageIndex}
+          pageCount={topProductsPage.pageCount}
+          pageSize={topProductsPage.pageSize}
+          onPrev={() => topProductsPage.setPageIndex((p) => Math.max(0, p - 1))}
+          onNext={() =>
+            topProductsPage.setPageIndex((p) => Math.min(topProductsPage.pageCount - 1, p + 1))
+          }
+        />
       </section>
 
       <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
@@ -314,7 +401,7 @@ export function ReportingWorkspace({
                 </td>
               </tr>
             ) : (
-              staffRows.map((row) => (
+              staffPage.pageRows.map((row) => (
                 <tr key={row.actorEmail} className="border-b border-[var(--tlkv-line)]">
                   <td className="py-2.5 font-medium">
                     {row.actorEmail.split("@")[0] ?? row.actorEmail}
@@ -332,6 +419,14 @@ export function ReportingWorkspace({
             )}
           </tbody>
         </table>
+        <ReportTablePager
+          total={staffPage.total}
+          pageIndex={staffPage.pageIndex}
+          pageCount={staffPage.pageCount}
+          pageSize={staffPage.pageSize}
+          onPrev={() => staffPage.setPageIndex((p) => Math.max(0, p - 1))}
+          onNext={() => staffPage.setPageIndex((p) => Math.min(staffPage.pageCount - 1, p + 1))}
+        />
       </section>
 
       <TransactionTable rows={transactions} pending={pending} />
@@ -474,7 +569,7 @@ export function ReportingWorkspace({
                     </td>
                   </tr>
                 ) : (
-                  purchase.topProducts.map((row) => (
+                  purchaseTopProductsPage.pageRows.map((row) => (
                     <tr key={row.skuId} className="border-b border-[var(--tlkv-line)]">
                       <td className="py-2 font-mono text-[12px]">{row.sku}</td>
                       <td className="py-2">{row.name}</td>
@@ -487,6 +582,18 @@ export function ReportingWorkspace({
                 )}
               </tbody>
             </table>
+            <ReportTablePager
+              total={purchaseTopProductsPage.total}
+              pageIndex={purchaseTopProductsPage.pageIndex}
+              pageCount={purchaseTopProductsPage.pageCount}
+              pageSize={purchaseTopProductsPage.pageSize}
+              onPrev={() => purchaseTopProductsPage.setPageIndex((p) => Math.max(0, p - 1))}
+              onNext={() =>
+                purchaseTopProductsPage.setPageIndex((p) =>
+                  Math.min(purchaseTopProductsPage.pageCount - 1, p + 1),
+                )
+              }
+            />
           </div>
           <div>
             <h3 className="text-[14px] font-semibold">Thương hiệu nhập nhiều</h3>
@@ -506,7 +613,7 @@ export function ReportingWorkspace({
                     </td>
                   </tr>
                 ) : (
-                  purchase.topBrands.map((row) => (
+                  purchaseTopBrandsPage.pageRows.map((row) => (
                     <tr
                       key={row.brandId ?? row.brandName}
                       className="border-b border-[var(--tlkv-line)]"
@@ -521,6 +628,18 @@ export function ReportingWorkspace({
                 )}
               </tbody>
             </table>
+            <ReportTablePager
+              total={purchaseTopBrandsPage.total}
+              pageIndex={purchaseTopBrandsPage.pageIndex}
+              pageCount={purchaseTopBrandsPage.pageCount}
+              pageSize={purchaseTopBrandsPage.pageSize}
+              onPrev={() => purchaseTopBrandsPage.setPageIndex((p) => Math.max(0, p - 1))}
+              onNext={() =>
+                purchaseTopBrandsPage.setPageIndex((p) =>
+                  Math.min(purchaseTopBrandsPage.pageCount - 1, p + 1),
+                )
+              }
+            />
           </div>
         </div>
 
@@ -543,7 +662,7 @@ export function ReportingWorkspace({
                 </td>
               </tr>
             ) : (
-              purchase.history.map((row) => (
+              purchaseHistoryPage.pageRows.map((row) => (
                 <tr key={row.buyNo} className="border-b border-[var(--tlkv-line)]">
                   <td className="py-2 font-mono text-[12px]">{row.buyNo}</td>
                   <td className="py-2">{row.customerName}</td>
@@ -555,6 +674,18 @@ export function ReportingWorkspace({
             )}
           </tbody>
         </table>
+        <ReportTablePager
+          total={purchaseHistoryPage.total}
+          pageIndex={purchaseHistoryPage.pageIndex}
+          pageCount={purchaseHistoryPage.pageCount}
+          pageSize={purchaseHistoryPage.pageSize}
+          onPrev={() => purchaseHistoryPage.setPageIndex((p) => Math.max(0, p - 1))}
+          onNext={() =>
+            purchaseHistoryPage.setPageIndex((p) =>
+              Math.min(purchaseHistoryPage.pageCount - 1, p + 1),
+            )
+          }
+        />
       </section>
     </div>
   );
@@ -573,7 +704,7 @@ function TransactionTable({
   rows: TransactionExportRow[];
   pending: boolean;
 }) {
-  const shown = rows.slice(0, 100);
+  const page = usePagedRows(rows, REPORT_PAGE_SIZE);
   return (
     <section className="rounded-[12px] bg-white p-5 shadow-[var(--tlkv-shadow)] print:shadow-none">
       <h2 className="text-[15px] font-semibold">Giao dịch trong khoảng lọc</h2>
@@ -601,15 +732,18 @@ function TransactionTable({
             </tr>
           </thead>
           <tbody>
-            {shown.length === 0 ? (
+            {page.pageRows.length === 0 ? (
               <tr>
                 <td colSpan={14} className="py-6 text-[var(--tlkv-muted)]">
                   Chưa có giao dịch trong khoảng này.
                 </td>
               </tr>
             ) : (
-              shown.map((row, index) => (
-                <tr key={`${row.code}-${row.sku}-${index}`} className="border-b border-[var(--tlkv-line)]">
+              page.pageRows.map((row, index) => (
+                <tr
+                  key={`${row.code}-${row.sku}-${page.pageIndex}-${index}`}
+                  className="border-b border-[var(--tlkv-line)]"
+                >
                   <td className="py-2.5 pr-3 whitespace-nowrap">
                     <p className="font-medium">{row.code}</p>
                     <p className="text-[11px] text-[var(--tlkv-muted)]">{TYPE_LABEL[row.type]}</p>
@@ -641,11 +775,14 @@ function TransactionTable({
           </tbody>
         </table>
       </div>
-      {rows.length > shown.length ? (
-        <p className="mt-2 text-[12px] text-[var(--tlkv-muted)]">
-          Đang hiện {shown.length} dòng đầu. Xuất Excel để lấy đủ {rows.length} dòng.
-        </p>
-      ) : null}
+      <ReportTablePager
+        total={page.total}
+        pageIndex={page.pageIndex}
+        pageCount={page.pageCount}
+        pageSize={page.pageSize}
+        onPrev={() => page.setPageIndex((p) => Math.max(0, p - 1))}
+        onNext={() => page.setPageIndex((p) => Math.min(page.pageCount - 1, p + 1))}
+      />
     </section>
   );
 }

@@ -10,10 +10,12 @@ import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { YcPrintPreviewOverlay } from "@/modules/fund-cash/YcPrintPreviewOverlay";
 import type { CashRequestRow } from "@/modules/fund-cash/types";
 import {
+  cancelBuyAwaitingPayment,
   checkBuyFundRequestStatus,
   completeBuyMelt,
   confirmBuyInvoiceAndComplete,
   confirmBuyMelt,
+  getBuy,
   issueBuyFundRequest,
   issueMeltCommitment,
   loadBuyFundRequestForPrint,
@@ -82,6 +84,9 @@ export function BuyDetailDrawer({
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidError, setVoidError] = useState<string | null>(null);
+  const [cancelAwaitingOpen, setCancelAwaitingOpen] = useState(false);
+  const [cancelAwaitingReason, setCancelAwaitingReason] = useState("");
+  const [cancelAwaitingError, setCancelAwaitingError] = useState<string | null>(null);
   const [employeeFundEnabled, setEmployeeFundEnabled] = useState(false);
   const [fundCanConfirmInvoice, setFundCanConfirmInvoice] = useState(true);
   const [fundRequestCode, setFundRequestCode] = useState<string | null>(null);
@@ -90,6 +95,11 @@ export function BuyDetailDrawer({
   const [ycPrintRow, setYcPrintRow] = useState<CashRequestRow | null>(null);
   const workflowKey = useRef<string | null>(null);
   const canShowVoid = canVoidBuy && buy.status === "COMPLETED";
+  const canShowCancelAwaiting =
+    employeeFundEnabled &&
+    buy.status === "PROCESSING" &&
+    String(buy.paymentStatus) === "UNPAID" &&
+    fundRequestStatus === "PENDING";
 
   async function refreshFundStatus() {
     const res = await checkBuyFundRequestStatus(buy.id);
@@ -245,6 +255,48 @@ export function BuyDetailDrawer({
     }
   }
 
+  async function onConfirmCancelAwaiting() {
+    const reason = cancelAwaitingReason.trim();
+    if (reason.length < 3) {
+      setCancelAwaitingError("Phải nhập lý do hủy (tối thiểu 3 ký tự).");
+      return;
+    }
+    if (pending) return;
+    setPending(true);
+    setCancelAwaitingError(null);
+    try {
+      const result = await cancelBuyAwaitingPayment({ buyId: buy.id, reason });
+      if (!result.ok) {
+        const msg = formatActionError(
+          result.message,
+          "Không hủy được phiếu mua chờ thanh toán",
+        );
+        setCancelAwaitingOpen(false);
+        setCancelAwaitingReason("");
+        setAlert({ tone: "error", title: "Không hủy được", reason: msg });
+        const refreshed = await getBuy(buy.id);
+        setBuy({ ...refreshed, attachments: refreshed.attachments ?? [] });
+        onUpdated?.(refreshed);
+        await refreshFundStatus();
+        return;
+      }
+      const next = result.data;
+      setBuy({ ...next, attachments: next.attachments ?? [] });
+      onUpdated?.(next);
+      setCancelAwaitingOpen(false);
+      setCancelAwaitingReason("");
+      setAlert({
+        tone: "success",
+        title: "Đã hủy phiếu mua",
+        reason: `${next.buyNo} · yêu cầu thanh toán đã hủy.`,
+      });
+    } catch (err) {
+      setCancelAwaitingError(formatActionError(err, "Hủy phiếu thất bại."));
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-40 flex justify-end bg-black/30 print:hidden">
@@ -375,7 +427,21 @@ export function BuyDetailDrawer({
                         Hủy phiếu mua
                       </button>
                     ) : null}
-                    {buy.status === "VOIDED" ? (
+                    {canShowCancelAwaiting ? (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => {
+                          setCancelAwaitingOpen(true);
+                          setCancelAwaitingError(null);
+                          setCancelAwaitingReason("");
+                        }}
+                        className="h-9 rounded-lg border border-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-[var(--tlkv-red)] disabled:opacity-40"
+                      >
+                        Hủy
+                      </button>
+                    ) : null}
+                    {buy.status === "VOIDED" || buy.status === "CANCELLED" ? (
                       <span className="inline-flex h-9 items-center rounded-lg bg-[var(--tlkv-slate-soft)] px-3 text-[12px] font-semibold text-[var(--tlkv-slate)]">
                         Đã hủy
                       </span>
@@ -559,7 +625,76 @@ export function BuyDetailDrawer({
         </Modal>
       ) : null}
 
-      {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
+      {cancelAwaitingOpen ? (
+        <Modal
+          title={`Hủy ${buy.buyNo}`}
+          onClose={() => {
+            if (!pending) {
+              setCancelAwaitingOpen(false);
+              setCancelAwaitingError(null);
+            }
+          }}
+        >
+          <label className="block text-[12px] font-medium">
+            Lý do hủy (bắt buộc)
+            <textarea
+              value={cancelAwaitingReason}
+              onChange={(e) => setCancelAwaitingReason(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px]"
+              placeholder="Nhập lý do hủy đơn chờ thanh toán"
+            />
+          </label>
+          {cancelAwaitingError ? (
+            <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{cancelAwaitingError}</p>
+          ) : null}
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCancelAwaitingOpen(false);
+                setCancelAwaitingError(null);
+              }}
+              className="h-9 rounded-lg border border-[var(--tlkv-line)] px-3 text-[12px]"
+              disabled={pending}
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              onClick={() => void onConfirmCancelAwaiting()}
+              className="h-9 rounded-lg bg-[var(--tlkv-red)] px-3 text-[12px] font-semibold text-white disabled:opacity-60"
+              disabled={pending}
+            >
+              {pending ? "Đang hủy..." : "Xác nhận hủy"}
+            </button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {alert ? (
+        <ResultAlert
+          alert={alert}
+          onClose={() => {
+            setAlert(null);
+            void (async () => {
+              try {
+                const refreshed = await getBuy(buy.id);
+                setBuy({ ...refreshed, attachments: refreshed.attachments ?? [] });
+                onUpdated?.(refreshed);
+                if (
+                  refreshed.workflowStatus === "INVOICE_ISSUED" ||
+                  refreshed.workflowStatus === "FORM02_READY"
+                ) {
+                  await refreshFundStatus();
+                }
+              } catch {
+                /* keep */
+              }
+            })();
+          }}
+        />
+      ) : null}
 
       <div className="hidden print:block">
         {printDoc === "commitment" ? (

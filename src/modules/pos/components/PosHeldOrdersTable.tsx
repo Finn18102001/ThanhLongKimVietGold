@@ -77,7 +77,7 @@ export function PosHeldOrdersTable({
                   colSpan={showSaver ? 8 : 7}
                   className="py-8 text-center text-[13px] text-[var(--tlkv-muted)]"
                 >
-                  Chưa có đơn lưu. Khi khách đi rút tiền, chọn Lưu đơn — hoặc In phiếu (Flag ON).
+                  Chưa có đơn lưu.
                 </td>
               </tr>
             ) : (

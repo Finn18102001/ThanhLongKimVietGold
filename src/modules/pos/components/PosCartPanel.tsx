@@ -74,6 +74,7 @@ export function PosCartPanel({
   onSave,
   saving,
   heldHoldNo,
+  employeeFundEnabled = false,
 }: {
   customer: CustomerRecord | null;
   lines: CartLine[];
@@ -98,6 +99,8 @@ export function PosCartPanel({
   pickupDueAt: string;
   saving?: boolean;
   heldHoldNo?: string | null;
+  /** P10 §5.3: Flag ON — ẩn hình thức TT + trạng thái thu (QT chọn lúc confirm YC). */
+  employeeFundEnabled?: boolean;
   onOpenCustomer: () => void;
   onClear: () => void;
   onNoteChange: (value: string) => void;
@@ -552,168 +555,335 @@ export function PosCartPanel({
           </label>
         ) : null}
 
-        <fieldset className="mt-3">
-          <legend className="text-[13px]">Hình thức thanh toán</legend>
-          <div className="mt-1 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
-            <label className="flex items-center gap-2 text-[13px]">
-              <input
-                type="checkbox"
-                checked={useCash}
-                onChange={(event) => {
-                  const next = event.target.checked;
-                  if (!next && !useTransfer) return;
-                  onUseCashChange(next);
-                }}
-                className="h-4 w-4 accent-[var(--tlkv-red)]"
-              />
-              <span className="flex-1">Tiền mặt</span>
-              {useCash && effectivePaid > 0 ? (
-                <DongInput
-                  value={cashDong > 0 ? String(cashDong) : ""}
-                  onValueChange={(digits) => onCashDongChange(digits ? Number(digits) : 0)}
-                  disabled={!useTransfer}
-                  placeholder="Số tiền"
-                  className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
-                />
-              ) : null}
-            </label>
-            <label className="flex items-center gap-2 text-[13px]">
-              <input
-                type="checkbox"
-                checked={useTransfer}
-                onChange={(event) => {
-                  const next = event.target.checked;
-                  if (!next && !useCash) return;
-                  onUseTransferChange(next);
-                }}
-                className="h-4 w-4 accent-[var(--tlkv-red)]"
-              />
-              <span className="flex-1">Chuyển khoản / Tài khoản</span>
-              {useTransfer && effectivePaid > 0 ? (
-                <DongInput
-                  value={transferDong > 0 ? String(transferDong) : ""}
-                  onValueChange={(digits) => onTransferDongChange(digits ? Number(digits) : 0)}
-                  disabled={!useCash}
-                  placeholder="Số tiền"
-                  className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
-                />
-              ) : null}
-            </label>
-            {useCash && useTransfer && effectivePaid > 0 ? (
-              <p className="text-[11px] text-[var(--tlkv-muted)]">
-                Tổng hai khoản phải bằng số tiền thu: {formatDong(effectivePaid)}.
-              </p>
-            ) : null}
-            {useTransfer ? (
-              <div className="space-y-2 border-t border-[var(--tlkv-line)] pt-2">
-                <p className="text-[12px] font-medium">Tài khoản nhận (TLKV)</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(
-                    [
-                      { value: "COMPANY" as const, label: "Công ty" },
-                      { value: "PERSONAL" as const, label: "Cá nhân" },
-                    ] as const
-                  ).map((opt) => {
-                    const active = transferAccountKind === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => onTransferAccountKindChange(opt.value)}
-                        className={`h-9 rounded-lg text-[12px] font-semibold ${
-                          active
-                            ? "bg-[var(--tlkv-red)] text-white"
-                            : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {transferAccountKind === "PERSONAL" ? (
-                  <label className="block text-[12px] text-[var(--tlkv-muted)]">
-                    Nhận diện TK cá nhân
-                    <input
-                      value={transferAccountNote}
-                      onChange={(event) => onTransferAccountNoteChange(event.target.value)}
-                      placeholder="Tên chủ TK / số TK / ghi chú nhận diện"
-                      className="mt-0.5 h-9 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
-                    />
-                  </label>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </fieldset>
-
-        <fieldset className="mt-3">
-          <legend className="text-[13px]">Trạng thái thu</legend>
-          <div className="mt-1 grid grid-cols-3 gap-1.5">
-            {(
-              [
-                { value: "FULL" as const, label: "Đủ" },
-                { value: "PARTIAL" as const, label: "Đặt cọc" },
-                { value: "UNPAID" as const, label: "Chờ TT" },
-              ] as const
-            ).map((option) => {
-              const active = payMode === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onPayModeChange(option.value)}
-                  className={`h-9 rounded-lg text-[12px] font-semibold ${
-                    active
-                      ? "bg-[var(--tlkv-red)] text-white"
-                      : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        {payMode === "PARTIAL" ? (
-          <label className="mt-3 block text-[13px]">
-            Số tiền thu (VND)
-            <DongInput
-              value={paidDong > 0 ? String(paidDong) : ""}
-              onValueChange={(digits) => onPaidDongChange(digits ? Number(digits) : 0)}
-              placeholder="Nhập số đã thu (0 đ hoặc một phần / đủ tổng)"
-              className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-            />
-          </label>
-        ) : null}
-
-        {payMode !== "FULL" && remainingDong > 0 ? (
+        {employeeFundEnabled ? null : (
           <>
-            <label className="mt-3 block text-[13px]">
-              Ngày hẹn trả tiền
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(event) => onDueDateChange(event.target.value)}
-                required
-                className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
-              />
-            </label>
-            <div className="mt-2 flex items-center justify-between text-[13px]">
-              <span className="text-[var(--tlkv-muted)]">Còn phải thu</span>
-              <span className="font-semibold text-[var(--tlkv-red)]">
-                {formatDong(remainingDong)}
-              </span>
-            </div>
-          </>
-        ) : null}
+          <fieldset className="mt-3">
 
-        {payMode === "PARTIAL" && remainingDong === 0 ? (
-          <p className="mt-2 text-[11px] text-[var(--tlkv-amber)]">
-            Đã thu đủ tiền nhưng vẫn giữ vàng tại cửa hàng đến khi xác nhận giao nhận.
-          </p>
-        ) : null}
+            <legend className="text-[13px]">Hình thức thanh toán</legend>
+
+            <div className="mt-1 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
+
+              <label className="flex items-center gap-2 text-[13px]">
+
+                <input
+
+                  type="checkbox"
+
+                  checked={useCash}
+
+                  onChange={(event) => {
+
+                    const next = event.target.checked;
+
+                    if (!next && !useTransfer) return;
+
+                    onUseCashChange(next);
+
+                  }}
+
+                  className="h-4 w-4 accent-[var(--tlkv-red)]"
+
+                />
+
+                <span className="flex-1">Tiền mặt</span>
+
+                {useCash && effectivePaid > 0 ? (
+
+                  <DongInput
+
+                    value={cashDong > 0 ? String(cashDong) : ""}
+
+                    onValueChange={(digits) => onCashDongChange(digits ? Number(digits) : 0)}
+
+                    disabled={!useTransfer}
+
+                    placeholder="Số tiền"
+
+                    className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+
+                  />
+
+                ) : null}
+
+              </label>
+
+              <label className="flex items-center gap-2 text-[13px]">
+
+                <input
+
+                  type="checkbox"
+
+                  checked={useTransfer}
+
+                  onChange={(event) => {
+
+                    const next = event.target.checked;
+
+                    if (!next && !useCash) return;
+
+                    onUseTransferChange(next);
+
+                  }}
+
+                  className="h-4 w-4 accent-[var(--tlkv-red)]"
+
+                />
+
+                <span className="flex-1">Chuyển khoản / Tài khoản</span>
+
+                {useTransfer && effectivePaid > 0 ? (
+
+                  <DongInput
+
+                    value={transferDong > 0 ? String(transferDong) : ""}
+
+                    onValueChange={(digits) => onTransferDongChange(digits ? Number(digits) : 0)}
+
+                    disabled={!useCash}
+
+                    placeholder="Số tiền"
+
+                    className="h-8 w-[9.5rem] rounded-md border border-[var(--tlkv-line)] px-2 text-right text-[12px] outline-none focus:border-[var(--tlkv-red)] disabled:bg-[var(--tlkv-bg)]"
+
+                  />
+
+                ) : null}
+
+              </label>
+
+              {useCash && useTransfer && effectivePaid > 0 ? (
+
+                <p className="text-[11px] text-[var(--tlkv-muted)]">
+
+                  Tổng hai khoản phải bằng số tiền thu: {formatDong(effectivePaid)}.
+
+                </p>
+
+              ) : null}
+
+              {useTransfer ? (
+
+                <div className="space-y-2 border-t border-[var(--tlkv-line)] pt-2">
+
+                  <p className="text-[12px] font-medium">Tài khoản nhận (TLKV)</p>
+
+                  <div className="grid grid-cols-2 gap-1.5">
+
+                    {(
+
+                      [
+
+                        { value: "COMPANY" as const, label: "Công ty" },
+
+                        { value: "PERSONAL" as const, label: "Cá nhân" },
+
+                      ] as const
+
+                    ).map((opt) => {
+
+                      const active = transferAccountKind === opt.value;
+
+                      return (
+
+                        <button
+
+                          key={opt.value}
+
+                          type="button"
+
+                          onClick={() => onTransferAccountKindChange(opt.value)}
+
+                          className={`h-9 rounded-lg text-[12px] font-semibold ${
+
+                            active
+
+                              ? "bg-[var(--tlkv-red)] text-white"
+
+                              : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+
+                          }`}
+
+                        >
+
+                          {opt.label}
+
+                        </button>
+
+                      );
+
+                    })}
+
+                  </div>
+
+                  {transferAccountKind === "PERSONAL" ? (
+
+                    <label className="block text-[12px] text-[var(--tlkv-muted)]">
+
+                      Nhận diện TK cá nhân
+
+                      <input
+
+                        value={transferAccountNote}
+
+                        onChange={(event) => onTransferAccountNoteChange(event.target.value)}
+
+                        placeholder="Tên chủ TK / số TK / ghi chú nhận diện"
+
+                        className="mt-0.5 h-9 w-full rounded-md border border-[var(--tlkv-line)] px-2 text-[12px] text-[var(--tlkv-text)] outline-none focus:border-[var(--tlkv-red)]"
+
+                      />
+
+                    </label>
+
+                  ) : null}
+
+                </div>
+
+              ) : null}
+
+            </div>
+
+          </fieldset>
+
+
+
+          <fieldset className="mt-3">
+
+            <legend className="text-[13px]">Trạng thái thu</legend>
+
+            <div className="mt-1 grid grid-cols-3 gap-1.5">
+
+              {(
+
+                [
+
+                  { value: "FULL" as const, label: "Đủ" },
+
+                  { value: "PARTIAL" as const, label: "Đặt cọc" },
+
+                  { value: "UNPAID" as const, label: "Chờ TT" },
+
+                ] as const
+
+              ).map((option) => {
+
+                const active = payMode === option.value;
+
+                return (
+
+                  <button
+
+                    key={option.value}
+
+                    type="button"
+
+                    onClick={() => onPayModeChange(option.value)}
+
+                    className={`h-9 rounded-lg text-[12px] font-semibold ${
+
+                      active
+
+                        ? "bg-[var(--tlkv-red)] text-white"
+
+                        : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+
+                    }`}
+
+                  >
+
+                    {option.label}
+
+                  </button>
+
+                );
+
+              })}
+
+            </div>
+
+          </fieldset>
+
+
+
+          {payMode === "PARTIAL" ? (
+
+            <label className="mt-3 block text-[13px]">
+
+              Số tiền thu (VND)
+
+              <DongInput
+
+                value={paidDong > 0 ? String(paidDong) : ""}
+
+                onValueChange={(digits) => onPaidDongChange(digits ? Number(digits) : 0)}
+
+                placeholder="Nhập số đã thu (0 đ hoặc một phần / đủ tổng)"
+
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+
+              />
+
+            </label>
+
+          ) : null}
+
+
+
+          {payMode !== "FULL" && remainingDong > 0 ? (
+
+            <>
+
+              <label className="mt-3 block text-[13px]">
+
+                Ngày hẹn trả tiền
+
+                <input
+
+                  type="date"
+
+                  value={dueDate}
+
+                  onChange={(event) => onDueDateChange(event.target.value)}
+
+                  required
+
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+
+                />
+
+              </label>
+
+              <div className="mt-2 flex items-center justify-between text-[13px]">
+
+                <span className="text-[var(--tlkv-muted)]">Còn phải thu</span>
+
+                <span className="font-semibold text-[var(--tlkv-red)]">
+
+                  {formatDong(remainingDong)}
+
+                </span>
+
+              </div>
+
+            </>
+
+          ) : null}
+
+
+
+          {payMode === "PARTIAL" && remainingDong === 0 ? (
+
+            <p className="mt-2 text-[11px] text-[var(--tlkv-amber)]">
+
+              Đã thu đủ tiền nhưng vẫn giữ vàng tại cửa hàng đến khi xác nhận giao nhận.
+
+            </p>
+
+          ) : null}
+
+
+          </>
+        )}
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button

@@ -53,6 +53,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: ROUTES.fundCash, label: "Quỹ tiền NV", icon: Coins },
   { href: ROUTES.fundGold, label: "Quỹ vàng NV", icon: Scales },
   { href: ROUTES.form02, label: "Quản lý Phiếu 02", icon: Files },
+  { href: ROUTES.cashVouchers, label: "Quản lý phiếu thu/chi", icon: Receipt },
   { href: ROUTES.workShifts, label: "Quản lý ca làm việc", icon: Timer },
   { href: ROUTES.audit, label: "Nhật ký hệ thống", icon: Scroll },
   { href: ROUTES.settings, label: "Cài đặt", icon: GearSix },

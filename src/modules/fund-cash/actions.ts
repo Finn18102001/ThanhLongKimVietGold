@@ -298,24 +298,57 @@ export async function createCashRequestFromSale(input: {
 
 export async function confirmCashRequest(
   requestId: string,
+  opts?: {
+    paymentMethod?: "CASH" | "TRANSFER" | "CARD";
+    amountDong?: number | null;
+    payMode?: "FULL" | "PARTIAL" | null;
+  },
 ): Promise<
   ActionResult<{
     code: string;
     alreadyConfirmed: boolean;
     cashAccountCode: string;
     moneyKind: "CASH" | "BANK";
+    paymentMethod?: string;
+    amountDong?: number;
+    sourcePaymentStatus?: string | null;
   }>
 > {
   try {
     await assertStaffMutate();
     await requireFlagOn();
     if (!requestId) return actionFail("Thiếu mã yêu cầu.");
+    const method = opts?.paymentMethod;
+    if (!method || !["CASH", "TRANSFER", "CARD"].includes(method)) {
+      return actionFail("Chọn hình thức thanh toán (Tiền mặt / Chuyển khoản / Thẻ).");
+    }
+    const payMode = opts?.payMode ?? "FULL";
+    if (payMode === "PARTIAL") {
+      const amt = opts?.amountDong;
+      if (amt == null || !Number.isFinite(amt) || Math.trunc(amt) <= 0) {
+        return actionFail("Đặt cọc / một phần cần số tiền > 0.");
+      }
+    }
 
     const supabase = await createServerSupabase();
     const { data, error } = await supabase.rpc("pos_employee_cash_request_confirm", {
       p_request_id: requestId,
+      p_payment_method: method,
+      p_amount_dong:
+        payMode === "PARTIAL" && opts?.amountDong != null
+          ? Math.trunc(opts.amountDong)
+          : null,
+      p_pay_mode: payMode,
     });
-    if (error) return actionFail(error.message || "Không xác nhận được YC.");
+    if (error) {
+      const raw = error.message || "";
+      if (/Quỹ vàng hủy|đã được Quỹ vàng hủy/i.test(raw)) {
+        return actionFail(
+          "Hóa đơn đã được Quỹ vàng hủy, không thể xác nhận thanh toán.",
+        );
+      }
+      return actionFail(raw || "Không xác nhận được YC.");
+    }
 
     revalidatePath(ROUTES.fundCash);
     const row = (data ?? {}) as {
@@ -323,15 +356,27 @@ export async function confirmCashRequest(
       alreadyConfirmed?: boolean;
       cashAccountCode?: string;
       moneyKind?: string;
+      paymentMethod?: string;
+      amountDong?: number;
+      sourcePaymentStatus?: string;
     };
     return actionOk({
       code: String(row.code ?? ""),
       alreadyConfirmed: Boolean(row.alreadyConfirmed),
       cashAccountCode: String(row.cashAccountCode ?? ""),
       moneyKind: String(row.moneyKind ?? "CASH").toUpperCase() === "BANK" ? "BANK" : "CASH",
+      paymentMethod: String(row.paymentMethod ?? method),
+      amountDong: row.amountDong != null ? Number(row.amountDong) : undefined,
+      sourcePaymentStatus: row.sourcePaymentStatus ?? null,
     });
   } catch (err) {
-    return actionFail(formatActionError(err, "Không xác nhận được YC."));
+    const msg = formatActionError(err, "Không xác nhận được YC.");
+    if (/Quỹ vàng hủy|đã được Quỹ vàng hủy/i.test(msg)) {
+      return actionFail(
+        "Hóa đơn đã được Quỹ vàng hủy, không thể xác nhận thanh toán.",
+      );
+    }
+    return actionFail(msg);
   }
 }
 

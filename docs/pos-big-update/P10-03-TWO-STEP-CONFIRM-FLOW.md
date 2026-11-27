@@ -143,6 +143,106 @@ Chi tiết: [`P10-01` D7](./P10-01-AS-IS-AND-DECISIONS.md) · Module 6.
 
 ---
 
+## 5.3 Phương thức TT + «Trạng thái thu» do Quỹ tiền (chốt 2026-11-28)
+
+> Đè một phần [`P10-01` A4](./P10-01-AS-IS-AND-DECISIONS.md) / D3 bước 8 về **nơi chọn** phương thức & trạng thái thu khi Flag ON. Công thức tổng HĐ / cọc / một phần **không** đổi — chỉ đổi **ai chọn** và **khi nào ghi nhận**.
+
+Khi `pos_employee_fund_enabled` **ON**:
+
+| Hạng mục | Quỹ vàng (POS / Mua) | Quỹ tiền (xác nhận YC-THU / YC-CHI) |
+|----------|----------------------|-------------------------------------|
+| Hình thức thanh toán (TM / CK / Thẻ / MIXED + TK nhận) | **Không** chọn trên form tạo HĐ/phiếu — ẩn section | **Bắt buộc chọn** khi Xác nhận thu/chi; ghi vào YC + sổ QT (`money_kind`) |
+| «Trạng thái thu» (Đủ / Đặt cọc / Chờ TT) + số tiền thu | QV chỉ nhập **tổng HĐ / số tiền dự kiến** để tạo YC (nếu cần) — không chốt trạng thái TT cuối | QT/Admin quyết định trạng thái thu thực tế + số tiền confirm; cập nhật `payment_status` / paid trên chứng từ sau confirm |
+| In phiếu YC A4 | QV vẫn in phiếu yêu cầu (xem trước) như §5.1 | QT in lại / ký giấy sau confirm |
+
+Flag **OFF** = AS-IS: QV chọn hình thức + trạng thái thu trên POS/Mua như hiện tại.
+
+### Implementation note (2026-11-28 → code 2026-11-28)
+
+- **Đã ship code §5.3 (MVP):** ẩn 2 section POS/Mua khi Flag ON; card QT chọn method + Đủ/Cọc + amount; RPC `pos_employee_cash_request_confirm(id, method, amount, pay_mode)` ghi ngược sale/buy; `pos_employee_fund_mark_awaiting_payment` sau In phiếu → `UNPAID`; reject → void chứng từ (A2). Migration `20261128030000_p10_53_qt_confirm_payment_fields.sql`.
+- Còn mở: Q-E báo cáo quỹ; hủy «Chờ TT» từ list QV (UI reason) nếu chưa đủ parity; MIXED split lúc confirm.
+
+---
+
+## 5.4 Chốt bổ sung 2026-11-28 (owner QV/QT + reject + cọc/preorder)
+
+| # | Quyết định | Chi tiết |
+|---|------------|----------|
+| 1–2 | Ẩn payment UI phía QV | Flag ON: QV **không** thấy / không chọn «Hình thức thanh toán» và «Trạng thái thu». |
+| 4 | Move 2 section sang QT | Cả hai section nằm trên **card xác nhận YC** của Quỹ tiền (và Admin). |
+| 5 | QT Reject YC = hủy draft | Giống hủy list SP: **xóa/hủy phiếu YC**; xem câu hỏi mở §5.5 về HĐ đã tạo cùng In phiếu. |
+| 6 | Nhiều lần thu (cọc / nửa) | Mỗi lần QT chọn thu + cập nhật tiền + status. Khi đã thu **100%**, QV mới tìm HĐ và **in lại** HĐ cuối / hoàn tất vòng vàng theo rule §7. |
+| 7 | Đặt hàng / trả một phần — tiền | Chỉ **QT + Admin** đổi status đã nhận tiền / chưa thu-chi và ± quỹ. |
+| 7b | Cọc / preorder / trả vàng | **Giữ AS-IS** (fulfill như Flag OFF). Chỉ đổi **ai** được cập nhật status tiền: **QT hoặc Admin** — QV **không** được update tiền. |
+| 9 | «Chờ thanh toán» | Sau In phiếu Flag ON → `payment_status=UNPAID`, UI tiếng Việt **«Chờ thanh toán»**. Không invent enum mới. |
+| 9b | QV hủy đơn chờ TT | Trong list «Đơn đã lưu» / đơn `UNPAID`: mở ra được **Hủy** (giống từ chối mua), **bắt buộc lý do** không trống → void cụm (khớp A2). |
+| 11 | Báo cáo doanh thu theo quỹ | Cộng dồn theo từng quỹ; filter detail thu/chi theo TK quỹ tiền / người quản lý. `payment_status` **chỉ** cập nhật khi QT/Admin xác nhận đã thu/chi. |
+
+### 5.4.1 Mục 3 — RPC/UI confirm còn thiếu gì (chi tiết kỹ thuật)
+
+Hiện `pos_employee_cash_request_confirm(p_request_id uuid)` **chỉ** nhận id YC → post ledger theo `payment_method` **đã gắn trên YC lúc tạo** → `CONFIRMED`. **Chưa có:**
+
+| Thiếu | Vì sao cần |
+|-------|------------|
+| Input `payment_method` / `money_kind` lúc confirm | QT chọn TM/CK/Thẻ trên card (QV không chọn) |
+| Input `pay_mode` / `payment_status` + `amount_dong` confirm | QT chọn Đủ / Cọc / Chờ + số tiền thực thu/chi |
+| Ghi ngược `pos_sales` / `pos_buys` (`paid_dong`, `remaining_dong`, `payment_status`, `payment_method`) | §5.3 + mục 11: status tiền chỉ đổi sau QT confirm |
+| UI card QT: 2 section «Hình thức TT» + «Trạng thái thu» | Mirror section đang ở POS/Mua |
+| Flag ON: ẩn 2 section trên POS + form Mua | Tránh QV chốt sớm |
+| Tạo YC không phụ thuộc method từ QV | YC provisional / method null đến lúc QT chọn |
+| Reject → xóa/hủy YC (+ ? HĐ) | Mục 5 — chờ chốt §5.5 |
+| Gate F9 trả vàng: chỉ khi `payment_status = PAID` (100%)? | Mục 7b — xung đột với cọc giao từng phần |
+
+### 5.4.2 Mục 8 — Mua: nhập kho vs QT (detail hiện trạng)
+
+Hai câu trong sổ **dễ hiểu nhầm** — tách timeline:
+
+```text
+QV: … → INVOICE_ISSUED
+  → In phiếu = tạo YC-CHI PENDING (+ xem A4)
+      ⛔ Chưa nhập kho cửa hàng
+      ⛔ Chưa trừ Quỹ tiền / CASH-001
+  → QT confirm YC-CHI
+  → QV bấm «Xác nhận HĐ → Phiếu 02»
+      = pos_complete_buy_melt (gate: bắt buộc YC CONFIRMED)
+      → nhập kho AS-IS + Form02
+      → vẫn không INSERT pos_buy_payments khi Flag ON
+```
+
+**Ý «D4 nhận kho AS-IS»:** công thức/luồng nhập kho **không đổi P8/P9** — chỉ **dời thời điểm** đến sau QT confirm (wire §5.1). Không nhập kho lúc In phiếu.
+
+---
+
+## 5.5 Câu hỏi mở / đã chốt (2026-11-28)
+
+### Q-A — Reject YC → **đã chốt A2**
+
+Khi QT Reject YC: **hủy luôn HĐ bán / phiếu mua** gắn YC + hủy/xóa YC (coi cả cụm như draft bị hủy). Không để HĐ `ISSUED` treo không YC.
+
+Implementation note: dùng luồng void hiện có (Module 6) hoặc tương đương — **không** hard-delete chứng từ đã phát hành; status `VOIDED` + YC đóng. Chi tiết RPC khi code §5.3.
+
+### Q-B — **đã chốt (2026-11-28):** giữ AS-IS nghiệp vụ; chỉ siết quyền update tiền
+
+- Rule cọc / preorder / fulfill / trừ kho: **như Flag OFF** (không đổi «chỉ trả vàng khi 100%»).
+- **Ai được cập nhật status tiền / ± quỹ trên HĐ:** chỉ **Admin** hoặc **Quỹ tiền**. **Quỹ vàng không được** update tiền.
+- QV vẫn tạo đơn / In phiếu YC / trả vàng theo gate P10 (sau QT confirm khoản tương ứng) — không phải người chốt «đã thu».
+
+### Q-C — **đã chốt:** `UNPAID` + UI **«Chờ thanh toán»**
+
+Flag ON + sau In phiếu → `payment_status=UNPAID`, hiển thị tiếng Việt **«Chờ thanh toán»**. QT confirm mới đổi Đủ/Cọc/… Không thêm enum workflow mới.
+
+### Q-D — **đã chốt D1** + hủy từ QV
+
+- Nhập kho mua: chỉ sau QT confirm + QV «Xác nhận HĐ → Phiếu 02».
+- Đơn bán trên list «Đơn đã lưu» đang **«Chờ thanh toán»**: QV mở ra được **Hủy** (giống từ chối mua), **lý do bắt buộc không trống** → void cụm (A2).
+- **Đơn mua** `UNPAID` / «Chờ thanh toán» (YC-CHI PENDING): QV mở chi tiết → **Hủy** + lý do bắt buộc → `pos_buy_cancel_awaiting_payment` (≡ Reject YC, phiếu `CANCELLED`, không đảo kho). QT confirm / QV hủy khóa cùng buy (advisory + `FOR UPDATE`); chỉ một thao tác thắng. Migration `20261128040000_p10_qv_cancel_buy_awaiting_payment.sql`.
+
+### Q-E — Phạm vi báo cáo quỹ
+
+Chưa chốt E1/E2/E3.
+
+---
+
 ## 6. Lịch sử lệch Module 4b (đã xử lý / đang xử lý)
 
 Hard-test cũ `HD004139` / `HD004140`: F9 `ISSUED` + trừ custody ngay khi YC PENDING — sai P10-03 (đã tách stock sang confirm gold 2026-11-22).

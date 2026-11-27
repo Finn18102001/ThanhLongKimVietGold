@@ -13,6 +13,7 @@ const LIGHT_PREFETCH = new Set<string>([
   ROUTES.categories,
   ROUTES.products,
   ROUTES.form02,
+  ROUTES.cashVouchers,
   ROUTES.workShifts,
   ROUTES.audit,
   ROUTES.settings,

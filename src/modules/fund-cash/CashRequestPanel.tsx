@@ -77,12 +77,21 @@ export function CashRequestPanel({
 
   function onConfirm(row: CashRequestRow) {
     if (!canMutateQueue || !row.canConfirm) return;
+    const method =
+      row.paymentMethod === "TRANSFER" || row.paymentMethod === "CARD"
+        ? row.paymentMethod
+        : "CASH";
     startTransition(async () => {
       setError(null);
       setNotice(null);
-      const res = await confirmCashRequest(row.id);
+      // Panel bảng: mặc định Đủ + method trên YC. Form đầy đủ nằm ở CashRequestCards (Bán/Mua).
+      const res = await confirmCashRequest(row.id, {
+        paymentMethod: method,
+        payMode: "FULL",
+      });
       if (!res.ok) {
         setError(formatActionError(res.message));
+        reload();
         return;
       }
       setNotice(
@@ -100,12 +109,15 @@ export function CashRequestPanel({
     startTransition(async () => {
       setError(null);
       setNotice(null);
-      const res = await rejectCashRequest({ requestId: row.id, reason: "Từ chối từ Quỹ tiền" });
+      const res = await rejectCashRequest({
+        requestId: row.id,
+        reason: "Từ chối từ Quỹ tiền (hủy chứng từ gắn)",
+      });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
-      setNotice(`Đã từ chối ${res.data.code}. Trạng thái HĐ không đổi.`);
+      setNotice(`Đã từ chối ${res.data.code} và hủy chứng từ gắn (nếu còn).`);
       reload();
     });
   }

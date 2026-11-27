@@ -1035,6 +1035,8 @@ export function PosTerminal({
       if (charge.amountDong <= 0) return "Khoản thu thêm phải lớn hơn 0. Không dùng khoản âm để giảm giá.";
       if (!charge.reason.trim()) return `Khoản "${named}" cần lý do.`;
     }
+    // P10 §5.3: Flag ON — QV không chọn method/status; provisional CASH + full YC amount.
+    if (employeeFundEnabled) return null;
     if (payMode === "FULL") {
       return paymentSplitValidationError(displayTotal);
     }
@@ -1300,7 +1302,7 @@ export function PosTerminal({
       setAlert({
         tone: "error",
         title: "Cần in phiếu trước",
-        reason: "Flag ON: bấm «In phiếu» để tạo HĐ + YC-THU. F9 trả vàng sau khi Quỹ tiền xác nhận.",
+        reason: "Bấm «In phiếu» để tạo hóa đơn và yêu cầu thu. F9 trả vàng sau khi Quỹ tiền xác nhận.",
       });
       return;
     }
@@ -1308,10 +1310,16 @@ export function PosTerminal({
     if (!idempotencyKey.current) {
       idempotencyKey.current = crypto.randomUUID();
     }
-    const paidToSend = resolvePaidDong(payMode, paidDong, displayTotal);
+    // Flag ON: provisional full amount + CASH so YC gets total; RPC resets sale → UNPAID until QT.
+    const fundProvisional = Boolean(employeeFundEnabled && opts?.printFundSlip);
+    const paidToSend = fundProvisional
+      ? displayTotal
+      : resolvePaidDong(payMode, paidDong, displayTotal);
     const dueToSend = paidToSend < displayTotal ? dueDate : null;
-    const method = resolvePaymentMethod();
-    const splits = buildPaymentSplits(paidToSend);
+    const method = fundProvisional ? ("CASH" as const) : resolvePaymentMethod();
+    const splits = fundProvisional
+      ? [{ method: "CASH" as const, amount_dong: paidToSend }]
+      : buildPaymentSplits(paidToSend);
     const chargePayload = charges
       .filter((row) => row.name.trim() && row.amountDong > 0)
       .map((row) => ({
@@ -1746,6 +1754,7 @@ export function PosTerminal({
             onSave={() => void onSaveHold()}
             saving={savingHold}
             heldHoldNo={activeHoldNo}
+            employeeFundEnabled={employeeFundEnabled}
           />
         </div>
 

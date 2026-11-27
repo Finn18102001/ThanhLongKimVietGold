@@ -587,10 +587,6 @@ export function BuyWorkflowPanel({
             <div className="space-y-2">
               {employeeFundEnabled ? (
                 <>
-                  <p className="rounded-lg bg-[var(--tlkv-amber-soft)] px-2.5 py-2 text-[11px] text-[var(--tlkv-amber)]">
-                    Flag ON: «In phiếu» mở xem trước YC-CHI (kiểm tra rồi mới in). Chờ Quỹ tiền, rồi «Kiểm tra trạng thái»
-                    để mở khóa xác nhận Phiếu 02. Giữ modal này (không có Đơn đã lưu mua).
-                  </p>
                   <button
                     type="button"
                     disabled={busy}

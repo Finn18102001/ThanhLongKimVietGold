@@ -1,7 +1,7 @@
 # P11 — Quản lý ca làm việc nhân viên (sổ mở/đóng ca)
 
 > Tạo: 2026-11-25 · Contract: `SYSTEM_DEVELOPMENT_RULES.md`  
-> Độc lập P10. Tái dùng Future 1 cửa sổ 07:00–20:00 VN; **không** thay cổng giờ.
+> Độc lập P10. Tái dùng Future 1 cửa sổ **07:00 → 05:00 hôm sau** VN (overnight; chốt 2026-11-28); **không** thay cổng giờ ngoài helper `work_hours_*`.
 
 ## 1. Mục tiêu
 
@@ -11,10 +11,10 @@ Tự ghi nhận thời gian làm việc STAFF từ lúc đăng nhập đến lú
 
 | Sự kiện | Hành vi |
 |---------|---------|
-| STAFF login thành công trong [07:00, 20:00) VN | Tự **mở ca** (không bấm nút). Idempotent nếu đã có ca `active`. |
+| STAFF login thành công trong cửa sổ overnight [07:00 → 05:00 hôm sau) VN | Tự **mở ca** (không bấm nút). Idempotent nếu đã có ca `active`. |
 | Trong ca | Dùng POS theo quyền + gate Future 1. |
 | Đăng xuất chủ động | **Đóng ca**, `close_reason = logout`. |
-| Tới 20:00 (tab còn mở) | FE + layout logout + message `Đã hết ca làm việc.` + đóng ca `auto_end_of_day`. |
+| Tới 05:00 (tab còn mở) | FE + layout logout + message `Đã hết ca làm việc.` + đóng ca `auto_end_of_day`. |
 | Đóng trình duyệt không logout | Ca vẫn `active` đến khi có sự kiện đóng hợp lệ (logout / hết giờ / reconcile stale). |
 | Admin / Admin chỉ xem | Không bị giới hạn giờ; **không** mở ca nhân viên; được xem UI Quản lý ca. |
 

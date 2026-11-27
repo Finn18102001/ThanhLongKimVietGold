@@ -35,6 +35,7 @@ export const ROUTES = {
   audit: "/audit",
   workShifts: "/work-shifts",
   form02: "/form02",
+  cashVouchers: "/cash-vouchers",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

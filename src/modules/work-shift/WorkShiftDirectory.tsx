@@ -81,7 +81,7 @@ export function WorkShiftDirectory({
         <h1 className="text-[18px] font-semibold">Quản lý ca làm việc</h1>
         <p className="mt-1 text-[13px] text-[var(--tlkv-muted)]">
           Hệ thống tự ghi nhận mở ca khi nhân viên đăng nhập trong khung giờ, và đóng ca khi đăng
-          xuất hoặc hết giờ 20:00. Chỉ Admin được xem lịch sử.
+          xuất hoặc hết giờ 05:00. Chỉ Admin được xem lịch sử.
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export function WorkShiftDirectory({
         <Kpi label="Đã mở ca hôm nay" value={overview.openedStaffCount} />
         <Kpi label="Đang trong ca" value={overview.activeCount} />
         <Kpi label="Đã đóng ca" value={overview.closedCount} />
-        <Kpi label="Tự động đóng lúc 20:00" value={overview.autoClosedCount} />
+        <Kpi label="Tự động đóng lúc 05:00" value={overview.autoClosedCount} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-5">

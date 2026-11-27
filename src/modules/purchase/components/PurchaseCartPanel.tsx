@@ -56,6 +56,7 @@ export function PurchaseCartPanel({
   receiveAccountNote,
   onReceiveAccountNote,
   onCheckout,
+  employeeFundEnabled = false,
 }: {
   customer: CustomerRecord | null;
   debt: { payableDong: number; receivableDong: number; buyCount: number; saleCount: number } | null;
@@ -88,6 +89,8 @@ export function PurchaseCartPanel({
   onReceiveAccountKind: (v: "" | "COMPANY" | "PERSONAL") => void;
   onReceiveAccountNote: (v: string) => void;
   onCheckout: () => void;
+  /** P10 §5.3 Flag ON: QT chọn hình thức / trạng thái trả. */
+  employeeFundEnabled?: boolean;
 }) {
   function setUnitPrice(line: BuyLine, next: number) {
     onChangeLine(line.localId, {
@@ -332,133 +335,265 @@ export function PurchaseCartPanel({
           </div>
         ) : null}
 
-        <label className="mt-3 block text-[13px]">
-          Hình thức
-          <select
-            value={paymentMethod}
-            onChange={(e) => onPaymentMethod(e.target.value as PaymentMethod)}
-            className={`${purchaseInputClass} mt-1`}
-          >
-            <option value="CASH">Tiền mặt</option>
-            <option value="TRANSFER">Chuyển khoản</option>
-            <option value="CARD">Thẻ</option>
-          </select>
-        </label>
+        {employeeFundEnabled ? null : (
+          <>
+          <label className="mt-3 block text-[13px]">
 
-        {paymentMethod === "TRANSFER" ? (
-          <div className="mt-3 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
-            <p className="text-[12px] font-medium">Loại TK nhận của khách</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(
-                [
-                  { value: "COMPANY" as const, label: "Công ty" },
-                  { value: "PERSONAL" as const, label: "Cá nhân" },
-                ] as const
-              ).map((opt) => {
-                const active = receiveAccountKind === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onReceiveAccountKind(opt.value)}
-                    className={`h-9 rounded-lg text-[12px] font-semibold ${
-                      active
-                        ? "bg-[var(--tlkv-red)] text-white"
-                        : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-            {receiveAccountKind === "PERSONAL" && !bankAccount.trim() && !bankAccountHolder.trim() ? (
-              <label className="block text-[12px] text-[var(--tlkv-muted)]">
-                Nhận diện TK cá nhân
+            Hình thức
+
+            <select
+
+              value={paymentMethod}
+
+              onChange={(e) => onPaymentMethod(e.target.value as PaymentMethod)}
+
+              className={`${purchaseInputClass} mt-1`}
+
+            >
+
+              <option value="CASH">Tiền mặt</option>
+
+              <option value="TRANSFER">Chuyển khoản</option>
+
+              <option value="CARD">Thẻ</option>
+
+            </select>
+
+          </label>
+
+
+
+          {paymentMethod === "TRANSFER" ? (
+
+            <div className="mt-3 space-y-2 rounded-lg border border-[var(--tlkv-line)] p-2.5">
+
+              <p className="text-[12px] font-medium">Loại TK nhận của khách</p>
+
+              <div className="grid grid-cols-2 gap-1.5">
+
+                {(
+
+                  [
+
+                    { value: "COMPANY" as const, label: "Công ty" },
+
+                    { value: "PERSONAL" as const, label: "Cá nhân" },
+
+                  ] as const
+
+                ).map((opt) => {
+
+                  const active = receiveAccountKind === opt.value;
+
+                  return (
+
+                    <button
+
+                      key={opt.value}
+
+                      type="button"
+
+                      onClick={() => onReceiveAccountKind(opt.value)}
+
+                      className={`h-9 rounded-lg text-[12px] font-semibold ${
+
+                        active
+
+                          ? "bg-[var(--tlkv-red)] text-white"
+
+                          : "border border-[var(--tlkv-line)] text-[var(--tlkv-text)] hover:bg-[var(--tlkv-bg)]"
+
+                      }`}
+
+                    >
+
+                      {opt.label}
+
+                    </button>
+
+                  );
+
+                })}
+
+              </div>
+
+              {receiveAccountKind === "PERSONAL" && !bankAccount.trim() && !bankAccountHolder.trim() ? (
+
+                <label className="block text-[12px] text-[var(--tlkv-muted)]">
+
+                  Nhận diện TK cá nhân
+
+                  <input
+
+                    value={receiveAccountNote}
+
+                    onChange={(e) => onReceiveAccountNote(e.target.value)}
+
+                    placeholder="Bắt buộc nếu chưa nhập số TK / chủ TK"
+
+                    className={`${purchaseInputClass} mt-0.5`}
+
+                  />
+
+                </label>
+
+              ) : null}
+
+              <label className="block text-[13px]">
+
+                Số tài khoản
+
                 <input
-                  value={receiveAccountNote}
-                  onChange={(e) => onReceiveAccountNote(e.target.value)}
-                  placeholder="Bắt buộc nếu chưa nhập số TK / chủ TK"
-                  className={`${purchaseInputClass} mt-0.5`}
+
+                  type="text"
+
+                  value={bankAccount}
+
+                  onChange={(e) => onBankAccount(e.target.value)}
+
+                  placeholder="Số TK ngân hàng của khách"
+
+                  autoComplete="off"
+
+                  className={`${purchaseInputClass} mt-1`}
+
                 />
+
               </label>
-            ) : null}
-            <label className="block text-[13px]">
-              Số tài khoản
-              <input
-                type="text"
-                value={bankAccount}
-                onChange={(e) => onBankAccount(e.target.value)}
-                placeholder="Số TK ngân hàng của khách"
-                autoComplete="off"
+
+              <label className="block text-[13px]">
+
+                Chủ tài khoản
+
+                <input
+
+                  type="text"
+
+                  value={bankAccountHolder}
+
+                  onChange={(e) => onBankAccountHolder(e.target.value)}
+
+                  placeholder="Tên chủ tài khoản"
+
+                  autoComplete="off"
+
+                  className={`${purchaseInputClass} mt-1`}
+
+                />
+
+              </label>
+
+            </div>
+
+          ) : null}
+
+
+
+          <fieldset className="mt-3">
+
+            <legend className="text-[13px]">Trả cho khách</legend>
+
+            <div className="mt-1 grid grid-cols-3 gap-1.5">
+
+              {(
+
+                [
+
+                  { value: "FULL" as const, label: "Đủ" },
+
+                  { value: "PARTIAL" as const, label: "Một phần" },
+
+                  { value: "UNPAID" as const, label: "Chờ TT" },
+
+                ] as const
+
+              ).map((option) => {
+
+                const active = payMode === option.value;
+
+                return (
+
+                  <button
+
+                    key={option.value}
+
+                    type="button"
+
+                    onClick={() => onPayMode(option.value)}
+
+                    className={`h-9 rounded-lg text-[12px] font-semibold ${
+
+                      active
+
+                        ? "bg-[var(--tlkv-red)] text-white"
+
+                        : "border border-[var(--tlkv-line)] hover:bg-[var(--tlkv-bg)]"
+
+                    }`}
+
+                  >
+
+                    {option.label}
+
+                  </button>
+
+                );
+
+              })}
+
+            </div>
+
+          </fieldset>
+
+
+
+          {payMode === "PARTIAL" ? (
+
+            <label className="mt-3 block text-[13px]">
+
+              Số tiền trả (VND)
+
+              <DongInput
+
+                value={paidDong > 0 ? String(paidDong) : ""}
+
+                onValueChange={(digits) => onPaidDong(digits ? Number(digits) : 0)}
+
                 className={`${purchaseInputClass} mt-1`}
+
               />
+
             </label>
-            <label className="block text-[13px]">
-              Chủ tài khoản
+
+          ) : null}
+
+
+
+          {remainingDong > 0 ? (
+
+            <label className="mt-3 block text-[13px]">
+
+              Ngày hẹn trả
+
               <input
-                type="text"
-                value={bankAccountHolder}
-                onChange={(e) => onBankAccountHolder(e.target.value)}
-                placeholder="Tên chủ tài khoản"
-                autoComplete="off"
+
+                type="date"
+
+                value={dueDate}
+
+                onChange={(e) => onDueDate(e.target.value)}
+
                 className={`${purchaseInputClass} mt-1`}
+
               />
+
             </label>
-          </div>
-        ) : null}
 
-        <fieldset className="mt-3">
-          <legend className="text-[13px]">Trả cho khách</legend>
-          <div className="mt-1 grid grid-cols-3 gap-1.5">
-            {(
-              [
-                { value: "FULL" as const, label: "Đủ" },
-                { value: "PARTIAL" as const, label: "Một phần" },
-                { value: "UNPAID" as const, label: "Chờ TT" },
-              ] as const
-            ).map((option) => {
-              const active = payMode === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onPayMode(option.value)}
-                  className={`h-9 rounded-lg text-[12px] font-semibold ${
-                    active
-                      ? "bg-[var(--tlkv-red)] text-white"
-                      : "border border-[var(--tlkv-line)] hover:bg-[var(--tlkv-bg)]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+          ) : null}
 
-        {payMode === "PARTIAL" ? (
-          <label className="mt-3 block text-[13px]">
-            Số tiền trả (VND)
-            <DongInput
-              value={paidDong > 0 ? String(paidDong) : ""}
-              onValueChange={(digits) => onPaidDong(digits ? Number(digits) : 0)}
-              className={`${purchaseInputClass} mt-1`}
-            />
-          </label>
-        ) : null}
 
-        {remainingDong > 0 ? (
-          <label className="mt-3 block text-[13px]">
-            Ngày hẹn trả
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => onDueDate(e.target.value)}
-              className={`${purchaseInputClass} mt-1`}
-            />
-          </label>
-        ) : null}
+          </>
+        )}
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button

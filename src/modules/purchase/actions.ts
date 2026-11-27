@@ -469,6 +469,11 @@ export async function issueBuyFundRequest(buyId: string): Promise<
     const row = (data ?? {}) as Record<string, unknown>;
     const requestId = String(row.id ?? "");
     if (!requestId) throw new Error("Không nhận được mã YC-CHI.");
+    // P10 §5.3: sau In phiếu YC-CHI → phiếu mua UNPAID đến khi QT confirm.
+    await supabase.rpc("pos_employee_fund_mark_awaiting_payment", {
+      p_source_type: "buy",
+      p_source_id: buyId,
+    });
     revalidatePath("/purchase");
     return {
       requestId,
@@ -674,6 +679,29 @@ export async function voidBuy(input: {
     revalidatePath("/invoices");
     return getBuy(input.buyId);
   }, "Không hủy được phiếu mua");
+}
+
+/** P10: QV hủy phiếu mua UNPAID / Chờ thanh toán (≡ Reject YC, A2; atomic vs QT confirm). */
+export async function cancelBuyAwaitingPayment(input: {
+  buyId: string;
+  reason: string;
+}): Promise<ActionResult<BuyDetail>> {
+  const reason = input.reason.trim();
+  if (reason.length < 3) {
+    return actionFail("Phải nhập lý do hủy (tối thiểu 3 ký tự).");
+  }
+  return runAction(async () => {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.rpc("pos_buy_cancel_awaiting_payment", {
+      p_buy_id: input.buyId,
+      p_reason: reason,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/purchase");
+    revalidatePath("/invoices");
+    revalidatePath("/fund-cash");
+    return getBuy(input.buyId);
+  }, "Không hủy được phiếu mua chờ thanh toán");
 }
 
 export async function collectBuyPayment(input: {

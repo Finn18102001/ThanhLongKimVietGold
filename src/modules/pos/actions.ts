@@ -95,10 +95,19 @@ export async function completeSale(input: CompleteSaleInput): Promise<CompleteSa
         message: formatActionError(error.message, "Thanh toán hoặc phát hành hóa đơn thất bại."),
       };
     }
+    const sale = data as SaleResult;
+    // P10 §5.3: sau In phiếu / tạo YC → UNPAID đến khi QT confirm.
+    const saleId = (sale as { sale_id?: string }).sale_id;
+    if (saleId) {
+      await supabase.rpc("pos_employee_fund_mark_awaiting_payment", {
+        p_source_type: "sale",
+        p_source_id: saleId,
+      });
+    }
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");
-    return { ok: true, sale: data as SaleResult };
+    return { ok: true, sale };
   } catch (err) {
     return {
       ok: false,
@@ -176,10 +185,18 @@ export async function completeHeldSale(
         message: formatActionError(error.message, "Thanh toán hoặc phát hành hóa đơn thất bại."),
       };
     }
+    const sale = data as SaleResult;
+    const saleId = (sale as { sale_id?: string }).sale_id;
+    if (saleId) {
+      await supabase.rpc("pos_employee_fund_mark_awaiting_payment", {
+        p_source_type: "sale",
+        p_source_id: saleId,
+      });
+    }
     revalidatePath("/inventory");
     revalidatePath("/invoices");
     revalidatePath("/customers");
-    return { ok: true, sale: data as SaleResult };
+    return { ok: true, sale };
   } catch (err) {
     return {
       ok: false,

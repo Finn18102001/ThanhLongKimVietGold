@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { formatDong } from "@/shared/lib/money";
 import { formatActionError } from "@/shared/lib/action-result";
+import { DongInput } from "@/shared/ui/DongInput";
 import { Modal } from "@/shared/ui/Modal";
 import {
   confirmCashRequest,
@@ -14,8 +15,11 @@ import { formatMoneyKind, formatPaymentMethod, moneyKindFromPaymentMethod } from
 import { YcPrintPreviewOverlay } from "./YcPrintPreviewOverlay";
 import type { CashRequestKind, CashRequestListPage, CashRequestRow } from "./types";
 
+type ConfirmMethod = "CASH" | "TRANSFER" | "CARD";
+type ConfirmPayMode = "FULL" | "PARTIAL";
+
 function formatWhen(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString("vi-VN", { hour12: false });
@@ -53,9 +57,25 @@ export function CashRequestCards({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<CashRequestRow | null>(null);
   const [printRow, setPrintRow] = useState<CashRequestRow | null>(null);
+  const [confirmMethod, setConfirmMethod] = useState<ConfirmMethod>("CASH");
+  const [confirmPayMode, setConfirmPayMode] = useState<ConfirmPayMode>("FULL");
+  const [confirmAmount, setConfirmAmount] = useState(0);
+  const [rejectReason, setRejectReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function openSelected(row: CashRequestRow) {
+    setSelected(row);
+    const provisional =
+      row.paymentMethod === "TRANSFER" || row.paymentMethod === "CARD"
+        ? row.paymentMethod
+        : "CASH";
+    setConfirmMethod(provisional);
+    setConfirmPayMode("FULL");
+    setConfirmAmount(row.amountDong);
+    setRejectReason("");
+  }
 
   const cards = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -95,15 +115,23 @@ export function CashRequestCards({
     startTransition(async () => {
       setError(null);
       setNotice(null);
-      const res = await confirmCashRequest(row.id);
+      const res = await confirmCashRequest(row.id, {
+        paymentMethod: confirmMethod,
+        payMode: confirmPayMode,
+        amountDong: confirmPayMode === "PARTIAL" ? confirmAmount : null,
+      });
       if (!res.ok) {
         setError(formatActionError(res.message));
+        setSelected(null);
+        reload();
         return;
       }
       setNotice(
         res.data.alreadyConfirmed
           ? `${res.data.code} đã xác nhận trước.`
-          : `Đã xác nhận ${res.data.code} (${formatMoneyKind(res.data.moneyKind)}).`,
+          : `Đã xác nhận ${res.data.code} (${formatMoneyKind(res.data.moneyKind)}${
+              res.data.sourcePaymentStatus ? ` · ${res.data.sourcePaymentStatus}` : ""
+            }).`,
       );
       setSelected(null);
       reload();
@@ -112,18 +140,23 @@ export function CashRequestCards({
 
   function onReject(row: CashRequestRow) {
     if (!canAct || !row.canReject) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      setError("Từ chối YC bắt buộc nhập lý do (sẽ hủy HĐ/phiếu mua gắn).");
+      return;
+    }
     startTransition(async () => {
       setError(null);
       setNotice(null);
       const res = await rejectCashRequest({
         requestId: row.id,
-        reason: "Từ chối từ Quỹ tiền (UI)",
+        reason,
       });
       if (!res.ok) {
         setError(formatActionError(res.message));
         return;
       }
-      setNotice(`Đã từ chối ${res.data.code}.`);
+      setNotice(`Đã từ chối ${res.data.code} và hủy chứng từ gắn (nếu còn).`);
       setSelected(null);
       reload();
     });
@@ -198,7 +231,7 @@ export function CashRequestCards({
               <button
                 key={row.id}
                 type="button"
-                onClick={() => setSelected(row)}
+                onClick={() => openSelected(row)}
                 className="rounded-[12px] border border-[var(--tlkv-line)] bg-white p-4 text-left shadow-[var(--tlkv-shadow)] transition hover:border-[var(--tlkv-red)]"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -292,11 +325,11 @@ export function CashRequestCards({
               <dd className="font-semibold">{selected.sourceCode || selected.sourceId}</dd>
             </div>
             <div>
-              <dt className="text-[var(--tlkv-muted)]">Số tiền</dt>
+              <dt className="text-[var(--tlkv-muted)]">Số tiền YC</dt>
               <dd className="font-semibold tabular-nums">{formatDong(selected.amountDong)}</dd>
             </div>
             <div>
-              <dt className="text-[var(--tlkv-muted)]">Hình thức / ghi quỹ</dt>
+              <dt className="text-[var(--tlkv-muted)]">Hình thức / ghi quỹ (tạm)</dt>
               <dd className="font-semibold">
                 {formatPaymentMethod(selected.paymentMethod)} →{" "}
                 {formatMoneyKind(moneyKindFromPaymentMethod(selected.paymentMethod))}
@@ -304,25 +337,111 @@ export function CashRequestCards({
             </div>
             <div>
               <dt className="text-[var(--tlkv-muted)]">Khách</dt>
-              <dd>{selected.customerName || "—"}</dd>
+              <dd>{selected.customerName || "-"}</dd>
             </div>
             <div>
               <dt className="text-[var(--tlkv-muted)]">CCCD</dt>
-              <dd>{selected.customerCccd || "—"}</dd>
+              <dd>{selected.customerCccd || "-"}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-[var(--tlkv-muted)]">NV / Quỹ vàng liên quan</dt>
               <dd>
                 {[selected.relatedStaffName, selected.relatedGoldAccountCode]
                   .filter(Boolean)
-                  .join(" · ") || "—"}
+                  .join(" · ") || "-"}
               </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-[var(--tlkv-muted)]">Nội dung</dt>
-              <dd>{selected.content || "—"}</dd>
+              <dd>{selected.content || "-"}</dd>
             </div>
           </dl>
+          {canAct && selected.canConfirm ? (
+            <div className="mt-4 space-y-3 border-t border-[var(--tlkv-line)] pt-3">
+              <fieldset>
+                <legend className="text-[13px] font-semibold">Hình thức thanh toán</legend>
+                <div className="mt-1 grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      { value: "CASH" as const, label: "Tiền mặt" },
+                      { value: "TRANSFER" as const, label: "Chuyển khoản" },
+                      { value: "CARD" as const, label: "Thẻ" },
+                    ] as const
+                  ).map((opt) => {
+                    const active = confirmMethod === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setConfirmMethod(opt.value)}
+                        className={`h-9 rounded-lg text-[12px] font-semibold ${
+                          active
+                            ? "bg-[var(--tlkv-red)] text-white"
+                            : "border border-[var(--tlkv-line)] hover:bg-[var(--tlkv-bg)]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--tlkv-muted)]">
+                  Ghi quỹ: {formatMoneyKind(moneyKindFromPaymentMethod(confirmMethod))}
+                </p>
+              </fieldset>
+              <fieldset>
+                <legend className="text-[13px] font-semibold">
+                  {selected.kind === "THU" ? "Trạng thái thu" : "Trạng thái chi"}
+                </legend>
+                <div className="mt-1 grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      { value: "FULL" as const, label: "Đủ" },
+                      { value: "PARTIAL" as const, label: selected.kind === "THU" ? "Đặt cọc" : "Một phần" },
+                    ] as const
+                  ).map((opt) => {
+                    const active = confirmPayMode === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setConfirmPayMode(opt.value)}
+                        className={`h-9 rounded-lg text-[12px] font-semibold ${
+                          active
+                            ? "bg-[var(--tlkv-red)] text-white"
+                            : "border border-[var(--tlkv-line)] hover:bg-[var(--tlkv-bg)]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              {confirmPayMode === "PARTIAL" ? (
+                <label className="block text-[13px]">
+                  Số tiền xác nhận (VND)
+                  <DongInput
+                    value={confirmAmount > 0 ? String(confirmAmount) : ""}
+                    onValueChange={(digits) => setConfirmAmount(digits ? Number(digits) : 0)}
+                    className="mt-1 h-10 w-full rounded-lg border border-[var(--tlkv-line)] px-3 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+                  />
+                </label>
+              ) : null}
+            </div>
+          ) : null}
+          {canAct && selected.canReject ? (
+            <label className="mt-3 block text-[13px]">
+              Lý do từ chối (bắt buộc - hủy HĐ/phiếu mua gắn)
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={2}
+                className="mt-1 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px] outline-none focus:border-[var(--tlkv-red)]"
+                placeholder="Nhập lý do từ chối…"
+              />
+            </label>
+          ) : null}
           {selected.lines.length > 0 ? (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-[12px]">

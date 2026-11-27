@@ -24,6 +24,7 @@ import { ResultAlert, type ResultAlertModel } from "@/shared/ui/ResultAlert";
 import { YcPrintPreviewOverlay } from "@/modules/fund-cash/YcPrintPreviewOverlay";
 import type { CashRequestRow } from "@/modules/fund-cash/types";
 import {
+  cancelBuyAwaitingPayment,
   checkBuyFundRequestStatus,
   collectBuyPayment,
   completeBuy,
@@ -183,6 +184,9 @@ export function PurchaseWorkspace({
   const [uploadPending, setUploadPending] = useState(false);
   const [printDoc, setPrintDoc] = useState<PrintDocKind>("invoice");
   const [detailTab, setDetailTab] = useState<"overview" | "docs">("overview");
+  const [cancelAwaitingOpen, setCancelAwaitingOpen] = useState(false);
+  const [cancelAwaitingReason, setCancelAwaitingReason] = useState("");
+  const [cancelAwaitingError, setCancelAwaitingError] = useState<string | null>(null);
   const workflowKey = useRef<string | null>(null);
   const catalogRef = useRef(bootCatalog);
   const scanBusyRef = useRef(false);
@@ -704,12 +708,56 @@ export function PurchaseWorkspace({
     }
   }
 
+  async function onConfirmCancelAwaiting() {
+    if (!detail || workflowPending) return;
+    const reason = cancelAwaitingReason.trim();
+    if (reason.length < 3) {
+      setCancelAwaitingError("Phải nhập lý do hủy (tối thiểu 3 ký tự).");
+      return;
+    }
+    setWorkflowPending(true);
+    setCancelAwaitingError(null);
+    try {
+      const res = await cancelBuyAwaitingPayment({ buyId: detail.id, reason });
+      if (!res.ok) {
+        const msg = formatActionError(res.message, "Không hủy được phiếu mua chờ thanh toán");
+        setCancelAwaitingOpen(false);
+        setCancelAwaitingReason("");
+        setAlert({
+          tone: "error",
+          title: "Không hủy được",
+          reason: msg,
+        });
+        // QT đã xác nhận trước: tải lại trạng thái, giữ flow mua (không bắt mở lại).
+        const refreshed = await getBuy(detail.id);
+        setDetail(refreshed);
+        await refreshFundStatus(refreshed.id);
+        await reloadAwaitingFundList();
+        return;
+      }
+      setCancelAwaitingOpen(false);
+      setCancelAwaitingReason("");
+      setDetail(null);
+      await reloadAwaitingFundList();
+      setAlert({
+        tone: "success",
+        title: "Đã hủy phiếu mua",
+        reason: `${res.data.buyNo} · yêu cầu thanh toán đã hủy.`,
+      });
+    } finally {
+      setWorkflowPending(false);
+    }
+  }
+
   async function openDetail(buyId: string) {
     setDetailLoading(true);
     setDetail(null);
     setDetailTab("overview");
     collectKey.current = null;
     workflowKey.current = null;
+    setCancelAwaitingOpen(false);
+    setCancelAwaitingReason("");
+    setCancelAwaitingError(null);
     setPrintDoc("invoice");
     setFundCanConfirmInvoice(!employeeFundEnabled);
     setFundRequestCode(null);
@@ -1035,6 +1083,7 @@ export function PurchaseWorkspace({
             onChangeLine={onChangeLine}
             onRemove={(id) => setLines((prev) => prev.filter((l) => l.localId !== id))}
             onCheckout={openReview}
+            employeeFundEnabled={employeeFundEnabled}
           />
         </div>
       </div>
@@ -1283,6 +1332,24 @@ export function PurchaseWorkspace({
                 >
                   <Printer size={16} />
                   In hóa đơn mua
+                </button>
+              ) : null}
+              {detail &&
+              employeeFundEnabled &&
+              detail.status === "PROCESSING" &&
+              String(detail.paymentStatus) === "UNPAID" &&
+              fundRequestStatus === "PENDING" ? (
+                <button
+                  type="button"
+                  disabled={workflowPending}
+                  onClick={() => {
+                    setCancelAwaitingError(null);
+                    setCancelAwaitingReason("");
+                    setCancelAwaitingOpen(true);
+                  }}
+                  className="h-10 rounded-lg border border-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-[var(--tlkv-red)] disabled:opacity-40"
+                >
+                  Hủy
                 </button>
               ) : null}
               <button
@@ -1653,7 +1720,83 @@ export function PurchaseWorkspace({
         <YcPrintPreviewOverlay request={ycPrintRow} onClose={() => setYcPrintRow(null)} />
       ) : null}
 
-      {alert ? <ResultAlert alert={alert} onClose={() => setAlert(null)} /> : null}
+      {cancelAwaitingOpen && detail ? (
+        <Modal
+          title={`Hủy ${detail.buyNo}`}
+          onClose={() => {
+            if (!workflowPending) {
+              setCancelAwaitingOpen(false);
+              setCancelAwaitingError(null);
+            }
+          }}
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                disabled={workflowPending}
+                onClick={() => {
+                  setCancelAwaitingOpen(false);
+                  setCancelAwaitingError(null);
+                }}
+                className="h-10 rounded-lg border border-[var(--tlkv-line)] px-4 text-[13px] font-medium disabled:opacity-40"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                disabled={workflowPending}
+                onClick={() => void onConfirmCancelAwaiting()}
+                className="h-10 rounded-lg bg-[var(--tlkv-red)] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+              >
+                Xác nhận hủy
+              </button>
+            </div>
+          }
+        >
+          <label className="block text-[12px] font-medium text-[var(--tlkv-muted)]">
+            Lý do hủy (bắt buộc)
+            <textarea
+              value={cancelAwaitingReason}
+              onChange={(e) => setCancelAwaitingReason(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-[var(--tlkv-line)] px-3 py-2 text-[13px] text-[var(--tlkv-text)]"
+              placeholder="Nhập lý do hủy đơn chờ thanh toán"
+            />
+          </label>
+          {cancelAwaitingError ? (
+            <p className="mt-2 text-[12px] text-[var(--tlkv-red)]">{cancelAwaitingError}</p>
+          ) : null}
+        </Modal>
+      ) : null}
+
+      {alert ? (
+        <ResultAlert
+          alert={alert}
+          onClose={() => {
+            setAlert(null);
+            if (detail?.id) {
+              void (async () => {
+                try {
+                  const refreshed = await getBuy(detail.id);
+                  setDetail(refreshed);
+                  if (
+                    employeeFundEnabled &&
+                    (refreshed.workflowStatus === "INVOICE_ISSUED" ||
+                      refreshed.workflowStatus === "FORM02_READY")
+                  ) {
+                    await refreshFundStatus(refreshed.id);
+                  }
+                  await reloadAwaitingFundList();
+                } catch {
+                  /* keep current detail */
+                }
+              })();
+            } else {
+              void reloadAwaitingFundList();
+            }
+          }}
+        />
+      ) : null}
 
       {detail ? (
         <div className="hidden print:block">

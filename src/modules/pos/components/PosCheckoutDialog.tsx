@@ -137,13 +137,11 @@ export function PosCheckoutDialog({
             ? fundAwaitingLabel
               ? fundAwaitingLabel
               : "Quỹ tiền đã xác nhận thu. Bấm F9 để xác nhận trả vàng / trừ kho."
-            : fundGateNew
-              ? "Flag ON: «In phiếu» mở xem trước YC-THU (kiểm tra rồi mới in). Đơn vào «Đơn đã lưu» chờ Quỹ tiền. F9 trả vàng sau khi QT xác nhận và mở lại đơn."
-              : isDeposit
-                ? "Thanh toán một phần / đặt cọc. Hóa đơn lưu trạng thái thanh toán một phần. Không xuất kho tại lúc tạo đơn. Tiếp theo là thỏa thuận đặt cọc."
-                : isPreorder
-                  ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
-                  : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
+            : isDeposit
+              ? "Thanh toán một phần / đặt cọc. Hóa đơn lưu trạng thái thanh toán một phần. Không xuất kho tại lúc tạo đơn. Tiếp theo là thỏa thuận đặt cọc."
+              : isPreorder
+                ? "Đơn đặt hàng. Kho chưa trừ. Hàng trừ khi giao. Kiểm tra khách, giá điều chỉnh và ngày hẹn trả hàng trước khi chốt."
+                : "Kiểm tra khách hàng, giá giao dịch và số lượng trước khi chốt. Kho chưa trừ ngay. Hệ thống sẽ kiểm tra tồn, giá và quyền, rồi phát hành hóa đơn và trừ kho trong một bước."}
         </p>
       </div>
 
